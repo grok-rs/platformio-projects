@@ -1,0 +1,8 @@
+# PlatformIO build output and generated IDE files (any project folder)
+.pio/
+.vscode/
+.idea/
+CMakeLists.txt
+cmake-build-*/
+*.code-workspace.bak
+__pycache__/
