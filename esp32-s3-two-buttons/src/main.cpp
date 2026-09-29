@@ -1,94 +1,114 @@
 // Модуль 1.4 — два світлодіоди, зовнішня кнопка та BOOT (ESP32-S3-DevKitC-1).
 //
-//   Режим 1 (за замовчуванням) — обидва LED синхронно, 200 мс;   вмикає зовнішня кнопка.
+//   Режим 1 (за замовчуванням) — усі LED синхронно, 200 мс;       вмикає зовнішня кнопка.
 //   Режим 2                    — LED по черзі («переїзд»), 1000 мс; вмикає кнопка BOOT.
 //
 // Вибраний режим зберігається у змінній `mode` і не змінюється, доки не натиснуто
 // іншу кнопку. Схема та пояснення — у README.md.
+//
+// Уся «конфігурація» зібрана в трьох таблицях — kLedPins, kPatterns, kButtons.
+// Щоб додати світлодіод, режим або кнопку, досить дописати рядок у відповідну таблицю;
+// логіку нижче змінювати не треба (принцип відкритості/закритості).
 
 #include <Arduino.h>
 
 namespace {
 
-// --- Виводи --------------------------------------------------------------
-// Як у завданні: LED — GPIO15/16 (один гребінець), кнопка — GPIO21 (протилежний гребінець).
-// Не strapping-піни (0, 3, 45, 46), не USB (19, 20), не флеш/PSRAM (26…37).
-constexpr uint8_t kLed1Pin       = 15;
-constexpr uint8_t kLed2Pin       = 16;
-constexpr uint8_t kExtButtonPin  = 21;   // зовнішня кнопка -> GND, підтяжка всередині чипа
-constexpr uint8_t kBootButtonPin = 0;    // кнопка BOOT на платі, підтяжка 10 кОм на платі
+template <typename T, size_t N>
+constexpr size_t countOf(const T (&)[N]) { return N; }
 
-// --- Затримки ------------------------------------------------------------
-constexpr uint32_t kFastDelayMs = 200;    // режим 1
-constexpr uint32_t kSlowDelayMs = 1000;   // режим 2
+// --- Світлодіоди ---------------------------------------------------------
+// Як у завданні: LED — GPIO15/16 (один гребінець).
+// Не strapping-піни (0, 3, 45, 46), не USB (19, 20), не флеш/PSRAM (26…37).
+constexpr uint8_t kLedPins[] = {15, 16};
+constexpr size_t  kLedCount  = countOf(kLedPins);
+
+// --- Режими (шаблони миготіння) -----------------------------------------
+// Режим — це послідовність кроків однакової тривалості. На кожному кроці isOn(step, led)
+// каже, чи горить світлодіод `led`. Шаблони описані через індекси, а не через конкретні
+// виводи, тому автоматично масштабуються на будь-яку кількість LED.
+struct Pattern {
+  const char* name;
+  uint32_t    stepMs;
+  size_t      stepCount;
+  bool (*isOn)(size_t step, size_t led);
+};
+
+// Режим 1: усі разом увімкнулися — усі разом вимкнулися.
+bool syncIsOn(size_t step, size_t /*led*/) { return step == 0; }
+
+// Режим 2: горить рівно один LED, «вогник» переїжджає по колу.
+// Для двох LED це саме «перший горить — другий згашений, і навпаки».
+bool chaseIsOn(size_t step, size_t led) { return step == led; }
+
+constexpr Pattern kPatterns[] = {
+    {"1 (sync, 200 ms)",       200,  2,         syncIsOn},
+    {"2 (alternate, 1000 ms)", 1000, kLedCount, chaseIsOn},
+};
+
+enum PatternId : size_t { kSync = 0, kAlternate = 1 };
+static_assert(countOf(kPatterns) == 2, "update PatternId together with kPatterns");
+
+// --- Кнопки --------------------------------------------------------------
+// Кожна кнопка встановлює конкретний режим. Обидві замикають вивід на GND (натиснута = LOW).
+// Порядок у таблиці = пріоритет: якщо натиснуто кілька, перемагає перша.
+struct Button {
+  const char* name;
+  uint8_t     pin;
+  uint8_t     inputMode;
+  PatternId   pattern;
+};
+
+constexpr Button kButtons[] = {
+    {"external", 21, INPUT_PULLUP, kSync},       // внутрішній резистор ~45 кОм до 3.3 В
+    {"BOOT",     0,  INPUT,        kAlternate},  // підтяжка 10 кОм вже є на платі
+};
 
 constexpr uint32_t kSerialBaud   = 115200;
 constexpr uint32_t kSerialWaitMs = 2000;  // чекати USB CDC, щоб не втратити банер
 
-enum class Mode : uint8_t {
-  Sync      = 1,   // швидкий / синхронний
-  Alternate = 2,   // повільний / по черзі
-};
-
+// --- Стан програми -------------------------------------------------------
 // «Пам'ять» програми: поточний режим. При старті — режим 1.
-Mode mode = Mode::Sync;
+PatternId mode        = kSync;
+size_t    step        = 0;
+uint32_t  stepStarted = 0;
 
-// Обидві кнопки замикають вивід на GND, тому натиснута = LOW.
-bool isPressed(uint8_t pin) {
-  return digitalRead(pin) == LOW;
-}
+bool isPressed(const Button& b) { return digitalRead(b.pin) == LOW; }
 
-const char* modeName(Mode m) {
-  return m == Mode::Sync ? "1 (sync, 200 ms)" : "2 (alternate, 1000 ms)";
-}
-
-// Опитати кнопки та за потреби змінити режим. Повертає true, якщо режим змінився.
-// Якщо натиснуті обидві — пріоритет у зовнішньої кнопки.
-bool pollButtons() {
-  Mode requested = mode;
-  if (isPressed(kExtButtonPin)) {
-    requested = Mode::Sync;
-  } else if (isPressed(kBootButtonPin)) {
-    requested = Mode::Alternate;
+// Вивести на LED поточний крок поточного режиму.
+void render() {
+  const Pattern& p = kPatterns[mode];
+  for (size_t led = 0; led < kLedCount; ++led) {
+    digitalWrite(kLedPins[led], p.isOn(step, led) ? HIGH : LOW);
   }
-
-  if (requested == mode) return false;
-  mode = requested;
-  Serial.printf("Mode -> %s\n", modeName(mode));
-  return true;
+  stepStarted = millis();
 }
 
-// Той самий delay(ms), але кожну мілісекунду опитуються кнопки.
-// Повертає false, якщо режим змінився під час очікування — поточне миготіння треба перервати,
-// щоб новий режим почався одразу, а не після залишку старої затримки.
-bool waitMs(uint32_t ms) {
-  const uint32_t start = millis();
-  while (millis() - start < ms) {
-    if (pollButtons()) return false;
-    delay(1);
+// Почати режим з першого кроку — одразу, без очікування залишку старої затримки.
+void setMode(PatternId next) {
+  mode = next;
+  step = 0;
+  render();
+  Serial.printf("Mode -> %s\n", kPatterns[mode].name);
+}
+
+// Опитати кнопки; змінити режим, якщо натиснута кнопка іншого режиму.
+void pollButtons() {
+  for (const Button& b : kButtons) {
+    if (isPressed(b)) {
+      if (b.pattern != mode) setMode(b.pattern);
+      return;
+    }
   }
-  return true;
 }
 
-void setLeds(bool led1On, bool led2On) {
-  digitalWrite(kLed1Pin, led1On ? HIGH : LOW);
-  digitalWrite(kLed2Pin, led2On ? HIGH : LOW);
-}
-
-// Режим 1: обидва разом увімкнулися — обидва разом вимкнулися.
-void blinkSync() {
-  setLeds(true, true);
-  if (!waitMs(kFastDelayMs)) return;
-  setLeds(false, false);
-  waitMs(kFastDelayMs);
-}
-
-// Режим 2: перший горить — другий згашений, і навпаки.
-void blinkAlternate() {
-  setLeds(true, false);
-  if (!waitMs(kSlowDelayMs)) return;
-  setLeds(false, true);
-  waitMs(kSlowDelayMs);
+// Неблокуюче миготіння: перейти до наступного кроку, коли минув його час.
+// `millis() - stepStarted` — беззнакова різниця, коректна й після переповнення millis().
+void updateLeds() {
+  const Pattern& p = kPatterns[mode];
+  if (millis() - stepStarted < p.stepMs) return;
+  step = (step + 1) % p.stepCount;
+  render();
 }
 
 void waitForSerial(uint32_t timeoutMs) {
@@ -97,30 +117,33 @@ void waitForSerial(uint32_t timeoutMs) {
   }
 }
 
+void printBanner() {
+  Serial.println();
+  Serial.println("=== ESP32-S3: LEDs, external button + BOOT ===");
+  Serial.print("LEDs:");
+  for (uint8_t pin : kLedPins) Serial.printf(" GPIO%u", pin);
+  Serial.println();
+  for (const Button& b : kButtons) {
+    Serial.printf("Button %-8s GPIO%-2u -> mode %s\n", b.name, b.pin, kPatterns[b.pattern].name);
+  }
+  Serial.printf("Start mode: %s\n", kPatterns[mode].name);
+}
+
 }  // namespace
 
 void setup() {
   Serial.begin(kSerialBaud);
   waitForSerial(kSerialWaitMs);
 
-  pinMode(kLed1Pin, OUTPUT);
-  pinMode(kLed2Pin, OUTPUT);
-  setLeds(false, false);
+  for (uint8_t pin : kLedPins) pinMode(pin, OUTPUT);
+  for (const Button& b : kButtons) pinMode(b.pin, b.inputMode);
 
-  pinMode(kExtButtonPin, INPUT_PULLUP);   // внутрішній резистор ~45 кОм до 3.3 В
-  pinMode(kBootButtonPin, INPUT);         // підтяжка вже є на платі
-
-  Serial.println();
-  Serial.println("=== ESP32-S3: two LEDs, external button + BOOT ===");
-  Serial.printf("LEDs: GPIO%u, GPIO%u | external button: GPIO%u | BOOT: GPIO%u\n",
-                kLed1Pin, kLed2Pin, kExtButtonPin, kBootButtonPin);
-  Serial.printf("Start mode: %s\n", modeName(mode));
+  printBanner();
+  render();
 }
 
 void loop() {
   pollButtons();
-  switch (mode) {
-    case Mode::Sync:      blinkSync();      break;
-    case Mode::Alternate: blinkAlternate(); break;
-  }
+  updateLeds();
+  delay(1);
 }
