@@ -17,7 +17,7 @@ def dot(x, y):
 def board(x, y, w, h, pins):
     add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14" fill="#eef2f7" stroke="#334" stroke-width="2.5"/>')
     text(x + w/2, y + 38, "ESP32-S3", 20, "middle", "bold", "#223")
-    text(x + w/2, y + 62, "DevKitC-1", 16, "middle", "normal", "#445")
+    text(x + w/2, y + 62, "YD-ESP32-S3", 16, "middle", "normal", "#445")
     add(f'<rect x="{x + w/2 - 22}" y="{y + h - 48}" width="44" height="18" rx="3" fill="#cfd8e3" stroke="#556" stroke-width="1.5"/>')
     text(x + w/2, y + h - 35, "BOOT", 11, "middle", "bold", "#334")
     for label, py in pins:
@@ -85,7 +85,7 @@ for y, col, rl, dl in rows:
 line(bus_x, 200, bus_x, 450)
 line(px, 450, bus_x, 450); dot(bus_x, 450)
 gnd(bus_x, 450)
-text(60, 530, "Лівий гребінець плати: GND — pin 1, GPIO4/5/6 — pins 4/5/6 (одразу під RST).", 14, "start", "bold", "#445")
+text(60, 530, "Лівий гребінець: GPIO4/5/6 — піни 4/5/6 (одразу під RST), G — пін 22 (біля USB-C).", 14, "start", "bold", "#445")
 text(60, 553, "Аноди — до GPIO через резистор, катоди — на GND. Зелений (GPIO6) — необов'язковий.", 14, "start", "normal", "#445")
 text(60, 576, "Кнопка BOOT (GPIO0) вже на платі: коротке натискання — швидкість, довге — патерн.", 14, "start", "normal", "#445")
 
@@ -111,7 +111,7 @@ ty = 522
 text(ox, ty, "GPIO7 = HIGH", 15, "start", "bold"); text(ox + 150, ty, "→  світить D1 (червоний), D2 вимкнений", 15)
 text(ox, ty + 24, "GPIO7 = LOW", 15, "start", "bold"); text(ox + 150, ty + 24, "→  світить D2 (синій), D1 вимкнений", 15)
 text(ox, ty + 48, "GPIO7 = INPUT", 15, "start", "bold"); text(ox + 150, ty + 48, "→  Hi-Z: обидва вимкнені (3.3 В &lt; Vf(D2) + Vf(D1) ≈ 4.8 В)", 15)
-text(ox, ty + 76, "Лівий гребінець плати: GND — pin 1, 3V3 — pin 2, GPIO7 — pin 7.", 14, "start", "bold", "#445")
+text(ox, ty + 76, "Лівий гребінець: 3V3 — пін 1/2, GPIO7 — пін 7, G — пін 22 (біля USB-C).", 14, "start", "bold", "#445")
 text(ox, ty + 99, "Кадр R+B у цьому режимі — швидке перемикання HIGH/LOW (~500 Гц).", 14, "start", "normal", "#445")
 
 add('</svg>')
