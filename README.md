@@ -7,6 +7,7 @@ with the PlatformIO extension.
 | Project | Board | Summary |
 |---|---|---|
 | [`esp32-s3-led-blink`](esp32-s3-led-blink/) | ESP32-S3-DevKitC-1 (N16R8) | Red/blue LEDs blinking alternately on two GPIOs; extras: patterns, third LED, speed control, and both LEDs driven from a **single** GPIO via tri-state output |
+| [`esp32-s3-two-buttons`](esp32-s3-two-buttons/) | ESP32-S3-DevKitC-1 (N16R8) | Module 1.4: two LEDs, an external button (`INPUT_PULLUP`) and the on-board BOOT button (`INPUT`) select a sticky blink mode — synchronous 200 ms or alternating 1000 ms |
 
 ## Working with the repository
 

@@ -1,6 +1,7 @@
 {
   "folders": [
-    { "path": "esp32-s3-led-blink" }
+    { "path": "esp32-s3-led-blink" },
+    { "path": "esp32-s3-two-buttons" }
   ],
   "settings": {
     "files.associations": {

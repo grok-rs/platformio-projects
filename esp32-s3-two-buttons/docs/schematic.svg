@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="740" viewBox="0 0 1320 740">
+<rect width="1320" height="740" fill="#ffffff"/>
+<text x="40" y="48" font-size="21" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Принципова схема: 2 світлодіоди, зовнішня кнопка S1 та BOOT</text>
+<rect x="40" y="80" width="340" height="600" rx="14" fill="#eef2f7" stroke="#334" stroke-width="2.5"/>
+<text x="60" y="116" font-size="20" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">ESP32-S3</text>
+<text x="60" y="138" font-size="16" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">YD-ESP32-S3</text>
+<rect x="374" y="174" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="394" y="170" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO15</text>
+<line x1="386" y1="180" x2="416" y2="180" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="374" y="264" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="394" y="260" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO16</text>
+<line x1="386" y1="270" x2="416" y2="270" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="374" y="394" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="394" y="390" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO21</text>
+<line x1="386" y1="400" x2="416" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="374" y="634" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="394" y="630" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<line x1="386" y1="640" x2="416" y2="640" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<text x="60" y="185" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">OUTPUT</text>
+<text x="60" y="275" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">OUTPUT</text>
+<rect x="52" y="300" width="316" height="140" rx="8" fill="none" stroke="#7b8794" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="60" y="432" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">усередині чипа: INPUT_PULLUP</text>
+<line x1="278" y1="318" x2="302" y2="318" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="290" y="310" font-size="13" text-anchor="middle" font-weight="bold" fill="#b71c1c" font-family="DejaVu Sans, Arial, sans-serif">3V3</text>
+<line x1="290" y1="318" x2="290" y2="328" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="279" y="328" width="22" height="60" fill="#fff6d5" stroke="#52606d" stroke-width="2"/>
+<text x="308" y="363" font-size="14" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif"></text>
+<text x="272" y="368" font-size="14" text-anchor="end" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">≈45 kΩ</text>
+<line x1="290" y1="388" x2="290" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="290" cy="400" r="4.5" fill="#222"/>
+<line x1="100" y1="400" x2="374" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<text x="60" y="392" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">вхід GPIO21</text>
+<rect x="52" y="460" width="316" height="200" rx="8" fill="none" stroke="#7b8794" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="60" y="652" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">на платі: кнопка BOOT, GPIO0 (INPUT)</text>
+<line x1="138" y1="482" x2="162" y2="482" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="150" y="474" font-size="13" text-anchor="middle" font-weight="bold" fill="#b71c1c" font-family="DejaVu Sans, Arial, sans-serif">3V3</text>
+<line x1="150" y1="482" x2="150" y2="490" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="139" y="490" width="22" height="60" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="168" y="525" font-size="14" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">10 kΩ</text>
+<line x1="150" y1="550" x2="150" y2="560" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="150" cy="560" r="4.5" fill="#222"/>
+<line x1="150" y1="560" x2="300" y2="560" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<text x="300" y="552" font-size="14" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO0</text>
+<line x1="150" y1="560" x2="150" y2="574" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="150" y1="606" x2="150" y2="620" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="150" cy="574" r="4.5" fill="#fff" stroke="#222" stroke-width="2"/>
+<circle cx="150" cy="606" r="4.5" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="136" y1="570" x2="136" y2="610" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="136" y1="590" x2="122" y2="590" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="122" y1="582" x2="122" y2="598" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="166" y="595" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">BOOT</text>
+<line x1="150" y1="620" x2="150" y2="632" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="134" y1="632" x2="166" y2="632" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="140" y1="638" x2="160" y2="638" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="146" y1="644" x2="154" y2="644" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="416" y1="180" x2="480" y2="180" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="480" y="169" width="80" height="22" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="520" y="162" font-size="15" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R1  220 Ω</text>
+<line x1="560" y1="180" x2="640" y2="180" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="640" y1="180" x2="650" y2="180" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<polygon points="650,164 650,196 682,180" fill="#e53935" stroke="#222" stroke-width="2"/>
+<line x1="682" y1="164" x2="682" y2="196" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+<line x1="682" y1="180" x2="700" y2="180" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="664" y1="162" x2="676" y2="148" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="676" y1="148" x2="673.953977976886" y2="155.7339377991378" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="676" y1="148" x2="668.6699707196813" y2="151.2047887215337" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="674" y1="162" x2="686" y2="148" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="686" y1="148" x2="683.953977976886" y2="155.7339377991378" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="686" y1="148" x2="678.6699707196813" y2="151.2047887215337" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<text x="670" y="216" font-size="15" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">D1</text>
+<line x1="700" y1="180" x2="860" y2="180" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="416" y1="270" x2="480" y2="270" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="480" y="259" width="80" height="22" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="520" y="252" font-size="15" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R2  220 Ω</text>
+<line x1="560" y1="270" x2="640" y2="270" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="640" y1="270" x2="650" y2="270" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<polygon points="650,254 650,286 682,270" fill="#e53935" stroke="#222" stroke-width="2"/>
+<line x1="682" y1="254" x2="682" y2="286" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+<line x1="682" y1="270" x2="700" y2="270" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="664" y1="252" x2="676" y2="238" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="676" y1="238" x2="673.953977976886" y2="245.7339377991378" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="676" y1="238" x2="668.6699707196813" y2="241.2047887215337" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="674" y1="252" x2="686" y2="238" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="686" y1="238" x2="683.953977976886" y2="245.7339377991378" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<line x1="686" y1="238" x2="678.6699707196813" y2="241.2047887215337" stroke="#e53935" stroke-width="2" stroke-linecap="round"/>
+<text x="670" y="306" font-size="15" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">D2</text>
+<line x1="700" y1="270" x2="860" y2="270" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="860" cy="270" r="4.5" fill="#222"/>
+<line x1="416" y1="400" x2="580" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="580" y1="400" x2="600" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="640" y1="400" x2="660" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="600" cy="400" r="4.5" fill="#fff" stroke="#222" stroke-width="2"/>
+<circle cx="640" cy="400" r="4.5" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="594" y1="386" x2="646" y2="386" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="620" y1="386" x2="620" y2="370" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="612" y1="370" x2="628" y2="370" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="620" y="430" font-size="15" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">S1  кнопка</text>
+<line x1="660" y1="400" x2="860" y2="400" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="860" cy="400" r="4.5" fill="#222"/>
+<line x1="860" y1="180" x2="860" y2="640" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="416" y1="640" x2="860" y2="640" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="860" cy="640" r="4.5" fill="#222"/>
+<line x1="860" y1="640" x2="860" y2="652" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="844" y1="652" x2="876" y2="652" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="850" y1="658" x2="870" y2="658" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="856" y1="664" x2="864" y2="664" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="874" y="410.0" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<text x="930" y="110" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Виходи (світлодіоди)</text>
+<text x="930" y="136" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO = HIGH (3.3 В) → струм через R і LED на GND.</text>
+<text x="930" y="158" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">I ≈ (3.3 − 2.0) / 220 ≈ 6 мА — безпечно</text>
+<text x="930" y="180" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">для світлодіода і для виводу (межа ~20 мА).</text>
+<text x="930" y="202" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Довга ніжка LED (+) — до резистора,</text>
+<text x="930" y="224" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">коротка (−) — на GND.</text>
+<text x="930" y="268" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Входи (кнопки), активний рівень LOW</text>
+<text x="930" y="294" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Відпущена: підтяжка тримає вхід у 3.3 В → HIGH.</text>
+<text x="930" y="316" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Натиснута: вхід замкнено на GND → LOW.</text>
+<text x="930" y="338" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">S1: підтяжка всередині чипа (INPUT_PULLUP),</text>
+<text x="930" y="360" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">     тому зовні лише кнопка між GPIO21 і GND.</text>
+<text x="930" y="382" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">BOOT: підтяжка 10 kΩ уже на платі → INPUT.</text>
+<text x="930" y="426" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Режими</text>
+<text x="930" y="452" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">S1   → режим 1: D1+D2 разом, 200 мс</text>
+<text x="930" y="474" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">BOOT → режим 2: D1/D2 по черзі, 1000 мс</text>
+<text x="930" y="496" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Режим тримається до натискання іншої кнопки.</text>
+<text x="930" y="544" font-size="14" text-anchor="start" font-weight="bold" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">Гребінці плати:</text>
+<text x="930" y="566" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">лівий: GPIO15/16 — піни 8/9, G — пін 22;</text>
+<text x="930" y="588" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">правий: GPIO21 — пін 18 (5-й від USB-C).</text>
+<text x="930" y="610" font-size="14" text-anchor="start" font-weight="normal" fill="#b71c1c" font-family="DejaVu Sans, Arial, sans-serif">Не тримати BOOT під час скидання/увімкнення —</text>
+<text x="930" y="632" font-size="14" text-anchor="start" font-weight="normal" fill="#b71c1c" font-family="DejaVu Sans, Arial, sans-serif">плата перейде в режим прошивки.</text>
+</svg>
