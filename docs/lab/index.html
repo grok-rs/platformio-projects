@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Стенд ESP32-S3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lab bench on graph paper. Circuit + code side by side, instruments (logic analyzer, variables, serial) below. */
+:root {
+  --paper: #eaf0f4;
+  --grid: rgba(28, 74, 110, .07);
+  --panel: #fbfcfd;
+  --panel-2: #f1f5f8;
+  --ink: #13212c;
+  --muted: #566875;
+  --line: #c6d2db;
+  --accent: #0a6a86;
+  --accent-ink: #ffffff;
+  --hi: #d97f00;
+  --lo: #8a9aa6;
+  --z: #8b5cd6;
+  --pwr: #c2410c;
+  --gnd: #2a3945;
+  --flow: #f59e0b;
+  --led-red: #e5322d;
+  --led-blue: #1f6fef;
+  --led-green: #16a34a;
+  --led-off: #e3e9ee;
+  --ok: #15803d;
+  --warn: #b45309;
+  --bad: #c62828;
+  --hot: 217, 127, 0;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+    --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+    --led-red: #ff4d45; --led-blue: #4d8dff; --led-green: #2fd06a; --led-off: #1d2b36;
+    --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+  --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+  --led-red: #ff4d45; --led-blue: #4d8dff; --led-green: #2fd06a; --led-off: #1d2b36;
+  --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+a.btn { text-decoration: none; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font: 15px/1.55 var(--f-body);
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+a { color: var(--accent); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+code, kbd, pre { font-family: var(--f-mono); }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: .85em; background: var(--panel); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+.masthead { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 32px; padding-block: 28px 16px; }
+.masthead h1 { font-size: clamp(2.1rem, 4vw, 3rem); font-weight: 700; letter-spacing: .01em; }
+.masthead h1 span { color: var(--accent); }
+.masthead p { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+.legend .l-hi { border-color: var(--hi); } .legend .l-lo { border-color: var(--lo); }
+.legend .l-z { border-color: var(--z); border-top-style: dashed; } .legend .l-flow { border-color: var(--flow); border-top-style: dotted; border-top-width: 4px; }
+
+/* ---------- sticky bar: tabs + transport ---------- */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 16px;
+  box-shadow: 0 6px 18px -14px rgba(0, 0, 0, .5);
+}
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.tab {
+  font: 600 1.05rem var(--f-display); letter-spacing: .03em; border: 0; background: transparent; color: var(--muted);
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+}
+.tab small { font: 500 12px var(--f-mono); opacity: .8; margin-left: 6px; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--panel); }
+.transport { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); color: var(--ink); font: 500 12.5px var(--f-mono); padding: 5px 9px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer;
+  font: 500 13px var(--f-body); padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover, .seg button:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); min-width: 92px; justify-content: center; }
+.btn.rst { font-family: var(--f-mono); }
+.clock { font: 600 13px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); min-width: 16ch; }
+.clock b { color: var(--ink); }
+
+/* ---------- bench grid ---------- */
+.lab-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; margin-bottom: 12px; }
+.lab-head h2 { font-size: 1.9rem; font-weight: 700; }
+.lab-head p { margin: 0; color: var(--muted); max-width: 70ch; }
+.bench { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.span2 { grid-column: 1 / -1; }
+@media (max-width: 960px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.ph {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-bottom: 1px solid var(--line);
+}
+.ph h3 { font-size: .95rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ph .note { font-size: 12.5px; color: var(--muted); }
+.pb { padding: 12px; }
+
+/* ---------- circuit ---------- */
+.circuit svg { width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
+.circuit .w { fill: none; stroke: var(--lo); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: stroke .08s; }
+.circuit [data-lvl="hi"] { stroke: var(--hi); }
+.circuit [data-lvl="lo"] { stroke: var(--lo); }
+.circuit [data-lvl="z"] { stroke: var(--z); stroke-dasharray: 5 4; }
+.circuit [data-lvl="gnd"] { stroke: var(--gnd); }
+.circuit [data-lvl="pwr"] { stroke: var(--pwr); }
+.circuit .dot { stroke: none; fill: var(--lo); }
+.circuit .dot[data-lvl="hi"] { fill: var(--hi); } .circuit .dot[data-lvl="gnd"] { fill: var(--gnd); }
+.circuit .dot[data-lvl="pwr"] { fill: var(--pwr); } .circuit .dot[data-lvl="z"] { fill: var(--z); }
+.circuit .flow { fill: none; stroke: var(--flow); stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 1 11; opacity: 0; animation: flow .45s linear infinite; }
+.circuit .flow.weak { stroke-width: 2; animation-duration: 2.2s; }
+.circuit .flow.on { opacity: 1; }
+@keyframes flow { to { stroke-dashoffset: -12; } }
+.circuit .mcu { fill: var(--panel-2); stroke: var(--ink); stroke-width: 2; }
+.circuit .pin { fill: var(--hi); stroke: var(--ink); stroke-width: 1; }
+.circuit .res rect { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.circuit .gndsym { fill: none; stroke: var(--gnd); stroke-width: 2.2; stroke-linecap: round; }
+.circuit .lbl { fill: var(--ink); font: 600 12.5px var(--f-body); }
+.circuit .sub { fill: var(--muted); font: 500 11px var(--f-mono); }
+.circuit .ttl { fill: var(--ink); font: 700 19px var(--f-display); letter-spacing: .04em; }
+.circuit .ro { font: 600 11.5px var(--f-mono); fill: var(--muted); }
+.circuit .ro[data-lvl="hi"] { fill: var(--hi); } .circuit .ro[data-lvl="z"] { fill: var(--z); } .circuit .ro[data-lvl="lo"] { fill: var(--muted); }
+.circuit .ro.cur { fill: var(--flow); }
+.circuit .led .body { stroke: var(--c); stroke-width: 2; fill: color-mix(in srgb, var(--c) calc(var(--b, 0) * 100%), var(--led-off)); }
+.circuit .led .bar { stroke: var(--c); stroke-width: 2.6; }
+.circuit .led .ray { fill: none; stroke: var(--c); stroke-width: 1.5; opacity: calc(.25 + var(--b, 0) * .75); }
+.circuit .led .glow { fill: var(--c); opacity: calc(var(--b, 0) * .55); filter: blur(7px); }
+.circuit .pbtn { cursor: pointer; }
+.circuit .pbtn .hit { fill: transparent; }
+.circuit .pbtn .term { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.circuit .pbtn .lever { stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; }
+.circuit .pbtn .plunger { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.circuit .pbtn .cap { fill: var(--c, var(--lo)); stroke: var(--ink); stroke-width: 1.5; }
+.circuit .pbtn:hover .cap { filter: brightness(1.15); }
+.circuit .pbtn.pressed .cap { filter: brightness(.8); }
+.circuit .internal { opacity: .9; }
+.circuit .internal.off { opacity: .18; }
+.circuit .dash { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); }
+.hold {
+  font: 600 13px var(--f-body); border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
+  padding: 8px 12px; border-radius: 999px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.hold[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.hold kbd { margin-left: 6px; }
+.toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; padding: 4px 2px; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.explain { margin: 0; padding: 10px 12px; border-top: 1px dashed var(--line); font-size: 13.5px; color: var(--muted); min-height: 3.2em; }
+.explain b { color: var(--ink); }
+
+/* ---------- code ---------- */
+.code { font: 12.5px/1.6 var(--f-mono); overflow: auto; max-height: 560px; padding: 6px 0; }
+.ln { display: grid; grid-template-columns: 5ch 1.4ch minmax(0, 1fr); gap: 0 6px; padding: 0 12px 0 6px; white-space: pre; background: rgba(var(--hot), calc(var(--heat, 0) * .28)); }
+.ln .hits { color: var(--muted); text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; opacity: .8; }
+.ln .cur { color: var(--hi); visibility: hidden; }
+.ln.is-cur .cur { visibility: visible; }
+.ln.is-cur { box-shadow: inset 3px 0 0 var(--hi); }
+.ln.file { color: var(--muted); padding-top: 8px; }
+.t-c { color: var(--muted); font-style: italic; }
+.t-s { color: var(--ok); }
+.t-k { color: var(--accent); font-weight: 600; }
+.t-t { color: var(--z); }
+.t-n { color: var(--pwr); }
+.t-m { color: var(--hi); font-weight: 600; }
+
+/* ---------- analyzer ---------- */
+.la canvas { display: block; width: 100%; }
+.la .pb { padding: 6px 8px 8px; }
+
+/* ---------- watch ---------- */
+.watch { width: 100%; border-collapse: collapse; font-size: 13px; }
+.watch td { padding: 5px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.watch tr:last-child td { border-bottom: 0; }
+.watch td:first-child { font-family: var(--f-mono); color: var(--muted); white-space: nowrap; width: 1%; }
+.watch td:last-child { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.meter { display: flex; align-items: center; gap: 8px; }
+.meter .track { flex: 1; height: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; min-width: 60px; position: relative; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.meter .fill.warn { background: var(--hi); }
+.meter .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--bad); }
+.meter span { white-space: nowrap; font-size: 12px; color: var(--muted); }
+.chip { display: inline-block; font: 600 11.5px var(--f-mono); padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor; }
+.chip.hi { color: var(--hi); } .chip.lo { color: var(--muted); } .chip.z { color: var(--z); } .chip.bad { color: var(--bad); } .chip.ok { color: var(--ok); }
+.frames { display: flex; flex-wrap: wrap; gap: 4px; }
+.frame { display: inline-flex; gap: 2px; padding: 3px 4px; border: 1px solid var(--line); border-radius: 4px; }
+.frame.now { border-color: var(--hi); box-shadow: 0 0 0 1px var(--hi); }
+.frame i { width: 8px; height: 8px; border-radius: 50%; background: var(--led-off); border: 1px solid var(--line); }
+.frame i.r { background: var(--led-red); border-color: transparent; } .frame i.g { background: var(--led-green); border-color: transparent; } .frame i.b { background: var(--led-blue); border-color: transparent; }
+
+/* ---------- serial ---------- */
+.serial { font: 12px/1.55 var(--f-mono); background: var(--panel-2); height: 280px; overflow: auto; padding: 8px 12px; white-space: pre-wrap; word-break: break-word; }
+.serial .ts { color: var(--muted); }
+.serial .sim { color: var(--z); font-style: italic; }
+.serial .rom { color: var(--muted); }
+.sendrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--line); align-items: center; }
+.sendrow input { font: 13px var(--f-mono); padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); width: 9ch; }
+.key { font: 600 12.5px var(--f-mono); min-width: 32px; }
+
+/* ---------- learning blocks ---------- */
+.learn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 960px) { .learn { grid-template-columns: minmax(0, 1fr); } }
+.steps { margin: 0; padding: 4px 14px 12px 36px; }
+.steps li { padding: 6px 0; max-width: 68ch; }
+.steps li::marker { font: 700 1rem var(--f-display); color: var(--accent); }
+.quiz details { border-top: 1px solid var(--line); padding: 8px 14px; }
+.quiz details:first-child { border-top: 0; }
+.quiz summary { cursor: pointer; font-weight: 500; }
+.quiz details p { margin: 6px 0 2px; color: var(--muted); max-width: 70ch; }
+.run { margin-top: 16px; }
+.run .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+@media (max-width: 960px) { .run .cols { grid-template-columns: minmax(0, 1fr); } }
+.run .col { padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.run .col:first-child { border-left: 0; }
+@media (max-width: 960px) { .run .col { border-left: 0; border-top: 1px solid var(--line); } .run .col:first-child { border-top: 0; } }
+.run h4 { margin: 0 0 6px; font: 600 1.05rem var(--f-display); letter-spacing: .03em; }
+.run p, .run li { font-size: 13.5px; color: var(--muted); }
+.run ol { padding-left: 18px; margin: 6px 0; }
+pre.cmd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; overflow-x: auto; margin: 6px 0; white-space: pre; }
+pre.cmd .t-c { font-style: normal; }
+footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 80ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .circuit .flow { animation: none; stroke-dasharray: 2 6; }
+  .circuit .w { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <h1>Стенд <span>ESP32-S3</span></h1>
+      <p>Інтерактивна модель двох лабораторних. Натискайте кнопки на схемі й дивіться одночасно на рівні напруги, рядки коду, що виконуються, змінні, логічний аналізатор і Serial-монітор. Сповільніть час, щоб побачити те, що відбувається за мілісекунди.</p>
+    </div>
+    <div class="legend" aria-label="Позначення на схемі">
+      <span><i class="l-hi"></i>HIGH · 3.3 В</span>
+      <span><i class="l-lo"></i>LOW · 0 В</span>
+      <span><i class="l-z"></i>Hi-Z / «висить»</span>
+      <span><i class="l-flow"></i>струм (+ → −)</span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="tabs" role="tablist" aria-label="Лабораторна">
+      <button class="tab" role="tab" id="tab-two-buttons" data-lab="two-buttons" aria-selected="true">Дві кнопки<small>1.4</small></button>
+      <button class="tab" role="tab" id="tab-led-blink" data-lab="led-blink" aria-selected="false">Миготіння LED<small>3 GPIO</small></button>
+      <button class="tab" role="tab" id="tab-single-gpio" data-lab="single-gpio" aria-selected="false">Один GPIO<small>Hi-Z</small></button>
+    </div>
+    <div class="transport">
+      <button class="btn primary" id="play" type="button">❚❚ Пауза</button>
+      <div class="seg" role="group" aria-label="Швидкість часу" id="speed">
+        <button type="button" data-v="1" aria-pressed="true">1×</button>
+        <button type="button" data-v="0.25" aria-pressed="false">¼×</button>
+        <button type="button" data-v="0.05" aria-pressed="false">1/20×</button>
+        <button type="button" data-v="0.01" aria-pressed="false">1/100×</button>
+      </div>
+      <button class="btn" id="step1" type="button" title="Пауза і +1 мс">+1 мс</button>
+      <button class="btn rst" id="rst" type="button" title="Кнопка RST: перезапуск програми">RST</button>
+      <span class="clock" id="clock">millis() = <b>0</b></span>
+    </div>
+  </div>
+
+  <main id="labs"></main>
+
+  <footer>
+    <p><a href="../">← Усі матеріали</a> · <a href="../pull-resistors/">Підтягувальні резистори</a></p>
+    <p>Модель у браузері — це JavaScript-порт того самого коду з тими самими константами й таблицями; вона крокує по 1 мс симульованого часу. Wokwi виконує справжній <code>firmware.bin</code>, зібраний PlatformIO, тому для перевірки прошивки користуйтеся ним (розділ «Запуск у Wokwi» під кожною лабораторною), а цю сторінку використовуйте, щоб зрозуміти, що відбувається всередині.</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+
+const LOW = 0, HIGH = 1, Z = 0.5;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let NOW = performance.now();
+
+function rng(seed) {
+  let s = seed >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+const compact = n => n < 1000 ? String(n) : n < 1e6 ? (n / 1000).toFixed(n < 1e4 ? 1 : 0) + 'k' : (n / 1e6).toFixed(1) + 'M';
+const lvl = v => v === HIGH ? 'hi' : v === LOW ? 'lo' : 'z';
+const volts = v => v === HIGH ? 'HIGH · 3.3 В' : v === LOW ? 'LOW · 0 В' : 'Hi-Z';
+const chip = v => `<span class="chip ${lvl(v)}">${v === HIGH ? 'HIGH' : v === LOW ? 'LOW' : 'Hi-Z'}</span>`;
+
+/* =====================================================================
+   Push button with contact bounce (Wokwi's pushbutton bounces too)
+   ===================================================================== */
+class PushButton {
+  constructor(sim, def) { this.sim = sim; this.def = def; this.pressed = false; this.raw = false; this.queue = []; this.seen = false; }
+  set(v) {
+    if (v === this.pressed) return;
+    const s = this.sim, t = s.t;
+    this.pressed = v;
+    if (v) { this.seen = false; this.pressT = t; }
+    else if (s.def.trackMissed && !this.seen && !s.halted) { s.missed++; s.events.push({ t, ch: this.def.ch, text: 'пропущено' }); }
+    this.raw = v;
+    this.queue = [];
+    let tt = t;
+    const n = 1 + Math.floor(s.rand() * 3);
+    for (let i = 0; i < n; i++) {
+      tt += 1 + Math.floor(s.rand() * 2); this.queue.push([tt, !v]);
+      tt += 1 + Math.floor(s.rand() * 3); this.queue.push([tt, v]);
+    }
+  }
+  tick(t) { while (this.queue.length && this.queue[0][0] <= t) this.raw = this.queue.shift()[1]; }
+}
+
+/* =====================================================================
+   Simulator core: virtual time in 1 ms ticks, Arduino-like HAL,
+   firmware written as generators so delay() can really block.
+   ===================================================================== */
+class Sim {
+  constructor(def) {
+    this.def = def;
+    this.rand = rng(20240901);
+    this.options = { ...def.options };
+    this.buttons = {};
+    for (const b of def.buttons) this.buttons[b.id] = new PushButton(this, b);
+    this.reset();
+  }
+  reset() {
+    this.t = 0; this.pins = {}; this.hits = {}; this.lastHitReal = {}; this.cur = null;
+    this.rx = []; this.lines = []; this.partial = ''; this.missed = 0; this.events = [];
+    this.loops = 0; this.loopRate = 0; this.loopMark = [0, 0];
+    this.gen = null; this.phase = 'setup'; this.wake = 0; this.delayLen = 0; this.float = {};
+    this.duty = {}; this.dutyTicks = 0; this.halted = false;
+    this.hist = this.def.channels.map(() => []);
+    for (const b of Object.values(this.buttons)) { b.queue = []; b.raw = b.pressed; b.seen = true; }
+    this.fw = this.def.firmware(this, this.options);
+    if (this.buttons.boot && this.buttons.boot.pressed) {
+      this.halted = true;
+      this.rom('ESP-ROM:esp32s3-20210327');
+      this.rom('rst:0x1 (POWERON),boot:0x0 (DOWNLOAD(USB/UART0))');
+      this.rom('waiting for download');
+      this.note('BOOT (GPIO0) був натиснутий під час скидання: чип чекає на прошивку, програма не стартувала. Відпустіть BOOT і натисніть RST.');
+    }
+    this.record();
+  }
+  // ---- HAL ----
+  pin(p) { return this.pins[p] || (this.pins[p] = { mode: 'INPUT', level: LOW }); }
+  pinMode(p, m) { this.pin(p).mode = m; }
+  digitalWrite(p, v) { this.pin(p).level = v ? HIGH : LOW; }
+  digitalRead(p) {
+    const v = this.def.read(this, p);
+    if (v === LOW) for (const b of Object.values(this.buttons)) if (b.def.pin === p && b.pressed) b.seen = true;
+    return v;
+  }
+  out(p) { const s = this.pin(p); return s.mode === 'OUTPUT' ? s.level : Z; }
+  millis() { return this.t; }
+  micros() { return this.t * 1000; }
+  *delay(ms) { this.wake = this.t + ms; this.delayLen = ms; yield; }
+  floatRead(p) {
+    const f = this.float[p] || (this.float[p] = { v: HIGH, until: 0 });
+    if (this.t >= f.until) { f.v = this.rand() < 0.5 ? LOW : HIGH; f.until = this.t + 15 + Math.floor(this.rand() * 260); }
+    return f.v;
+  }
+  print(s) {
+    const parts = (this.partial + s).split('\n');
+    this.partial = parts.pop();
+    for (const p of parts) this.lines.push({ t: this.t, text: p, kind: 'fw' });
+  }
+  println(s = '') { this.print(s + '\n'); }
+  note(s) { this.lines.push({ t: this.t, text: s, kind: 'sim' }); }
+  rom(s) { this.lines.push({ t: this.t, text: s, kind: 'rom' }); }
+  trace(id) { this.hits[id] = (this.hits[id] || 0) + 1; this.lastHitReal[id] = NOW; this.cur = id; }
+  // ---- scheduler ----
+  tick() {
+    for (const b of Object.values(this.buttons)) b.tick(this.t);
+    if (!this.halted && this.t >= this.wake) {
+      let started = 0;
+      for (let guard = 0; guard < 64; guard++) {
+        if (!this.gen) {
+          if (this.phase === 'loop') { if (started) break; started++; this.loops++; }
+          this.gen = this.phase === 'setup' ? this.fw.setup() : this.fw.loop();
+        }
+        const r = this.gen.next();
+        if (r.done) { this.gen = null; if (this.phase === 'setup') this.phase = 'loop'; continue; }
+        if (this.wake > this.t) break;
+      }
+    }
+    for (const l of this.def.leds) if (l.on(this)) this.duty[l.id] = (this.duty[l.id] || 0) + 1;
+    this.dutyTicks++;
+    this.t++;
+    if (this.t - this.loopMark[0] >= 1000) { this.loopRate = this.loops - this.loopMark[1]; this.loopMark = [this.t, this.loops]; }
+    this.record();
+  }
+  record() {
+    this.def.channels.forEach((ch, i) => {
+      const v = ch.get(this), h = this.hist[i];
+      if (!h.length || h[h.length - 1].v !== v) h.push({ t: this.t, v });
+      if (h.length > 40000) h.splice(0, 20000);
+    });
+    if (this.events.length > 200) this.events.splice(0, 100);
+  }
+}
+
+/* =====================================================================
+   Firmware models — line-by-line ports of the repository code
+   ===================================================================== */
+
+// esp32-s3-two-buttons/src/main.cpp
+function twoButtonsFw(h, o) {
+  const kLedPins = [15, 16], kLedCount = kLedPins.length;
+  const kPatterns = [
+    { name: '1 (sync, 200 ms)', stepMs: 200, stepCount: 2, isOn: (step) => step === 0 },
+    { name: '2 (alternate, 1000 ms)', stepMs: 1000, stepCount: kLedCount, isOn: (step, led) => step === led },
+  ];
+  const kButtons = [
+    { name: 'external', pin: 21, inputMode: o.s1NoPullup ? 'INPUT' : 'INPUT_PULLUP', pattern: 0 },
+    { name: 'BOOT', pin: 0, inputMode: 'INPUT', pattern: 1 },
+  ];
+  const st = { mode: 0, step: 0, stepStarted: 0 };
+  const isPressed = b => h.digitalRead(b.pin) === LOW;
+  function render() {
+    h.trace('render');
+    const p = kPatterns[st.mode];
+    for (let led = 0; led < kLedCount; ++led) h.digitalWrite(kLedPins[led], p.isOn(st.step, led) ? HIGH : LOW);
+    st.stepStarted = h.millis();
+  }
+  function setMode(next) {
+    h.trace('setMode');
+    st.mode = next; st.step = 0; render();
+    h.println(`Mode -> ${kPatterns[st.mode].name}`);
+  }
+  function pollButtons() {
+    h.trace('poll');
+    for (const b of kButtons) {
+      if (isPressed(b)) { h.trace('poll-hit'); if (b.pattern !== st.mode) setMode(b.pattern); return; }
+    }
+  }
+  function updateLeds() {
+    h.trace('upd');
+    const p = kPatterns[st.mode];
+    if (h.millis() - st.stepStarted < p.stepMs) return;
+    h.trace('upd-next');
+    st.step = (st.step + 1) % p.stepCount;
+    render();
+  }
+  function printBanner() {
+    h.println();
+    h.println('=== ESP32-S3: LEDs, external button + BOOT ===');
+    h.println('LEDs: GPIO15 GPIO16');
+    h.println('Button external GPIO21 -> mode 1 (sync, 200 ms)');
+    h.println('Button BOOT     GPIO0  -> mode 2 (alternate, 1000 ms)');
+    h.println(`Start mode: ${kPatterns[st.mode].name}`);
+  }
+  return {
+    st, kPatterns,
+    *setup() {
+      h.trace('setup');
+      for (const p of kLedPins) h.pinMode(p, 'OUTPUT');
+      for (const b of kButtons) h.pinMode(b.pin, b.inputMode);
+      printBanner();
+      render();
+    },
+    *loop() {
+      h.trace('loop');
+      pollButtons();
+      updateLeds();
+      h.trace('delay1');
+      yield* h.delay(1);
+    },
+  };
+}
+
+// README §6.1: the naive version with blocking delay()
+function blockingFw(h, o) {
+  const st = { mode: 1 };
+  const both = (a, b) => { h.digitalWrite(15, a); h.digitalWrite(16, b); };
+  return {
+    st, blocking: true,
+    *setup() {
+      h.trace('b-setup');
+      h.pinMode(15, 'OUTPUT'); h.pinMode(16, 'OUTPUT');
+      h.pinMode(21, o.s1NoPullup ? 'INPUT' : 'INPUT_PULLUP'); h.pinMode(0, 'INPUT');
+      h.note('Прошито варіант із delay() з README §6.1. Він нічого не пише в Serial.');
+    },
+    *loop() {
+      h.trace('b-read');
+      if (h.digitalRead(21) === LOW) st.mode = 1;
+      if (h.digitalRead(0) === LOW) st.mode = 2;
+      if (st.mode === 1) {
+        h.trace('b-m1a'); both(HIGH, HIGH); yield* h.delay(200);
+        h.trace('b-m1b'); both(LOW, LOW); yield* h.delay(200);
+      } else {
+        h.trace('b-m2a'); both(HIGH, LOW); yield* h.delay(1000);
+        h.trace('b-m2b'); both(LOW, HIGH); yield* h.delay(1000);
+      }
+    },
+  };
+}
+
+// esp32-s3-led-blink: main.cpp + button.cpp + blink_player.cpp + patterns.cpp + drivers
+function ledBlinkFw(h, o) {
+  const R = 1, G = 2, B = 4;
+  const PATTERNS = [
+    ['alternate', [R, B]], ['alternate_gap', [R, 0, B, 0]], ['police', [R, 0, R, 0, B, 0, B, 0]],
+    ['three_leds', [R, G, B]], ['chase', [R, G, B, G]], ['mix', [R, R | B, B, R | B]],
+  ].map(([name, frames]) => ({ name, frames }));
+  const SPEEDS = [1000, 500, 250, 120];
+  const kDebounceMs = o.noDebounce ? 0 : 30, kLongPressMs = 600, kSelfTestStepMs = 400;
+  const kMultiplexPeriodUs = o.slowMux ? 50000 : 1000;
+  const st = { lastEvent: null };
+
+  const gpioDriver = {
+    begin() { for (const p of [4, 6, 5]) { h.pinMode(p, 'OUTPUT'); h.digitalWrite(p, LOW); } },
+    show(f) {
+      h.trace('drv');
+      h.digitalWrite(4, f & R ? HIGH : LOW); h.digitalWrite(6, f & G ? HIGH : LOW); h.digitalWrite(5, f & B ? HIGH : LOW);
+    },
+    update() {},
+    describe() {
+      h.println('Mode : TWO GPIO (one pin per LED)');
+      h.println('Wiring: GPIO4 -> [220R] -> RED   -> GND');
+      h.println('        GPIO5 -> [100R] -> BLUE  -> GND');
+      h.println('        GPIO6 -> [220R] -> GREEN -> GND');
+    },
+  };
+  const sharedDriver = {
+    state: 'Off', redPhase: false, lastToggleUs: 0, toggles: 0,
+    begin() { this.apply('Off'); },
+    show(f) { this.apply(this.stateFor(f)); },
+    update() {
+      h.trace('sp-upd');
+      if (this.state !== 'Both') return;
+      h.trace('sp-both');
+      const now = h.micros();
+      if (now - this.lastToggleUs < kMultiplexPeriodUs) return;
+      h.trace('sp-toggle');
+      this.lastToggleUs = now; this.redPhase = !this.redPhase; this.toggles++;
+      h.digitalWrite(7, this.redPhase ? HIGH : LOW);
+    },
+    stateFor(f) { const r = !!(f & R), b = !!(f & B); return r && b ? 'Both' : r ? 'Red' : b ? 'Blue' : 'Off'; },
+    apply(s) {
+      h.trace('sp-apply'); h.trace('sp-' + s);
+      this.state = s;
+      switch (s) {
+        case 'Red': h.pinMode(7, 'OUTPUT'); h.digitalWrite(7, HIGH); break;
+        case 'Blue': h.pinMode(7, 'OUTPUT'); h.digitalWrite(7, LOW); break;
+        case 'Both': h.pinMode(7, 'OUTPUT'); this.lastToggleUs = h.micros(); break;
+        case 'Off': h.pinMode(7, 'INPUT'); break;
+      }
+    },
+    describe() {
+      h.println('Mode : SINGLE GPIO (both LEDs on one pin)');
+      h.println('Wiring: GPIO7 -> [220R] -> RED  -> GND     (lit when pin HIGH)');
+      h.println('        3V3   -> [100R] -> BLUE -> GPIO7   (lit when pin LOW)');
+    },
+  };
+  const driver = o.single ? sharedDriver : gpioDriver;
+
+  const button = {
+    pressed: false, longReported: false, pressStart: 0, lastEdge: 0,
+    begin() { h.pinMode(0, 'INPUT_PULLUP'); },
+    poll() {
+      h.trace('bp');
+      const down = h.digitalRead(0) === LOW, now = h.millis();
+      if (down !== this.pressed) {
+        if (now - this.lastEdge < kDebounceMs) { h.trace('bp-bounce'); return 'None'; }
+        h.trace('bp-edge');
+        this.lastEdge = now; this.pressed = down;
+        if (this.pressed) { h.trace('bp-down'); this.pressStart = now; this.longReported = false; return 'None'; }
+        h.trace('bp-up');
+        return this.longReported ? 'None' : 'ShortPress';
+      }
+      if (this.pressed && !this.longReported && now - this.pressStart >= kLongPressMs) {
+        h.trace('bp-long'); this.longReported = true; return 'LongPress';
+      }
+      return 'None';
+    },
+  };
+  const player = {
+    patternIndex: 0, speedIndex: 1 % SPEEDS.length, frameIndex: 0, frameStart: 0, held: false,
+    pattern() { return PATTERNS[this.patternIndex]; },
+    dur() { return SPEEDS[this.speedIndex]; },
+    begin() { this.restart(); },
+    update() {
+      h.trace('pl');
+      if (this.held) return;
+      const now = h.millis();
+      if (now - this.frameStart < this.dur()) return;
+      h.trace('pl-next');
+      this.frameStart = now;
+      this.frameIndex = (this.frameIndex + 1) % this.pattern().frames.length;
+      driver.show(this.pattern().frames[this.frameIndex]);
+    },
+    nextPattern() { this.held = false; this.patternIndex = (this.patternIndex + 1) % PATTERNS.length; this.restart(); },
+    nextSpeed() { this.speedIndex = (this.speedIndex + 1) % SPEEDS.length; },
+    hold(f) { this.held = true; driver.show(f); },
+    resume() { if (!this.held) return; this.held = false; this.restart(); },
+    restart() { this.frameIndex = 0; this.frameStart = h.millis(); driver.show(this.pattern().frames[0]); },
+  };
+  const con = {
+    printBanner() {
+      h.println(); h.println('=== ESP32-S3 LED blink ===');
+      driver.describe();
+      h.println('BOOT button: short press = next speed, long press = next pattern');
+      h.println('Serial keys: 1/2/3 = hold red/blue/green, 0 = all off, p = pattern, v = speed,');
+      h.println('             any other key = resume pattern');
+    },
+    printState() { h.println(`Pattern: ${player.pattern().name.padEnd(14)}  Speed: ${String(player.dur()).padStart(4)} ms/frame`); },
+    update() { while (h.rx.length) this.handleKey(h.rx.shift()); },
+    holdForTest(f, what) { player.hold(f); h.println('TEST: ' + what); },
+    handleKey(k) {
+      h.trace('key');
+      switch (k) {
+        case '1': this.holdForTest(R, 'red on'); break;
+        case '2': this.holdForTest(B, 'blue on'); break;
+        case '3': this.holdForTest(G, 'green on'); break;
+        case '0': this.holdForTest(0, 'all off'); break;
+        case 'p': player.nextPattern(); this.printState(); break;
+        case 'v': player.nextSpeed(); this.printState(); break;
+        case '\r': case '\n': case ' ': break;
+        default: if (player.held) { player.resume(); h.print('Pattern resumed. '); this.printState(); }
+      }
+    },
+  };
+  return {
+    st, player, button, driver, PATTERNS, SPEEDS, kDebounceMs, kLongPressMs, R, G, B,
+    *setup() {
+      h.trace('setup');
+      driver.begin(); button.begin();
+      con.printBanner();
+      h.println('Self-test: red -> blue -> green');
+      for (const f of [R, B, G, 0]) { h.trace('selftest'); driver.show(f); h.trace('selftest-d'); yield* h.delay(kSelfTestStepMs); }
+      player.begin();
+      con.printState();
+    },
+    *loop() {
+      h.trace('loop');
+      const ev = button.poll();
+      if (ev === 'ShortPress') { h.trace('ev-short'); player.nextSpeed(); con.printState(); st.lastEvent = { name: 'ShortPress', t: h.t }; }
+      else if (ev === 'LongPress') { h.trace('ev-long'); player.nextPattern(); con.printState(); st.lastEvent = { name: 'LongPress', t: h.t }; }
+      con.update();
+      player.update();
+      driver.update();
+    },
+  };
+}
+
+/* =====================================================================
+   Code listings (⟦id⟧ ties a line to a trace() call in the model)
+   ===================================================================== */
+function codeTwo(o) {
+  return `// src/main.cpp (скорочено)
+constexpr Button kButtons[] = {
+    {"external", 21, ${o.s1NoPullup ? 'INPUT,       ' : 'INPUT_PULLUP,'} kSync},${o.s1NoPullup ? '  // експеримент: без підтяжки' : ''}
+    {"BOOT",     0,  INPUT,        kAlternate},
+};
+
+bool isPressed(const Button& b) { return digitalRead(b.pin) == LOW; }
+
+void render() {
+  const Pattern& p = kPatterns[mode];⟦render⟧
+  for (size_t led = 0; led < kLedCount; ++led) {⟦render⟧
+    digitalWrite(kLedPins[led], p.isOn(step, led) ? HIGH : LOW);⟦render⟧
+  }
+  stepStarted = millis();⟦render⟧
+}
+
+void setMode(PatternId next) {
+  mode = next;⟦setMode⟧
+  step = 0;⟦setMode⟧
+  render();⟦setMode⟧
+  Serial.printf("Mode -> %s\\n", kPatterns[mode].name);⟦setMode⟧
+}
+
+void pollButtons() {
+  for (const Button& b : kButtons) {⟦poll⟧
+    if (isPressed(b)) {⟦poll⟧
+      if (b.pattern != mode) setMode(b.pattern);⟦poll-hit⟧
+      return;⟦poll-hit⟧
+    }
+  }
+}
+
+void updateLeds() {
+  const Pattern& p = kPatterns[mode];⟦upd⟧
+  if (millis() - stepStarted < p.stepMs) return;⟦upd⟧
+  step = (step + 1) % p.stepCount;⟦upd-next⟧
+  render();⟦upd-next⟧
+}
+
+void setup() {
+  for (uint8_t pin : kLedPins) pinMode(pin, OUTPUT);⟦setup⟧
+  for (const Button& b : kButtons) pinMode(b.pin, b.inputMode);⟦setup⟧
+  printBanner();⟦setup⟧
+  render();⟦setup⟧
+}
+
+void loop() {
+  pollButtons();⟦loop⟧
+  updateLeds();⟦loop⟧
+  delay(1);⟦delay1⟧
+}`;
+}
+function codeBlocking(o) {
+  return `// README §6.1: «простий» варіант, який блокує програму
+void setup() {
+  pinMode(kLed1Pin, OUTPUT);  pinMode(kLed2Pin, OUTPUT);⟦b-setup⟧
+  pinMode(kExtButtonPin, ${o.s1NoPullup ? 'INPUT' : 'INPUT_PULLUP'});⟦b-setup⟧
+  pinMode(kBootButtonPin, INPUT);⟦b-setup⟧
+}
+
+void loop() {
+  if (digitalRead(kExtButtonPin) == LOW)  mode = 1;⟦b-read⟧
+  if (digitalRead(kBootButtonPin) == LOW) mode = 2;⟦b-read⟧
+
+  if (mode == 1) {
+    digitalWrite(kLed1Pin, HIGH); digitalWrite(kLed2Pin, HIGH); delay(200);⟦b-m1a⟧
+    digitalWrite(kLed1Pin, LOW);  digitalWrite(kLed2Pin, LOW);  delay(200);⟦b-m1b⟧
+  } else {
+    digitalWrite(kLed1Pin, HIGH); digitalWrite(kLed2Pin, LOW);  delay(1000);⟦b-m2a⟧
+    digitalWrite(kLed1Pin, LOW);  digitalWrite(kLed2Pin, HIGH); delay(1000);⟦b-m2b⟧
+  }
+}`;
+}
+function codeBlink(o) {
+  const driverCode = o.single ? `
+// src/shared_pin_led_driver.cpp
+void SharedPinLedDriver::update() {
+  if (state_ != State::Both) return;⟦sp-upd⟧
+  const uint32_t now = micros();⟦sp-both⟧
+  if (now - lastToggleUs_ < multiplexPeriodUs_) return;⟦sp-both⟧
+  lastToggleUs_ = now;⟦sp-toggle⟧
+  redPhase_     = !redPhase_;⟦sp-toggle⟧
+  digitalWrite(pin_, redPhase_ ? HIGH : LOW);⟦sp-toggle⟧
+}
+
+void SharedPinLedDriver::apply(State state) {
+  state_ = state;⟦sp-apply⟧
+  switch (state) {
+    case State::Red:  pinMode(pin_, OUTPUT); digitalWrite(pin_, HIGH); break;⟦sp-Red⟧
+    case State::Blue: pinMode(pin_, OUTPUT); digitalWrite(pin_, LOW);  break;⟦sp-Blue⟧
+    case State::Both: pinMode(pin_, OUTPUT); lastToggleUs_ = micros(); break;⟦sp-Both⟧
+    case State::Off:  pinMode(pin_, INPUT);  break;  // Hi-Z⟦sp-Off⟧
+  }
+}` : `
+// src/gpio_led_driver.cpp
+void GpioLedDriver::show(Frame frame) {
+  digitalWrite(pins_.red,   frame.has(Led::Red)   ? HIGH : LOW);⟦drv⟧
+  digitalWrite(pins_.green, frame.has(Led::Green) ? HIGH : LOW);⟦drv⟧
+  digitalWrite(pins_.blue,  frame.has(Led::Blue)  ? HIGH : LOW);⟦drv⟧
+}`;
+  return `// include/config.hpp
+constexpr uint32_t kDebounceMs  = ${o.noDebounce ? '0; ' : '30;'}  // ${o.noDebounce ? 'експеримент: антидребезг вимкнено' : 'ігнорувати дребезг контактів'}
+constexpr uint32_t kLongPressMs = 600;
+${o.single ? `constexpr uint32_t kMultiplexPeriodUs = ${o.slowMux ? '50000;  // експеримент: 50 мс' : '1000;   // 1 мс -> ~500 Гц на LED'}` : ''}
+// src/main.cpp
+void runSelfTest(LedDriver& driver, uint32_t stepMs) {
+  for (Frame frame : { Frame{Led::Red}, Frame{Led::Blue}, Frame{Led::Green}, Frame::off() }) {⟦selftest⟧
+    driver.show(frame);⟦selftest⟧
+    delay(stepMs);  // єдиний delay(): loop() ще не почався⟦selftest-d⟧
+  }
+}
+
+void loop() {
+  switch (button.poll()) {⟦loop⟧
+    case Button::Event::ShortPress: player.nextSpeed();   console.printState(); break;⟦ev-short⟧
+    case Button::Event::LongPress:  player.nextPattern(); console.printState(); break;⟦ev-long⟧
+    case Button::Event::None:       break;⟦loop⟧
+  }
+  console.update();⟦loop⟧
+  player.update();⟦loop⟧
+  ledDriver.update();⟦loop⟧
+}
+
+// src/button.cpp
+Button::Event Button::poll() {
+  const bool     down = digitalRead(pin_) == LOW;⟦bp⟧
+  const uint32_t now  = millis();⟦bp⟧
+  if (down != pressed_) {⟦bp⟧
+    if (now - lastEdgeMs_ < debounceMs_) return Event::None;  // дребезг⟦bp-bounce⟧
+    lastEdgeMs_ = now;⟦bp-edge⟧
+    pressed_    = down;⟦bp-edge⟧
+    if (pressed_) {⟦bp-edge⟧
+      pressStartMs_ = now;⟦bp-down⟧
+      longReported_ = false;⟦bp-down⟧
+      return Event::None;⟦bp-down⟧
+    }
+    return longReported_ ? Event::None : Event::ShortPress;⟦bp-up⟧
+  }
+  if (pressed_ && !longReported_ && now - pressStartMs_ >= longPressMs_) {⟦bp⟧
+    longReported_ = true;⟦bp-long⟧
+    return Event::LongPress;⟦bp-long⟧
+  }
+  return Event::None;⟦bp⟧
+}
+
+// src/blink_player.cpp
+void BlinkPlayer::update() {
+  if (held_) return;⟦pl⟧
+  const uint32_t now = millis();⟦pl⟧
+  if (now - frameStartMs_ < frameDurationMs()) return;⟦pl⟧
+  frameStartMs_ = now;⟦pl-next⟧
+  frameIndex_   = (frameIndex_ + 1) % pattern().frames.size();⟦pl-next⟧
+  driver_.show(pattern().frames[frameIndex_]);⟦pl-next⟧
+}
+${driverCode}`;
+}
+
+/* =====================================================================
+   SVG building blocks
+   ===================================================================== */
+const S = {
+  wire: (d, net) => `<path class="w" data-net="${net}" d="${d}"/>`,
+  flow: (d, id, weak) => `<path class="flow${weak ? ' weak' : ''}" data-flow="${id}" d="${d}"/>`,
+  dot: (x, y, net) => `<circle class="dot" data-net="${net}" cx="${x}" cy="${y}" r="3.4"/>`,
+  txt: (x, y, s, cls = 'lbl', anchor = 'middle', id = '') => `<text class="${cls}" x="${x}" y="${y}" text-anchor="${anchor}"${id ? ` id="${id}"` : ''}>${s}</text>`,
+  res: (x, y, vert, name, value) => `<g class="res" transform="translate(${x} ${y}) rotate(${vert ? 90 : 0})"><rect x="-17" y="-6" width="34" height="12" rx="1"/></g>` +
+    (vert ? S.txt(x + 12, y - 2, name, 'lbl', 'start') + S.txt(x + 12, y + 12, value, 'sub', 'start')
+          : S.txt(x, y + 22, `${name} · ${value}`, 'sub')),
+  led: (x, y, rot, id, color) => `<g class="led" id="${id}" style="--c:var(${color})" transform="translate(${x} ${y}) rotate(${rot})">
+      <circle class="glow" r="22"/><path class="body" d="M-11 -12 L-11 12 L11 0 Z"/><path class="bar" d="M11 -12 V12"/>
+      <path class="ray" d="M-2 -15 l7 -9 m0 0 l-5 1 m5 -1 l-1 5 M6 -13 l7 -9 m0 0 l-5 1 m5 -1 l-1 5"/></g>`,
+  button: (x, y, id, color) => `<g class="pbtn" data-btn="${id}" style="--c:var(${color})">
+      <rect class="hit" x="${x - 10}" y="${y - 44}" width="72" height="56"/>
+      <circle class="term" cx="${x}" cy="${y}" r="3.5"/><circle class="term" cx="${x + 50}" cy="${y}" r="3.5"/>
+      <line class="lever" x1="${x}" y1="${y}" x2="${x + 47}" y2="${y - 15}" data-y="${y}"/>
+      <g class="plg" data-y="${y}"><path class="plunger" d="M${x + 25} ${y - 26} V${y - 9}"/><rect class="cap" x="${x + 12}" y="${y - 36}" width="26" height="10" rx="3"/></g></g>`,
+  gnd: (x, y) => `<path class="gndsym" d="M${x} ${y} v8 M${x - 12} ${y + 8} h24 M${x - 8} ${y + 13} h16 M${x - 4} ${y + 18} h8"/>`,
+  mcu: (x, y, w, h, sub) => `<rect class="mcu" x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/>` +
+    S.txt(x + w / 2, y + 48, 'ESP32-S3', 'ttl') + S.txt(x + w / 2, y + 64, sub, 'sub'),
+  pinL: (x, y, name) => `<rect class="pin" x="${x - 4}" y="${y - 4}" width="8" height="8"/>` + S.txt(x + 10, y + 4, name, 'sub', 'start'),
+  pinR: (x, y, name) => `<rect class="pin" x="${x - 4}" y="${y - 4}" width="8" height="8"/>` + S.txt(x - 24, y + 4, name, 'sub', 'end'),
+  pinT: (x, y, name) => `<rect class="pin" x="${x - 4}" y="${y - 4}" width="8" height="8"/>` + S.txt(x, y + 18, name, 'sub'),
+};
+
+// BOOT button + on-board 10 kΩ pull-up, drawn on the right side of the MCU (shared by all labs)
+function bootBlock(pinY, railY, withInternal) {
+  return S.wire(`M370 ${pinY} H470`, 'n0') + S.dot(440, pinY, 'n0') +
+    S.wire(`M340 50 V${railY} H440 V${pinY - 72}`, 'v33') + S.dot(340, railY, 'v33') +
+    S.res(440, pinY - 55, true, 'R 10 кОм', 'на платі') + S.wire(`M440 ${pinY - 38} V${pinY}`, 'n0') +
+    S.button(470, pinY, 'boot', '--gnd') + S.wire(`M520 ${pinY} H560`, 'gnd') +
+    S.txt(495, pinY + 24, 'BOOT', 'lbl') + S.txt(495, pinY + 38, 'GPIO0 · клавіша ' + (withInternal ? 'B' : '2'), 'sub') +
+    S.txt(376, pinY - 8, '', 'ro', 'start', 'ro-0') +
+    S.flow(`M340 50 V${railY} H440 V${pinY} H520 H560 V330 H310 V310`, 'boot');
+}
+
+/* =====================================================================
+   Lab definitions
+   ===================================================================== */
+const LED_V = { red: 2.0, blue: 3.0, green: 2.1 };
+const mA = (vf, r) => ((3.3 - vf) / r * 1000).toFixed(1).replace('.', ',') + ' мА';
+
+const LABS = {};
+
+LABS['two-buttons'] = {
+  title: 'Дві кнопки, два режими',
+  blurb: 'Модуль 1.4. D1/D2 на GPIO15/16. Зовнішня кнопка S1 (GPIO21, INPUT_PULLUP) вмикає режим 1, BOOT (GPIO0, INPUT) вмикає режим 2. Вибраний режим тримається, доки не натиснуто іншу кнопку.',
+  project: 'esp32-s3-two-buttons',
+  buttons: [{ id: 's1', pin: 21, label: 'S1', key: '1', ch: 2 }, { id: 'boot', pin: 0, label: 'BOOT', key: '2', ch: 3 }],
+  options: { blocking: false, s1NoPullup: false },
+  trackMissed: true,
+  zoom: 4000,
+  firmware: (sim, o) => o.blocking ? blockingFw(sim, o) : twoButtonsFw(sim, o),
+  code: o => o.blocking ? codeBlocking(o) : codeTwo(o),
+  read(s, p) {
+    if (p === 21) { if (s.buttons.s1.raw) return LOW; return s.pin(21).mode === 'INPUT_PULLUP' ? HIGH : s.floatRead(21); }
+    if (p === 0) return s.buttons.boot.raw ? LOW : HIGH;
+    return LOW;
+  },
+  channels: [
+    { label: 'LED1 · 15', color: '--led-red', get: s => s.out(15) },
+    { label: 'LED2 · 16', color: '--led-red', get: s => s.out(16) },
+    { label: 'S1 · 21', color: '--accent', get: s => s.def.read(s, 21) },
+    { label: 'BOOT · 0', color: '--accent', get: s => s.def.read(s, 0) },
+  ],
+  leds: [{ id: 'd1', on: s => s.out(15) === HIGH }, { id: 'd2', on: s => s.out(16) === HIGH }],
+  svg: () => `<svg viewBox="0 0 600 360" role="img" aria-label="Схема: ESP32-S3, два світлодіоди, кнопки S1 і BOOT">
+    ${S.mcu(250, 50, 120, 260, 'YD-ESP32-S3')}
+    ${S.pinL(250, 130, 'GPIO15')}${S.pinL(250, 210, 'GPIO16')}
+    ${S.pinR(370, 130, 'GPIO0')}${S.pinR(370, 250, 'GPIO21')}
+    ${S.pinT(340, 50, '3V3')}
+    ${S.wire('M250 130 H205', 'n15')}${S.res(188, 130, false, 'R1', '220 Ω')}${S.wire('M171 130 H149', 'n15')}
+    ${S.led(138, 130, 180, 'led-d1', '--led-red')}${S.wire('M127 130 H70 V330', 'gnd')}
+    ${S.txt(138, 158, 'D1', 'lbl')}${S.txt(138, 172, '', 'ro cur', 'middle', 'ro-i1')}
+    ${S.wire('M250 210 H205', 'n16')}${S.res(188, 210, false, 'R2', '220 Ω')}${S.wire('M171 210 H149', 'n16')}
+    ${S.led(138, 210, 180, 'led-d2', '--led-red')}${S.wire('M127 210 H70', 'gnd')}${S.dot(70, 210, 'gnd')}
+    ${S.txt(138, 238, 'D2', 'lbl')}${S.txt(138, 252, '', 'ro cur', 'middle', 'ro-i2')}
+    ${S.txt(244, 120, '', 'ro', 'end', 'ro-15')}${S.txt(244, 200, '', 'ro', 'end', 'ro-16')}
+    ${bootBlock(130, 22, false)}
+    ${S.wire('M370 250 H470', 'n21')}${S.button(470, 250, 's1', '--led-green')}${S.wire('M520 250 H560', 'gnd')}${S.dot(560, 250, 'gnd')}
+    ${S.txt(495, 274, 'S1', 'lbl')}${S.txt(495, 288, 'GPIO21 · клавіша 1', 'sub')}
+    ${S.txt(376, 242, '', 'ro', 'start', 'ro-21')}
+    <g class="internal" id="int-21"><path class="dash" d="M352 180 V196 M352 230 V250 H370"/><rect class="dash" x="347" y="196" width="10" height="34"/>
+      ${S.txt(352, 174, '3V3', 'sub')}${S.txt(343, 228, '≈45к', 'sub', 'end')}</g>
+    ${S.wire('M560 130 V330 H70', 'gnd')}${S.wire('M310 310 V330', 'gnd')}${S.dot(310, 330, 'gnd')}${S.gnd(310, 330)}
+    ${S.flow('M250 130 H127 H70 V330 H310 V310', 'd1')}${S.flow('M250 210 H127 H70 V330 H310 V310', 'd2')}
+    ${S.flow('M352 196 V250 H520 H560 V330 H310 V310', 's1', true)}
+  </svg>`,
+  paint(s, v) {
+    const r21 = s.def.read(s, 21), r0 = s.def.read(s, 0), floating = s.pin(21).mode !== 'INPUT_PULLUP' && !s.buttons.s1.raw;
+    v.nets({ n15: lvl(s.out(15)), n16: lvl(s.out(16)), n21: floating ? 'z' : lvl(r21), n0: lvl(r0), gnd: 'gnd', v33: 'pwr' });
+    v.flows({ d1: s.out(15) === HIGH, d2: s.out(16) === HIGH, s1: s.buttons.s1.raw && !floating, boot: s.buttons.boot.raw });
+    v.ro('ro-15', volts(s.out(15)), lvl(s.out(15)));
+    v.ro('ro-16', volts(s.out(16)), lvl(s.out(16)));
+    v.ro('ro-21', floating ? 'висить · читає ' + (r21 ? 'HIGH' : 'LOW') : volts(r21), floating ? 'z' : lvl(r21));
+    v.ro('ro-0', volts(r0), lvl(r0));
+    v.ro('ro-i1', s.out(15) === HIGH ? '≈ ' + mA(LED_V.red, 220) : '0 мА');
+    v.ro('ro-i2', s.out(16) === HIGH ? '≈ ' + mA(LED_V.red, 220) : '0 мА');
+    v.el('#int-21').classList.toggle('off', s.pin(21).mode !== 'INPUT_PULLUP');
+    let msg;
+    if (s.halted) msg = '<b>Режим прошивки.</b> GPIO0 = LOW під час скидання: ROM чекає на нову прошивку.';
+    else if (s.fw.blocking) msg = s.gen && s.wake > s.t ? `<b>Програма стоїть у delay(${s.delayLen})</b>, ще ${s.wake - s.t} мс. У цей час кнопки ніхто не читає.` : 'Читання кнопок: один раз між затримками.';
+    else if (floating) msg = '<b>GPIO21 без підтяжки «висить».</b> Наводки дають випадкові HIGH/LOW, і кожен випадковий LOW вмикає режим 1.';
+    else if (s.buttons.s1.raw) msg = '<b>S1 замикає GPIO21 на GND.</b> Струм іде з 3V3 через внутрішній резистор ≈45 кОм: 3.3 В / 45 кОм ≈ 0,07 мА.';
+    else if (s.buttons.boot.raw) msg = '<b>BOOT замикає GPIO0 на GND.</b> Резистор 10 кОм на платі обмежує струм: 0,33 мА.';
+    else msg = 'Обидві кнопки відпущені: підтяжки тримають входи в <b>HIGH</b>. Натисніть кнопку на схемі або клавішу <kbd>1</kbd> / <kbd>2</kbd>.';
+    v.explain(msg);
+  },
+  watch(s) {
+    const st = s.fw.st, rows = [];
+    if (s.fw.blocking) {
+      rows.push(['mode', `${st.mode}`]);
+      rows.push(['delay()', s.gen && s.wake > s.t ? meter((s.delayLen - (s.wake - s.t)) / s.delayLen, `${s.delayLen - (s.wake - s.t)} / ${s.delayLen} мс`, true) : '—']);
+    } else {
+      const p = s.fw.kPatterns[st.mode];
+      rows.push(['mode', `${st.mode === 0 ? 'kSync' : 'kAlternate'} <span class="chip ok">режим ${st.mode + 1}</span>`]);
+      rows.push(['step', `${st.step} з ${p.stepCount}`]);
+      rows.push(['stepStarted', String(st.stepStarted)]);
+      rows.push(['millis() − stepStarted', meter((s.t - st.stepStarted) / p.stepMs, `${s.t - st.stepStarted} / ${p.stepMs} мс`)]);
+    }
+    rows.push(['digitalRead(21)', chip(s.def.read(s, 21)) + (s.pin(21).mode === 'INPUT_PULLUP' ? '' : ' <span class="chip z">без підтяжки</span>')]);
+    rows.push(['digitalRead(0)', chip(s.def.read(s, 0))]);
+    rows.push(['loop() за секунду', s.halted ? '—' : compact(s.loopRate)]);
+    rows.push(['пропущені натискання', s.missed ? `<span class="chip bad">${s.missed}</span>` : '<span class="chip ok">0</span>']);
+    return rows;
+  },
+  toggles: [
+    { id: 'blocking', label: 'Блокуючий delay() (README §6.1)' },
+    { id: 's1NoPullup', label: 'S1 без підтяжки (INPUT)' },
+  ],
+  steps: [
+    'Натисніть <b>BOOT</b> (клавіша <kbd>2</kbd>): режим 2, світлодіоди блимають по черзі. Відпустіть кнопку, і режим лишиться. Лічильник біля <code>setMode()</code> зріс на 1, хоча <code>pollButtons()</code> виконано тисячі разів.',
+    'Натисніть BOOT ще раз: нічого не змінюється, бо умова <code>b.pattern != mode</code> хибна.',
+    'Перемкніть час на <b>1/20×</b> і стежте за смужкою <code>millis() − stepStarted</code>. Коли вона доходить до <code>stepMs</code>, спалахує рядок <code>render()</code>.',
+    'Увімкніть <b>блокуючий delay()</b> і в режимі 2 коротко натискайте S1. Більшість натискань пропадає (червоні мітки на аналізаторі), а маркер ▶ довго стоїть на <code>delay(1000)</code>.',
+    'Увімкніть <b>S1 без підтяжки</b>. Лінія GPIO21 стає фіолетовою, канал S1 шумить, режим сам перескакує на 1.',
+    'Затисніть BOOT і натисніть <b>RST</b>: плата стартує в режимі прошивки, програма не запускається.',
+  ],
+  quiz: [
+    ['Чим відрізняються INPUT, INPUT_PULLUP і OUTPUT?', 'OUTPUT: вивід сам задає рівень (3.3 В або 0 В). INPUT: вивід лише вимірює напругу, маючи дуже великий опір. INPUT_PULLUP: те саме, плюс внутрішній резистор ≈45 кОм до 3.3 В, тому без зовнішнього сигналу вхід читає HIGH.'],
+    ['Що буде на вході без підтяжки, коли кнопка відпущена?', 'Вхід ні до чого не під\'єднаний і ловить наводки. digitalRead() повертає випадкові значення, і режим «сам» перемикається. Це видно, якщо ввімкнути експеримент «S1 без підтяжки».'],
+    ['Чому для S1 — INPUT_PULLUP, а для BOOT — INPUT?', 'Для S1 на макетці немає резистора, тож вмикаємо внутрішній. На BOOT резистор 10 кОм уже розпаяний на платі, тому досить INPUT.'],
+    ['Чому натиснута кнопка читається як LOW?', 'Кнопка замикає вивід на GND. Підтяжка лише «тягне» до 3.3 В через великий опір, а пряме з\'єднання з землею сильніше.'],
+    ['Який струм через світлодіод з резистором 220 Ω при U_LED = 2.0 В?', 'I = (3.3 − 2.0) / 220 ≈ 5,9 мА. Схема показує це значення під світлодіодом, коли він світить.'],
+    ['Чому GPIO0 не можна тримати натиснутим під час увімкнення?', 'GPIO0 — strapping-пін. ROM читає його при скиданні: LOW означає режим завантаження прошивки. Перевірте: затисніть BOOT і натисніть RST.'],
+  ],
+  run: {
+    vscode: `cd esp32-s3-two-buttons
+pio run                       # збирає .pio/build/…/firmware.bin
+# F1 → Wokwi: Start Simulator
+# клавіші: 1 = S1, 2 = BOOT`,
+    cli: `source ../.envrc            # WOKWI_CLI_TOKEN
+wokwi-cli lint
+wokwi-cli . --scenario wokwi/scenarios/mode-switch.yaml \\
+          --timeout 20000`,
+    wokwi: 'https://wokwi.com/projects/476609614353588225',
+  },
+};
+
+function blinkDef(single) {
+  const base = {
+    buttons: [{ id: 'boot', pin: 0, label: 'BOOT', key: 'b', ch: single ? 3 : 3 }],
+    firmware: (sim, o) => ledBlinkFw(sim, o),
+    code: o => codeBlink(o),
+    read(s, p) { if (p === 0) return s.buttons.boot.raw ? LOW : HIGH; return LOW; },
+    project: 'esp32-s3-led-blink',
+  };
+  const watchCommon = (s, rows) => {
+    const fw = s.fw, pl = fw.player, bt = fw.button;
+    const frames = pl.pattern().frames.map((f, i) => `<span class="frame${i === pl.frameIndex ? ' now' : ''}"><i class="${f & fw.R ? 'r' : ''}"></i>${single ? '' : `<i class="${f & fw.G ? 'g' : ''}"></i>`}<i class="${f & fw.B ? 'b' : ''}"></i></span>`).join('');
+    rows.push(['pattern()', `${pl.pattern().name} <span class="sub">(${pl.patternIndex + 1} з ${fw.PATTERNS.length})</span>`]);
+    rows.push(['frames', `<div class="frames">${frames}</div>`]);
+    rows.push(['frameDurationMs()', `${pl.dur()} мс <span class="sub">(${pl.speedIndex + 1} з ${fw.SPEEDS.length})</span>`]);
+    rows.push(['now − frameStartMs_', pl.held ? '<span class="chip hi">held_ = true</span>' : meter((s.t - pl.frameStart) / pl.dur(), `${Math.max(0, s.t - pl.frameStart)} / ${pl.dur()} мс`)]);
+    rows.push(['BOOT контакт', chip(s.buttons.boot.raw ? LOW : HIGH) + ` <span class="sub">антидребезг ${fw.kDebounceMs} мс</span>`]);
+    rows.push(['pressed_', bt.pressed ? meter((s.t - bt.pressStart) / 900, `${s.t - bt.pressStart} мс`, s.t - bt.pressStart >= fw.kLongPressMs, fw.kLongPressMs / 900) : '<span class="chip lo">false</span>']);
+    rows.push(['остання подія', fw.st.lastEvent ? `${fw.st.lastEvent.name} <span class="sub">@ ${fw.st.lastEvent.t} мс</span>` : '—']);
+  };
+  if (!single) return {
+    ...base,
+    title: 'Миготіння: патерни, швидкість, кнопка',
+    blurb: 'Червоний, синій і зелений світлодіоди на GPIO4/5/6. BOOT: коротке натискання змінює швидкість, довге (> 0,6 с) — патерн. Кнопка має антидребезг, а миготіння не використовує delay().',
+    options: { single: false, noDebounce: false },
+    zoom: 4000,
+    channels: [
+      { label: 'RED · 4', color: '--led-red', get: s => s.out(4) },
+      { label: 'BLUE · 5', color: '--led-blue', get: s => s.out(5) },
+      { label: 'GREEN · 6', color: '--led-green', get: s => s.out(6) },
+      { label: 'BOOT контакт', color: '--accent', get: s => s.buttons.boot.raw ? LOW : HIGH },
+      { label: 'pressed_', color: '--hi', get: s => s.fw.button.pressed ? HIGH : LOW },
+    ],
+    leds: [{ id: 'r', on: s => s.out(4) === HIGH }, { id: 'b', on: s => s.out(5) === HIGH }, { id: 'g', on: s => s.out(6) === HIGH }],
+    svg: () => `<svg viewBox="0 0 600 360" role="img" aria-label="Схема: ESP32-S3, три світлодіоди і кнопка BOOT">
+      ${S.mcu(250, 50, 120, 260, 'YD-ESP32-S3')}
+      ${S.pinL(250, 110, 'GPIO4')}${S.pinL(250, 180, 'GPIO5')}${S.pinL(250, 250, 'GPIO6')}
+      ${S.pinR(370, 130, 'GPIO0')}${S.pinT(340, 50, '3V3')}
+      ${[[110, '4', 'R1', '220 Ω', 'led-r', '--led-red', 'RED', 'ro-ir'], [180, '5', 'R2', '100 Ω', 'led-b', '--led-blue', 'BLUE', 'ro-ib'], [250, '6', 'R3', '220 Ω', 'led-g', '--led-green', 'GREEN', 'ro-ig']].map(([y, p, rn, rv, lid, col, name, ro]) =>
+        S.wire(`M250 ${y} H205`, 'n' + p) + S.res(188, y, false, rn, rv) + S.wire(`M171 ${y} H149`, 'n' + p) +
+        S.led(138, y, 180, lid, col) + S.wire(`M127 ${y} H70`, 'gnd') + S.dot(70, y, 'gnd') +
+        S.txt(138, y + 28, name, 'lbl') + S.txt(138, y + 42, '', 'ro cur', 'middle', ro) + S.txt(244, y - 10, '', 'ro', 'end', 'ro-' + p)).join('')}
+      ${bootBlock(130, 22, true)}
+      <g class="internal"><path class="dash" d="M352 78 V92 M352 118 V130 H370"/><rect class="dash" x="347" y="92" width="10" height="26"/>${S.txt(343, 108, '≈45к', 'sub', 'end')}</g>
+      ${S.wire('M70 110 V330 H560 V130', 'gnd')}${S.wire('M310 310 V330', 'gnd')}${S.dot(310, 330, 'gnd')}${S.gnd(310, 330)}
+      ${S.flow('M250 110 H127 H70 V330 H310 V310', 'r')}${S.flow('M250 180 H127 H70 V330 H310 V310', 'b')}${S.flow('M250 250 H127 H70 V330 H310 V310', 'g')}
+    </svg>`,
+    paint(s, v) {
+      const o4 = s.out(4), o5 = s.out(5), o6 = s.out(6), r0 = s.def.read(s, 0);
+      v.nets({ n4: lvl(o4), n5: lvl(o5), n6: lvl(o6), n0: lvl(r0), gnd: 'gnd', v33: 'pwr' });
+      v.flows({ r: o4 === HIGH, b: o5 === HIGH, g: o6 === HIGH, boot: s.buttons.boot.raw });
+      v.ro('ro-4', volts(o4), lvl(o4)); v.ro('ro-5', volts(o5), lvl(o5)); v.ro('ro-6', volts(o6), lvl(o6)); v.ro('ro-0', volts(r0), lvl(r0));
+      v.ro('ro-ir', o4 === HIGH ? '≈ ' + mA(LED_V.red, 220) : '0 мА');
+      v.ro('ro-ib', o5 === HIGH ? '≈ ' + mA(LED_V.blue, 100) : '0 мА');
+      v.ro('ro-ig', o6 === HIGH ? '≈ ' + mA(LED_V.green, 220) : '0 мА');
+      const fw = s.fw;
+      let msg;
+      if (s.halted) msg = '<b>Режим прошивки.</b> BOOT був затиснутий під час скидання.';
+      else if (s.phase === 'setup') msg = '<b>Самотест у setup():</b> кожен світлодіод по 400 мс. Це єдине місце з delay(): loop() ще не почався, тож блокувати тут безпечно.';
+      else if (fw.button.pressed) msg = s.t - fw.button.pressStart >= fw.kLongPressMs ? '<b>Довге натискання</b> зараховано, не чекаючи відпускання. Відпускання вже не буде коротким.' : `<b>Кнопку тримають ${s.t - fw.button.pressStart} мс.</b> Відпустіть до 600 мс, щоб змінити швидкість, або тримайте далі, щоб змінити патерн.`;
+      else msg = `Синій має резистор 100 Ω, бо його пряме падіння ≈3 В. З 220 Ω струм був би лише ${mA(LED_V.blue, 220)}, і світлодіод ледь світив би. Кнопка: клавіша <kbd>B</kbd>.`;
+      v.explain(msg);
+    },
+    watch(s) { const rows = []; watchCommon(s, rows); rows.push(['loop() за секунду', s.halted ? '—' : compact(s.loopRate)]); return rows; },
+    toggles: [{ id: 'noDebounce', label: 'Вимкнути антидребезг (0 мс)' }],
+    steps: [
+      'Натисніть <b>RST</b> і стежте за самотестом: червоний → синій → зелений по 400 мс. Маркер ▶ стоїть на <code>delay(stepMs)</code>.',
+      'Коротко натисніть <b>BOOT</b> (клавіша <kbd>B</kbd>): швидкість 500 → 250 мс. Канал «BOOT контакт» тремтить (дребезг), а <code>pressed_</code> змінюється однією чистою сходинкою.',
+      'Затисніть BOOT довше ніж на 0,6 с: новий патерн з\'являється ще до відпускання. Червона риска на смужці <code>pressed_</code> — поріг <code>kLongPressMs</code>.',
+      'Увімкніть <b>«Вимкнути антидребезг»</b> і натисніть коротко. Одне натискання дає кілька ShortPress, і швидкість перескакує через кілька значень.',
+      'У Serial натисніть <kbd>1</kbd>: патерн зупиняється, горить лише червоний (перевірка монтажу). Будь-яка інша клавіша продовжує патерн.',
+    ],
+    quiz: [
+      ['Чому BlinkPlayer::update() не викликає delay()?', 'Він лише порівнює millis() з моментом показу кадру й одразу повертається. Тому loop() виконується тисячі разів на секунду, і кнопка з Serial реагують навіть при кадрі 1 с.'],
+      ['Що робить рядок if (now - lastEdgeMs_ < debounceMs_)?', 'Ігнорує зміни рівня протягом 30 мс після попереднього фронту. Дребезг контактів триває кілька мілісекунд, тож серія відскоків зливається в одне натискання.'],
+      ['Чому тут антидребезг потрібен, а в «Двох кнопках» — ні?', 'Тут кнопка перемикає (next speed), і кожен відскок рахувався б окремо. У «Двох кнопках» кнопка встановлює конкретний режим, а десять записів mode = 1 дають те саме, що й один.'],
+      ['Чому millis() - frameStartMs_ коректно працює після переповнення millis()?', 'Обидва значення uint32_t, і беззнакове віднімання дає правильну різницю за модулем 2³², навіть коли millis() «перескочив» через нуль (≈ через 49 діб).'],
+    ],
+    run: {
+      vscode: `cd esp32-s3-led-blink
+pio run
+# F1 → Wokwi: Start Simulator
+# клавіша B = BOOT; Serial: 1/2/3/0/p/v`,
+      cli: `source ../.envrc
+wokwi-cli . --scenario wokwi/scenarios/blink-controls.yaml \\
+          --timeout 20000`,
+      wokwi: 'https://wokwi.com/projects/476610317583371265',
+    },
+  };
+  return {
+    ...base,
+    title: 'Два світлодіоди на одному виводі',
+    blurb: 'Середовище esp32-s3-single-gpio. Червоний між GPIO7 і GND, синій між 3V3 і GPIO7. HIGH вмикає червоний, LOW — синій, INPUT (Hi-Z) гасить обидва. Кадр «обидва разом» імітується швидким чергуванням.',
+    options: { single: true, noDebounce: false, slowMux: false },
+    zoom: 1000,
+    channels: [
+      { label: 'GPIO7', color: '--hi', get: s => s.out(7) },
+      { label: 'RED світить', color: '--led-red', get: s => s.out(7) === HIGH ? HIGH : LOW },
+      { label: 'BLUE світить', color: '--led-blue', get: s => s.out(7) === LOW ? HIGH : LOW },
+      { label: 'BOOT контакт', color: '--accent', get: s => s.buttons.boot.raw ? LOW : HIGH },
+    ],
+    leds: [{ id: 'r', on: s => s.out(7) === HIGH }, { id: 'b', on: s => s.out(7) === LOW }],
+    svg: () => `<svg viewBox="0 0 600 370" role="img" aria-label="Схема: два світлодіоди на GPIO7">
+      ${S.mcu(250, 50, 120, 270, 'YD-ESP32-S3')}
+      ${S.pinL(250, 185, 'GPIO7')}${S.pinR(370, 150, 'GPIO0')}${S.pinT(340, 50, '3V3')}${S.pinT(290, 50, '3V3')}
+      ${S.wire('M290 50 V30 H150 V52', 'v33')}
+      ${S.res(150, 69, true, 'R2', '100 Ω')}${S.wire('M150 86 V111', 'nBA')}
+      ${S.led(150, 122, 90, 'led-b', '--led-blue')}${S.wire('M150 133 V185', 'n7')}
+      ${S.txt(120, 118, 'BLUE', 'lbl', 'end')}${S.txt(120, 132, '', 'ro cur', 'end', 'ro-ib')}
+      ${S.wire('M150 185 H250', 'n7')}${S.dot(150, 185, 'n7')}
+      ${S.wire('M150 185 V214', 'n7')}${S.res(150, 231, true, 'R1', '220 Ω')}${S.wire('M150 248 V273', 'nRA')}
+      ${S.led(150, 284, 90, 'led-r', '--led-red')}${S.wire('M150 295 V340 H310 V320', 'gnd')}
+      ${S.txt(120, 280, 'RED', 'lbl', 'end')}${S.txt(120, 294, '', 'ro cur', 'end', 'ro-ir')}
+      ${S.dot(310, 340, 'gnd')}${S.gnd(310, 340)}
+      ${S.txt(244, 176, '', 'ro', 'end', 'ro-7')}
+      ${bootBlock(150, 22, true)}
+      <g class="internal"><path class="dash" d="M352 98 V112 M352 138 V150 H370"/><rect class="dash" x="347" y="112" width="10" height="26"/>${S.txt(343, 128, '≈45к', 'sub', 'end')}</g>
+      ${S.wire('M560 150 V340 H310', 'gnd')}
+      ${S.flow('M250 185 H150 V295 V340 H310 V320', 'r')}${S.flow('M290 50 V30 H150 V185 H250', 'b')}
+    </svg>`,
+    paint(s, v) {
+      const o7 = s.out(7), r0 = s.def.read(s, 0);
+      const fixBoot = d => d.replace('V330 H310 V310', 'V340 H310 V320');
+      if (!v.bootFixed) { const f = v.el('[data-flow="boot"]'); f.setAttribute('d', fixBoot(f.getAttribute('d'))); v.bootFixed = true; }
+      v.nets({ n7: lvl(o7), nRA: o7 === HIGH ? 'hi' : 'lo', nBA: 'pwr', n0: lvl(r0), gnd: 'gnd', v33: 'pwr' });
+      v.flows({ r: o7 === HIGH, b: o7 === LOW, boot: s.buttons.boot.raw });
+      v.ro('ro-7', o7 === Z ? 'INPUT · Hi-Z' : 'OUTPUT · ' + volts(o7), lvl(o7));
+      v.ro('ro-0', volts(r0), lvl(r0));
+      v.ro('ro-ir', o7 === HIGH ? '≈ ' + mA(LED_V.red, 220) : '0 мА');
+      v.ro('ro-ib', o7 === LOW ? '≈ ' + mA(2.9, 100) : '0 мА');
+      const drv = s.fw.driver;
+      let msg;
+      if (s.halted) msg = '<b>Режим прошивки.</b> BOOT був затиснутий під час скидання.';
+      else if (drv.state === 'Both') msg = `<b>Кадр R|B фізично неможливий</b>, тому вивід чергує HIGH/LOW кожні ${s.options.slowMux ? '50 мс' : '1 мс'}. ${s.options.slowMux ? 'При 10 Гц око бачить мерехтіння.' : 'При 500 Гц око бачить обидва світлодіоди ввімкненими. Сповільніть час до 1/100×, щоб побачити перемикання.'}`;
+      else if (o7 === HIGH) msg = '<b>HIGH:</b> вивід віддає струм: GPIO7 → 220 Ω → червоний → GND. Синій закритий: з обох боків ≈3.3 В.';
+      else if (o7 === LOW) msg = '<b>LOW:</b> вивід втягує струм: 3V3 → 100 Ω → синій → GPIO7. Червоний закритий: з обох боків 0 В.';
+      else msg = '<b>Hi-Z (INPUT):</b> вивід відключений. Єдиний шлях — 3V3 → синій → червоний → GND, але двом світлодіодам послідовно треба ≈2.9 + 2.0 ≈ 4.9 В, а є лише 3.3 В. Струму немає, обидва згаслі.';
+      v.explain(msg);
+    },
+    watch(s) {
+      const d = s.fw.driver, rows = [];
+      watchCommon(s, rows);
+      rows.splice(3, 0, ['state_', `<span class="chip ${d.state === 'Off' ? 'z' : 'hi'}">State::${d.state}</span>`]);
+      rows.push(['redPhase_ / перемикань', `${d.redPhase} / ${compact(d.toggles)}`]);
+      return rows;
+    },
+    toggles: [{ id: 'slowMux', label: 'Мультиплекс 50 мс замість 1 мс' }],
+    steps: [
+      'Патерн <b>alternate</b>: HIGH вмикає червоний (струм виходить з виводу), LOW вмикає синій (струм входить у вивід). Стежте за стрілками струму.',
+      'Коротко натисніть BOOT двічі й затисніть довго: патерн <b>alternate_gap</b>. У паузах вивід переходить у INPUT, лінія стає фіолетовою, і обидва світлодіоди гаснуть.',
+      'Перейдіть до патерну <b>mix</b> (довгі натискання). Кадр R|B виконується чергуванням кожну 1 мс. Поставте <b>1/100×</b>: миготіння стане видно, а на 1× обидва світять напівяскраво.',
+      'Увімкніть «Мультиплекс 50 мс» при 1×: з\'являється мерехтіння. Око перестає його помічати приблизно від 50–60 Гц.',
+    ],
+    quiz: [
+      ['Чому в стані Hi-Z обидва світлодіоди гаснуть?', 'Струм міг би йти лише через обидва послідовно (3V3 → синій → червоний → GND), а для цього треба ≈4.9 В. 3.3 В замало, і діоди лишаються закритими.'],
+      ['Чому синій підключено до 3V3, а не до GND?', 'Щоб він світив при LOW: тоді вивід втягує струм. Так один вивід керує двома світлодіодами трьома станами: HIGH, LOW, Hi-Z.'],
+      ['Чому обидва LED у кадрі R|B світять слабше?', 'Кожен горить лише половину часу (скважність 50%), тож середній струм і видима яскравість приблизно вдвічі менші.'],
+    ],
+    run: {
+      vscode: `cd esp32-s3-led-blink
+pio run -e esp32-s3-single-gpio
+# F1 → Wokwi: Select Config File
+#      → wokwi/single-gpio/wokwi.toml
+# F1 → Wokwi: Start Simulator`,
+      cli: `source ../.envrc
+wokwi-cli wokwi/single-gpio --scenario self-test.yaml \\
+          --timeout 10000`,
+      wokwi: 'https://wokwi.com/projects/476610461509906433',
+    },
+  };
+}
+LABS['led-blink'] = blinkDef(false);
+LABS['single-gpio'] = blinkDef(true);
+
+/* =====================================================================
+   View helpers
+   ===================================================================== */
+function meter(frac, text, warn, mark) {
+  const f = Math.max(0, Math.min(1, frac));
+  return `<div class="meter"><div class="track"><div class="fill${warn ? ' warn' : ''}" style="width:${(f * 100).toFixed(1)}%"></div>${mark ? `<div class="mark" style="left:${(mark * 100).toFixed(1)}%"></div>` : ''}</div><span>${text}</span></div>`;
+}
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|\b(const|constexpr|for|if|else|return|void|bool|switch|case|break|while|auto|true|false)\b|\b(uint32_t|uint8_t|size_t|Frame|Pattern|Button|State|Event|PatternId|Led|LedDriver)\b|\b(\d+)\b|\b(HIGH|LOW|OUTPUT|INPUT_PULLUP|INPUT)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line))) {
+    const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'k' : m[4] ? 't' : m[5] ? 'n' : 'm';
+    out += esc(line.slice(last, m.index)) + `<span class="t-${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+
+let TOK = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['--panel', '--panel-2', '--ink', '--muted', '--line', '--hi', '--lo', '--z', '--bad', '--accent', '--led-red', '--led-blue', '--led-green', '--grid'])
+    TOK[k] = cs.getPropertyValue(k).trim();
+}
+
+class LabView {
+  constructor(key, def) {
+    this.key = key; this.def = def; this.zoom = def.zoom;
+    this.sim = new Sim(def);
+    this.bright = {};
+    this.root = document.createElement('section');
+    this.root.id = key; this.root.setAttribute('role', 'tabpanel'); this.root.setAttribute('aria-labelledby', 'tab-' + key);
+    this.root.hidden = true;
+    this.build();
+  }
+  build() {
+    const d = this.def;
+    this.root.innerHTML = `
+      <div class="lab-head"><h2>${d.title}</h2><p>${d.blurb}</p></div>
+      <div class="bench">
+        <div class="panel circuit">
+          <div class="ph"><h3>Схема · живі рівні</h3><span class="note">Натискайте кнопки прямо на схемі</span></div>
+          <div class="svgbox">${d.svg()}</div>
+          <div class="controls">
+            ${d.buttons.map(b => `<button type="button" class="hold" data-hold="${b.id}" aria-pressed="false">Тримати ${b.label}<kbd>${b.key.toUpperCase()}</kbd></button>`).join('')}
+            ${d.toggles.map(t => `<label class="toggle"><input type="checkbox" id="${this.key}-${t.id}" data-opt="${t.id}">${t.label}</label>`).join('')}
+          </div>
+          <p class="explain" aria-live="polite"></p>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Код · що виконується</h3><span class="note">▶ поточний рядок · підсвітка = щойно виконано · число = скільки разів</span></div>
+          <div class="code"></div>
+        </div>
+        <div class="panel la span2">
+          <div class="ph"><h3>Логічний аналізатор</h3>
+            <div class="seg" role="group" aria-label="Масштаб часу">${[[4000, '4 с'], [1000, '1 с'], [200, '200 мс'], [20, '20 мс']].map(([v, l]) => `<button type="button" data-zoom="${v}" aria-pressed="${v === this.zoom}">${l}</button>`).join('')}</div>
+          </div>
+          <div class="pb"><canvas height="200"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Змінні</h3><span class="note">стан програми зараз</span></div>
+          <table class="watch"><tbody></tbody></table>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Serial-монітор · 115200</h3><span class="note">час симуляції</span></div>
+          <div class="serial" tabindex="0"></div>
+          ${d.options.single !== undefined ? `<div class="sendrow">${['1', '2', '3', '0', 'p', 'v', 'x'].map(k => `<button type="button" class="btn key" data-key="${k}">${k}</button>`).join('')}
+            <input id="${this.key}-tx" aria-label="Надіслати в Serial" placeholder="текст" maxlength="16"><button type="button" class="btn" data-send>Надіслати</button></div>` : ''}
+        </div>
+      </div>
+      <div class="learn">
+        <div class="panel"><div class="ph"><h3>Експерименти по черзі</h3></div><ol class="steps">${d.steps.map(s => `<li>${s}</li>`).join('')}</ol></div>
+        <div class="panel quiz"><div class="ph"><h3>Перевір себе</h3><span class="note">натисніть, щоб побачити відповідь</span></div>${d.quiz.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}</div>
+      </div>
+      <div class="panel run">
+        <div class="ph"><h3>Запуск у Wokwi</h3><span class="note">справжній firmware.bin · проєкт <code>${d.project}</code></span></div>
+        <div class="cols">
+          <div class="col"><h4>VS Code + PlatformIO</h4><p>Розширення «Wokwi Simulator» читає <code>wokwi.toml</code> і <code>diagram.json</code> з папки проєкту.</p><pre class="cmd">${highlightShell(d.run.vscode)}</pre></div>
+          <div class="col"><h4>wokwi-cli (автотест)</h4><p>Сценарій натискає кнопки й перевіряє рівні на виводах і текст у Serial.</p><pre class="cmd">${highlightShell(d.run.cli)}</pre></div>
+          <div class="col"><h4>wokwi.com у браузері</h4><p>Готовий проєкт з тією самою схемою на макетці й тими самими файлами коду. Нічого не треба встановлювати.</p>
+            <p><a class="btn primary" href="${d.run.wokwi}" target="_blank" rel="noopener">Відкрити в Wokwi ↗</a></p>
+            <p>Онлайн-збірка виводить Serial через UART (TX/RX), тому в цій версії <code>diagram.json</code> підключено <code>$serialMonitor</code>. Кнопка BOOT — на самій платі.</p></div>
+        </div>
+      </div>`;
+    this.svg = $('svg', this.root);
+    this.canvas = $('canvas', this.root);
+    this.codeBox = $('.code', this.root);
+    this.watchBody = $('.watch tbody', this.root);
+    this.serialBox = $('.serial', this.root);
+    this.explainEl = $('.explain', this.root);
+    this.netEls = {};
+    $$('[data-net]', this.svg).forEach(e => (this.netEls[e.dataset.net] ||= []).push(e));
+    this.flowEls = {};
+    $$('[data-flow]', this.svg).forEach(e => (this.flowEls[e.dataset.flow] ||= []).push(e));
+    this.roEls = {};
+    this.buildCode();
+    this.bind();
+    this.serialCount = 0;
+  }
+  buildCode() {
+    const src = this.def.code(this.sim.options).split('\n');
+    const seen = new Set();
+    this.codeRows = [];
+    this.codeBox.innerHTML = src.map(line => {
+      const m = line.match(/⟦([\w-]+)⟧\s*$/);
+      const id = m ? m[1] : '';
+      const text = m ? line.slice(0, m.index) : line;
+      const first = id && !seen.has(id); if (id) seen.add(id);
+      const file = /^\/\/ (src|include|README)/.test(text);
+      return `<div class="ln${file ? ' file' : ''}"${id ? ` data-id="${id}"${first ? ' data-first="1"' : ''}` : ''}><span class="hits"></span><span class="cur">▶</span><code>${highlight(text) || ' '}</code></div>`;
+    }).join('');
+    this.codeRows = $$('.ln[data-id]', this.codeBox).map(el => ({ el, id: el.dataset.id, first: !!el.dataset.first, hits: $('.hits', el), last: -1, heat: -1 }));
+  }
+  bind() {
+    // buttons on the schematic
+    $$('.pbtn', this.svg).forEach(g => {
+      const id = g.dataset.btn;
+      const down = e => { e.preventDefault(); g.setPointerCapture?.(e.pointerId); this.press(id, true); };
+      const up = () => this.press(id, false);
+      g.addEventListener('pointerdown', down);
+      g.addEventListener('pointerup', up);
+      g.addEventListener('pointercancel', up);
+      g.addEventListener('lostpointercapture', up);
+    });
+    $$('[data-hold]', this.root).forEach(b => {
+      const id = b.dataset.hold;
+      b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture?.(e.pointerId); this.press(id, true); });
+      const up = () => this.press(id, false);
+      b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+      b.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); this.press(id, true); } });
+      b.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') this.press(id, false); });
+    });
+    $$('[data-opt]', this.root).forEach(cb => cb.addEventListener('change', () => {
+      this.sim.options[cb.dataset.opt] = cb.checked;
+      this.reflash();
+    }));
+    $$('[data-zoom]', this.root).forEach(b => b.addEventListener('click', () => {
+      this.zoom = +b.dataset.zoom;
+      $$('[data-zoom]', this.root).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    }));
+    $$('[data-key]', this.root).forEach(b => b.addEventListener('click', () => this.send(b.dataset.key)));
+    const tx = $(`#${this.key}-tx`, this.root);
+    if (tx) {
+      const go = () => { if (tx.value) { this.send(tx.value); tx.value = ''; } };
+      $('[data-send]', this.root).addEventListener('click', go);
+      tx.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    }
+  }
+  press(id, v) {
+    const b = this.sim.buttons[id]; if (!b) return;
+    b.set(v);
+    $$(`[data-hold="${id}"]`, this.root).forEach(x => x.setAttribute('aria-pressed', String(v)));
+  }
+  send(text) {
+    for (const ch of text) this.sim.rx.push(ch);
+    this.sim.lines.push({ t: this.sim.t, text: '→ ' + text, kind: 'sim' });
+  }
+  reflash() {
+    this.sim.reset();
+    this.sim.note('Прошивку змінено: ' + (this.def.toggles.filter(t => this.sim.options[t.id]).map(t => t.label).join(', ') || 'початковий код'));
+    this.buildCode();
+    this.serialBox.innerHTML = ''; this.serialCount = 0;
+  }
+  reset() { this.sim.reset(); this.serialBox.innerHTML = ''; this.serialCount = 0; }
+  // ---- painting API used by lab defs ----
+  el(sel) { return $(sel, this.svg); }
+  nets(map) { for (const [net, l] of Object.entries(map)) for (const e of this.netEls[net] || []) if (e.dataset.lvl !== l) e.dataset.lvl = l; }
+  flows(map) { for (const [id, on] of Object.entries(map)) for (const e of this.flowEls[id] || []) e.classList.toggle('on', !!on); }
+  ro(id, text, l) {
+    const e = this.roEls[id] || (this.roEls[id] = $('#' + id, this.svg)); if (!e) return;
+    if (e.textContent !== text) e.textContent = text;
+    if (l && e.dataset.lvl !== l) e.dataset.lvl = l;
+  }
+  explain(html) { if (this.explainEl.innerHTML !== html) this.explainEl.innerHTML = html; }
+  // ---- per-frame ----
+  frame(dtReal, paintSlow) {
+    const s = this.sim;
+    for (const l of this.def.leds) {
+      const duty = s.dutyTicks ? (s.duty[l.id] || 0) / s.dutyTicks : (l.on(s) ? 1 : 0);
+      const b = this.bright[l.id] ?? 0;
+      const k = 1 - Math.exp(-dtReal / 25);
+      this.bright[l.id] = b + (duty - b) * k;
+      const g = $('#led-' + l.id, this.svg);
+      if (g) g.style.setProperty('--b', this.bright[l.id].toFixed(3));
+    }
+    s.duty = {}; s.dutyTicks = 0;
+    for (const b of Object.values(s.buttons)) {
+      const g = $(`.pbtn[data-btn="${b.def.id}"]`, this.svg); if (!g) continue;
+      const pressed = b.raw;
+      g.classList.toggle('pressed', b.pressed);
+      const lever = $('.lever', g), y = +lever.dataset.y;
+      lever.setAttribute('y2', pressed ? y : y - 15);
+      $('.plg', g).setAttribute('transform', `translate(0 ${b.pressed ? 7 : 0})`);
+    }
+    this.def.paint(s, this);
+    this.paintCode();
+    this.paintSerial();
+    this.drawAnalyzer();
+    if (paintSlow) this.watchBody.innerHTML = this.def.watch(s).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  }
+  paintCode() {
+    const s = this.sim;
+    for (const r of this.codeRows) {
+      const n = s.hits[r.id] || 0;
+      if (n !== r.last) { r.hits.textContent = n ? compact(n) : ''; r.last = n; }
+      const lh = s.lastHitReal[r.id];
+      const heat = lh ? Math.max(0, 1 - (NOW - lh) / 700) : 0;
+      const hq = Math.round(heat * 20) / 20;
+      if (hq !== r.heat) { r.el.style.setProperty('--heat', hq); r.heat = hq; }
+      r.el.classList.toggle('is-cur', r.first && s.cur === r.id && !s.halted);
+    }
+  }
+  paintSerial() {
+    const s = this.sim, box = this.serialBox;
+    if (s.lines.length > 600) { s.lines.splice(0, s.lines.length - 400); box.innerHTML = ''; this.serialCount = 0; }
+    if (this.serialCount === s.lines.length) return;
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
+    const frag = document.createDocumentFragment();
+    for (let i = this.serialCount; i < s.lines.length; i++) {
+      const l = s.lines[i], div = document.createElement('div');
+      const t = l.t, ts = `${String(Math.floor(t / 60000)).padStart(2, '0')}:${String(Math.floor(t / 1000) % 60).padStart(2, '0')}.${String(t % 1000).padStart(3, '0')}`;
+      div.innerHTML = `<span class="ts">${ts} &gt; </span><span class="${l.kind}">${esc(l.text) || ' '}</span>`;
+      frag.appendChild(div);
+    }
+    box.appendChild(frag);
+    this.serialCount = s.lines.length;
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  }
+  drawAnalyzer() {
+    const c = this.canvas, s = this.sim, chs = this.def.channels;
+    const rowH = 38, axisH = 22, h = chs.length * rowH + axisH;
+    const w = c.clientWidth, dpr = window.devicePixelRatio || 1;
+    if (!w) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = h + 'px'; }
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = TOK['--panel-2']; ctx.fillRect(0, 0, w, h);
+    const labelW = Math.min(112, w * 0.26), plotW = w - labelW - 8, win = this.zoom, t1 = s.t, t0 = t1 - win;
+    const X = t => labelW + (t - t0) / win * plotW;
+    // grid
+    ctx.strokeStyle = TOK['--line']; ctx.lineWidth = 1;
+    ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = TOK['--muted']; ctx.textAlign = 'center';
+    for (let i = 0; i <= 10; i++) {
+      const x = Math.round(labelW + plotW * i / 10) + .5;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h - axisH); ctx.stroke();
+      if (i % 2 === 0) {
+        const ago = win * (10 - i) / 10;
+        const txt = i === 10 ? 'зараз' : '−' + (ago >= 1000 ? (ago / 1000).toLocaleString('uk-UA') + ' с' : ago + ' мс');
+        ctx.fillText(txt, Math.min(Math.max(x, labelW + 18), w - 22), h - 7);
+      }
+    }
+    chs.forEach((ch, i) => {
+      const y0 = i * rowH, yH = y0 + 9, yL = y0 + rowH - 9, yZ = (yH + yL) / 2;
+      ctx.strokeStyle = TOK['--line']; ctx.beginPath(); ctx.moveTo(0, y0 + rowH + .5); ctx.lineTo(w, y0 + rowH + .5); ctx.stroke();
+      ctx.fillStyle = TOK['--ink']; ctx.textAlign = 'left'; ctx.font = '600 11.5px "JetBrains Mono", monospace';
+      ctx.fillText(ch.label, 8, yZ + 4);
+      const hist = s.hist[i]; if (!hist.length) return;
+      let lo = 0, hi = hist.length - 1;
+      while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (hist[mid].t <= t0) lo = mid; else hi = mid - 1; }
+      const color = TOK[ch.color] || TOK['--hi'];
+      const Y = v => v === HIGH ? yH : v === LOW ? yL : yZ;
+      ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.beginPath();
+      let prevV = hist[lo].v, x = labelW; ctx.moveTo(x, Y(prevV));
+      const segs = [];
+      for (let k = lo + 1; k < hist.length; k++) {
+        const e = hist[k]; if (e.t > t1) break;
+        const nx = Math.max(labelW, X(e.t));
+        if (prevV === Z) segs.push([x, nx]);
+        ctx.lineTo(nx, Y(prevV)); ctx.lineTo(nx, Y(e.v));
+        prevV = e.v; x = nx;
+      }
+      if (prevV === Z) segs.push([x, labelW + plotW]);
+      ctx.lineTo(labelW + plotW, Y(prevV)); ctx.stroke();
+      // fill HIGH areas lightly
+      ctx.globalAlpha = .12; ctx.fillStyle = color;
+      let pv = hist[lo].v, px = labelW;
+      for (let k = lo + 1; k <= hist.length; k++) {
+        const e = hist[k], nx = e && e.t <= t1 ? Math.max(labelW, X(e.t)) : labelW + plotW;
+        if (pv === HIGH) ctx.fillRect(px, yH, nx - px, yL - yH);
+        if (!e || e.t > t1) break;
+        pv = e.v; px = nx;
+      }
+      ctx.globalAlpha = 1;
+      if (segs.length) {
+        ctx.strokeStyle = TOK['--z']; ctx.setLineDash([4, 3]); ctx.lineWidth = 2;
+        for (const [a, b] of segs) { ctx.beginPath(); ctx.moveTo(a, yZ); ctx.lineTo(b, yZ); ctx.stroke(); }
+        ctx.setLineDash([]);
+      }
+    });
+    // events (missed presses)
+    ctx.fillStyle = TOK['--bad']; ctx.font = '600 10.5px "IBM Plex Sans", sans-serif'; ctx.textAlign = 'center';
+    for (const ev of s.events) {
+      if (ev.t < t0 || ev.t > t1) continue;
+      const x = X(ev.t), y = ev.ch * rowH + 4;
+      ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.lineTo(x, y + 7); ctx.closePath(); ctx.fill();
+      ctx.fillText(ev.text, Math.min(Math.max(x, labelW + 28), w - 30), y + rowH - 2);
+    }
+  }
+}
+
+function highlightShell(src) {
+  return src.split('\n').map(l => {
+    const i = l.indexOf('#');
+    return i < 0 ? esc(l) : esc(l.slice(0, i)) + `<span class="t-c">${esc(l.slice(i))}</span>`;
+  }).join('\n');
+}
+
+/* =====================================================================
+   App: tabs, transport, keyboard, animation loop
+   ===================================================================== */
+const app = { views: {}, active: null, running: true, speed: 1, acc: 0, last: performance.now(), frameNo: 0 };
+const labsEl = $('#labs');
+for (const [key, def] of Object.entries(LABS)) { const v = new LabView(key, def); app.views[key] = v; labsEl.appendChild(v.root); }
+
+function activate(key) {
+  if (!app.views[key]) key = 'two-buttons';
+  app.active = app.views[key];
+  for (const [k, v] of Object.entries(app.views)) v.root.hidden = k !== key;
+  $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.lab === key)));
+  if (location.hash.slice(1) !== key) history.replaceState(null, '', '#' + key);
+  try { localStorage.setItem('esp32-lab-tab', key); } catch (e) { /* storage unavailable */ }
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => activate(t.dataset.lab)));
+let startKey = location.hash.slice(1);
+if (!app.views[startKey]) { try { startKey = localStorage.getItem('esp32-lab-tab') || ''; } catch (e) { startKey = ''; } }
+activate(startKey);
+
+const playBtn = $('#play');
+function setRunning(r) { app.running = r; playBtn.textContent = r ? '❚❚ Пауза' : '▶ Пуск'; app.last = performance.now(); }
+playBtn.addEventListener('click', () => setRunning(!app.running));
+$$('#speed button').forEach(b => b.addEventListener('click', () => {
+  app.speed = +b.dataset.v; app.acc = 0;
+  $$('#speed button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+$('#step1').addEventListener('click', () => { setRunning(false); app.active.sim.tick(); });
+$('#rst').addEventListener('click', () => app.active.reset());
+
+const held = new Set();
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const b = app.active.def.buttons.find(x => x.key === e.key.toLowerCase());
+  if (b) { held.add(b.id); app.active.press(b.id, true); e.preventDefault(); }
+});
+document.addEventListener('keyup', e => {
+  const b = app.active.def.buttons.find(x => x.key === e.key.toLowerCase());
+  if (b && held.has(b.id)) { held.delete(b.id); app.active.press(b.id, false); }
+});
+window.addEventListener('blur', () => { for (const id of held) app.active.press(id, false); held.clear(); });
+
+readTokens();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+const clockEl = $('#clock b');
+function loop(now) {
+  NOW = now;
+  const dt = Math.min(100, now - app.last); app.last = now;
+  const v = app.active;
+  if (app.running) {
+    app.acc += dt * app.speed;
+    let n = Math.floor(app.acc); app.acc -= n;
+    n = Math.min(n, 250);
+    for (let i = 0; i < n; i++) v.sim.tick();
+  }
+  app.frameNo++;
+  v.frame(dt, app.frameNo % 3 === 0 || !app.running);
+  clockEl.textContent = v.sim.t.toLocaleString('uk-UA');
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

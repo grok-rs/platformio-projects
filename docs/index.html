@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESP32-S3 · навчальні матеріали</title>
+<meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): стенд проєктів, підтяжка входів, проєкти Wokwi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: short index on graph paper — two study pages, then the three Wokwi projects. */
+:root {
+  --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --ink: #13212c; --muted: #566875;
+  --line: #c6d2db; --accent: #0a6a86; --hi: #d97f00;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --hi: #ffae2b; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --hi: #ffae2b; color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--ink); font: 16px/1.6 var(--f-body);
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  padding-inline: 16px; padding-block: 40px 56px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 28px; }
+.eyebrow { font: 500 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 clamp(2.4rem, 6vw, 3.6rem)/1.05 var(--f-display); margin: 6px 0 8px; text-wrap: balance; }
+h1 span { color: var(--accent); }
+h2 { font: 600 1rem var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+p { margin: 0; max-width: 66ch; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+a.card {
+  display: grid; gap: 6px; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px;
+}
+a.card:hover { border-color: var(--accent); }
+a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card h3 { font: 700 1.5rem/1.1 var(--f-display); margin: 0; }
+.card p { font-size: 14.5px; }
+.card .go { font: 500 13px var(--f-mono); color: var(--accent); }
+.card .tag { font: 500 12px var(--f-mono); color: var(--hi); }
+footer { font-size: 14px; color: var(--muted); }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Embedded Development · YD-ESP32-S3 · PlatformIO</div>
+    <h1>ESP32-S3: <span>дивимося, як це працює</span></h1>
+    <p>Інтерактивні сторінки до лабораторних із репозиторію. Код, схеми та тести лежать поруч у тих самих папках проєктів.</p>
+  </header>
+
+  <section>
+    <h2>Навчальні сторінки</h2>
+    <div class="grid">
+      <a class="card" href="pull-resistors/">
+        <span class="tag">Модуль 1.4 · теорія</span>
+        <h3>Підтяжка входу</h3>
+        <p>Вхід, що висить, pull-up і pull-down, R·C і герци, тригер Шмітта, брязкіт контактів. Живі осцилографи й тест.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card" href="lab/">
+        <span class="tag">Симуляція проєктів</span>
+        <h3>Стенд ESP32-S3</h3>
+        <p>Схема з рівнями й струмом, рядки коду, що виконуються, змінні, логічний аналізатор і Serial для всіх трьох прошивок.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Проєкти в Wokwi · справжня прошивка в браузері</h2>
+    <div class="grid">
+      <a class="card" href="https://wokwi.com/projects/476609614353588225" target="_blank" rel="noopener">
+        <span class="tag">esp32-s3-two-buttons</span>
+        <h3>Дві кнопки</h3>
+        <p>D1/D2 на GPIO15/16, зовнішня S1 на GPIO21 (клавіша 1), BOOT на платі (клавіша 2).</p>
+        <span class="go">wokwi.com ↗</span>
+      </a>
+      <a class="card" href="https://wokwi.com/projects/476610317583371265" target="_blank" rel="noopener">
+        <span class="tag">esp32-s3-led-blink</span>
+        <h3>Миготіння LED</h3>
+        <p>Червоний, синій і зелений на GPIO4/5/6, патерни й швидкості, BOOT (клавіша B), команди Serial.</p>
+        <span class="go">wokwi.com ↗</span>
+      </a>
+      <a class="card" href="https://wokwi.com/projects/476610461509906433" target="_blank" rel="noopener">
+        <span class="tag">esp32-s3-led-blink · single-gpio</span>
+        <h3>Один GPIO</h3>
+        <p>Два світлодіоди на GPIO7: HIGH, LOW і Hi-Z, мультиплекс для кадру «обидва разом».</p>
+        <span class="go">wokwi.com ↗</span>
+      </a>
+    </div>
+  </section>
+
+  <footer>Код і документація: <a href="https://github.com/grok-rs/platformio-projects">github.com/grok-rs/platformio-projects</a></footer>
+</div>
+</body>
+</html>
