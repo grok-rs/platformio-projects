@@ -1,0 +1,26 @@
+# Автотест для wokwi-cli, режим одного GPIO: HIGH = червоний, LOW = синій.
+#   pio run -e esp32-s3-single-gpio
+#   wokwi-cli wokwi/single-gpio --scenario self-test.yaml --timeout 10000
+# Стан Hi-Z (обидва вимкнені) тут не перевіряється: рівень «висячого» виводу не визначений.
+name: 'Single GPIO: red on HIGH, blue on LOW'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'Mode : SINGLE GPIO'
+  - wait-serial: 'Self-test: red -> blue -> green'
+  - delay: 200ms
+  - expect-pin: { part-id: esp, pin: '7', value: 1 }   # червоний: вивід віддає струм
+  - expect-pin: { part-id: led1, pin: 'A', value: 1 }  # монтаж: GPIO7 → R1 → анод червоного
+  - delay: 400ms
+  - expect-pin: { part-id: esp, pin: '7', value: 0 }   # синій: вивід втягує струм
+  - expect-pin: { part-id: led2, pin: 'C', value: 0 }  # монтаж: катод синього — у ряду GPIO7
+  - expect-pin: { part-id: led2, pin: 'A', value: 1 }  # анод синього — через R2 від 3V3
+  - wait-serial: 'Pattern: alternate '
+
+  - write-serial: '1'
+  - wait-serial: 'TEST: red on'
+  - expect-pin: { part-id: esp, pin: '7', value: 1 }
+  - write-serial: '2'
+  - wait-serial: 'TEST: blue on'
+  - expect-pin: { part-id: esp, pin: '7', value: 0 }

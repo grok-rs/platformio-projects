@@ -19,6 +19,24 @@ pio run -t upload          # зібрати та прошити
 pio device monitor         # 115200: банер і повідомлення «Mode -> …» при кожній зміні режиму
 ```
 
+### Симуляція
+
+| Де | Як |
+|----|----|
+| [**Wokwi у браузері**](https://wokwi.com/projects/476609614353588225) | нічого не встановлювати: зелена кнопка ▶, клавіша `1` = S1, `2` = BOOT |
+| VS Code | розширення *Wokwi Simulator*, `pio run`, далі F1 → *Wokwi: Start Simulator* (`wokwi.toml` + `diagram.json`) |
+| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/mode-switch.yaml --timeout 20000` (токен — у `../.envrc`) |
+| [**Інтерактивний стенд**](https://grok-rs.github.io/platformio-projects/lab/#two-buttons) | модель цієї програми з підсвіткою рядків коду, змінними, логічним аналізатором і експериментами (`delay()`, вхід без підтяжки) |
+| [**Підтяжка входу**](https://grok-rs.github.io/platformio-projects/pull-resistors/) | теорія модуля 1.4 в анімаціях: pull-up/pull-down, R·C і частота, тригер Шмітта, брязкіт |
+
+Схема у Wokwi повторює розкладку з розділу 4: плата в рядах 1–22, D1/D2 з резисторами в рядах 26–42,
+S1 — у рядах 46/48 діагональними ніжками. У Wokwi літери рядів дзеркальні (`a` зверху), тому гребінці стоять
+у `b`/`i`. Кнопка BOOT — на самій платі: у Wokwi вона накладена поверх намальованої BOOT разом із
+резистором 10 кОм, яких симулятор не має. `diagram.json` генерує `wokwi/gen_diagram.py`.
+
+Сценарій `mode-switch.yaml` перевіряє справжню прошивку: старт у режимі 1, BOOT → режим 2 «липкий»,
+S1 → знову режим 1, а також що аноди світлодіодів справді отримують рівень виводу через макетку.
+
 ---
 
 ## 1. Компоненти
@@ -281,6 +299,10 @@ void updateLeds() {
 ```
 platformio.ini        плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
 src/main.cpp          уся програма
+diagram.json          схема Wokwi (макетка), wokwi.toml — прошивка з .pio/build для симулятора
+wokwi/
+  gen_diagram.py      генератор diagram.json;  breadboard.py — геометрія макетки та плати
+  scenarios/          автотести wokwi-cli
 docs/
   schematic.png/svg   принципова схема
   breadboard.png/svg  розкладка на макетній платі

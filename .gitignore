@@ -6,3 +6,9 @@ CMakeLists.txt
 cmake-build-*/
 *.code-workspace.bak
 __pycache__/
+
+# Local secrets (direnv)
+.envrc
+
+# Wokwi logic-analyzer recordings
+*.vcd

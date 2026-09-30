@@ -18,6 +18,23 @@ pio device monitor         # 115200; плата скидається при пі
 | `esp32-s3-devkitc-1`   | GPIO4 червоний, GPIO5 синій, GPIO6 зелений | `pio run -t upload`                         |
 | `esp32-s3-single-gpio` | обидва світлодіоди на GPIO7                | `pio run -e esp32-s3-single-gpio -t upload` |
 
+## Симуляція
+
+| Де | Два GPIO | Один GPIO |
+|----|----------|-----------|
+| Wokwi у браузері | [**відкрити**](https://wokwi.com/projects/476610317583371265) | [**відкрити**](https://wokwi.com/projects/476610461509906433) |
+| VS Code (*Wokwi Simulator*) | `pio run`, F1 → *Wokwi: Start Simulator* | `pio run -e esp32-s3-single-gpio`, F1 → *Wokwi: Select Config File* → `wokwi/single-gpio/wokwi.toml` |
+| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/blink-controls.yaml --timeout 20000` | `wokwi-cli wokwi/single-gpio --scenario self-test.yaml --timeout 10000` |
+| [Інтерактивний стенд](https://grok-rs.github.io/platformio-projects/lab/) | [вкладка «Миготіння LED»](https://grok-rs.github.io/platformio-projects/lab/#led-blink) | [вкладка «Один GPIO»](https://grok-rs.github.io/platformio-projects/lab/#single-gpio) |
+
+У Wokwi: BOOT — кнопка на самій платі (клавіша `B`), команди `1/2/3/0/p/v` — у Serial-моніторі.
+Кнопка в симуляторі має брязкіт, тож видно, як працює антидребезг. Схеми на макетці генерує
+`wokwi/gen_diagram.py`. Плата стоїть у рядах 1–22, світлодіоди — вертикально, резистори — від ряду 26.
+Літери рядів у Wokwi дзеркальні (`a` зверху). Сценарії перевіряють справжню прошивку: самотест, патерн,
+коротке й довге натискання BOOT, команди Serial і що аноди світлодіодів отримують рівень через макетку.
+Для онлайн-версії «Один GPIO» прапорець `SINGLE_GPIO_MODE` визначено на початку `main.cpp`, бо
+онлайн-збірка не читає `platformio.ini`.
+
 ## Монтаж
 
 Кожен світлодіод: `GPIO → резистор → анод (довга ніжка) → катод → GND`.
@@ -78,6 +95,11 @@ include/
 src/
   main.cpp                   збирання компонентів, setup()/loop()
   patterns.cpp               таблиці кадрів і пресети швидкості
+diagram.json, wokwi.toml     симуляція Wokwi (два GPIO); прошивка — з .pio/build
+wokwi/
+  gen_diagram.py             генератор обох diagram.json;  breadboard.py — геометрія макетки та плати
+  scenarios/                 автотести wokwi-cli (два GPIO)
+  single-gpio/               diagram.json, wokwi.toml і автотест для середовища esp32-s3-single-gpio
 docs/
   *.png, *.svg               схема та розкладки на макетці
   tools/                     генератори діаграм (python3 + headless Chrome): tools/render.sh;

@@ -1,0 +1,7 @@
+# Wokwi simulation, env esp32-s3-single-gpio (both LEDs on GPIO7, HIGH / LOW / Hi-Z).
+#   pio run -e esp32-s3-single-gpio
+#   VS Code: F1 -> "Wokwi: Select Config File" -> this file;  CLI: wokwi-cli wokwi/single-gpio
+[wokwi]
+version  = 1
+firmware = '../../.pio/build/esp32-s3-single-gpio/firmware.bin'
+elf      = '../../.pio/build/esp32-s3-single-gpio/firmware.elf'

@@ -1,0 +1,52 @@
+# Автотест для wokwi-cli: самотест, патерн alternate, кнопка BOOT, Serial-команди.
+#   wokwi-cli . --scenario wokwi/scenarios/blink-controls.yaml --timeout 20000
+# Кнопка в симуляторі має дребезг (bounce) — тест заодно перевіряє антидребезг у Button.
+name: 'Self-test, alternate pattern, BOOT short/long press, serial keys'
+version: 1
+author: 'grok-rs'
+
+steps:
+  # --- Самотест: red -> blue -> green по 400 мс ---------------------------------
+  - wait-serial: 'Self-test: red -> blue -> green'
+  - delay: 200ms
+  - expect-pin: { part-id: esp, pin: '4', value: 1 }
+  - expect-pin: { part-id: esp, pin: '5', value: 0 }
+  - expect-pin: { part-id: led1, pin: 'A', value: 1 }   # монтаж: GPIO4 → R1 → анод червоного
+  - expect-pin: { part-id: led1, pin: 'C', value: 0 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp, pin: '4', value: 0 }
+  - expect-pin: { part-id: esp, pin: '5', value: 1 }
+  - expect-pin: { part-id: led2, pin: 'A', value: 1 }   # монтаж: GPIO5 → R2 → анод синього
+  - delay: 400ms
+  - expect-pin: { part-id: esp, pin: '6', value: 1 }
+  - expect-pin: { part-id: led3, pin: 'A', value: 1 }   # монтаж: GPIO6 → R3 → анод зеленого
+
+  # --- Патерн alternate, 500 мс/кадр: R, B, R, B… --------------------------------
+  - wait-serial: 'Pattern: alternate '
+  - delay: 100ms
+  - expect-pin: { part-id: esp, pin: '4', value: 1 }
+  - expect-pin: { part-id: esp, pin: '5', value: 0 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '4', value: 0 }
+  - expect-pin: { part-id: esp, pin: '5', value: 1 }
+
+  # --- BOOT коротко (< 600 мс) -> наступна швидкість 250 мс ----------------------
+  - set-control: { part-id: btnBoot, control: pressed, value: 1 }
+  - delay: 150ms
+  - set-control: { part-id: btnBoot, control: pressed, value: 0 }
+  - wait-serial: 'Speed:  250 ms/frame'
+
+  # --- BOOT довго (> 600 мс) -> наступний патерн, ще ДО відпускання --------------
+  - set-control: { part-id: btnBoot, control: pressed, value: 1 }
+  - wait-serial: 'Pattern: alternate_gap'
+  - set-control: { part-id: btnBoot, control: pressed, value: 0 }
+
+  # --- Serial: 1 = тримати червоний, будь-яка інша клавіша = продовжити -----------
+  - write-serial: '1'
+  - wait-serial: 'TEST: red on'
+  - delay: 700ms                     # патерн зупинено: червоний горить і після 250 мс
+  - expect-pin: { part-id: esp, pin: '4', value: 1 }
+  - expect-pin: { part-id: esp, pin: '5', value: 0 }
+  - expect-pin: { part-id: esp, pin: '6', value: 0 }
+  - write-serial: 'x'
+  - wait-serial: 'Pattern resumed.'

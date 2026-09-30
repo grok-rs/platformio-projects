@@ -1,0 +1,46 @@
+# Автотест для wokwi-cli: кнопки перемикають режим, а режим «липкий».
+#   wokwi-cli . --scenario wokwi/scenarios/mode-switch.yaml --timeout 20000
+# Час у сценарії — симульований, тому перевірки рівнів на виводах детерміновані.
+name: 'Mode switching: S1 -> mode 1, BOOT -> mode 2'
+version: 1
+author: 'grok-rs'
+
+steps:
+  # --- Старт: режим 1, обидва LED синхронно, крок 200 мс ---------------------
+  - wait-serial: 'Start mode: 1 (sync, 200 ms)'
+  - delay: 50ms                      # render() викликається одразу після банера
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - expect-pin: { part-id: esp, pin: '16', value: 1 }
+  # Монтаж на макетці: анод кожного LED отримує рівень виводу (перемичка → ряд → резистор),
+  # катод — на шині GND.
+  - expect-pin: { part-id: led1, pin: 'A', value: 1 }
+  - expect-pin: { part-id: led2, pin: 'A', value: 1 }
+  - expect-pin: { part-id: led1, pin: 'C', value: 0 }
+  - expect-pin: { part-id: led2, pin: 'C', value: 0 }
+  - delay: 200ms                     # крок 1 з 2: обидва згашені
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - expect-pin: { part-id: esp, pin: '16', value: 0 }
+
+  # --- BOOT: режим 2, «переїзд» по 1000 мс ------------------------------------
+  - set-control: { part-id: btnBoot, control: pressed, value: 1 }
+  - wait-serial: 'Mode -> 2 (alternate, 1000 ms)'
+  - delay: 100ms
+  - set-control: { part-id: btnBoot, control: pressed, value: 0 }
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - expect-pin: { part-id: esp, pin: '16', value: 0 }
+  - delay: 1000ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - expect-pin: { part-id: esp, pin: '16', value: 1 }
+
+  # Кнопку відпущено, а режим 2 триває — «фіксація стану».
+  - delay: 1000ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - expect-pin: { part-id: esp, pin: '16', value: 0 }
+
+  # --- S1: назад у режим 1 -------------------------------------------------------
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - wait-serial: 'Mode -> 1 (sync, 200 ms)'
+  - delay: 50ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - expect-pin: { part-id: esp, pin: '16', value: 1 }
