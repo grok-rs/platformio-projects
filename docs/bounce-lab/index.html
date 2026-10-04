@@ -1,0 +1,2427 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Лабораторія брязкоту</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="description" content="Домашнє завдання модуля 1.5: брязкіт контактів кнопки на GPIO16 ESP32-S3 — логічний аналізатор проти апаратних переривань. Реальний запис Wokwi з 10 натискань, живі натискання, модель переривань, код, Serial, таблиця результатів і антибрязкіт.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lab bench on graph paper. Task checklist → bench with analyzer → logic-analyzer viewer → what the ESP32 sees →
+   code → Serial → results table → debounce → answers → real hardware. Shared tokens and components follow ../ldr-lab/. */
+:root {
+  --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --panel-2: #f1f5f8;
+  --ink: #13212c; --muted: #566875; --line: #c6d2db; --accent: #0a6a86; --accent-ink: #ffffff;
+  --hi: #d97f00; --lo: #8a9aa6; --z: #8b5cd6; --pwr: #c2410c; --gnd: #2a3945; --flow: #f59e0b;
+  --ok: #15803d; --warn: #b45309; --bad: #c62828; --hot: 217, 127, 0;
+  --bb: #f5f2ea; --bb-edge: #d9d3c4; --hole: #8f887a; --rail-p: #d6453d; --rail-n: #2f6fd1;
+  --pcb: #18232d; --pcb-ink: #c9d4dc; --shield: #c9d0d6; --pin: #d4a93a;
+  --scope: #0f1a22; --scope-grid: rgba(150, 200, 230, .12); --scope-text: #9fb4c3;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+    --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+    --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+    --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
+    --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
+    --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+  --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+  --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+  --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
+  --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
+  --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font: 15px/1.55 var(--f-body);
+  margin: 0; padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+a { color: var(--accent); }
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+code, kbd, pre, .code, .serial, .anatomy, .formula, .flowc { font-family: var(--f-mono); font-variant-ligatures: none; }
+code { font-size: .92em; }
+p code, li code, td code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: .85em; background: var(--panel); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+.masthead { display: grid; gap: 10px; padding-block: 28px 14px; }
+.eyebrow { font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.masthead h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; }
+.masthead h1 span { color: var(--accent); }
+.masthead p { margin: 0; color: var(--muted); max-width: 72ch; font-size: 1.02rem; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+nav.toc a {
+  font: 600 .98rem var(--f-display); letter-spacing: .03em; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--panel); padding: 4px 11px; border-radius: 999px;
+}
+nav.toc a span { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-right: 5px; }
+nav.toc a:hover { border-color: var(--accent); }
+
+/* ---------- sticky transport bar ---------- */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-block: 8px 4px;
+  box-shadow: 0 6px 18px -14px rgba(0, 0, 0, .5);
+}
+.bar .grp { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); color: var(--ink); font: 500 12.5px var(--f-mono); padding: 5px 9px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer;
+  font: 500 13px var(--f-body); padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.btn:hover, .seg button:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); min-width: 92px; justify-content: center; }
+.btn.mono { font-family: var(--f-mono); }
+.clock { font: 600 13px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.clock b { color: var(--ink); }
+.lbl-sm { font-size: 12px; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 70px; }
+.sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; margin-bottom: 12px; }
+.sec-head h2 { font-size: 1.9rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; }
+.sec-head h2 .n { font: 600 1rem var(--f-mono); color: var(--accent); }
+.sec-head p { margin: 0; color: var(--muted); max-width: 72ch; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.grid2.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.grid2.code-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+@media (max-width: 980px) { .grid2, .grid2.even, .grid2.code-grid { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.ph h3 { font-size: .95rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ph .note { font-size: 12.5px; color: var(--muted); }
+.pb { padding: 12px; }
+.prose p, .prose li { max-width: 70ch; }
+.prose p { margin: 0 0 10px; }
+.callout { border-left: 3px solid var(--accent); background: var(--panel); padding: 8px 12px; margin: 10px 0; font-size: 14.5px; border-radius: 0 6px 6px 0; }
+.callout.warn { border-left-color: var(--hi); }
+.formula { font: 13.5px var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; overflow-x: auto; white-space: pre; }
+
+/* ---------- checklist ---------- */
+.tasks { list-style: none; margin: 0; padding: 4px 0; counter-reset: t; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); }
+.tasks li { counter-increment: t; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 9px 14px; border-top: 1px solid var(--line); align-items: start; cursor: pointer; }
+.tasks li:hover { background: var(--panel-2); }
+.tasks .box { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font: 700 13px var(--f-mono); color: var(--muted); transition: background .25s, border-color .25s, transform .25s; }
+.tasks .box::before { content: counter(t); }
+.tasks li.done .box { background: var(--ok); border-color: var(--ok); color: var(--panel); transform: scale(1.06); }
+.tasks li.done .box::before { content: "✓"; }
+.tasks li.pop .box { animation: pop .5s ease-out; }
+@keyframes pop { 40% { transform: scale(1.35); } }
+.tasks b { font-weight: 600; }
+.tasks small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.progress { font: 600 13px var(--f-mono); color: var(--muted); }
+.progress b { color: var(--ok); }
+
+/* ---------- bench (breadboard) ---------- */
+.bench svg, .schem svg, .sar svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
+.bench svg { touch-action: pan-x pan-y; }
+.bench .lamp { touch-action: none; }
+@media (max-width: 600px) {
+  #benchSvg { overflow-x: auto; }
+  #benchSvg svg { width: 700px; max-width: none; }
+  .bar { gap: 6px 10px; padding: 6px 8px; }
+  .bar .lbl-sm { display: none; }
+  section.sec { scroll-margin-top: 140px; }
+}
+.bb-body { fill: var(--bb); stroke: var(--bb-edge); stroke-width: 1.5; }
+.bb-chan { fill: var(--bb-edge); opacity: .55; }
+.bb-holes { fill: var(--hole); }
+.bb-num { fill: var(--muted); font: 500 7px var(--f-mono); text-anchor: middle; }
+.rail-p { stroke: var(--rail-p); stroke-width: 1.6; } .rail-n { stroke: var(--rail-n); stroke-width: 1.6; }
+.rail-t { font: 700 11px var(--f-mono); }
+.pcb { fill: var(--pcb); }
+.pcb-t { fill: var(--pcb-ink); font: 600 6.3px var(--f-mono); text-anchor: middle; }
+.pcb-big { fill: var(--pcb-ink); font: 700 10px var(--f-display); letter-spacing: .06em; }
+.hdr-pin { fill: var(--pin); stroke: #00000055; stroke-width: .6; }
+.hdr-pin.key { stroke: var(--hi); stroke-width: 1.6; }
+.shield { fill: var(--shield); stroke: #0004; }
+.shield-t { fill: #2b3640; font: 700 9px var(--f-mono); text-anchor: middle; }
+.usb { fill: #a9b2b9; stroke: #5a656e; }
+.jw-o { fill: none; stroke: #0000004d; stroke-width: 6.2; stroke-linecap: round; stroke-linejoin: round; }
+.jw { fill: none; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
+.jend { stroke: #0006; stroke-width: .8; }
+.leg { stroke: #9aa3aa; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.ldr-rim { fill: #e9e2cf; stroke: #6d5d3a; stroke-width: 1.4; }
+.ldr-track { fill: none; stroke: #b4572a; stroke-width: 1.6; stroke-linecap: round; }
+.res-body { fill: #d8c49a; stroke: #6b5a3b; stroke-width: 1; }
+.part-t { fill: var(--ink); font: 600 10.5px var(--f-body); paint-order: stroke; stroke: var(--bb); stroke-width: 3px; text-anchor: middle; }
+.flowp { fill: none; stroke: var(--flow); stroke-width: 5; stroke-linecap: round; stroke-dasharray: .1 13; opacity: .95; }
+.node-strip { fill: var(--hi); }
+.vlabel rect { fill: var(--panel); stroke: var(--hi); stroke-width: 1.5; }
+.vlabel text { fill: var(--ink); font: 600 12.5px var(--f-mono); text-anchor: middle; }
+.vlabel .s { fill: var(--muted); font: 500 9.5px var(--f-body); }
+.dark-ov { fill: #020a12; pointer-events: none; }
+.glow-spot { pointer-events: none; }
+.lamp { cursor: grab; outline: none; }
+.lamp:active { cursor: grabbing; }
+.lamp:focus-visible .lamp-ring { stroke: var(--accent); stroke-width: 2.5; }
+.lamp-ring { fill: transparent; stroke: transparent; }
+.lamp-body { fill: #3b4652; stroke: #12181e; stroke-width: 1.2; }
+.lamp-head { fill: #59656f; stroke: #12181e; stroke-width: 1.2; }
+.lamp-lens { stroke: #12181e; stroke-width: 1; }
+.lamp-t { fill: var(--ink); font: 600 10px var(--f-body); text-anchor: middle; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+.meter-body { fill: #f2c230; stroke: #6d5510; stroke-width: 1.5; }
+.meter-lcd { fill: #b7c4a3; stroke: #5b6650; }
+.meter-val { fill: #1b2318; font: 600 25px var(--f-mono); text-anchor: end; }
+.meter-u { fill: #1b2318; font: 600 9px var(--f-mono); }
+.meter-t { fill: #3d2f05; font: 700 9px var(--f-mono); text-anchor: middle; }
+.probe { fill: none; stroke-width: 2.6; stroke-linecap: round; }
+.hand { fill: #e8b48c; stroke: #8c5a35; stroke-width: 1.2; opacity: .96; transition: opacity .3s, transform .4s; }
+.hand.off { opacity: 0; transform: translate(0, -60px); pointer-events: none; }
+.asm-on [data-asm].ghost { opacity: .1; }
+.asm-on [data-asm].focus { animation: focus 1.1s ease-in-out infinite; }
+@keyframes focus { 50% { opacity: .55; } }
+[data-asm] { transition: opacity .35s; }
+.asm-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel-2); }
+.asm-bar p { margin: 0; flex: 1 1 280px; font-size: 14px; }
+.asm-bar .dots { display: flex; gap: 4px; }
+.asm-bar .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.asm-bar .dots i.on { background: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); }
+.ctl { display: grid; gap: 3px; font-size: 13px; min-width: 200px; flex: 1 1 260px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.ctl label b { font: 600 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="range"]:disabled { opacity: .4; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 999px; font: 500 12.5px var(--f-body); padding: 3px 10px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); }
+.chip-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.chip-btn.mono { font-family: var(--f-mono); font-size: 12px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); border-top: 1px solid var(--line); }
+.stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
+.stat:last-child { border-right: 0; }
+.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat .v { font: 600 1.12rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat .v.hi { color: var(--hi); } .stat .v.ok { color: var(--ok); } .stat .v.bad { color: var(--bad); } .stat .v.acc { color: var(--accent); }
+
+/* ---------- code + flowchart ---------- */
+.code { font: 12.5px/1.6 var(--f-mono); overflow: auto; max-height: 620px; padding: 6px 0; }
+.ln { display: grid; grid-template-columns: 4ch 1.4ch minmax(0, 1fr); gap: 0 6px; padding: 0 12px 0 6px; white-space: pre; background: rgba(var(--hot), calc(var(--heat, 0) * .28)); }
+.ln .no { color: var(--muted); text-align: right; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
+.ln .cur { color: var(--hi); visibility: hidden; }
+.ln.is-cur .cur { visibility: visible; }
+.ln.is-cur { box-shadow: inset 3px 0 0 var(--hi); background: rgba(var(--hot), .3); }
+.ln.is-ctx { box-shadow: inset 3px 0 0 var(--z); }
+.t-c { color: var(--muted); font-style: italic; }
+.t-s { color: var(--ok); }
+.t-k { color: var(--accent); font-weight: 600; }
+.t-t { color: var(--z); }
+.t-n { color: var(--pwr); }
+.t-m { color: var(--hi); font-weight: 600; }
+.t-p { color: var(--z); font-weight: 600; }
+.flowc { padding: 10px 12px 14px; display: grid; gap: 0; font: 12.5px/1.35 var(--f-mono); }
+.fgroup { font: 600 .9rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 0 4px; }
+.fb { position: relative; border: 1.5px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 10px; margin-inline: 0 64px; transition: border-color .15s, background-color .15s, box-shadow .15s; background-image: linear-gradient(rgba(var(--hot), calc(var(--heat, 0) * .22)), rgba(var(--hot), calc(var(--heat, 0) * .22))); }
+.fb.dec { border-radius: 18px; border-style: dashed; }
+.fb.sub { margin-left: 18px; }
+.fb.on { border-color: var(--hi); box-shadow: 0 0 0 2px rgba(var(--hot), .55); }
+.fb .br { position: absolute; right: -60px; top: 50%; transform: translateY(-50%); font: 600 11.5px var(--f-mono); padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); background: var(--panel); white-space: nowrap; }
+.fb .br.yes { color: var(--ok); border-color: var(--ok); } .fb .br.no { color: var(--bad); border-color: var(--bad); }
+.fb small { display: block; color: var(--muted); font: 11.5px var(--f-body); }
+.farr { height: 14px; margin-left: 22px; border-left: 2px solid var(--line); position: relative; }
+.farr::after { content: ""; position: absolute; left: -5px; bottom: -1px; border: 4px solid transparent; border-top: 6px solid var(--line); }
+.farr.sub { margin-left: 40px; }
+.fmeasure { border: 1.5px dashed var(--z); border-radius: 8px; padding: 2px 0 8px; margin-right: 64px; }
+.fmeasure > .fgroup { margin-left: 10px; color: var(--z); }
+.fmeasure .fb { margin-right: 10px; }
+.fback { font: 11.5px var(--f-body); color: var(--muted); margin: 6px 0 0; }
+.explain { margin: 0; padding: 10px 12px; border-top: 1px dashed var(--line); font-size: 13.5px; min-height: 3.4em; }
+.explain b { color: var(--ink); }
+.explain .ff { color: var(--z); }
+.watch { width: 100%; border-collapse: collapse; font-size: 13px; }
+.watch td { padding: 5px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.watch tr:last-child td { border-bottom: 0; }
+.watch td:first-child { font-family: var(--f-mono); color: var(--muted); white-space: nowrap; width: 1%; }
+.watch td:last-child { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.watch tr.chg td:last-child { color: var(--hi); }
+.meter { display: flex; align-items: center; gap: 8px; }
+.meter .track { flex: 1; height: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; min-width: 50px; position: relative; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.meter span { white-space: nowrap; font-size: 12px; color: var(--muted); }
+.toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* ---------- serial ---------- */
+.serial { font: 12px/1.5 var(--f-mono); background: var(--panel-2); height: 330px; overflow: auto; padding: 8px 12px; white-space: pre; }
+.serial .sim { color: var(--z); font-style: italic; white-space: pre-wrap; }
+.serial .log { color: var(--muted); }
+.serial .sum { color: var(--ok); font-weight: 600; }
+.serial .hd { color: var(--accent); }
+.anatomy { display: grid; grid-template-columns: repeat(6, auto); justify-content: start; gap: 0 4px; font: 12px var(--f-mono); padding: 10px 12px; overflow-x: auto; border-top: 1px solid var(--line); }
+.anatomy > div { padding: 0 0 0 0; white-space: pre; }
+.anatomy .v { padding: 2px 0; border-bottom: 3px solid var(--c); }
+.anatomy .k { font: 11px/1.3 var(--f-body); color: var(--c); padding: 3px 6px 0 0; white-space: normal; max-width: 14ch; }
+.plot canvas, .errc canvas { display: block; width: 100%; background: var(--scope); border-radius: 0 0 8px 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 20px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 5px; }
+
+/* ---------- error model / real board ---------- */
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 980px) { .cols3 { grid-template-columns: minmax(0, 1fr); } }
+.cols3 .col { padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.cols3 .col:first-child { border-left: 0; }
+@media (max-width: 980px) { .cols3 .col { border-left: 0; border-top: 1px solid var(--line); } .cols3 .col:first-child { border-top: 0; } }
+.cols3 h4 { font-size: 1.1rem; margin-bottom: 6px; }
+.cols3 p, .cols3 li { font-size: 13.8px; }
+.cols3 ul, .cols3 ol { padding-left: 18px; margin: 6px 0; }
+pre.cmd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; overflow-x: auto; margin: 6px 0; white-space: pre; }
+.tbl-wrap { overflow-x: auto; }
+table.trouble { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+table.trouble th, table.trouble td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.trouble th { font: 600 .85rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+table.trouble td:first-child { font-family: var(--f-mono); white-space: nowrap; }
+footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 86ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tasks li.pop .box, .asm-on [data-asm].focus { animation: none; }
+  .hand, [data-asm], .sar .sw, .tasks .box { transition: none; }
+}
+
+/* ---------- bounce lab additions ---------- */
+.hold {
+  font: 600 14px var(--f-body); border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
+  padding: 7px 16px; border-radius: 999px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+  display: inline-flex; align-items: center; gap: 8px; transition: transform .08s;
+}
+.hold .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+.hold[aria-pressed="true"] { background: var(--ink); color: var(--panel); transform: translateY(1px) scale(.98); }
+.hold[aria-pressed="true"] .dot { background: var(--hi); }
+.hold.big { font-size: 16px; padding: 12px 26px; }
+.btn.small { padding: 3px 8px; font-size: 12px; }
+.bench svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
+@media (max-width: 600px) { #benchSvg { overflow-x: auto; } #benchSvg svg { width: 720px; max-width: none; } }
+.btn-body { fill: #2b2f33; stroke: #0b0d0f; stroke-width: 1.2; }
+.btn-cap { fill: #3aa655; stroke: #1d5b2c; stroke-width: 1.2; transition: transform .08s; transform-box: fill-box; transform-origin: center; }
+.btn-cap.down { transform: scale(.82); fill: #2f8a46; }
+.la-body { fill: #1d2a35; stroke: #0a1218; stroke-width: 1.4; }
+.la-t { fill: #c9d4dc; font: 700 10px var(--f-mono); }
+.la-s { fill: #8fa2b0; font: 500 7.5px var(--f-mono); text-anchor: middle; }
+.la-pin { fill: var(--pin); stroke: #0006; }
+.led { fill: #3a2a12; transition: fill .05s; }
+.led.on { fill: #ffb12b; }
+.led.g.on { fill: #5be37d; }
+.lap-body { fill: #2b3640; stroke: #10171d; stroke-width: 1.2; }
+.lap-scr { fill: #0b1419; }
+.lap-trace { fill: none; stroke: #45bfdc; stroke-width: 1.2; }
+.lap-trace2 { fill: none; stroke: #b28cf5; stroke-width: 1.2; }
+#benchSvg .wflash .jw { filter: drop-shadow(0 0 4px rgba(var(--hot), .95)); }
+.inset-box { fill: var(--panel); stroke: var(--line); }
+.inset-t { fill: var(--muted); font: 600 11px var(--f-body); }
+.inset-k { fill: var(--ink); font: 600 12px var(--f-mono); }
+.house { fill: #3b4652; stroke: #12181e; stroke-width: 1.2; }
+.contact { fill: #c9a03a; stroke: #6d5510; }
+.leaf { fill: none; stroke: #d0d6db; stroke-width: 3.2; stroke-linecap: round; }
+#leafG { transform-box: view-box; transform-origin: 74px 520px; transition: transform .08s; }
+#leafG.down { transform: rotate(7deg); }
+#leafG.shake { animation: leafShake .7s ease-out; }
+@keyframes leafShake { 0% { transform: rotate(7deg); } 12% { transform: rotate(2deg); } 24% { transform: rotate(7deg); } 36% { transform: rotate(4deg); } 48% { transform: rotate(7deg); } 60% { transform: rotate(5.5deg); } 72% { transform: rotate(7deg); } 100% { transform: rotate(7deg); } }
+#leafG.shake-up { animation: leafShakeUp .7s ease-out; }
+@keyframes leafShakeUp { 0% { transform: rotate(0deg); } 12% { transform: rotate(5deg); } 24% { transform: rotate(0deg); } 36% { transform: rotate(3deg); } 48% { transform: rotate(0deg); } 60% { transform: rotate(1.5deg); } 100% { transform: rotate(0deg); } }
+#plungerG { transition: transform .08s; }
+#plungerG.down { transform: translateY(7px); }
+.lvl-badge rect { stroke-width: 1.5; }
+.lvl-hi rect { fill: color-mix(in srgb, var(--accent) 18%, var(--panel)); stroke: var(--accent); }
+.lvl-lo rect { fill: color-mix(in srgb, var(--hi) 22%, var(--panel)); stroke: var(--hi); }
+.la-view { position: relative; }
+.la-view canvas { display: block; width: 100%; background: var(--scope); touch-action: none; cursor: grab; }
+.la-view canvas:active { cursor: grabbing; }
+.la-tools { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }
+.la-tools .sp { flex: 1 1 auto; }
+.counters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-top: 1px solid var(--line); }
+.cnt { padding: 10px 12px; border-right: 1px solid var(--line); min-width: 0; }
+.cnt:last-child { border-right: 0; }
+.cnt .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-height: 2.6em; }
+.cnt .v { font: 700 1.9rem/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.cnt .s { font: 500 12px var(--f-mono); color: var(--muted); }
+.cnt.a .v { color: var(--accent); } .cnt.b .v { color: var(--ok); } .cnt.c .v { color: var(--z); } .cnt.d .v { color: var(--hi); }
+.cnt .v.bump { animation: bump .25s ease-out; }
+@keyframes bump { 40% { transform: scale(1.12); } }
+.leds { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; border-top: 1px solid var(--line); align-items: center; font-size: 13px; }
+.leds span { display: inline-flex; align-items: center; gap: 6px; }
+.leds i { width: 14px; height: 14px; border-radius: 50%; background: var(--panel-2); border: 1.5px solid var(--line); }
+.leds i.on { background: var(--hi); border-color: var(--hi); box-shadow: 0 0 8px rgba(var(--hot), .8); }
+.leds i.on.isr { background: var(--z); border-color: var(--z); box-shadow: 0 0 8px var(--z); }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 600 12.5px var(--f-mono); padding: 4px 10px; border-radius: 6px 6px 0 0; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 10px; padding: 12px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--panel-2); font-size: 13.8px; }
+.card h4 { font-size: 1.12rem; margin-bottom: 4px; }
+.card p { margin: 0 0 6px; }
+.card p:last-child { margin: 0; }
+.flowmini { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); align-items: center; }
+.flowmini .fb { margin: 0; flex: 1 1 140px; font: 12px/1.3 var(--f-mono); }
+.flowmini .arr { color: var(--muted); }
+table.res { width: 100%; border-collapse: collapse; font: 12.5px var(--f-mono); min-width: 760px; font-variant-numeric: tabular-nums; }
+table.res th, table.res td { padding: 6px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+table.res th { font: 600 .8rem var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: right; vertical-align: bottom; white-space: normal; }
+table.res th.grp { text-align: center; border-bottom: 2px solid var(--line); }
+table.res td:first-child, table.res th:first-child { text-align: left; }
+table.res tr.avg td { font-weight: 600; border-top: 2px solid var(--line); background: var(--panel-2); }
+table.res td.bad { color: var(--bad); } table.res td.ok { color: var(--ok); }
+table.res tr.new td { animation: rowIn .8s ease-out; }
+@keyframes rowIn { from { background: rgba(var(--hot), .35); } }
+.cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; padding: 12px; }
+.cell { border: 1.5px solid var(--line); border-radius: 7px; padding: 4px; background: var(--panel-2); cursor: pointer; text-align: left; color: var(--ink); font: 11px var(--f-mono); }
+.cell canvas { display: block; width: 100%; height: 40px; }
+.cell.ok { border-color: var(--ok); } .cell.bad { border-color: var(--bad); }
+.cell.sel { box-shadow: 0 0 0 2px var(--accent); }
+.cell b.ok { color: var(--ok); } .cell b.bad { color: var(--bad); }
+.db canvas { display: block; width: 100%; background: var(--scope); }
+details.q { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); padding: 8px 12px; }
+details.q + details.q { margin-top: 8px; }
+details.q summary { cursor: pointer; font-weight: 600; }
+details.q[open] summary { margin-bottom: 6px; }
+details.q p, details.q li { font-size: 14px; max-width: 75ch; }
+.ans b.num { font-family: var(--f-mono); color: var(--accent); }
+.serial .row-new { animation: rowIn 1s ease-out; }
+.tag { font: 600 11px var(--f-mono); padding: 1px 6px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  #leafG.shake, #leafG.shake-up, .cnt .v.bump, table.res tr.new td, .serial .row-new { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">Модуль 1.5 · домашнє завдання · YD-ESP32-S3</div>
+    <h1>Лабораторія <span>брязкоту</span></h1>
+    <p>Одне натискання кнопки — це не один фронт, а десятки. Логічний аналізатор бачить їх усі, а ESP32-S3 через переривання — лише частину. Відтворіть справжній запис із Wokwi (10 натискань, ті самі прошивки, що в репозиторії) або натискайте самі. Порівняйте числа й підберіть антибрязкіт.</p>
+    <nav class="toc" aria-label="Розділи">
+      <a href="#task"><span>1</span>Завдання</a>
+      <a href="#bench"><span>2</span>Стенд</a>
+      <a href="#la"><span>3</span>Аналізатор</a>
+      <a href="#mcu"><span>4</span>Що бачить ESP32</a>
+      <a href="#code"><span>5</span>Код</a>
+      <a href="#serial"><span>6</span>Serial</a>
+      <a href="#table"><span>7</span>Таблиця</a>
+      <a href="#debounce"><span>8</span>Антибрязкіт</a>
+      <a href="#answers"><span>9</span>Відповіді</a>
+      <a href="#real"><span>10</span>На залізі</a>
+    </nav>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Керування">
+    <div class="grp">
+      <button class="hold" id="holdBar" type="button" aria-pressed="false" title="Утримуйте мишкою, пальцем або клавішею Пробіл"><span class="dot"></span>Кнопка S1</button>
+      <button class="btn primary" id="play" type="button" title="Клавіша P">▶ Відтворити</button>
+      <button class="btn" id="nextEv" type="button" title="Клавіша N: до наступної події">⏭ Подія</button>
+      <div class="seg" role="group" aria-label="Швидкість відтворення" id="speed">
+        <button type="button" data-v="1" aria-pressed="true">1×</button>
+        <button type="button" data-v="0.25" aria-pressed="false">¼×</button>
+        <button type="button" data-v="0.1" aria-pressed="false">0.1×</button>
+      </div>
+      <button class="btn mono" id="rst" type="button" title="Почати спочатку / стерти свої натискання">RST</button>
+      <span class="clock">t = <b id="clock">0</b> мс</span>
+    </div>
+    <div class="grp">
+      <div class="seg" role="group" aria-label="Джерело даних" id="srcSeg">
+        <button type="button" data-src="real" aria-pressed="true">Запис Wokwi</button>
+        <button type="button" data-src="live" aria-pressed="false">Мої натискання</button>
+      </div>
+      <div class="seg" role="group" aria-label="Прошивка" id="fwSeg">
+        <button type="button" data-fw="lab" aria-pressed="true">bounce-lab · CHANGE</button>
+        <button type="button" data-fw="hw" aria-pressed="false">з умови · FALLING</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. TASK -->
+  <section class="sec" id="task">
+    <div class="sec-head">
+      <h2><span class="n">01</span>Завдання</h2>
+      <p>Мета з умови: виміряти брязкіт кнопки й порівняти «справжню» кількість імпульсів (логічний аналізатор) з тим, що нарахував мікроконтролер через апаратні переривання. Пункти відмічаються самі, коли ви дійдете до них на сторінці. <span class="progress">Виконано <b id="taskDone">0</b> / 8</span></p>
+    </div>
+    <div class="panel">
+      <ol class="tasks" id="tasks">
+        <li data-go="bench" data-task="wire"><span class="box"></span><div><b>Зібрати схему</b><small>Кнопка між GPIO16 і GND (<code>INPUT_PULLUP</code>), канал 1 аналізатора — на GPIO16, GND — на GND.</small></div></li>
+        <li data-go="code" data-task="flash"><span class="box"></span><div><b>Прошити код, що рахує імпульси</b><small>Код з умови (<code>FALLING</code>) або лабораторний (<code>CHANGE</code> + час кожного фронту).</small></div></li>
+        <li data-go="bench" data-task="press10"><span class="box"></span><div><b>Натиснути кнопку 10 разів</b><small>Повільно і швидко, слабко і сильно. Або відтворіть запис Wokwi до кінця.</small></div></li>
+        <li data-go="la" data-task="record"><span class="box"></span><div><b>Записати кожне натискання аналізатором</b><small>Наблизьте одну подію до мікросекунд, поставте курсори.</small></div></li>
+        <li data-go="table" data-task="measure"><span class="box"></span><div><b>Порахувати імпульси й тривалість</b><small>Для кожного натискання: скільки фронтів насправді і скільки мс триває брязкіт.</small></div></li>
+        <li data-go="mcu" data-task="compare"><span class="box"></span><div><b>Порівняти аналізатор і ESP32</b><small>Подивіться повільне відтворення однієї події до кінця.</small></div></li>
+        <li data-go="answers" data-task="questions"><span class="box"></span><div><b>Відповісти на 4 питання</b><small>Збіг? Коли ESP32 пропускає, а коли рахує зайве? Середній брязкіт? Мінімальний debounce?</small></div></li>
+        <li data-go="debounce" data-task="debounce"><span class="box"></span><div><b>Підібрати антибрязкіт</b><small>Спробуйте чотири способи на тих самих натисканнях.</small></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 2. BENCH -->
+  <section class="sec" id="bench">
+    <div class="sec-head">
+      <h2><span class="n">02</span>Стенд</h2>
+      <p>Кнопка S1 стоїть поперек жолобка макетки і з'єднує GPIO16 з GND. Канал 1 (CH1) аналізатора під'єднано до того самого ряду, що й GPIO16. Канал 2 — до GPIO17: лабораторна прошивка тримає його у HIGH, поки виконується обробник переривання. Утримуйте кнопку нижче (або Пробіл) і дивіться, як «дзвенить» пружний контакт.</p>
+    </div>
+    <div class="panel bench" id="benchPanel">
+      <div class="ph"><h3>Макетна плата · аналізатор · ноутбук</h3>
+        <button type="button" class="btn" id="asmBtn" aria-pressed="false">🔧 Збираємо крок за кроком</button>
+      </div>
+      <div id="benchSvg"></div>
+      <div class="asm-bar" id="asmBar" hidden>
+        <button type="button" class="btn" id="asmPrev">◀</button>
+        <p id="asmText"></p>
+        <span class="dots" id="asmDots"></span>
+        <button type="button" class="btn" id="asmNext">▶</button>
+      </div>
+      <div class="controls">
+        <button class="hold big" id="holdBig" type="button" aria-pressed="false"><span class="dot"></span>Утримуйте, щоб натиснути S1</button>
+        <div class="ctl"><label for="force">Сила натискання <b id="forceV">середня</b></label><input type="range" id="force" min="0" max="1" step="0.01" value="0.5"></div>
+        <div class="ctl"><label for="speedK">Швидкість руху пальця <b id="speedKV">середня</b></label><input type="range" id="speedK" min="0" max="1" step="0.01" value="0.5"></div>
+      </div>
+      <div class="stats" id="benchStats">
+        <div class="stat"><div class="k">GPIO16</div><div class="v" id="stLvl">HIGH</div></div>
+        <div class="stat"><div class="k">Остання подія</div><div class="v" id="stEv">—</div></div>
+        <div class="stat"><div class="k">Фронтів (аналізатор)</div><div class="v acc" id="stEdges">—</div></div>
+        <div class="stat"><div class="k">Брязкіт</div><div class="v hi" id="stBounce">—</div></div>
+        <div class="stat"><div class="k">ISR (ESP32)</div><div class="v" id="stIsr" style="color:var(--z)">—</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. LOGIC ANALYZER -->
+  <section class="sec" id="la">
+    <div class="sec-head">
+      <h2><span class="n">03</span>Логічний аналізатор</h2>
+      <p>Як у PulseView: колесо або щипок — масштаб, перетягування — зсув, курсори A і B — вимір часу. Перемикач частоти дискретизації показує, що запише дешевший або повільніший аналізатор. Короткі імпульси брязкоту зникають, коли між вибірками проходить більше часу, ніж триває імпульс.</p>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Захоплення · <span id="laSrcName">запис Wokwi</span></h3>
+        <div class="grp" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span class="lbl-sm">Частота вибірок:</span>
+          <div class="seg" role="group" aria-label="Частота дискретизації" id="fsSeg">
+            <button type="button" data-fs="0" aria-pressed="false">справжній</button>
+            <button type="button" data-fs="24" aria-pressed="true">24 МГц</button>
+            <button type="button" data-fs="4" aria-pressed="false">4 МГц</button>
+            <button type="button" data-fs="1" aria-pressed="false">1 МГц</button>
+            <button type="button" data-fs="0.1" aria-pressed="false">100 кГц</button>
+          </div>
+        </div>
+      </div>
+      <div class="la-view"><canvas id="laCanvas" height="250" tabindex="0" aria-label="Діаграма логічного аналізатора: стрілки — зсув, плюс і мінус — масштаб"></canvas></div>
+      <div class="la-tools">
+        <button type="button" class="btn small" id="laAll">Усе захоплення</button>
+        <button type="button" class="btn small" id="laPrev">◀ подія</button>
+        <button type="button" class="btn small" id="laEv">Поточна подія</button>
+        <button type="button" class="btn small" id="laNext">подія ▶</button>
+        <button type="button" class="btn small" id="laZin">＋</button>
+        <button type="button" class="btn small" id="laZout">－</button>
+        <button type="button" class="btn small" id="laCur">Курсори на подію</button>
+        <label class="toggle"><input type="checkbox" id="laFollow" checked> слідкувати</label>
+        <span class="sp"></span>
+        <span class="lbl-sm" id="laSpan">—</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Δt = B − A</div><div class="v acc" id="laDt">—</div></div>
+        <div class="stat"><div class="k">1 / Δt</div><div class="v" id="laF">—</div></div>
+        <div class="stat"><div class="k">Фронтів між A і B</div><div class="v hi" id="laN">—</div></div>
+        <div class="stat"><div class="k">Записано на цій частоті</div><div class="v" id="laNs">—</div></div>
+        <div class="stat"><div class="k">ISR між A і B</div><div class="v" id="laNi" style="color:var(--z)">—</div></div>
+        <div class="stat"><div class="k">Найкоротший імпульс у вікні</div><div class="v" id="laMin">—</div></div>
+      </div>
+      <p class="explain" id="laExplain">Частота 24 МГц — це вибірка кожні 42 нс. Найкоротший імпульс у записі Wokwi — 0.1 мкс (100 нс), тож він ще потрапляє хоча б у дві вибірки.</p>
+    </div>
+  </section>
+
+  <!-- 4. WHAT THE MCU SEES -->
+  <section class="sec" id="mcu">
+    <div class="sec-head">
+      <h2><span class="n">04</span>Що бачить ESP32</h2>
+      <p>Фронт на GPIO16 ставить апаратний прапорець переривання. Це лише один біт. Процесор заходить в обробник (ISR) не миттєво, а через кілька мікросекунд. Усі фронти, що прийшли, поки прапорець уже стоїть, зливаються в один запуск ISR. А рівень, який ISR читає з піна, міг уже змінитися ще раз.</p>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Повільне відтворення · подія <span id="mcuEvName">—</span></h3>
+        <div class="grp" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="btn small" id="mcuPrev">◀</button>
+          <button type="button" class="btn small" id="mcuNext">▶</button>
+          <button type="button" class="btn primary small" id="mcuPlay">▶ Повільно</button>
+          <button type="button" class="btn small" id="mcuStep">Крок: наступний фронт</button>
+          <button type="button" class="btn small" id="mcuRestart">⟲</button>
+        </div>
+      </div>
+      <div class="la-view"><canvas id="mcuCanvas" height="250" aria-label="Повільна часова діаграма: пін, прапорець переривання, виконання ISR"></canvas></div>
+      <div class="leds" aria-live="off">
+        <span><i id="ledPend"></i>прапорець переривання</span>
+        <span><i id="ledIsr" class="isr"></i>ISR виконується</span>
+        <span class="lbl-sm" id="mcuTau">τ = 0 мкс</span>
+        <span class="lbl-sm">Масштаб:</span>
+        <div class="seg" role="group" aria-label="Ширина вікна" id="mcuWin">
+          <button type="button" data-w="60" aria-pressed="true">60 мкс</button>
+          <button type="button" data-w="300" aria-pressed="false">300 мкс</button>
+          <button type="button" data-w="0" aria-pressed="false">уся подія</button>
+        </div>
+        <span class="lbl-sm">Темп:</span>
+        <div class="seg" role="group" aria-label="Темп відтворення" id="mcuRate">
+          <button type="button" data-r="5" aria-pressed="false">5 мкс/с</button>
+          <button type="button" data-r="25" aria-pressed="true">25 мкс/с</button>
+          <button type="button" data-r="250" aria-pressed="false">250 мкс/с</button>
+          <button type="button" data-r="2500" aria-pressed="false">2.5 мс/с</button>
+        </div>
+      </div>
+      <div class="counters">
+        <div class="cnt a"><div class="k">Аналізатор: усі фронти</div><div class="v" id="cA">0</div><div class="s" id="cAs">усього: —</div></div>
+        <div class="cnt b"><div class="k">Ідеальний FALLING: фронти вниз</div><div class="v" id="cB">0</div><div class="s" id="cBs">усього: —</div></div>
+        <div class="cnt c"><div class="k">ESP32, CHANGE: запусків ISR</div><div class="v" id="cC">0</div><div class="s" id="cCs">усього: —</div></div>
+        <div class="cnt d"><div class="k">Код з умови: <code>button_counter</code></div><div class="v" id="cD">0</div><div class="s" id="cDs">усього: —</div></div>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Режим переривання на діаграмі" id="modeSeg">
+          <button type="button" data-mode="CHANGE" aria-pressed="true">діаграма: CHANGE</button>
+          <button type="button" data-mode="FALLING" aria-pressed="false">діаграма: FALLING</button>
+        </div>
+        <div class="ctl"><label for="lat">Затримка входу в ISR <b id="latV">14 мкс</b></label><input type="range" id="lat" min="0.5" max="20" step="0.1" value="14"></div>
+        <div class="ctl"><label for="dur">Тривалість ISR <b id="durV">0.3 мкс</b></label><input type="range" id="dur" min="0.1" max="3" step="0.05" value="0.3"></div>
+        <div class="chips">
+          <button type="button" class="chip-btn" data-preset="wokwi" aria-pressed="true">Як у Wokwi: 14 мкс</button>
+          <button type="button" class="chip-btn" data-preset="real" aria-pressed="false">Справжній S3: ~3 мкс (оцінка)</button>
+        </div>
+      </div>
+      <div class="flowmini" id="flowMini">
+        <div class="fb" data-f="0">① фронт на GPIO16</div><span class="arr">→</span>
+        <div class="fb" data-f="1">② прапорець = 1</div><span class="arr">→</span>
+        <div class="fb" data-f="2">③ затримка L</div><span class="arr">→</span>
+        <div class="fb" data-f="3">④ ISR: час, рівень → буфер · counter++</div><span class="arr">→</span>
+        <div class="fb" data-f="4">⑤ loop(): забрати з буфера</div><span class="arr">→</span>
+        <div class="fb" data-f="5">⑥ 50 мс тиші → рядок звіту</div>
+      </div>
+      <p class="explain" id="mcuExplain">Натисніть «▶ Повільно». Одна мікросекунда розтягнеться на 40 мілісекунд вашого часу.</p>
+    </div>
+    <div class="callout warn">Затримку 14 мкс виміряно в Wokwi маркером GPIO17 (медіана; <code>tools/vcd_bounce.py</code>). Справжній ESP32-S3 з Arduino-<code>attachInterrupt</code> зазвичай швидший, кілька мікросекунд. Перевірте своїм аналізатором через маркер GPIO17 на каналі 2: це і є затримка вашої плати.</div>
+  </section>
+
+  <!-- 5. CODE -->
+  <section class="sec" id="code">
+    <div class="sec-head">
+      <h2><span class="n">05</span>Код</h2>
+      <p>Обидві прошивки з репозиторію, без змін. Рядки підсвічуються, коли модель їх «виконує»: ISR — на кожному перериванні в розділі 4, <code>loop()</code> — коли подія закінчилась. Перемикайте вкладки або прошивку в панелі вгорі.</p>
+    </div>
+    <div class="grid2 code-grid">
+      <div class="panel">
+        <div class="ph"><h3>Чому код саме такий</h3></div>
+        <div class="cards" style="grid-template-columns:minmax(0,1fr)">
+          <div class="card"><h4><code>volatile</code></h4><p>ISR змінює змінну «за спиною» в <code>loop()</code>. <code>volatile</code> забороняє компілятору тримати її копію в регістрі: кожне читання йде в пам'ять.</p></div>
+          <div class="card"><h4><code>IRAM_ATTR</code></h4><p>Обробник лежить у швидкій внутрішній RAM. Переривання може прийти, коли кеш флеш-пам'яті вимкнений (наприклад, під час запису у флеш). Код у флеші тоді просто не прочитається.</p></div>
+          <div class="card"><h4>Без Serial в ISR</h4><p><code>Serial.print</code> повільний (мілісекунди при 115200), використовує блокування і буфери. В ISR він зірве час і може «повісити» плату. ISR лише записує факт, друкує <code>loop()</code>.</p></div>
+          <div class="card"><h4>Кільцевий буфер</h4><p>ISR кладе {час, рівень} у масив на 512 місць і просуває <code>gHead</code>. <code>loop()</code> читає до <code>gHead</code> і просуває <code>gTail</code>. Один пише, інший читає, тож блокування не потрібні.</p></div>
+          <div class="card"><h4>50 мс тиші</h4><p>Подія (натискання чи відпускання) закінчується, коли 50 мс немає фронтів. Це довше за брязкіт (2…6 мс) і коротше за найшвидше натискання людини (~50…100 мс).</p></div>
+          <div class="card"><h4>Чому відпускання теж рахується</h4><p>Брязкіт відпускання — це HIGH→LOW→HIGH… Фронти вниз у ньому теж є. <code>FALLING</code> не знає, що кнопку відпускають: <code>button_counter</code> росте і там.</p></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <div class="tabs" role="tablist" aria-label="Файли">
+            <button type="button" role="tab" id="tabHw" aria-selected="false" aria-controls="codeBox">homework_base.cpp</button>
+            <button type="button" role="tab" id="tabLab" aria-selected="true" aria-controls="codeBox">main.cpp</button>
+          </div>
+          <span class="note" id="codeNote">env: bounce-lab</span>
+        </div>
+        <div class="code" id="codeBox" role="tabpanel" tabindex="0"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. SERIAL -->
+  <section class="sec" id="serial">
+    <div class="sec-head">
+      <h2><span class="n">06</span>Serial-монітор</h2>
+      <p>Рядок у рядок, як друкує прошивка (<code>pio device monitor</code>, 115200). Для запису Wokwi з лабораторною прошивкою це справжній вивід із того самого прогону. Код з умови у Wokwi не записувався, тож його вивід рахує модель переривань із розділу 4.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ph"><h3>Serial · 115200 · <span id="serFw">bounce-lab</span></h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn" id="serPause" aria-pressed="false">❚❚ Заморозити</button>
+            <button type="button" class="btn" id="serClear">Очистити</button>
+            <button type="button" class="btn" id="serCopy">Копіювати</button>
+          </div>
+        </div>
+        <div class="serial" id="serialBox" tabindex="0" aria-label="Вивід Serial" style="height:380px"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Як читати рядок звіту</h3></div>
+        <div class="pb prose" style="font-size:14px">
+          <pre class="formula">  1  PRESS       66    35    31       2336          15  v0 v49 v105 ^136 …</pre>
+          <ul>
+            <li><b>#, event</b>: номер натискання (<code>PRESS</code>) або відпускання (<code>release</code>).</li>
+            <li><b>edges</b>: скільки разів спрацював ISR. Аналізатор у цій самій події бачив 83 фронти.</li>
+            <li><b>fall / rise</b>: який рівень ISR <i>прочитав</i> з піна. Це не завжди напрямок фронту!</li>
+            <li><b>bounce,us</b>: від першого до останнього ISR, мкс.</li>
+            <li><b>min gap,us</b>: найкоротша пауза між двома ISR. Вона не буває меншою за затримку + тривалість ISR.</li>
+            <li><b>v0 v49 …</b>: перші 12 ISR: прочитаний рівень (v = LOW, ^ = HIGH) і мкс від першого. Два <code>v</code> поспіль означають, що між ними був фронт угору, який ISR «проспав».</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. TABLE -->
+  <section class="sec" id="table">
+    <div class="sec-head">
+      <h2><span class="n">07</span>Таблиця результатів</h2>
+      <p>Таку таблицю просить умова: для кожного з 10 натискань — скільки імпульсів насправді і скільки зареєстрував мікроконтролер, і тривалість брязкоту. Рядки додаються, коли подія закінчилась. Завантажте CSV або скопіюйте Markdown у звіт.</p>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Натискання · <span id="tblSrc">запис Wokwi</span></h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn" id="tblAll">⏩ Весь запис</button>
+          <button type="button" class="btn" id="tblCsv">⤓ CSV</button>
+          <button type="button" class="btn" id="tblMd">Копіювати Markdown</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="res" id="resTable"></table></div>
+      <p class="explain" id="tblNote"></p>
+    </div>
+  </section>
+
+  <!-- 8. DEBOUNCE -->
+  <section class="sec" id="debounce">
+    <div class="sec-head">
+      <h2><span class="n">08</span>Антибрязкіт</h2>
+      <p>Чотири способи прибрати брязкіт, застосовані до тих самих подій. Зелена клітинка — подія дала рівно один чистий перехід у правильний бік. Червона — зайві переходи. Під кожною — затримка: скільки чекає програма після першого фронту.</p>
+    </div>
+    <div class="panel db">
+      <div class="controls" style="border-top:0">
+        <div class="seg" role="group" aria-label="Спосіб" id="dbSeg">
+          <button type="button" data-s="lock" aria-pressed="false">а · блокування після фронту</button>
+          <button type="button" data-s="stable" aria-pressed="true">б · чекати стабільності</button>
+          <button type="button" data-s="rc" aria-pressed="false">в · RC + тригер Шмітта</button>
+          <button type="button" data-s="glitch" aria-pressed="false">г · glitch filter S3</button>
+        </div>
+        <div class="ctl" id="dbCtl"><label for="dbN"><span id="dbNLabel">Час N</span> <b id="dbNV">5 мс</b></label><input type="range" id="dbN" min="0.2" max="20" step="0.1" value="5"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Правильних подій</div><div class="v ok" id="dbOk">—</div></div>
+        <div class="stat"><div class="k">Зайвих переходів</div><div class="v bad" id="dbExtra">—</div></div>
+        <div class="stat"><div class="k">Середня затримка</div><div class="v hi" id="dbLat">—</div></div>
+        <div class="stat"><div class="k">Найкоротша пауза між подіями</div><div class="v" id="dbGap">—</div></div>
+      </div>
+      <div class="cells" id="dbCells"></div>
+      <canvas id="dbCanvas" height="170" aria-label="Вибрана подія: сирий сигнал і вихід антибрязкоту"></canvas>
+      <p class="explain" id="dbExplain"></p>
+    </div>
+  </section>
+
+  <!-- 9. ANSWERS -->
+  <section class="sec" id="answers">
+    <div class="sec-head">
+      <h2><span class="n">09</span>Відповіді на питання з завдання</h2>
+      <p>Числа підставляються з ваших даних (джерело в панелі вгорі). Відкрийте картку, щоб побачити розбір.</p>
+    </div>
+    <div class="panel pb ans" id="ansBox"></div>
+    <div class="panel pb" style="margin-top:12px">
+      <h3 style="font-size:1.3rem;margin-bottom:8px">Ще для обговорення</h3>
+      <details class="q"><summary>Чому відпускання теж додає до лічильника FALLING?</summary>
+        <p>Під час відпускання контакт розмикається, але пружина ще кілька разів торкається, і рівень скаче HIGH→LOW→HIGH. Кожен перехід униз — це фронт FALLING. Переривання не знає, «натискають» чи «відпускають», воно бачить лише напрям фронту. Перемкніть діаграму розділу 4 на FALLING і відкрийте будь-яке <code>release</code>.</p></details>
+      <details class="q"><summary>Як виміряти затримку ISR маркером GPIO17?</summary>
+        <p>Лабораторна прошивка першим рядком ISR ставить GPIO17 у HIGH, а останнім знімає. Підключіть канал 2 аналізатора до GPIO17. Відстань від фронту на CH1 до початку імпульсу на CH2 — це затримка входу в обробник. Ширина імпульсу — це час виконання ISR. <code>tools/vcd_bounce.py --isr D1</code> порахує медіану. У Wokwi вийшло 14.3 мкс і 0.27 мкс.</p></details>
+      <details class="q"><summary>Що зміниться, якщо аналізатор пише на 1 МГц?</summary>
+        <p>Вибірка раз на 1 мкс. Імпульси коротші за 1 мкс або пропадуть, або «прилипнуть» до сусідньої вибірки. У розділі 3 перемкніть частоту на 1 МГц і порівняйте «Фронтів між A і B» з «Записано на цій частоті». Правило: на найкоротший імпульс потрібно хоча б 4–10 вибірок.</p></details>
+      <details class="q"><summary>Чи може ESP32 нарахувати БІЛЬШЕ, ніж аналізатор?</summary>
+        <p>У режимі CHANGE ні: кожен запуск ISR має свій фронт. Але <code>button_counter</code> з умови може бути більшим за кількість натискань у десятки разів. А аналізатор на низькій частоті вибірок сам пропускає імпульси, і тоді ESP32 «бачить більше», ніж такий запис.</p></details>
+    </div>
+  </section>
+
+  <!-- 10. REAL HARDWARE -->
+  <section class="sec" id="real">
+    <div class="sec-head">
+      <h2><span class="n">10</span>Як зробити на реальному обладнанні</h2>
+      <p>Дешевий 8-канальний аналізатор на 24 МГц (клон Saleae, драйвер <code>fx2lafw</code>) і безкоштовний PulseView. Того самого достатньо для всіх наступних модулів: UART, I²C, SPI.</p>
+    </div>
+    <div class="panel">
+      <div class="cols3">
+        <div class="col">
+          <h4>1. Схема</h4>
+          <ol>
+            <li>Кнопка 6×6 поперек жолобка. GPIO16 → одна ніжка, GND → <b>діагональна</b> ніжка.</li>
+            <li>Підтяжка: <code>INPUT_PULLUP</code> (≈45 кОм усередині чипа). Зовнішній резистор не потрібен.</li>
+            <li>Аналізатор: CH1 (D0) → ряд GPIO16, CH2 (D1) → GPIO17, <b>GND → GND</b>. Без спільної землі запис буде сміттям.</li>
+            <li>USB аналізатора — в ноутбук, USB плати — теж (для Serial).</li>
+          </ol>
+          <h4>2. Прошивка</h4>
+          <pre class="cmd">cd esp32-s3-button-bounce
+pio run -e homework-base -t upload   # код з умови
+pio device monitor
+
+pio run -e bounce-lab -t upload      # лабораторна
+pio device monitor                   # s, r, h</pre>
+        </div>
+        <div class="col">
+          <h4>3. PulseView</h4>
+          <ol>
+            <li>Пристрій: <i>fx2lafw (generic driver for FX2 based LAs)</i>. Linux: правила udev з пакета sigrok, Windows: драйвер через Zadig.</li>
+            <li>Частота: <b>4–24 МГц</b>; кількість вибірок: <b>5 M і більше</b> (на 24 МГц це ~0.2 с).</li>
+            <li>Тригер: CH1 — <b>спадаючий фронт</b>. Запуск, потім натисніть кнопку.</li>
+            <li>Наблизьте брязкіт, поставте курсори, порахуйте фронти. Повторіть 10 разів.</li>
+            <li><i>File → Export → Value Change Dump</i> і далі:</li>
+          </ol>
+          <pre class="cmd">python3 tools/vcd_bounce.py capture.vcd \
+        --button D0 --isr D1</pre>
+          <p>Скрипт друкує таку саму таблицю, як прошивка, плюс затримку ISR із маркера.</p>
+        </div>
+        <div class="col">
+          <h4>4. Без заліза: Wokwi</h4>
+          <pre class="cmd">pio run
+wokwi-cli . --scenario wokwi/scenarios/ten-presses.yaml \
+  --timeout 40000 --vcd-file bounce.vcd
+python3 tools/vcd_bounce.py bounce.vcd</pre>
+          <p>У VS Code: розширення Wokwi, F1 → <i>Start Simulator</i>, клавіша <kbd>1</kbd> — кнопка S1. Зупиніть симуляцію, і аналізатор збереже VCD.</p>
+          <h4>5. Що здати</h4>
+          <ul>
+            <li>Фото схеми з аналізатором.</li>
+            <li>Скріншоти PulseView: одне натискання загалом і наближений брязкіт з курсорами.</li>
+            <li>Таблицю на 10 натискань (CSV/Markdown з розділу 7 або свою).</li>
+            <li>Вивід Serial обох прошивок.</li>
+            <li>Відповіді на 4 питання і обраний debounce з обґрунтуванням.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="../">← Усі матеріали</a> · <a href="../scope-signals/">Теорія: осцилограф і кнопка</a> · <a href="../pull-resistors/">Підтяжка входу і тригер Шмітта</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce">Код на GitHub</a></p>
+    <p>«Запис Wokwi» — це справжній прогін <code>wokwi/scenarios/ten-presses.yaml</code> з прошивкою <code>bounce-lab</code>: канали BUTTON і ISR з <code>docs/wokwi-10-presses.vcd</code> і Serial з того самого запуску. Модель переривань (прапорець + затримка + тривалість ISR) з параметрами Wokwi відтворює кількість запусків ISR у цьому записі з похибкою &lt; 1 %. «Мої натискання» генерує модель брязкоту в межах вимірів Ганссла (сер. ~1.6 мс, до 6 мс) і Wokwi.</p>
+  </footer>
+</div>
+
+<pre id="src-hw" hidden>// Модуль 1.5 — код з умови домашнього завдання, без змін у логіці (pio run -e homework-base).
+// Рахує спрацювання переривання FALLING на GPIO16. Порівняйте цей лічильник із тим,
+// що показує логічний аналізатор, і з детальним звітом лабораторної прошивки (src/main.cpp).
+
+#include &lt;Arduino.h&gt;
+
+#define BUTTON_IN 16  // Кнопка підключена до GPIO 16
+
+volatile uint32_t button_counter = 0;  // volatile обов'язковий для змінних, які змінюються всередині ISR
+
+uint32_t last_count = 0;  // Змінна для відслідковування змін у головному циклі
+
+// Швидка функція обробки переривань (ISR), яка розміщується в оперативній пам'яті (IRAM)
+void IRAM_ATTR button_isr() {
+  button_counter++;
+}
+
+void setup() {
+  pinMode(BUTTON_IN, INPUT_PULLUP);
+  Serial.begin(115200);
+
+  // Прив'язка переривання. FALLING означає спрацьовування при натисканні (перехід з 1 в 0)
+  attachInterrupt(digitalPinToInterrupt(BUTTON_IN), button_isr, FALLING);
+}
+
+void loop() {
+  if (button_counter != last_count) {
+    last_count = button_counter;
+    Serial.print("Button Pressed! Count: ");
+    Serial.println(last_count);
+  }
+
+  delay(10);
+}
+</pre>
+<pre id="src-lab" hidden>// Модуль 1.5 — лабораторія брязкоту: що бачить ESP32-S3 через переривання (pio run -e bounce-lab).
+//
+//   GPIO16 ── кнопка ── GND      (INPUT_PULLUP: відпущена = HIGH, натиснута = LOW)
+//   GPIO16 ── канал D0 логічного аналізатора
+//   GPIO17 ── канал D1: «маркер ISR» — HIGH, поки виконується обробник переривання
+//
+// Код з умови рахує лише фронти FALLING. Тут переривання CHANGE: обробник записує КОЖЕН фронт
+// із часом у мікросекундах у кільцевий буфер, а loop() групує фронти в «події».
+// Подія — це натискання або відпускання разом з усім брязкотом. Вона закінчується, коли
+// 50 мс немає нових фронтів. Для кожної події друкується рядок, який можна прямо порівняти
+// з логічним аналізатором (той самий звіт будує tools/vcd_bounce.py із запису VCD).
+//
+// Команди в Serial Monitor: s — підсумок, r — скинути, h — довідка. Пояснення — у README.md.
+
+#include &lt;Arduino.h&gt;
+#include &lt;soc/gpio_reg.h&gt;
+
+namespace {
+
+// --- Виводи --------------------------------------------------------------
+constexpr uint8_t kButtonPin    = 16;  // як в умові завдання
+constexpr uint8_t kIsrMarkerPin = 17;  // сусідній пін: зручно взяти другим каналом аналізатора
+static_assert(kButtonPin &lt; 32 &amp;&amp; kIsrMarkerPin &lt; 32, "GPIO_IN_REG / GPIO_OUT_W1TS_REG cover GPIO0..31");
+
+// --- Групування фронтів -----------------------------------------------------
+// Скільки тиші вважати «кінцем брязкоту». Більше, ніж найдовший брязкіт (Ganssle: до ~6 мс у
+// більшості кнопок), і менше, ніж найкоротше натискання людини (~50…100 мс).
+constexpr uint32_t kQuietUs     = 50000;
+constexpr uint8_t  kShowEdges   = 12;   // скільки перших фронтів розписати в рядку події
+constexpr uint8_t  kSummaryEvery = 10;  // підсумок після кожних 10 натискань-відпускань (як у завданні)
+
+constexpr uint32_t kSerialBaud   = 115200;
+constexpr uint32_t kSerialWaitMs = 2000;
+
+// --- Кільцевий буфер фронтів (ISR пише, loop читає) ------------------------
+struct Edge {
+  uint32_t tUs;    // момент переривання, мкс від старту (esp_timer)
+  uint8_t  level;  // рівень на піні, прочитаний у самому обробнику: 0 = LOW, 1 = HIGH
+};
+
+constexpr uint32_t kRingSize = 512;  // степінь двійки: індекс = лічильник &amp; (kRingSize - 1)
+static_assert((kRingSize &amp; (kRingSize - 1)) == 0, "kRingSize must be a power of two");
+
+Edge              gRing[kRingSize];
+volatile uint32_t gHead    = 0;  // скільки фронтів записав ISR (лише зростає)
+volatile uint32_t gDropped = 0;  // скільки не влізло в буфер
+volatile uint32_t gTail    = 0;  // скільки фронтів уже прочитав loop()
+
+// Обробник переривання. Він має бути коротким і лежати в IRAM (IRAM_ATTR): переривання може
+// прийти, коли кеш флеш-пам'яті вимкнений. Тому тут немає Serial, digitalRead() і digitalWrite():
+// лише прямий доступ до регістрів GPIO, а це кілька тактів.
+void IRAM_ATTR onButtonEdge() {
+  REG_WRITE(GPIO_OUT_W1TS_REG, 1UL &lt;&lt; kIsrMarkerPin);  // маркер ISR: HIGH
+
+  const uint32_t t     = static_cast&lt;uint32_t&gt;(esp_timer_get_time());
+  const uint8_t  level = (REG_READ(GPIO_IN_REG) &gt;&gt; kButtonPin) &amp; 1U;
+
+  const uint32_t head = gHead;
+  if (head - gTail &lt; kRingSize) {
+    gRing[head &amp; (kRingSize - 1)] = {t, level};
+    gHead = head + 1;  // публікуємо запис лише після того, як він повністю заповнений
+  } else {
+    gDropped = gDropped + 1;
+  }
+
+  REG_WRITE(GPIO_OUT_W1TC_REG, 1UL &lt;&lt; kIsrMarkerPin);  // маркер ISR: LOW
+}
+
+// --- Подія: натискання або відпускання разом із брязкотом ------------------------
+struct Event {
+  uint32_t firstUs   = 0;
+  uint32_t lastUs    = 0;
+  uint32_t edges     = 0;
+  uint32_t falling   = 0;      // фронти, після яких ISR прочитав LOW
+  uint32_t rising    = 0;      // фронти, після яких ISR прочитав HIGH
+  uint32_t minGapUs  = UINT32_MAX;  // найкоротший проміжок між сусідніми фронтами
+  uint8_t  lastLevel = 1;
+  uint32_t shownUs[kShowEdges];
+  uint8_t  shownLevel[kShowEdges];
+};
+
+struct Stats {
+  uint32_t presses = 0, releases = 0;
+  uint32_t pressEdges = 0, releaseEdges = 0;
+  uint32_t pressBounceSumUs = 0, releaseBounceSumUs = 0;
+  uint32_t pressBounceMaxUs = 0, releaseBounceMaxUs = 0;
+  uint32_t fallingTotal = 0;  // фронти з рівнем LOW — приблизно стільки нарахував би код з умови
+  uint32_t minGapUs = UINT32_MAX;
+};
+
+bool     gInEvent = false;
+Event    gEvent;
+Stats    gStats;
+uint8_t  gStableLevel = 1;  // рівень після останньої завершеної події (старт: відпущена)
+uint32_t gRowsPrinted = 0;
+
+void printHeader() {
+  Serial.println();
+  Serial.println("  #  event    edges  fall  rise  bounce,us  min gap,us  edges, us from the first (v = LOW, ^ = HIGH)");
+  Serial.println("---  -------  -----  ----  ----  ---------  ----------  ----------------------------------------------");
+}
+
+void startEvent(const Edge&amp; e) {
+  gEvent   = Event{};
+  gEvent.firstUs = e.tUs;
+  gInEvent = true;
+}
+
+void addEdge(const Edge&amp; e) {
+  if (!gInEvent) startEvent(e);
+  if (gEvent.edges &gt; 0) {
+    const uint32_t gap = e.tUs - gEvent.lastUs;
+    if (gap &lt; gEvent.minGapUs) gEvent.minGapUs = gap;
+  }
+  if (gEvent.edges &lt; kShowEdges) {
+    gEvent.shownUs[gEvent.edges]    = e.tUs - gEvent.firstUs;
+    gEvent.shownLevel[gEvent.edges] = e.level;
+  }
+  ++gEvent.edges;
+  (e.level ? gEvent.rising : gEvent.falling)++;
+  gEvent.lastUs    = e.tUs;
+  gEvent.lastLevel = e.level;
+}
+
+void printSummary() {
+  const Stats&amp; s = gStats;
+  Serial.println();
+  Serial.printf("=== summary: %lu presses, %lu releases ===\n",
+                static_cast&lt;unsigned long&gt;(s.presses), static_cast&lt;unsigned long&gt;(s.releases));
+  if (s.presses) {
+    Serial.printf("press:   edges avg %.1f, bounce avg %lu us, max %lu us\n",
+                  static_cast&lt;float&gt;(s.pressEdges) / s.presses,
+                  static_cast&lt;unsigned long&gt;(s.pressBounceSumUs / s.presses),
+                  static_cast&lt;unsigned long&gt;(s.pressBounceMaxUs));
+  }
+  if (s.releases) {
+    Serial.printf("release: edges avg %.1f, bounce avg %lu us, max %lu us\n",
+                  static_cast&lt;float&gt;(s.releaseEdges) / s.releases,
+                  static_cast&lt;unsigned long&gt;(s.releaseBounceSumUs / s.releases),
+                  static_cast&lt;unsigned long&gt;(s.releaseBounceMaxUs));
+  }
+  // Код з умови (FALLING) додає 1 на кожен фронт униз, який встиг помітити, — і на натисканні,
+  // і в брязкоті відпускання. Тут це наближення: фронти, після яких ISR прочитав LOW.
+  Serial.printf("edges read as LOW (~ homework FALLING counter): %lu for %lu presses\n",
+                static_cast&lt;unsigned long&gt;(s.fallingTotal), static_cast&lt;unsigned long&gt;(s.presses));
+  if (s.minGapUs != UINT32_MAX) {
+    Serial.printf("shortest gap between edges: %lu us\n", static_cast&lt;unsigned long&gt;(s.minGapUs));
+  }
+  const uint32_t worstUs = max(s.pressBounceMaxUs, s.releaseBounceMaxUs);
+  // Запас ×1.5 і округлення вгору до цілої мілісекунди.
+  const uint32_t debounceMs = (worstUs * 3 / 2 + 999) / 1000;
+  Serial.printf("debounce &gt;= %lu ms (worst bounce %lu us x 1.5)\n",
+                static_cast&lt;unsigned long&gt;(debounceMs ? debounceMs : 1), static_cast&lt;unsigned long&gt;(worstUs));
+  if (gDropped) Serial.printf("WARNING: %lu edges dropped (ring buffer full)\n", static_cast&lt;unsigned long&gt;(gDropped));
+  Serial.println();
+  gRowsPrinted = 0;  // після підсумку — знову шапка
+}
+
+void finishEvent() {
+  gInEvent = false;
+  // Тип події — за рівнем, на якому все заспокоїлось. Якщо рівень не змінився (наприклад, лише
+  // голка-завада), це «glitch»: фронти були, а стан кнопки — той самий.
+  const bool  press   = gEvent.lastLevel == 0 &amp;&amp; gStableLevel == 1;
+  const bool  release = gEvent.lastLevel == 1 &amp;&amp; gStableLevel == 0;
+  const char* name    = press ? "PRESS" : release ? "release" : "glitch";
+  const uint32_t bounceUs = gEvent.lastUs - gEvent.firstUs;
+  gStableLevel = gEvent.lastLevel;
+
+  if (press) {
+    ++gStats.presses;
+    gStats.pressEdges += gEvent.edges;
+    gStats.pressBounceSumUs += bounceUs;
+    if (bounceUs &gt; gStats.pressBounceMaxUs) gStats.pressBounceMaxUs = bounceUs;
+  } else if (release) {
+    ++gStats.releases;
+    gStats.releaseEdges += gEvent.edges;
+    gStats.releaseBounceSumUs += bounceUs;
+    if (bounceUs &gt; gStats.releaseBounceMaxUs) gStats.releaseBounceMaxUs = bounceUs;
+  }
+  gStats.fallingTotal += gEvent.falling;
+  if (gEvent.minGapUs &lt; gStats.minGapUs) gStats.minGapUs = gEvent.minGapUs;
+
+  if (gRowsPrinted % 20 == 0) printHeader();
+  ++gRowsPrinted;
+
+  char gap[12];
+  if (gEvent.edges &gt; 1) {
+    snprintf(gap, sizeof gap, "%10lu", static_cast&lt;unsigned long&gt;(gEvent.minGapUs));
+  } else {
+    snprintf(gap, sizeof gap, "%10s", "-");
+  }
+  Serial.printf("%3lu  %-7s  %5lu  %4lu  %4lu  %9lu  %s  ",
+                static_cast&lt;unsigned long&gt;(press ? gStats.presses : release ? gStats.releases : 0), name,
+                static_cast&lt;unsigned long&gt;(gEvent.edges), static_cast&lt;unsigned long&gt;(gEvent.falling),
+                static_cast&lt;unsigned long&gt;(gEvent.rising), static_cast&lt;unsigned long&gt;(bounceUs), gap);
+  const uint8_t shown = gEvent.edges &lt; kShowEdges ? gEvent.edges : kShowEdges;
+  for (uint8_t i = 0; i &lt; shown; ++i) {
+    Serial.printf("%c%lu ", gEvent.shownLevel[i] ? '^' : 'v', static_cast&lt;unsigned long&gt;(gEvent.shownUs[i]));
+  }
+  if (gEvent.edges &gt; kShowEdges) Serial.printf("... +%lu", static_cast&lt;unsigned long&gt;(gEvent.edges - kShowEdges));
+  Serial.println();
+
+  if (release &amp;&amp; gStats.releases % kSummaryEvery == 0) {
+    printSummary();  // з loop(), коли подія вже завершена, тож жоден фронт не губиться
+  }
+}
+
+void resetStats() {
+  noInterrupts();
+  gTail    = gHead;
+  gDropped = 0;
+  interrupts();
+  gStats       = Stats{};
+  gInEvent     = false;
+  gStableLevel = (REG_READ(GPIO_IN_REG) &gt;&gt; kButtonPin) &amp; 1U;
+  gRowsPrinted = 0;
+  Serial.println("--- reset ---");
+}
+
+void printHelp() {
+  Serial.println();
+  Serial.println("=== ESP32-S3: button bounce lab (module 1.5) ===");
+  Serial.printf("Button: GPIO%u -&gt; GND, INPUT_PULLUP, interrupt CHANGE\n", kButtonPin);
+  Serial.printf("ISR marker: GPIO%u is HIGH while the ISR runs (logic analyzer channel 2)\n", kIsrMarkerPin);
+  Serial.printf("An event ends after %lu ms without edges. Keys: s = summary, r = reset, h = help\n",
+                static_cast&lt;unsigned long&gt;(kQuietUs / 1000));
+}
+
+void handleSerial() {
+  while (Serial.available()) {
+    switch (Serial.read()) {
+      case 's': printSummary(); break;
+      case 'r': resetStats(); break;
+      case 'h': printHelp(); break;
+      default: break;
+    }
+  }
+}
+
+void waitForSerial(uint32_t timeoutMs) {
+  const uint32_t start = millis();
+  while (!Serial &amp;&amp; millis() - start &lt; timeoutMs) {
+  }
+}
+
+}  // namespace
+
+void setup() {
+  Serial.begin(kSerialBaud);
+  waitForSerial(kSerialWaitMs);
+
+  pinMode(kButtonPin, INPUT_PULLUP);
+  pinMode(kIsrMarkerPin, OUTPUT);
+  digitalWrite(kIsrMarkerPin, LOW);
+  gStableLevel = digitalRead(kButtonPin);
+
+  printHelp();
+  attachInterrupt(digitalPinToInterrupt(kButtonPin), onButtonEdge, CHANGE);
+}
+
+void loop() {
+  // Забрати всі нові фронти з буфера. gHead читаємо один раз: ISR може дописувати далі,
+  // ці фронти заберемо на наступному проході.
+  const uint32_t head = gHead;
+  while (gTail != head) {
+    addEdge(gRing[gTail &amp; (kRingSize - 1)]);
+    ++gTail;
+  }
+
+  // Подія закінчилась, якщо kQuietUs немає нових фронтів.
+  if (gInEvent &amp;&amp; static_cast&lt;uint32_t&gt;(esp_timer_get_time()) - gEvent.lastUs &gt;= kQuietUs) {
+    finishEvent();
+  }
+
+  handleSerial();
+}
+</pre>
+<pre id="real-serial" hidden>
+=== ESP32-S3: button bounce lab (module 1.5) ===
+Button: GPIO16 -&gt; GND, INPUT_PULLUP, interrupt CHANGE
+ISR marker: GPIO17 is HIGH while the ISR runs (logic analyzer channel 2)
+An event ends after 50 ms without edges. Keys: s = summary, r = reset, h = help
+
+  #  event    edges  fall  rise  bounce,us  min gap,us  edges, us from the first (v = LOW, ^ = HIGH)
+---  -------  -----  ----  ----  ---------  ----------  ----------------------------------------------
+  1  PRESS       66    35    31       2336          15  v0 v49 v105 ^136 v169 ^213 v238 v270 ^312 ^349 v376 ^402 ... +54
+  1  release    105    47    58       2200           1  v0 ^35 v55 ^75 v94 ^113 v133 v150 ^169 v189 v205 v226 ... +93
+  2  PRESS       56    27    29       2029          17  v0 ^32 ^61 v115 ^150 v191 ^228 ^257 v285 ^315 v338 v375 ... +44
+  2  release     76    41    35       1932          15  v0 ^38 v60 ^79 v96 ^121 ^162 v198 ^213 v246 v276 ^298 ... +64
+  3  PRESS       64    30    34       2118          16  v0 ^45 v93 v111 v155 ^194 v227 v275 ^306 ^327 v349 ^390 ... +52
+  3  release     47    20    27       1956          16  v0 ^46 v65 ^81 v117 ^151 ^220 ^275 v313 v374 ^408 v461 ... +35
+  4  PRESS       19     9    10       1731          16  v0 ^54 v86 ^278 v372 ^416 v505 ^521 v646 ^754 v818 ^1015 ... +7
+  4  release    107    54    53       2415           1  ^0 ^21 v44 ^63 ^94 v112 ^137 v153 v177 ^201 v220 ^241 ... +95
+  5  PRESS       64    30    34       2124          16  ^0 v42 ^60 ^109 v136 ^158 v209 ^228 v251 ^294 v319 ^366 ... +52
+  5  release    101    50    51       2259           2  ^0 v19 v35 ^70 v95 ^97 ^118 ^142 v158 ^181 ^201 ^232 ... +89
+  6  PRESS       79    43    36       2187           2  v0 ^15 v32 v62 v95 v115 v144 v165 ^185 v236 v272 ^312 ... +67
+  6  release     53    25    28       2088           1  ^0 ^18 v35 ^99 ^122 v123 ^157 v189 v239 ^284 v337 ^370 ... +41
+  7  PRESS       86    49    37       2016           5  v0 v43 ^71 v87 ^114 v138 ^153 v181 ^207 v227 v245 v276 ... +74
+  7  release     28    14    14       2000          17  ^0 v19 ^92 v111 ^129 v266 ^344 v470 ^487 v529 ^631 v703 ... +16
+  8  PRESS       54    27    27       2174           1  ^0 v59 ^112 v157 ^184 ^227 v258 ^290 v322 ^365 v399 ^427 ... +42
+  8  release     38    19    19       2357          17  ^0 v95 ^114 v178 ^285 v311 ^360 v381 ^398 v489 ^507 v605 ... +26
+  9  PRESS       44    25    19       2278          18  v0 ^64 v101 ^155 v190 ^262 v312 ^332 v377 ^453 v501 ^536 ... +32
+  9  release    100    56    44       2198           1  ^0 v19 ^43 v60 v76 ^109 v129 v145 ^169 v194 ^218 v234 ... +88
+ 10  PRESS       72    37    35       2151          16  v0 ^27 v56 v79 v98 v131 ^162 v178 ^208 v244 ^270 v310 ... +60
+ 10  release     95    58    37       2297          10  v0 v27 v43 ^59 v77 v98 v138 ^164 ^186 v217 v239 ^258 ... +83
+
+=== summary: 10 presses, 10 releases ===
+press:   edges avg 60.4, bounce avg 2114 us, max 2336 us
+release: edges avg 75.0, bounce avg 2170 us, max 2415 us
+edges read as LOW (~ homework FALLING counter): 696 for 10 presses
+shortest gap between edges: 1 us
+debounce &gt;= 4 ms (worst bounce 2415 us x 1.5)
+</pre>
+<script type="application/json" id="real-data">[{"t":187.688,"l0":0,"b":[0,49765,4616,50695,14078,16699,33670,44202,24388,32700,4649,37237,36983,13839,12451,25913,50374,36924,32452,18271,45787,10251,47301,17529,21005,7437,48770,44962,17778,35083,18713,39303,48100,28784,50048,16148,6771,48419,2249,10865,49519,33877,9302,30196,41460,48386,51496,42113,36301,10002,13769,7732,49261,32599,35249,38613,50440,15253,3031,35767,28702,20688,35982,23073,18032,12457,24919,16717,13516,31776,1808,49750,25563,17674,8031,35544,15797,43947,22943,25481,47780,25163,51686],"i0":1,"i":[14351,267,49600,267,55108,267,30371,266,33400,267,44042,266,23996,267,32450,266,41742,267,36541,267,26121,267,25604,266,50092,267,36621,266,32246,267,17933,267,45666,267,57154,267,17400,267,21354,266,55263,267,44683,267,17433,267,34945,267,18979,267,38587,267,47592,266,28605,266,49809,266,15854,267,54875,267,62404,267,33870,267,39042,266,41121,267,48183,267,51137,267,41888,266,35996,267,23650,266,57213,267,23270,267,43442,266,38434,266,50138,267,15558,267,38025,266,28371,267,20400,266,35746,267,22775,267,18979,266,35871,267,16433,267,44996,266,51388,267,25212,267,18562,267,42275,267,15558,267,43758,267,22495,267,25229,267,47512,267,24854,267,51479,267]},{"t":307.66,"l0":1,"b":[0,13442,21635,906,9306,10102,20233,3608,805,12843,20743,2104,11355,5970,10746,455,6130,3299,16051,18194,901,6499,9091,7999,13611,6840,20027,19153,2534,11460,16328,16438,267,8699,10069,21566,7461,8802,2750,11237,21691,20223,6628,19493,448,19904,21263,20988,4709,4911,20432,6296,10379,15190,2273,15233,21110,14379,7819,1578,4280,14320,18532,16147,16505,15587,5211,10753,11736,17078,16931,3677,20635,7714,13255,8402,17018,5709,11121,8670,647,14058,5371,16203,14260,6406,18250,21089,22259,11837,14729,3373,9125,15017,1898,11202,11649,18598,7424,5068,11512,10210,5526,7357,13965,20957,1336,3606,12528,21625,3579,13618,6367,16698,9559,20171,13093,4683,14210,21388,12847,12888,9237,14600,16450,17723,19614,14606,20963,20017,10373,2704,1957,7095,8870,7121,5338,14740,11850,5199,20366,20481,6076,14357,8935,354,14943,18765,9536,2274,20530,5036,3439,7983,4117,14997,7856,6860,3156,20366,766,3622,11575,21687,6715,17601,6703,13493,20766,2028,17799,10156,21557,872,5094,1558,4204,6053,13453,1822,11783,2396,13685,21152,10479,13837,21062,15402,12640,7037,11477,17356,21413,22313,2826,15430,11289],"i0":1,"i":[14561,266,34604,267,20104,267,19946,266,18563,267,18808,267,19183,267,17104,267,19104,266,18980,266,15559,266,21134,266,26479,267,18808,267,30058,267,16183,267,18683,267,21308,267,16058,267,35433,267,19933,267,25808,267,20058,267,21058,267,20683,267,29871,267,16308,267,1487,267,2008,267,28475,266,20825,267,21979,267,19808,267,18308,267,15933,267,16183,267,15558,267,15558,267,28433,267,16683,267,24150,267,21729,266,24075,267,16604,267,23058,267,21308,267,20308,267,18058,267,20808,267,21933,267,26308,267,27308,267,21196,266,21563,267,23900,266,15559,266,20854,267,20700,267,17183,267,21354,267,16933,267,22808,267,29433,267,17558,267,35308,267,25433,267,23558,267,16183,267,17433,267,19433,267,35370,267,19683,267,15558,267,15558,267,26183,267,14150,267,22787,267,20183,267,20275,267,24258,267,18604,266,31605,266,16184,266,18809,266,15559,266,22184,266,15684,266,21525,267,24071,266,19871,267,20479,267,19558,267,31433,267,17558,267,15558,267,26933,267,20933,267,24150,266,21492,267,26954,267,18354,266,17059,266,21059,266,22059,266,18059,266]},{"t":427.68,"l0":0,"b":[0,32275,34490,8601,40389,35492,40852,36709,29063,12698,14735,29580,23482,37189,9345,9367,11753,27996,51380,8275,53142,600,11747,32910,17390,48023,40361,23496,636,481,37002,48839,33216,8931,9098,44283,23725,38053,51891,10367,26417,7741,52182,28720,6774,30113,12911,18771,28791,28863,29881,38003,41630,23765,9109,18807,625,33756,47680,13623,24922,8631,54558,6184,53534,46994,34424,13734,23954,44860,22070,35738,10463,49587,30536,8437,3625,13947,18038],"i0":1,"i":[14868,267,31525,267,28866,267,54125,267,35120,267,40713,266,36371,267,28700,266,27230,266,30621,267,21979,267,36825,266,18479,267,39525,267,51229,267,61075,266,44954,267,17463,266,47371,267,40212,267,23104,267,37962,267,48512,267,32871,267,17808,267,44087,267,23354,267,37962,267,51604,267,36475,266,59642,267,28370,267,36667,266,31371,267,28696,266,28417,267,29650,266,37838,267,41245,267,23496,267,27558,267,34245,267,47388,266,37250,267,63933,267,59529,267,46712,267,34212,267,37463,266,44946,267,21729,267,35195,267,59608,267,30446,267,25620,267,17683,267]},{"t":562.647,"l0":1,"b":[0,8302,29615,5950,2940,13118,18035,26842,15572,11793,2527,27522,10024,25169,14978,33832,29656,2555,19838,18480,22581,30229,29116,7895,34002,21555,13263,30602,8429,14904,25117,4236,5526,2149,20266,4305,28867,25419,6373,2541,11437,25985,34887,19220,3296,21504,17951,19790,22554,13540,29636,14924,5283,24557,4750,20471,20847,6929,3302,14566,26081,991,1970,31379,8748,10053,20485,195,4876,4961,6886,11231,22449,8413,667,18572,996,17328,17326,3608,34425,9349,34904,7887,11286,22216,10974,12668,30326,15279,24090,10480,5505,12741,28813,23183,16917,18965,29366,5537,5322,31631,11584,7435,25193,33633,29330,14391,15554,20997,14935,9495,4049,20481,26185,10348,8144,7957,15251,14916,32941,10462,1564],"i0":1,"i":[14423,267,37558,267,21775,266,18355,266,16992,267,24358,267,41495,267,35025,267,15558,267,32621,266,29434,266,22150,267,18729,267,21775,266,29996,267,28808,267,41621,266,21309,266,43621,267,22933,267,24996,266,31009,266,33796,267,25104,267,20150,266,25575,267,34729,267,19025,267,25008,267,17104,266,19980,266,21809,266,42979,267,15558,267,28650,267,24996,266,20434,266,24559,266,25917,267,33979,266,18559,266,20196,267,18562,267,31621,267,27308,267,18058,267,17058,267,38120,267,43696,267,18854,266,22025,267,23246,267,30058,267,15558,267,23308,267,15683,267,41370,267,22808,267,16683,267,18775,267,29121,266,28967,267,15412,267,17104,267,24058,267,33354,266,29121,267,29775,267,20604,266,15559,266,32871,267,26025,267,18058,267,23025,266,15559,266,31746,267]},{"t":682.674,"l0":0,"b":[0,44275,47924,18395,1801,6758,359,35232,608,38648,32545,47800,13438,17746,20693,10668,12206,40308,34806,21082,38860,42347,23501,1875,43035,46766,20022,474,23187,34731,23541,18398,27556,14485,47789,106,39682,10925,4541,15734,32212,39222,32770,14847,22598,25819,14533,29871,21975,45094,31606,5969,12546,39461,27447,14241,9382,10882,40667,25967,34611,3753,4101,22364,12961,24983,24913,7674,37767,33674,27777,12964,50012,20836,13487,32107,41479,48708,74,37871,45017,36245,15679,39902,10316,41126,17384],"i0":1,"i":[14319,266,44150,267,47579,267,18104,267,43854,266,39088,267,32291,267,47512,267,30946,267,20308,267,22620,267,40150,267,34496,266,20775,267,38621,266,42121,267,23121,266,44713,267,46604,266,19980,266,23134,266,34354,267,23308,267,18150,267,27496,266,62196,267,39150,266,15559,266,15559,266,31496,267,38871,266,32450,267,15558,267,21492,266,25438,267,44245,267,21558,267,44888,266,31354,267,18321,267,39258,267,27120,267,23308,267,51263,266,25775,267,34246,266,29996,267,38746,266,23605,266,45234,266,33371,267,27450,266,62763,267,21620,267,44292,266,41121,267,48512,267,37713,266,44684,266,35996,267,15558,267,39496,266,51125,267,17058,267]},{"t":832.693,"l0":1,"b":[0,8783,36878,19732,15707,35871,33649,68866,3526,51880,13654,24597,61118,2244,31096,53550,52693,21134,6091,53547,39086,2349,28653,59292,61582,31586,26110,43791,55120,63487,1171,55704,35663,62420,43230,44016,12179,4596,8819,26554,10086,29481,20142,61351,5120,62097,15749,68615,3184,32377,6917,47076,30896,10449,21407,54214,44486,13058,16090,14853,1966,21603,65068],"i0":1,"i":[14328,266,45509,266,19313,266,15559,266,35621,267,33400,267,68529,266,55230,266,37963,266,60917,267,33071,266,53229,267,52479,267,21979,267,58237,267,38900,267,30604,266,58984,266,61280,266,31509,266,25729,267,43588,266,54763,266,63200,267,42775,267,49221,266,62154,267,43042,266,43638,267,16650,266,34996,267,39371,266,19900,267,61012,267,66921,267,15558,267,68304,266,35246,267,53733,267,30696,266,31588,267,53979,266,44446,267,28604,267,15558,267,22400,266,64763,267]},{"t":952.807,"l0":0,"b":[0,53754,31674,192580,93992,44068,88909,14882,126260,107073,64512,197227,139740,5096,130052,94822,89369,175,83304,108043,65191],"i0":1,"i":[14309,267,53495,267,31496,267,192395,267,93654,267,43792,266,88650,267,15558,267,125062,267,106796,267,64200,266,197088,266,139471,267,134737,267,94579,267,89150,267,83187,267,107796,266,64950,267]},{"t":1117.668,"l0":1,"b":[0,21864,10076,12944,393,10513,7825,13022,1232,16506,829,17134,25516,15476,24381,13313,10963,17963,21368,21527,3168,23772,14621,126,24618,19453,19919,16695,11404,27535,24820,15216,20762,11075,24952,22455,9794,5199,917,14016,24224,26657,22610,21047,1362,22298,16505,15985,3206,12625,6953,8954,11090,1513,5441,19123,8918,11575,24989,12619,21564,7905,15421,17918,458,10863,16933,19625,2465,15673,20181,27468,13985,6245,18907,11694,3312,25360,23504,27099,21688,18579,25863,25528,25810,16194,24070,2707,5437,2161,12105,3805,11143,10068,25605,17925,13240,23029,7644,26027,6871,19214,12266,6586,23685,12053,7432,20787,15447,4818,19714,19156,26427,6398,24901,8364,19104,24202,21552,25864,20997,25472,4798,20877,20447,11760,17209,12889,4381,26555,21299,308,24744,9553,10567,21852,20164,22596,23883,17874,724,4502,17132,2658,22627,20276,18657,27573,6312,16371,23463,23754,10676,183,16622,21074,22307,389,20595],"i0":1,"i":[14308,266,21650,267,22729,267,18446,266,30563,266,17775,267,25167,266,15559,266,23730,266,23934,266,17809,266,21059,266,21309,266,26559,266,400,267,38450,267,19229,266,19684,266,16434,266,38684,266,24559,266,15559,266,19809,266,35871,267,22058,267,15558,267,38125,267,26445,267,22308,267,20700,267,23479,267,16183,267,15683,267,15558,267,15683,267,17808,267,18808,267,20183,267,25258,267,33479,266,23059,266,17559,266,28059,266,19309,266,17934,266,19934,266,27184,266,19950,267,18696,267,1545,267,38213,266,23184,266,26934,266,21434,266,18309,266,25604,267,25338,266,25479,267,15808,267,23808,267,22183,267,15558,267,34558,267,17729,267,35996,266,33309,266,25809,266,18605,266,23479,267,19200,267,20679,267,15558,267,24104,266,18480,266,26184,266,31104,267,27121,267,23933,267,21400,266,25450,267,20729,267,25183,267,25433,267,20275,266,28621,267,17058,267,26183,267,21058,267,24854,267,19871,266,21604,267,18946,267,23187,267,23683,267,17558,267,22058,267,25150,266,20230,266,18059,266,27371,267,22308,267,23183,267,23558,267,27183,267,20808,267,22150,266,20980,266]},{"t":1237.68,"l0":0,"b":[0,1063,40974,17725,49709,2398,23858,22476,50428,18977,2381,10056,11314,43032,24896,46832,43565,49248,15187,22519,46664,47164,24925,30186,5028,38720,18549,13416,44905,25625,41290,3252,14418,12465,39083,32909,38875,28419,20482,15986,32319,16006,49629,7337,34862,1364,22068,518,1686,36801,18522,40831,1787,3418,18792,26830,43320,31058,35997,47181,9783,2275,25246,29743,21024,40767,1467,3049,17918,34317,38057,5827,21380,32602,29918,12492,44712,29859,38659,16727,11770,40080,44778,37429,4266,20159,11285],"i0":1,"i":[14491,267,41712,267,17321,266,49500,267,26071,267,22120,267,50246,267,18650,266,23525,267,42746,266,24605,266,46696,267,43121,266,49013,266,15559,266,21605,266,46463,266,46884,266,24621,267,29950,267,43495,267,18275,267,58104,267,25200,266,41075,267,17479,267,51262,267,32696,266,38588,267,28120,267,20275,267,15558,267,22491,267,25329,267,49354,267,42012,267,23104,267,38837,267,18354,267,40462,267,23729,267,26496,266,43121,267,30746,266,35746,267,46916,267,37042,266,29484,266,20730,266,40542,267,22058,267,34120,267,37838,266,27996,267,31321,266,29450,267,57104,267,29496,266,38371,267,16433,267,51729,267,44475,266,37125,267,24229,267]},{"t":1417.646,"l0":1,"b":[0,19287,14765,14722,20865,4748,1119,19059,14850,7194,9439,14295,3798,13154,23897,19391,12625,19095,13314,15470,18602,17390,24442,2152,9488,12752,21577,16824,15794,23767,21031,8004,877,5742,16815,9879,1180,7328,22508,18572,3896,13068,3279,10772,4420,24436,14864,23179,21250,10413,25082,2046,12466,6181,6549,10421,6595,173,16730,22334,10112,131,18298,3792,4155,12439,3123,120,11653,18007,13442,9872,18052,23165,15933,4668,18535,19215,18921,7657,18428,8141,22668,3734,17919,24976,13506,381,20751,21029,21517,22398,6421,17096,4032,2541,14473,7910,19060,12263,7040,20323,14366,24176,10256,10930,17444,23637,12116,22714,1581,11114,8051,5108,1136,2790,1152,4067,23279,19349,21900,17552,7191,10366,21107,9450,12500,17652,1052,1471,12497,13998,16330,22854,441,3376,14926,10879,10321,12999,24979,734,24105,10388,22129,23472,19228,7082,24660,18807,2961,15834,5619,15672,12323,1771,10615,7520,15761,6690,22157,19546,25012,2828,1319,18368,8233,20540,6863,15009,9312,25074,4809,22401,22621],"i0":1,"i":[14385,266,18979,267,15558,267,34308,267,24663,266,1546,267,20837,267,23871,266,15559,266,23480,266,19059,266,31434,266,28559,266,18309,266,17184,266,24184,266,24059,266,21746,267,16979,267,15558,267,22604,266,20809,266,31184,266,18059,266,22309,266,18309,266,16684,266,18184,266,21525,267,3800,267,36379,267,20979,266,35246,267,20433,267,16775,267,23058,267,22075,266,28354,267,20058,267,15558,267,16808,267,23058,267,17854,267,22854,267,15683,267,22950,266,18980,266,18559,266,25809,266,30559,266,21434,266,19071,267,18812,267,20933,267,20775,267,21229,266,22075,267,23354,267,20683,267,26683,267,19058,267,20058,267,38308,267,21025,267,17058,267,23400,266,34621,267,20433,267,37183,267,19058,267,21683,267,17400,266,17184,266,20967,267,21604,267,17308,267,15558,267,29325,266,22604,267,18433,267,20933,267,37700,267,24604,267,32275,266,23275,267,20121,266,30230,266,18559,266,18434,266,21059,266,24525,267,22950,267,28604,266,19184,266,19196,267,27812,267,28575,267,21604,267,34058,267,26933,267,22495,267]},{"t":1537.674,"l0":0,"b":[0,15248,17054,29653,7602,26173,3500,16605,4236,24523,8494,12557,6975,13168,6820,4730,39377,36094,1015,38586,21912,35174,3489,29753,3175,36563,38015,9616,12183,26901,22850,15164,17842,21181,24888,6174,17884,7662,37405,21598,28650,36170,8381,3015,31881,9263,14045,36731,26285,22487,13777,34416,18283,27122,24348,17392,19107,34183,12938,1789,24435,13653,16356,15805,23036,16633,11772,11129,18906,4537,2682,26324,23360,37025,36065,24049,18274,9355,35089,17646,36099,11798,27851,13121,2594,32248,39077,5395,19324,23530,30197,36389,22941,38920,25079,6281,20999,38258,28425,38686,3421,34599,3041,20861,14345,33682,10866,4594,36180],"i0":1,"i":[14390,267,15558,267,16229,267,29429,267,33437,267,19808,267,28433,267,20854,267,19854,266,50746,267,35775,267,39462,267,22229,267,34245,267,32871,267,39450,266,37963,266,21605,266,26371,267,22558,267,5287,267,27229,267,20933,267,24696,266,23792,267,44745,267,21308,267,28371,267,35979,266,43059,266,22980,266,36588,266,26009,266,22059,266,47996,267,17933,267,26900,267,24133,267,18562,267,17308,267,33933,267,15558,267,23058,267,29746,266,15559,266,22684,266,16434,266,22559,266,18775,267,33246,266,23059,266,36730,266,35871,267,23683,267,18104,267,44120,267,17433,267,32367,266,1467,267,41179,267,15558,267,31745,267,38917,266,24446,267,23167,266,29934,266,36121,267,22683,267,38837,267,24667,266,26979,267,37996,267,28758,267,37900,266,37850,267,24483,267,46762,267,15558,267,35604,267]},{"t":1732.69,"l0":1,"b":[0,7666,1759,9183,2579,13707,64950,22690,1475,13219,20269,31925,50068,2221,42341,53201,32961,54017,65632,56114,30101,61294,2488,23640,38993,34108,8310,1333,63932,36664,60416,50259,51726,23161,10013,5033,49103,16134,26657,34937,4749,32558,61014,15466,45881,16196,11635,39801,52524,20625,24589,34526,61746,54809,28187,113,46482,52890,24697,12413,46883,2005,52388,30476,64522,31512,45851],"i0":1,"i":[14424,267,18200,267,17104,266,63688,267,22433,267,400,266,34371,267,31354,267,49745,267,44246,267,53075,266,32696,267,53729,267,65370,267,51942,266,33700,267,61213,266,25604,267,38871,267,33929,266,73246,267,36246,266,60109,266,50059,266,51605,266,22729,267,15571,267,48125,266,15809,266,26371,267,34700,266,37025,267,60825,267,15558,267,45383,267,15683,267,51275,266,52230,266,20354,267,24200,267,34446,266,61396,267,54666,267,27729,267,46508,267,52496,266,24480,266,59104,267,54029,267,30229,267,64371,266,31179,267,45500,267]},{"t":1852.656,"l0":0,"b":[0,5654,8810,28704,1291,25421,1929,9936,17671,15036,23406,14954,28589,25068,2523,4454,14265,83,6296,11148,5705,25900,3093,3456,3993,13471,15896,17180,3697,21623,21156,22658,11921,10875,2298,843,19176,24763,4999,10650,10925,15871,17297,12083,3622,23864,18491,24088,18681,20269,18621,24835,20320,2450,4129,11515,6879,15952,1085,11499,25234,3489,13745,3840,12908,1783,2117,26370,13596,23810,17074,17705,7892,10686,14620,14468,20395,13009,9018,12962,19450,10093,22607,9873,22020,17168,17860,5754,7200,21589,7384,7748,725,25640,5591,16235,3765,1681,11478,20309,9235,24280,25940,9065,738,1234,8734,15535,11813,9630,159,25713,6731,7386,27285,25955,3595,16781,14265,8617,3069,21253,1832,13298,5587,17327,18348,28683,14519,4685,28395,15792,20059,11190,11094,11272,11845,24238,9363,22548,9313,12544,2048,11408,28105,25451,26936,14230,22227,9945,16763],"i0":1,"i":[14379,267,42900,266,27621,267,15571,266,27234,266,23184,266,15559,266,27525,267,25996,266,19730,266,17184,266,31309,266,23809,266,15559,266,16934,266,25150,267,20854,267,22325,266,22605,266,22059,266,24434,266,15559,266,26434,266,16934,266,15559,266,23559,266,4850,267,37308,267,18308,267,20025,267,18745,267,24104,267,20058,267,17808,267,22558,267,37621,266,16934,266,16434,266,30059,266,37121,267,16808,267,17433,267,18308,267,28900,267,20854,266,21134,266,31980,266,30446,267,33562,267,17025,267,17558,267,34245,267,15558,267,25433,267,21558,267,16558,267,20104,267,33246,266,25684,266,19559,266,15559,266,20809,266,25775,267,40996,267,25683,267,20058,267,22683,267,24258,267,11691,267,12271,266,31496,267,28508,267,20104,267,26854,267,15558,267,19683,267,22058,267,22808,267,23995,267,31558,267,21683,267,41246,267,25275,266,26575,267,36275,267,26325,266]},{"t":2062.748,"l0":1,"b":[0,10796,75616,19151,17776,136329,78235,126624,16184,42019,102365,71531,85317,142022,112933,46823,59721,107891,42221,45433,121966,78637,54406,29921,109844,37303,133957,2809,95113],"i0":1,"i":[8625,267,18562,267,73212,267,18683,267,17558,267,136112,267,77921,267,126362,267,15808,267,41908,267,102079,267,71325,266,84938,266,141800,267,112783,267,46342,266,59530,266,107671,267,41916,267,45229,267,121596,266,78505,266,54013,266,29621,267,109671,266,37042,267,133583,267,88575,266]},{"t":2182.655,"l0":0,"b":[0,9691,49011,53742,44173,27255,43149,14280,16634,32638,31682,42826,33982,27864,24334,66038,24197,27529,52597,65944,7417,44997,27506,15382,55769,34903,52703,25416,49360,63459,61687,17702,5416,8829,38265,21051,65696,54369,11536,48428,2698,34126,15127,55478,46782,22800,53631,11361,36270,12793,28363,30597,37836,26412,25595,35025,8200,23212,35893,58462,48296,60369,44506,1651,21063],"i0":1,"i":[14363,266,58588,266,53284,266,43996,267,26996,266,42963,267,30495,267,32325,267,31479,267,42712,267,33621,266,27588,266,23980,266,65854,267,23946,267,27166,267,52517,266,65621,267,52104,267,27870,267,400,267,69604,267,34666,267,52433,267,25121,266,49150,267,63138,266,61346,267,17479,267,52262,267,20683,267,65621,266,54059,266,59746,267,36371,266,15559,266,54513,266,46513,267,22558,267,53475,266,47263,266,40963,267,30245,267,37621,267,26150,266,25246,267,34871,266,31104,267,35621,267,58712,267,47587,267,60000,267,44262,267,22479,267]},{"t":2407.711,"l0":1,"b":[0,94228,19473,63847,107253,25599,49243,21397,16238,90955,18492,97934,110404,21958,109147,112236,72560,76968,104986,71975,62950,45448,25634,81635,51961,85707,57599,62327,68474,3507,76775,81119,48216,40635,47326,45219,92041,53006,41758],"i0":1,"i":[14438,266,93909,266,19184,266,63700,267,106829,267,25400,267,48966,267,21104,267,15933,267,90796,266,18275,267,97600,267,110079,266,21996,267,108579,267,112016,267,71713,266,77392,267,104670,267,71671,267,62654,266,45167,267,25371,266,81513,266,39267,267,97796,266,57354,267,61950,267,68171,266,80138,266,80842,267,42025,266,46296,267,47104,267,45008,267,91933,267,52416,267,41513,266]},{"t":2527.678,"l0":0,"b":[0,76902,23628,54325,34614,72313,50356,19836,45342,75458,47804,34948,27023,63719,7298,70617,13184,66408,67585,65400,11728,31679,2785,28493,70325,5433,48720,85988,77415,60743,17350,32511,38921,34895,67808,22365,85477,36358,45864,24943,84120,83952,483,49342,26647,73829,61282,69470,4726,39270,38022],"i0":1,"i":[14334,267,63491,267,36500,267,54183,267,34246,266,72029,267,50138,266,19575,267,45121,266,75171,267,47587,267,34713,266,25917,267,64150,266,77763,266,79263,267,67325,266,65479,267,42700,267,31196,266,69934,266,53984,266,85563,266,77171,267,60483,267,17104,267,32183,267,38946,266,34446,267,67529,267,22120,267,85229,267,35996,266,45638,267,24604,266,84496,267,83000,267,49637,267,27121,266,71634,266,62284,266,69246,267,43758,267,37758,267]},{"t":2767.666,"l0":1,"b":[0,17880,24850,16508,141,9138,14037,935,25318,20257,16089,8525,15385,24758,23941,15219,20309,13278,18058,9332,23725,7204,2377,20567,7312,22959,12465,12286,783,12285,19410,25554,7380,382,17664,23773,23444,10572,2473,8837,7537,8255,11649,6264,16370,21699,22068,6997,25418,25027,25585,18227,19914,16318,8389,12901,11809,20119,3818,2820,8644,19975,23757,4100,11740,9760,4469,16662,9138,15981,24932,12133,8331,4482,12442,7579,18478,2688,3278,22261,8802,3951,8556,11230,23786,18934,12575,8260,18409,14792,11429,20397,15902,9573,13006,14295,16879,12477,18069,1284,13184,9985,2726,3239,13040,12951,3464,7467,25249,3740,9047,25707,2815,2436,1388,3504,10944,23571,18794,15347,21553,10777,20271,9097,21428,4214,11329,9817,761,12813,23215,17147,25001,8540,20501,14664,21219,5918,8619,7256,10364,2766,15952,11438,21867,6590,25429,11719,11930,991,12547,3430,15599,17597,15984,1864,2275,9411,21703,17302,14672,12193,2328,6172,6302,17776,19042,15017,17153,17004,12462],"i0":1,"i":[14388,266,17855,266,24400,267,16183,267,15821,266,33188,267,19933,267,15808,267,23775,266,24571,267,23541,267,15558,267,19433,267,31058,267,32808,267,29808,267,30058,267,24571,267,32166,267,25183,267,25183,267,23650,267,23212,267,22479,267,11691,267,13067,266,23525,267,21604,267,21575,266,32230,266,24684,266,25371,267,17933,267,19683,267,16058,267,21025,266,31621,267,15558,267,19183,267,23433,267,15558,267,30775,267,24745,267,24729,267,20183,267,16558,267,25808,267,15946,266,20563,267,23433,267,23650,266,18559,266,20559,266,18384,266,25854,267,20058,267,15558,267,22308,267,30933,267,30308,267,24183,267,18683,267,16183,267,32633,267,38104,267,20808,267,23308,267,18433,267,15558,267,8275,267,12533,267,30712,267,30121,266,15559,266,22809,266,22934,266,16934,266,25009,266,28479,267,400,267,34979,267,21558,267,28870,267,32979,267,31746,266,23309,266,16684,266,15559,266,17275,267,15558,267,35121,267,16945,267,413,266,25938,266,15559,266,16434,266,18809,266,15559,266,16059,266,16809,266]},{"t":2887.652,"l0":0,"b":[0,27161,28585,23591,3698,14822,5508,27856,1778,29069,15430,30419,36197,26398,39018,34078,11325,2053,23122,16102,15627,1063,37156,23761,21079,5138,17071,19446,17150,31250,34179,18237,9143,20282,45808,41516,13176,27255,40257,21088,17506,46622,14231,6297,26806,32795,24185,45604,38996,41898,22025,27491,22808,22327,36570,15578,47631,16092,16028,25553,45935,24252,41251,11339,22834,26262,32205,4290,14194,24394,28583,13264,34875,849,16795,42399,40346,1817,24024,25688,9206,22732,1488,36968,37144,4835,46514,31683,9791,24750,47621],"i0":1,"i":[14516,266,26838,266,28230,266,23321,267,18562,267,32746,266,30559,266,15559,266,29900,267,35871,267,26058,267,38870,267,33683,267,36246,267,15808,267,15558,267,37870,267,23433,267,20900,267,21900,266,20121,267,16979,267,26112,267,37675,267,18025,266,29121,267,45621,266,41338,266,39996,267,39967,266,20854,267,17183,267,46496,267,20200,266,26604,267,32496,267,23808,267,45416,267,39329,267,41304,267,21729,266,26980,266,22650,267,21933,267,36371,266,15559,266,47213,267,15683,267,15683,267,25370,267,45821,267,24133,267,40820,267,33746,267,26133,267,31945,267,18354,267,23825,267,28354,266,47871,267,17354,267,42212,267,40012,267,25604,267,25325,267,31775,266,38213,266,36963,267,51058,267,31370,267,20321,267,61312,267]},{"t":3142.665,"l0":1,"b":[0,14817,12080,11444,4481,10022,6612,25430,13027,11105,28833,12677,13520,21897,5550,25457,22039,9753,9159,18424,15879,28336,23066,7586,15432,26255,730,21776,26101,23928,5312,6678,29115,4328,19722,3372,25272,18071,6724,27308,13991,4415,29287,9077,20891,28584,27745,22253,16736,16986,22560,233,6691,19963,25396,677,19992,11102,8540,5329,14046,16262,24840,6544,26406,18742,6478,23861,12651,22322,18717,8560,21505,5033,28806,16476,23402,9920,9000,17913,2098,4678,18445,24094,7570,16044,26896,1222,19673,11115,2800,11558,26080,11899,20879,4681,13785,170,25375,5549,28582,6898,16701,13597,12931,5955,25792,24708,24798,3133,9542,10104,19666,25604,23359,14555,7981,26759,23034,438,16157,11349,26263,14723,27058,24640,10308,2682,19561,16474,2172,11386,20825,13669,4067,21130,28640,11449,22988,21136,22157,22340,14911,7790,16910,1208,27159,7020,18992],"i0":1,"i":[14873,267,26104,267,15683,267,16308,267,17070,267,20858,267,39775,267,25825,266,21730,266,30684,266,21684,266,18684,266,18184,266,15559,266,28059,266,22900,267,22775,267,25995,267,22183,267,25808,267,23683,267,40808,267,23900,267,28371,266,15025,267,36521,266,18150,267,28996,267,29683,267,28325,266,27479,267,22025,267,16433,267,16683,267,22354,267,26620,267,25058,267,20433,267,19308,267,19183,267,15933,267,24650,267,32621,266,18434,266,30184,266,35596,267,17558,267,29729,267,33620,267,16183,267,23183,267,18558,267,17683,267,25025,267,23854,267,23245,267,26683,267,20558,267,25183,267,25808,267,33371,267,17433,267,25229,266,33809,266,23525,267,13221,267,10025,266,34121,267,24479,267,24495,267,22433,267,19433,267,25325,267,23104,267,22308,267,26433,267,22900,266,16184,266,37496,267,41496,266,24309,266,32371,267,16058,267,34246,266,17434,266,20821,267,28312,267,34246,266,20809,266,21980,266,22059,266,15559,266,23496,267,28058,267,25808,267]}]</script>
+
+<script>
+'use strict';
+/* =====================================================================
+   Utilities
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const padL = (s, w) => String(s).padStart(w);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmtUs = us => {
+  const a = Math.abs(us);
+  if (a < 1e-6) return '0';
+  if (a >= 1e6) return (us / 1e6).toFixed(a >= 1e7 ? 1 : 2) + ' с';
+  if (a >= 1e3) return (us / 1e3).toFixed(a >= 1e5 ? 0 : a >= 1e4 ? 1 : 2) + ' мс';
+  if (a >= 1) return us.toFixed(a >= 100 ? 0 : 1) + ' мкс';
+  return (us * 1000).toFixed(0) + ' нс';
+};
+const fmtHz = hz => hz >= 1e6 ? (hz / 1e6).toFixed(2) + ' МГц' : hz >= 1e3 ? (hz / 1e3).toFixed(hz >= 1e5 ? 0 : 1) + ' кГц' : hz.toFixed(hz >= 100 ? 0 : 1) + ' Гц';
+const lowerBound = (arr, x) => { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < x) lo = m + 1; else hi = m; } return lo; };
+let TOK = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['--scope', '--scope-grid', '--scope-text', '--accent', '--hi', '--z', '--bad', '--ok', '--line', '--muted', '--ink', '--panel']) TOK[k] = cs.getPropertyValue(k).trim();
+  dirtyAll();
+}
+function fitCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth || 300;
+  const h = +(c.dataset.h ||= c.getAttribute('height'));
+  c.style.height = h + 'px';
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [g, w, h];
+}
+
+/* =====================================================================
+   Data: the real Wokwi capture (docs/wokwi-10-presses.vcd) and its Serial log
+   Each event: t (ms, absolute), l0 = level after the first edge, b = BUTTON edge deltas (ns),
+   i0 = ISR-marker level after its first transition, i = ISR transition deltas (ns, from the event's first edge).
+   ===================================================================== */
+const REAL_RAW = JSON.parse($('#real-data').textContent);
+const SERIAL_REAL = $('#real-serial').textContent.replace(/\n$/, '').split('\n');
+const QUIET_MS = 50;
+
+function makeEvent(id, t0, lb, edges, isr, src) {
+  const last = edges[edges.length - 1].l;
+  const kind = last === 0 && lb === 1 ? 'PRESS' : last === 1 && lb === 0 ? 'release' : 'glitch';
+  let minGap = Infinity, fall = 0;
+  for (let k = 0; k < edges.length; k++) { if (k) minGap = Math.min(minGap, edges[k].t - edges[k - 1].t); if (edges[k].l === 0) fall++; }
+  const ev = { id, t0, lb, edges, isr, src, kind, last, bounce: edges[edges.length - 1].t, minGap, fall, cache: null };
+  ev.fin = t0 + ev.bounce / 1000 + QUIET_MS;
+  return ev;
+}
+function buildReal() {
+  const out = []; let stable = 1;
+  REAL_RAW.forEach((r, n) => {
+    let t = 0, l = r.l0; const edges = [];
+    for (const d of r.b) { t += d / 1000; edges.push({ t, l }); l ^= 1; }
+    let it = 0, il = r.i0 ^ 1, s = null; const isr = [];
+    for (const d of r.i) { it += d / 1000; il ^= 1; if (il) s = it; else if (s !== null) { isr.push([s, it]); s = null; } }
+    const ev = makeEvent(n, r.t, stable, edges, isr, 'real');
+    stable = ev.last; out.push(ev);
+  });
+  return out;
+}
+const REAL = buildReal();
+const REAL_END = REAL[REAL.length - 1].fin + 120;
+
+/* =====================================================================
+   Models
+   ===================================================================== */
+// Interrupt hardware: a one-bit pending flag; the CPU enters the ISR L µs after the flag is set (or right after
+// the previous ISR); the flag is cleared and the pin level read at the end of the short ISR. Edges that arrive
+// while the flag is still set merge into the same run. With L = 14 µs, D = 0.3 µs this reproduces the ISR-marker
+// count of the Wokwi recording (1354 runs) within 1 %.
+function mcuRuns(ev, mode, L, D) {
+  const E = ev.edges, runs = [], q = e => mode === 'CHANGE' || e.l === 0;
+  let k = 0, lastEnd = -1e9, lvl = ev.lb, p = 0;
+  while (k < E.length) {
+    while (k < E.length && !q(E[k])) k++;
+    if (k >= E.length) break;
+    const first = k, start = Math.max(E[k].t + L, lastEnd + 0.05), end = start + D;
+    const merged = [];
+    while (k < E.length && E[k].t < end) { if (q(E[k]) && k !== first) merged.push(k); k++; }
+    while (p < E.length && E[p].t <= end) { lvl = E[p].l; p++; }
+    runs.push({ s: start, e: end, level: lvl, first, merged, from: E[first].t });
+    lastEnd = end;
+  }
+  return runs;
+}
+function evModel(ev) {
+  const key = app.L + '|' + app.D;
+  if (!ev.cache || ev.cache.key !== key) ev.cache = { key, change: mcuRuns(ev, 'CHANGE', app.L, app.D), falling: mcuRuns(ev, 'FALLING', app.L, app.D) };
+  return ev.cache;
+}
+// MCU count shown for an event: the real ISR-marker runs for the recording, the model otherwise.
+const mcuCount = ev => ev.isr ? ev.isr.length : evModel(ev).change.length;
+
+// Live bounce generator. Total bounce 0.3…6 ms (default ≈ 2 ms), 5…120 edges, pulse widths log-uniform from
+// 0.1 µs, getting longer towards the end (contact settling). Soft/slow presses bounce longer. Releases are
+// sometimes clean — the recording has one with only 3 edges.
+function genBounce(toLevel, force, speed) {
+  if (toLevel === 1 && Math.random() < 0.12) return [{ t: 0, l: 1 }];
+  const D = clamp(2100 * (1.35 - 0.7 * speed) * (0.75 + 0.5 * (1 - force)) * (0.7 + 0.6 * Math.random()), 300, 6000);
+  let N = Math.round((10 + 60 * force + 30 * Math.random()) * (0.7 + 0.6 * speed));
+  N = clamp(N, 5, 121); if (N % 2 === 0) N++;
+  const g = [];
+  for (let k = 1; k < N; k++) { const hi = 4 + 300 * Math.pow(k / N, 0.9); g.push(Math.exp(Math.log(0.1) + Math.random() * (Math.log(hi) - Math.log(0.1)))); }
+  const sc = D / g.reduce((a, b) => a + b, 0);
+  let t = 0, l = toLevel; const edges = [{ t: 0, l }];
+  for (const x of g) { t += Math.max(0.1, x * sc); l ^= 1; edges.push({ t, l }); }
+  return edges;
+}
+// What an analyzer at fs MHz records: the level at sample instants (n + φ)/fs.
+function sampleEdges(edges, lb, fs) {
+  if (!fs) return edges;
+  const p = 1 / fs, phi = 0.37, out = [];
+  let k = 0, prev = lb;
+  while (k < edges.length) {
+    const n = Math.ceil(edges[k].t / p - phi);
+    let lvl = edges[k].l; k++;
+    while (k < edges.length && Math.ceil(edges[k].t / p - phi) === n) { lvl = edges[k].l; k++; }
+    if (lvl !== prev) { out.push({ t: (n + phi) * p, l: lvl }); prev = lvl; }
+  }
+  return out;
+}
+const levelAt = (ev, t) => { let l = ev.lb; for (const e of ev.edges) { if (e.t <= t) l = e.l; else break; } return l; };
+
+// Debounce strategies on one event; times in µs from the first edge. Returns output transitions [{t, l}].
+function debounce(ev, s, Nms) {
+  const N = Nms * 1000, E = ev.edges, out = [];
+  if (s === 'lock') {
+    let o = ev.lb, lock = -Infinity, k = 0;
+    const settle = until => {
+      while (lock !== -Infinity && lock <= until) {
+        const l = levelAt(ev, lock);
+        if (l !== o) { o = l; out.push({ t: lock, l }); lock += N; } else lock = -Infinity;
+      }
+    };
+    for (; k < E.length; k++) {
+      settle(E[k].t);
+      if (E[k].t >= lock && E[k].l !== o) { o = E[k].l; out.push({ t: E[k].t, l: o }); lock = E[k].t + N; }
+    }
+    settle(Infinity);
+  } else if (s === 'stable') {
+    let o = ev.lb;
+    for (let k = 0; k < E.length; k++) {
+      const next = k + 1 < E.length ? E[k + 1].t : Infinity;
+      if (next - E[k].t >= N && E[k].l !== o) { o = E[k].l; out.push({ t: E[k].t + N, l: o }); }
+    }
+  } else if (s === 'rc') {
+    const tau = N, HI = 0.7, LO = 0.3;
+    let v = ev.lb, o = ev.lb;
+    for (let k = 0; k < E.length; k++) {
+      const t0 = E[k].t, target = E[k].l, t1 = k + 1 < E.length ? E[k + 1].t : Infinity;
+      const thr = o === 1 ? LO : HI;
+      const crosses = o === 1 ? target < thr && v > thr : target > thr && v < thr;
+      if (crosses) {
+        const dt = -tau * Math.log((thr - target) / (v - target));
+        if (t0 + dt < t1) { o ^= 1; out.push({ t: t0 + dt, l: o }); }
+      }
+      v = t1 === Infinity ? target : target + (v - target) * Math.exp(-(t1 - t0) / tau);
+    }
+  } else {
+    // ESP32-S3 pin glitch filter: drops pulses shorter than two IO_MUX clock cycles (≈ 25 ns at 80 MHz).
+    const keep = [];
+    for (let k = 0; k < E.length; k++) {
+      if (k + 1 < E.length && E[k + 1].t - E[k].t < 0.025) { k++; continue; }
+      keep.push(E[k]);
+    }
+    let o = ev.lb;
+    for (const e of keep) if (e.l !== o) { o = e.l; out.push({ t: e.t, l: o }); }
+  }
+  return out;
+}
+
+/* =====================================================================
+   App state
+   ===================================================================== */
+const app = {
+  src: 'real', fw: 'lab', playing: false, speed: 1, T: REAL_END, last: performance.now(),
+  L: 14, D: 0.3, live: [], liveT: 0, pressed: false, force: 0.5, speedK: 0.5,
+  view: null, follow: true, fs: 24, curA: null, curB: null,
+  sel: null, selUser: false, mcuMode: 'CHANGE', tau: -5, rate: 25, mcuPlaying: false, mcuWin: 60, mcuDone: false,
+  db: 'stable', dbN: 5, dbSel: 0, serialFrozen: false, asm: 0,
+};
+const EVENTS = () => app.src === 'real' ? REAL : app.live;
+const nowT = () => app.src === 'real' ? app.T : app.liveT;
+const started = () => EVENTS().filter(e => e.t0 <= nowT());
+const finished = () => EVENTS().filter(e => e.fin <= nowT());
+const curEvent = () => { const s = started(); return s.length ? s[s.length - 1] : null; };
+let dirty = { la: true, mcu: true, table: true, db: true, ans: true, serial: true };
+function dirtyAll() { for (const k in dirty) dirty[k] = true; }
+
+/* =====================================================================
+   Tasks
+   ===================================================================== */
+const TASKS = ['wire', 'flash', 'press10', 'record', 'measure', 'compare', 'questions', 'debounce'];
+const doneTasks = new Set();
+function tick(name) {
+  if (doneTasks.has(name)) return;
+  doneTasks.add(name);
+  const li = $(`#tasks li[data-task="${name}"]`);
+  if (li) { li.classList.add('done', 'pop'); setTimeout(() => li.classList.remove('pop'), 600); }
+  $('#taskDone').textContent = doneTasks.size;
+}
+$$('#tasks li').forEach(li => li.addEventListener('click', () => document.getElementById(li.dataset.go).scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })));
+
+/* =====================================================================
+   Bench SVG (geometry as wokwi/breadboard.py; board rows 1…22, J1 on top)
+   ===================================================================== */
+const P = 13.6, X0 = 34;
+const cx = r => +(X0 + (r - 1) * P).toFixed(2);
+const LY = { a: 250, b: 263.6, c: 277.2, d: 290.8, e: 304.4, f: 340, g: 353.6, h: 367.2, i: 380.8, j: 394.4 };
+const RY = { tn: 206, tp: 220, bp: 424, bn: 438 };
+const J1 = ['3V3.1', '3V3.2', 'RST', '4', '5', '6', '7', '15', '16', '17', '18', '8', '3', '46', '9', '10', '11', '12', '13', '14', '5V', 'GND.1'];
+const J3 = ['GND.2', 'TX', 'RX', '1', '2', '42', '41', '40', '39', '38', '37', '36', '35', '0', '45', '48', '47', '21', '20', '19', 'GND.3', 'GND.4'];
+const rowOf = p => 22 - J1.indexOf(p);   // J1 pin p sits in breadboard row 22 - index
+const COL = { black: '#2b2f33', orange: '#f08a1c', violet: '#8b5cd6', gray: '#7d8790' };
+const BX = cx(47), BY = (LY.e + LY.f) / 2;
+function wire(d, color, asm, id = '') {
+  return `<g data-asm="${asm}"${id ? ` id="${id}"` : ''}><path class="jw-o" d="${d}"/><path class="jw" d="${d}" stroke="${color}"/></g>`;
+}
+function benchSVG() {
+  const sq = (x, y) => `M${(x - 1.7).toFixed(1)} ${(y - 1.7).toFixed(1)}h3.4v3.4h-3.4z`;
+  let holes = '';
+  for (let r = 1; r <= 63; r++) for (const L of 'abcdefghij') holes += sq(cx(r), LY[L]);
+  for (let r = 3; r <= 61; r++) if ((r - 3) % 6 !== 5) for (const y of Object.values(RY)) holes += sq(cx(r), y);
+  let nums = '';
+  for (let r = 1; r <= 63; r++) if (r === 1 || r % 5 === 0) nums += `<text class="bb-num" x="${cx(r)}" y="242">${r}</text><text class="bb-num" x="${cx(r)}" y="412">${r}</text>`;
+  const letters = 'abcdefghij'.split('').map(L => `<text class="bb-num" x="18" y="${LY[L] + 2.5}">${L}</text>`).join('');
+  const lab = n => n.replace(/\.\d$/, '');
+  const key = new Set(['16', '17', 'GND.1']);
+  let pins = '';
+  J1.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin${key.has(p) ? ' key' : ''}" x="${x - 3}" y="${LY.b - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.b + 12}"${key.has(p) ? ' style="fill:var(--hi)"' : ''}>${lab(p)}</text>`; });
+  J3.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin" x="${x - 3}" y="${LY.i - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.i - 7}">${lab(p)}</text>`; });
+  const r16 = rowOf('16'), r17 = rowOf('17');
+  const arc = `M${cx(r16)} ${LY.a} V184 Q${cx(r16)} 174 ${cx(r16) + 10} 174 H${cx(48) - 10} Q${cx(48)} 174 ${cx(48)} 184 V${LY.a}`;
+  // analyzer header pins: CH1..CH8, GND
+  const LAX = 560, LAY = 18, laPin = k => LAX + 18 + k * 20;
+  let laPins = '';
+  for (let k = 0; k < 9; k++) laPins += `<rect class="la-pin" x="${laPin(k) - 3}" y="${LAY + 92}" width="6" height="8"/><text class="la-s" x="${laPin(k)}" y="${LAY + 87}">${k < 8 ? 'CH' + (k + 1) : 'GND'}</text>`;
+  const ch1 = `M${laPin(0)} ${LAY + 100} C ${laPin(0)} 150, ${cx(48) + 30} 150, ${cx(48)} ${LY.c}`;
+  const ch2 = `M${laPin(1)} ${LAY + 100} C ${laPin(1)} 168, ${cx(r17)} 140, ${cx(r17)} ${LY.a}`;
+  const gnd = `M${laPin(8)} ${LAY + 100} C ${laPin(8)} 150, ${cx(52)} 160, ${cx(52)} ${RY.tn}`;
+  const legs = [[46, 'e', -1, -1], [48, 'e', 1, -1], [46, 'f', -1, 1], [48, 'f', 1, 1]].map(([r, L, sx, sy]) =>
+    `<path class="leg" d="M${BX + sx * 11} ${BY + sy * 11} L${cx(r)} ${LY[L]}"/>`).join('');
+  return `<svg viewBox="0 0 920 570" role="img" aria-labelledby="benchT">
+  <title id="benchT">Макетна плата: YD-ESP32-S3, кнопка S1 між GPIO16 і GND, логічний аналізатор на GPIO16 і GPIO17, ноутбук з PulseView</title>
+  <rect class="bb-body" x="6" y="190" width="908" height="262" rx="8"/>
+  <rect class="bb-chan" x="6" y="317" width="908" height="10"/>
+  <line class="rail-n" x1="28" x2="900" y1="198" y2="198"/><line class="rail-p" x1="28" x2="900" y1="228" y2="228"/>
+  <line class="rail-p" x1="28" x2="900" y1="416" y2="416"/><line class="rail-n" x1="28" x2="900" y1="446" y2="446"/>
+  <text class="rail-t" x="10" y="${RY.tn + 4}" fill="var(--rail-n)">−</text><text class="rail-t" x="10" y="${RY.tp + 4}" fill="var(--rail-p)">+</text>
+  <text class="rail-t" x="10" y="${RY.bp + 4}" fill="var(--rail-p)">+</text><text class="rail-t" x="10" y="${RY.bn + 4}" fill="var(--rail-n)">−</text>
+  <path class="bb-holes" d="${holes}"/>
+  ${nums}${letters}
+  <g data-asm="1" class="board">
+    <rect class="usb" x="12" y="284" width="20" height="24" rx="3"/><rect class="usb" x="12" y="336" width="20" height="24" rx="3"/>
+    <rect class="pcb" x="25" y="${LY.b - 8}" width="304" height="${LY.i - LY.b + 16}" rx="6"/>
+    ${pins}
+    <rect class="shield" x="150" y="281" width="142" height="82" rx="3"/>
+    <text class="shield-t" x="221" y="318">ESP32-S3</text><text class="shield-t" x="221" y="331" style="font-size:7px;font-weight:500">WROOM-1 · N16R8</text>
+    <rect x="52" y="292" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="311">BOOT</text>
+    <rect x="52" y="334" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="353">RST</text>
+    <text class="pcb-big" x="82" y="338">YD-ESP32-S3</text>
+  </g>
+  ${wire(`M${cx(1)} ${LY.a} V${RY.tn}`, COL.black, 2)}
+  <g data-asm="3" id="btnG">
+    ${legs}
+    <rect class="btn-body" x="${BX - 15}" y="${BY - 15}" width="30" height="30" rx="3"/>
+    <circle id="btnCap" class="btn-cap" cx="${BX}" cy="${BY}" r="8.5"/>
+    <text class="part-t" x="${BX + 32}" y="${BY + 4}">S1</text>
+  </g>
+  ${wire(`M${cx(46)} ${LY.a} V${RY.tn}`, COL.black, 4)}
+  ${wire(arc, COL.orange, 4, 'wSig')}
+  <g data-asm="5" id="laG">
+    <rect class="la-body" x="${LAX}" y="${LAY}" width="200" height="${LAY + 74}" rx="8"/>
+    <text class="la-t" x="${LAX + 12}" y="${LAY + 18}">LOGIC · 24 MHz · 8 CH</text>
+    <circle id="ledPwr" class="led g on" cx="${LAX + 18}" cy="${LAY + 38}" r="4"/><text class="la-s" x="${LAX + 18}" y="${LAY + 52}">PWR</text>
+    <circle id="ledCh1" class="led" cx="${LAX + 48}" cy="${LAY + 38}" r="4"/><text class="la-s" x="${LAX + 48}" y="${LAY + 52}">CH1</text>
+    <circle id="ledCh2" class="led" cx="${LAX + 78}" cy="${LAY + 38}" r="4"/><text class="la-s" x="${LAX + 78}" y="${LAY + 52}">CH2</text>
+    <text class="la-s" x="${LAX + 150}" y="${LAY + 42}" style="font-size:9px" id="laCount">0 фронтів</text>
+    ${laPins}
+  </g>
+  ${wire(ch1, COL.orange, 5, 'wCh1')}
+  ${wire(ch2, COL.violet, 5, 'wCh2')}
+  ${wire(gnd, COL.black, 5)}
+  <g data-asm="6">
+    <path class="jw-o" d="M${LAX + 200} 60 C 790 60, 780 120, 812 116"/><path class="jw" d="M${LAX + 200} 60 C 790 60, 780 120, 812 116" stroke="${COL.gray}"/>
+    <rect class="lap-body" x="800" y="18" width="112" height="78" rx="5"/>
+    <rect class="lap-scr" x="806" y="24" width="100" height="62" rx="2"/>
+    <path class="lap-body" d="M790 98 H922 L914 110 H798 Z"/>
+    <text class="la-s" x="856" y="34" style="fill:#8fa2b0">PulseView</text>
+    <path id="lapTrace" class="lap-trace" d="M810 50 H902"/>
+    <path id="lapTrace2" class="lap-trace2" d="M810 74 H902"/>
+  </g>
+  <g data-asm="3" id="insetG">
+    <rect class="inset-box" x="10" y="462" width="432" height="104" rx="8"/>
+    <text class="inset-t" x="206" y="482">Всередині кнопки (розріз)</text>
+    <rect class="house" x="40" y="492" width="150" height="60" rx="4"/>
+    <g id="plungerG"><rect x="98" y="478" width="34" height="22" rx="3" fill="#3aa655" stroke="#1d5b2c"/></g>
+    <rect class="contact" x="62" y="534" width="18" height="6" rx="1"/>
+    <rect class="contact" x="152" y="534" width="18" height="6" rx="1"/>
+    <g id="leafG"><path class="leaf" d="M74 520 Q 115 512 160 520"/><circle cx="160" cy="521" r="3" fill="#d0d6db"/></g>
+    <text class="inset-t" x="206" y="500" style="font-weight:500">Пружна пластина вдаряє в контакт</text>
+    <text class="inset-t" x="206" y="515" style="font-weight:500">і відскакує: десятки разів за 1–6 мс.</text>
+    <text class="inset-t" x="206" y="530" style="font-weight:500">Іскор тут немає: це механіка.</text>
+    <g id="lvlBadge" class="lvl-badge lvl-hi" transform="translate(300 554)">
+      <rect x="-94" y="-12" width="188" height="20" rx="6"/>
+      <text class="inset-k" id="lvlText" x="0" y="3" text-anchor="middle">GPIO16 = HIGH (відпущена)</text>
+    </g>
+  </g>
+  <g transform="translate(460 466)" id="edgeBox">
+    <rect class="inset-box" x="0" y="-4" width="450" height="104" rx="8"/>
+    <text class="inset-t" x="12" y="14">Остання подія: що побачив кожен</text>
+    <text class="inset-k" x="12" y="40">Аналізатор:</text><text class="inset-k" id="ebA" x="170" y="40" style="fill:var(--accent)">—</text>
+    <text class="inset-k" x="12" y="60">ESP32 (CHANGE):</text><text class="inset-k" id="ebC" x="170" y="60" style="fill:var(--z)">—</text>
+    <text class="inset-k" x="12" y="80">button_counter +=</text><text class="inset-k" id="ebD" x="170" y="80" style="fill:var(--hi)">—</text>
+    <text class="inset-t" id="ebB" x="438" y="14" text-anchor="end">—</text>
+  </g>
+</svg>`;
+}
+$('#benchSvg').innerHTML = benchSVG();
+
+const ASM = [
+  'Усе зібрано. Натисніть ▶, щоб зібрати схему крок за кроком.',
+  'Плата YD-ESP32-S3 у рядах 1–22, антеною праворуч. GPIO16 і GPIO17 — у верхньому гребінці.',
+  'GND плати (ряд 1) → синя шина «−» перемичкою.',
+  'Кнопка 6×6 поперек жолобка, ніжки в рядах 46 і 48. Ніжки однієї сторони з’єднані всередині завжди, а кнопка замикає ряд 46 з рядом 48.',
+  'GPIO16 (ряд 14) → помаранчева перемичка в ряд 48. Ряд 46 → шина «−». Підтяжку дає INPUT_PULLUP усередині чипа.',
+  'Аналізатор: CH1 → ряд 48 (той самий вузол, що GPIO16), CH2 → GPIO17 (маркер ISR), GND → шина «−». Без спільної землі аналізатор бачить сміття.',
+  'USB аналізатора → ноутбук з PulseView. Готово: тепер можна писати брязкіт.',
+];
+function setAsm(n) {
+  app.asm = n;
+  const svg = $('#benchSvg svg');
+  svg.classList.toggle('asm-on', n > 0);
+  $$('[data-asm]', svg).forEach(g => { const k = +g.dataset.asm; g.classList.toggle('ghost', n > 0 && k > n); g.classList.toggle('focus', n > 0 && k === n); });
+  $('#asmBar').hidden = n === 0 && $('#asmBtn').getAttribute('aria-pressed') !== 'true';
+  $('#asmText').textContent = ASM[n];
+  $('#asmDots').innerHTML = ASM.slice(1).map((_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+  if (n === ASM.length - 1) tick('wire');
+}
+$('#asmBtn').addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', on); $('#asmBar').hidden = !on; setAsm(on ? 1 : 0); });
+$('#asmPrev').addEventListener('click', () => setAsm(Math.max(1, app.asm - 1)));
+$('#asmNext').addEventListener('click', () => setAsm(Math.min(ASM.length - 1, app.asm + 1)));
+
+/* ---------- bench live state ---------- */
+const flashUntil = { sig: 0, ch2: 0 };
+let lastBenchEv = null, lastFrameT = 0;
+function benchUpdate(now) {
+  const T = nowT(), ev = curEvent();
+  // level now
+  let lvl = 1;
+  if (ev) { const rel = (T - ev.t0) * 1000; lvl = rel >= ev.bounce ? ev.last : levelAt(ev, rel); }
+  const pressed = app.src === 'live' ? app.pressed : !!(ev && ev.kind === 'PRESS');
+  $('#btnCap').classList.toggle('down', pressed);
+  $('#plungerG').classList.toggle('down', pressed);
+  // edges in the last frame → flash wires and LEDs
+  const evs = EVENTS();
+  let edgesNow = 0, isrNow = 0;
+  for (const e of evs) {
+    if (e.t0 > T || e.fin < lastFrameT - 60) continue;
+    const a = (lastFrameT - e.t0) * 1000, b = (T - e.t0) * 1000;
+    if (b < 0 || a > e.bounce + 50) continue;
+    for (const x of e.edges) if (x.t > a && x.t <= b) edgesNow++;
+    const runs = e.isr || evModel(e).change.map(r => [r.s, r.e]);
+    for (const r of runs) if (r[0] > a && r[0] <= b) isrNow++;
+  }
+  if (edgesNow) flashUntil.sig = now + 180;
+  if (isrNow) flashUntil.ch2 = now + 180;
+  $('#wSig').classList.toggle('wflash', now < flashUntil.sig);
+  $('#wCh1').classList.toggle('wflash', now < flashUntil.sig);
+  $('#wCh2').classList.toggle('wflash', now < flashUntil.ch2);
+  $('#ledCh1').classList.toggle('on', now < flashUntil.sig || lvl === 0);
+  $('#ledCh2').classList.toggle('on', now < flashUntil.ch2);
+  lastFrameT = T;
+  const badge = $('#lvlBadge');
+  badge.classList.toggle('lvl-hi', lvl === 1); badge.classList.toggle('lvl-lo', lvl === 0);
+  $('#lvlText').textContent = lvl ? 'GPIO16 = HIGH (відпущена)' : 'GPIO16 = LOW (натиснута)';
+  $('#stLvl').textContent = lvl ? 'HIGH' : 'LOW';
+  if (ev !== lastBenchEv) {
+    lastBenchEv = ev;
+    if (ev) {
+      const leaf = $('#leafG');
+      leaf.classList.remove('shake', 'shake-up', 'down');
+      void leaf.getBoundingClientRect();
+      if (!REDUCED) leaf.classList.add(ev.kind === 'PRESS' ? 'shake' : 'shake-up');
+      if (ev.kind === 'PRESS') leaf.classList.add('down');
+      const m = evModel(ev), A = ev.edges.length, C = mcuCount(ev), D = m.falling.length;
+      $('#stEv').textContent = (ev.kind === 'PRESS' ? 'натискання' : ev.kind === 'release' ? 'відпускання' : 'завада');
+      $('#stEdges').textContent = A;
+      $('#stBounce').textContent = fmtUs(ev.bounce);
+      $('#stIsr').textContent = C;
+      $('#ebA').textContent = `${A} фронтів за ${fmtUs(ev.bounce)}`;
+      $('#ebC').textContent = `${C} запусків ISR (${Math.round(C / A * 100)} %)`;
+      $('#ebD').textContent = `${D}${ev.kind === 'release' ? ' — хоч це відпускання!' : ''}`;
+      $('#ebB').textContent = ev.isr ? '(ISR — з маркера GPIO17)' : '(модель)';
+      $('#laCount').textContent = `${A} фронтів`;
+      drawLaptop(ev);
+    }
+  }
+}
+function drawLaptop(ev) {
+  const x0 = 810, w = 92, span = Math.max(ev.edges[Math.min(14, ev.edges.length - 1)].t, 20) * 1.25;
+  let d = `M${x0} ${ev.lb ? 44 : 58}`, y = ev.lb ? 44 : 58;
+  for (const e of ev.edges) { if (e.t > span) break; const x = (x0 + e.t / span * w).toFixed(1); const ny = e.l ? 44 : 58; d += ` H${x} V${ny}`; y = ny; }
+  d += ` H${x0 + w}`;
+  $('#lapTrace').setAttribute('d', d);
+  const runs = ev.isr || evModel(ev).change.map(r => [r.s, r.e]);
+  let d2 = `M${x0} 80`;
+  for (const r of runs) { if (r[0] > span) break; const x = (x0 + r[0] / span * w).toFixed(1); d2 += ` H${x} V72 H${(+x + 0.8).toFixed(1)} V80`; }
+  d2 += ` H${x0 + w}`;
+  $('#lapTrace2').setAttribute('d', d2);
+}
+
+/* =====================================================================
+   Live presses (hold button)
+   ===================================================================== */
+const holds = [$('#holdBar'), $('#holdBig')];
+function setSrc(src) {
+  if (app.src === src) return;
+  app.src = src;
+  $$('#srcSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.src === src));
+  app.view = null; app.follow = true; $('#laFollow').checked = true; app.curA = app.curB = null;
+  app.sel = null; app.selUser = false; resetMcuAnim();
+  app.playing = false; updatePlayBtn();
+  lastBenchEv = null; serialState.key = '';
+  $('#laSrcName').textContent = $('#tblSrc').textContent = src === 'real' ? 'запис Wokwi' : 'мої натискання';
+  dirtyAll();
+}
+function pressDown() {
+  if (app.pressed) return;
+  if (app.src !== 'live') setSrc('live');
+  app.pressed = true; holds.forEach(h => h.setAttribute('aria-pressed', 'true'));
+  addLive(0);
+  tick('wire');
+}
+function pressUp() {
+  if (!app.pressed) return;
+  app.pressed = false; holds.forEach(h => h.setAttribute('aria-pressed', 'false'));
+  addLive(1);
+}
+function addLive(toLevel) {
+  const L = app.live, prev = L[L.length - 1];
+  let t0 = app.liveT;
+  if (prev) t0 = Math.max(t0, prev.t0 + prev.bounce / 1000 + 0.3);
+  const lb = prev ? prev.last : 1;
+  if (lb === toLevel) return;
+  const edges = genBounce(toLevel, app.force, app.speedK);
+  L.push(makeEvent(L.length, t0, lb, edges, null, 'live'));
+  if (L.length > 60) { L.splice(0, 2); L.forEach((e, i) => e.id = i); }
+  dirty.la = dirty.mcu = true;
+}
+holds.forEach(h => {
+  h.addEventListener('pointerdown', e => { e.preventDefault(); h.setPointerCapture?.(e.pointerId); pressDown(); });
+  h.addEventListener('pointerup', pressUp);
+  h.addEventListener('pointercancel', pressUp);
+  h.addEventListener('lostpointercapture', pressUp);
+  h.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); pressDown(); } });
+  h.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pressUp(); } });
+});
+const isTyping = el => el && (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
+document.addEventListener('keydown', e => {
+  if (isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const onBtn = document.activeElement && document.activeElement.tagName === 'BUTTON';
+  if (e.key === ' ' && !onBtn) { e.preventDefault(); if (!e.repeat) pressDown(); }
+  else if ((e.key === 'p' || e.key === 'P') && !e.repeat) togglePlay();
+  else if ((e.key === 'n' || e.key === 'N') && !e.repeat) nextEvent();
+});
+document.addEventListener('keyup', e => { if (e.key === ' ' && !(document.activeElement && document.activeElement.tagName === 'BUTTON')) pressUp(); });
+const word = v => v < 0.34 ? (v < 0.12 ? 'дуже мала' : 'мала') : v < 0.67 ? 'середня' : v < 0.88 ? 'велика' : 'дуже велика';
+$('#force').addEventListener('input', e => { app.force = +e.target.value; $('#forceV').textContent = word(app.force); });
+$('#speedK').addEventListener('input', e => { app.speedK = +e.target.value; $('#speedKV').textContent = word(app.speedK); });
+
+/* =====================================================================
+   Transport (replay of the recording)
+   ===================================================================== */
+function updatePlayBtn() {
+  const live = app.src === 'live';
+  $('#play').disabled = live; $('#nextEv').disabled = live;
+  $('#play').textContent = live ? 'живий режим' : app.playing ? '❚❚ Пауза' : (app.T >= REAL_END ? '▶ Відтворити' : '▶ Далі');
+}
+function togglePlay() {
+  if (app.src !== 'real') return;
+  if (!app.playing && app.T >= REAL_END) { app.T = 0; serialState.key = ''; dirtyAll(); }
+  app.playing = !app.playing; app.last = performance.now();
+  updatePlayBtn();
+}
+function nextEvent() {
+  if (app.src !== 'real') return;
+  if (app.T >= REAL_END) { app.T = 0; serialState.key = ''; }
+  const nx = REAL.find(e => e.fin > app.T + 1e-6);
+  app.T = nx ? nx.fin : REAL_END; app.playing = false;
+  updatePlayBtn(); dirtyAll();
+}
+$('#play').addEventListener('click', togglePlay);
+$('#nextEv').addEventListener('click', nextEvent);
+$$('#speed button').forEach(b => b.addEventListener('click', () => { app.speed = +b.dataset.v; $$('#speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+$('#rst').addEventListener('click', () => {
+  if (app.src === 'real') { app.T = 0; app.playing = false; }
+  else { app.live = []; app.liveT = 0; }
+  app.view = null; app.follow = true; $('#laFollow').checked = true; app.curA = app.curB = null; app.sel = null; app.selUser = false;
+  resetMcuAnim(); serialState.key = ''; updatePlayBtn(); dirtyAll();
+});
+$$('#srcSeg button').forEach(b => b.addEventListener('click', () => setSrc(b.dataset.src)));
+function setFw(fw) {
+  app.fw = fw;
+  $$('#fwSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.fw === fw));
+  showTab(fw);
+  serialState.key = ''; dirty.serial = true;
+  tick('flash');
+}
+$$('#fwSeg button').forEach(b => b.addEventListener('click', () => setFw(b.dataset.fw)));
+$('#tblAll').addEventListener('click', () => { if (app.src !== 'real') setSrc('real'); app.T = REAL_END; app.playing = false; updatePlayBtn(); dirtyAll(); });
+
+/* =====================================================================
+   Logic-analyzer viewer
+   ===================================================================== */
+const la = $('#laCanvas');
+function flatData() {
+  // absolute µs arrays for BUTTON true edges and ISR runs of started events
+  const evs = started(), bt = [], bl = [], is = [], ie = [];
+  for (const ev of evs) {
+    const base = ev.t0 * 1000;
+    for (const e of ev.edges) { bt.push(base + e.t); bl.push(e.l); }
+    const runs = ev.isr || evModel(ev).change.map(r => [r.s, r.e]);
+    for (const r of runs) { is.push(base + r[0]); ie.push(base + r[1]); }
+  }
+  return { evs, bt, bl, is, ie };
+}
+function sampledFlat(evs) {
+  const st = [], sl = [];
+  for (const ev of evs) { const base = ev.t0 * 1000; for (const e of sampleEdges(ev.edges, ev.lb, app.fs)) { st.push(base + e.t); sl.push(e.l); } }
+  return { st, sl };
+}
+function defaultView() {
+  const ev = curEvent();
+  if (!ev) return { a: 0, b: Math.max(500, nowT()) * 1000 };
+  return eventView(ev);
+}
+function eventView(ev) { const pad = Math.max(ev.bounce * 0.12, 20); return { a: ev.t0 * 1000 - pad, b: ev.t0 * 1000 + ev.bounce + pad }; }
+function allView() { const T = nowT(); return { a: 0, b: Math.max(T, 300) * 1000 }; }
+let laCache = null;
+function drawLA() {
+  const [g, w, h] = fitCanvas(la);
+  if (!app.view) app.view = app.follow ? defaultView() : allView();
+  const { a, b } = app.view, span = b - a, X = t => (t - a) / span * w;
+  const d = flatData(); laCache = d;
+  const s = sampledFlat(d.evs);
+  g.fillStyle = TOK['--scope']; g.fillRect(0, 0, w, h);
+  // time grid
+  const step = niceStep(span / Math.max(3, Math.floor(w / 110)));
+  g.strokeStyle = TOK['--scope-grid']; g.lineWidth = 1; g.fillStyle = TOK['--scope-text']; g.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  // zoomed in: label time from the start of the nearest event (absolute seconds would all read «3.14 с»)
+  let base = 0, baseEv = null;
+  if (span < 200000 && d.evs.length) {
+    const mid = (a + b) / 2; baseEv = d.evs.reduce((p, e) => Math.abs(e.t0 * 1000 - mid) < Math.abs(p.t0 * 1000 - mid) ? e : p);
+    base = baseEv.t0 * 1000;
+  }
+  for (let t = base + Math.ceil((a - base) / step) * step; t <= b; t += step) {
+    const x = Math.round(X(t)) + .5; g.beginPath(); g.moveTo(x, 18); g.lineTo(x, h); g.stroke();
+    g.fillText(baseEv ? (t - base >= 0 ? '+' : '') + fmtUs(t - base) : fmtUs(t), x + 3, 12);
+  }
+  if (baseEv) { g.textAlign = 'right'; g.fillText(w < 640 ? `0 = подія ${d.evs.indexOf(baseEv) + 1}` : `0 = перший фронт події ${d.evs.indexOf(baseEv) + 1} (t = ${(baseEv.t0).toFixed(1)} мс)`, w - 6, w < 640 ? 160 : 228); g.textAlign = 'left'; }
+  // lanes
+  const lanes = [
+    { y: 34, name: 'D0 BUTTON · справжній', color: TOK['--muted'], t: d.bt, l: d.bl, thin: true },
+    { y: 96, name: app.fs ? `D0 BUTTON · записано на ${app.fs >= 1 ? app.fs + ' МГц' : app.fs * 1000 + ' кГц'}` : 'D0 BUTTON', color: TOK['--accent'], t: app.fs ? s.st : d.bt, l: app.fs ? s.sl : d.bl },
+  ];
+  const H = 38;
+  for (const ln of lanes) {
+    g.fillStyle = TOK['--scope-text']; g.fillText(ln.name, 6, ln.y - 4);
+    drawDigital(g, ln.t, ln.l, 1, a, b, w, ln.y, H, ln.color, ln.thin ? 1 : 1.6);
+  }
+  // ISR lane
+  const yI = 166;
+  g.fillStyle = TOK['--scope-text']; g.fillText(app.src === 'real' ? 'D1 ISR · маркер GPIO17 (справжній)' : 'D1 ISR · модель', 6, yI - 4);
+  g.strokeStyle = TOK['--z']; g.lineWidth = 1.6; g.beginPath();
+  g.moveTo(0, yI + H);
+  let i0 = lowerBound(d.ie, a);
+  let lastX = -1;
+  for (let i = i0; i < d.is.length && d.is[i] <= b; i++) {
+    const x1 = Math.max(0, X(d.is[i])), x2 = Math.max(x1 + 1, X(d.ie[i]));
+    g.lineTo(x1, yI + H); g.lineTo(x1, yI); g.lineTo(x2, yI); g.lineTo(x2, yI + H); lastX = x2;
+  }
+  g.lineTo(w, yI + H); g.stroke();
+  // event labels
+  g.font = '10.5px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  for (const ev of d.evs) {
+    const x = X(ev.t0 * 1000); if (x < -60 || x > w) continue;
+    g.fillStyle = ev.kind === 'PRESS' ? TOK['--hi'] : TOK['--ok'];
+    g.fillText(ev.kind === 'PRESS' ? '▼ натиск' : '▲ відпуск', Math.max(2, x + 2), 228);
+  }
+  // cursors
+  for (const [k, t] of [['A', app.curA], ['B', app.curB]]) {
+    if (t === null) continue;
+    const x = Math.round(X(t)) + .5; if (x < -2 || x > w + 2) continue;
+    g.strokeStyle = TOK['--hi']; g.setLineDash([4, 3]); g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, 16); g.lineTo(x, h); g.stroke(); g.setLineDash([]);
+    g.fillStyle = TOK['--hi']; g.fillRect(x - 8, h - 18, 16, 16); g.fillStyle = TOK['--scope']; g.fillText(k, x - 3.5, h - 6);
+  }
+  if (!d.evs.length) { g.fillStyle = TOK['--scope-text']; g.fillText(app.src === 'live' ? 'Натисніть кнопку S1 (утримуйте) — тут з’явиться запис.' : 'Натисніть ▶ Відтворити.', 12, 140); }
+  laReadouts(d, s);
+  $('#laSpan').textContent = `вікно ${fmtUs(span)} · ${fmtUs(span / w)} на піксель`;
+}
+function drawDigital(g, T, L, lb, a, b, w, y, H, color, lw) {
+  const span = b - a, X = t => (t - a) / span * w;
+  let i = lowerBound(T, a);
+  let lvl = i > 0 ? L[i - 1] : lb;
+  const Y = l => l ? y : y + H;
+  g.strokeStyle = color; g.lineWidth = lw; g.beginPath(); g.moveTo(0, Y(lvl));
+  let lastPx = -2;
+  for (; i < T.length && T[i] <= b; i++) {
+    const x = X(T[i]);
+    if (x - lastPx < 0.6) { g.moveTo(x, y); g.lineTo(x, y + H); g.moveTo(x, Y(L[i])); }
+    else { g.lineTo(x, Y(lvl)); g.lineTo(x, Y(L[i])); }
+    lvl = L[i]; lastPx = x;
+  }
+  g.lineTo(w, Y(lvl)); g.stroke();
+}
+function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const m = x / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+function laReadouts(d, s) {
+  const { a, b } = app.view;
+  const A = app.curA ?? a, B = app.curB ?? b, lo = Math.min(A, B), hi = Math.max(A, B);
+  const cnt = (arr) => lowerBound(arr, hi + 1e-9) - lowerBound(arr, lo);
+  const n = cnt(d.bt), ns = app.fs ? cnt(s.st) : n, ni = cnt(d.is);
+  const dt = hi - lo;
+  $('#laDt').textContent = (app.curA !== null && app.curB !== null) ? fmtUs(dt) : '—';
+  $('#laF').textContent = dt > 0 && app.curA !== null && app.curB !== null ? fmtHz(1e6 / dt) : '—';
+  $('#laN').textContent = n;
+  $('#laNs').textContent = app.fs ? `${ns}${ns < n ? ' (−' + (n - ns) + ')' : ''}` : n;
+  $('#laNi').textContent = ni;
+  let mg = Infinity; const i0 = lowerBound(d.bt, lo), i1 = lowerBound(d.bt, hi + 1e-9);
+  for (let i = Math.max(i0, 1); i < i1; i++) mg = Math.min(mg, d.bt[i] - d.bt[i - 1]);
+  $('#laMin').textContent = mg < Infinity ? fmtUs(mg) : '—';
+  const per = app.fs ? 1 / app.fs : 0;
+  $('#laExplain').innerHTML = !app.fs
+    ? 'Справжній сигнал без дискретизації — так його бачить лише симулятор. Справжній аналізатор завжди записує вибірки.'
+    : `Вибірка кожні <b>${fmtUs(per)}</b>. ${mg < Infinity ? `Найкоротший імпульс у вікні — <b>${fmtUs(mg)}</b>, це ${(mg / per).toFixed(mg / per < 1 ? 2 : mg / per < 10 ? 1 : 0)} вибірки${mg < per ? ': такий імпульс може взагалі не потрапити між двома вибірками' : ''}. ` : ''}${ns < n ? `Аналізатор на цій частоті <b>загубив ${n - ns}</b> з ${n} фронтів. ` : 'Усі фронти записано. '}Правило: на найкоротший імпульс потрібно хоча б 4–10 вибірок.`;
+}
+// zoom / pan / cursors
+let drag = null; const ptrs = new Map();
+la.addEventListener('wheel', e => {
+  e.preventDefault(); const r = la.getBoundingClientRect(); zoomAt((e.clientX - r.left) / r.width, e.deltaY > 0 ? 1.25 : 0.8);
+}, { passive: false });
+function zoomAt(fx, k) {
+  if (!app.view) return;
+  const { a, b } = app.view, t = a + (b - a) * fx;
+  let span = clamp((b - a) * k, 1, Math.max(3e6, nowT() * 1000 * 1.2));
+  app.view = { a: t - span * fx, b: t - span * fx + span }; app.follow = false; $('#laFollow').checked = false;
+  if (span < 5000) tick('record');
+  dirty.la = true;
+}
+la.addEventListener('pointerdown', e => {
+  la.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e.clientX);
+  const r = la.getBoundingClientRect(), x = e.clientX - r.left, w = r.width, { a, b } = app.view;
+  const tx = t => (t - a) / (b - a) * w;
+  let cur = null;
+  if (app.curA !== null && Math.abs(tx(app.curA) - x) < 10) cur = 'curA';
+  else if (app.curB !== null && Math.abs(tx(app.curB) - x) < 10) cur = 'curB';
+  drag = { x0: e.clientX, view: { ...app.view }, cur, moved: false, pinch: ptrs.size === 2 ? Math.abs([...ptrs.values()][0] - [...ptrs.values()][1]) : 0 };
+});
+la.addEventListener('pointermove', e => {
+  if (!drag) return; ptrs.set(e.pointerId, e.clientX);
+  const r = la.getBoundingClientRect(), w = r.width, { a, b } = drag.view, span = b - a;
+  if (ptrs.size === 2 && drag.pinch) {
+    const xs = [...ptrs.values()], dist = Math.abs(xs[0] - xs[1]) || 1, mid = (xs[0] + xs[1]) / 2 - r.left;
+    const k = drag.pinch / dist; const fx = mid / w, t = a + span * fx, ns = clamp(span * k, 1, 3e6);
+    app.view = { a: t - ns * fx, b: t - ns * fx + ns }; app.follow = false; $('#laFollow').checked = false; dirty.la = true; return;
+  }
+  const dx = e.clientX - drag.x0; if (Math.abs(dx) > 3) drag.moved = true;
+  if (drag.cur) { app[drag.cur] = a + span * clamp((e.clientX - r.left) / w, 0, 1); tick('record'); }
+  else { const sh = -dx / w * span; app.view = { a: a + sh, b: b + sh }; app.follow = false; $('#laFollow').checked = false; }
+  dirty.la = true;
+});
+la.addEventListener('pointerup', e => {
+  ptrs.delete(e.pointerId);
+  if (drag && !drag.moved && !drag.cur) {
+    const r = la.getBoundingClientRect(), { a, b } = app.view, t = a + (b - a) * (e.clientX - r.left) / r.width;
+    if (app.curA === null || (app.curB !== null)) { app.curA = t; app.curB = null; } else app.curB = t;
+    tick('record'); dirty.la = true;
+  }
+  drag = null;
+});
+la.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); drag = null; });
+la.addEventListener('keydown', e => {
+  if (!app.view) return;
+  const { a, b } = app.view, sp = b - a;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { const sh = (e.key === 'ArrowLeft' ? -1 : 1) * sp * 0.1; app.view = { a: a + sh, b: b + sh }; app.follow = false; $('#laFollow').checked = false; }
+  else if (e.key === '+' || e.key === '=') zoomAt(0.5, 0.8);
+  else if (e.key === '-') zoomAt(0.5, 1.25);
+  else return;
+  e.preventDefault(); dirty.la = true;
+});
+function laEventStep(dir) {
+  const evs = started(); if (!evs.length) return;
+  const mid = app.view ? (app.view.a + app.view.b) / 2 : 0;
+  let idx = 0, best = Infinity;
+  evs.forEach((e, i) => { const d = Math.abs(e.t0 * 1000 + e.bounce / 2 - mid); if (d < best) { best = d; idx = i; } });
+  const span = app.view ? app.view.b - app.view.a : Infinity;
+  // when zoomed out (several events in view) the first step lands on the nearest event itself
+  if (span < 20000 || best < 1) idx += dir;
+  idx = clamp(idx, 0, evs.length - 1);
+  app.view = eventView(evs[idx]); app.follow = false; $('#laFollow').checked = false; dirty.la = true;
+}
+$('#laAll').addEventListener('click', () => { app.view = allView(); app.follow = false; $('#laFollow').checked = false; dirty.la = true; });
+$('#laEv').addEventListener('click', () => { const ev = curEvent(); if (ev) { app.view = eventView(ev); dirty.la = true; tick('record'); } });
+$('#laPrev').addEventListener('click', () => laEventStep(-1));
+$('#laNext').addEventListener('click', () => laEventStep(1));
+$('#laZin').addEventListener('click', () => zoomAt(0.5, 0.5));
+$('#laZout').addEventListener('click', () => zoomAt(0.5, 2));
+$('#laCur').addEventListener('click', () => {
+  const { a, b } = app.view || defaultView(), mid = (a + b) / 2;
+  const evs = started(); if (!evs.length) return;
+  let best = evs[0]; for (const e of evs) if (Math.abs(e.t0 * 1000 + e.bounce / 2 - mid) < Math.abs(best.t0 * 1000 + best.bounce / 2 - mid)) best = e;
+  app.curA = best.t0 * 1000; app.curB = best.t0 * 1000 + best.bounce; app.view = eventView(best); app.follow = false; $('#laFollow').checked = false;
+  tick('record'); dirty.la = true;
+});
+$('#laFollow').addEventListener('change', e => { app.follow = e.target.checked; if (app.follow) app.view = defaultView(); dirty.la = true; });
+$$('#fsSeg button').forEach(b => b.addEventListener('click', () => { app.fs = +b.dataset.fs; $$('#fsSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); dirty.la = true; }));
+
+/* =====================================================================
+   What the ESP32 sees: slow-motion timeline of one event
+   ===================================================================== */
+const mc = $('#mcuCanvas');
+function mcuEvent() {
+  const evs = started();
+  if (!evs.length) return null;
+  if (app.sel !== null && app.selUser && evs.includes(app.sel)) return app.sel;
+  return evs[evs.length - 1];
+}
+function resetMcuAnim() { app.tau = -5; app.mcuPlaying = false; app.mcuDone = false; $('#mcuPlay').textContent = '▶ Повільно'; prevRunCount = 0; }
+let prevRunCount = 0, prevCounts = [0, 0, 0, 0];
+function drawMCU(dt) {
+  const ev = mcuEvent();
+  const [g, w, h] = fitCanvas(mc);
+  g.fillStyle = TOK['--scope']; g.fillRect(0, 0, w, h);
+  g.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  if (!ev) { g.fillStyle = TOK['--scope-text']; g.fillText('Немає подій: відтворіть запис або натисніть кнопку.', 12, 120); $('#mcuEvName').textContent = '—'; return; }
+  const evs = started(), idx = evs.indexOf(ev);
+  $('#mcuEvName').textContent = `${idx + 1} з ${evs.length} · ${ev.kind === 'PRESS' ? 'натискання' : 'відпускання'}`;
+  const m = evModel(ev), runs = app.mcuMode === 'CHANGE' ? m.change : m.falling;
+  const endT = ev.bounce + app.L + app.D + 10;
+  if (app.mcuPlaying) {
+    app.tau += dt / 1000 * app.rate;
+    if (app.tau >= endT) { app.tau = endT; app.mcuPlaying = false; app.mcuDone = true; $('#mcuPlay').textContent = '▶ Ще раз'; tick('compare'); }
+  }
+  const tau = app.tau;
+  // window
+  let a, b;
+  if (app.mcuWin === 0) { a = -5; b = endT; }
+  else { a = clamp(tau - app.mcuWin * 0.7, -5, Math.max(-5, endT - app.mcuWin)); b = a + app.mcuWin; }
+  const X = t => (t - a) / (b - a) * w;
+  // grid
+  const step = niceStep((b - a) / Math.max(3, Math.floor(w / 100)));
+  g.strokeStyle = TOK['--scope-grid']; g.lineWidth = 1; g.fillStyle = TOK['--scope-text'];
+  for (let t = Math.ceil(a / step) * step; t <= b; t += step) { const x = Math.round(X(t)) + .5; g.beginPath(); g.moveTo(x, 16); g.lineTo(x, h); g.stroke(); g.fillText(fmtUs(t), x + 3, 12); }
+  const yP = 36, yF = 108, yI = 160, H = 32;
+  g.fillText('GPIO16', 6, yP - 6); g.fillText('прапорець', 6, yF - 6); g.fillText('ISR', 6, yI - 6);
+  // pin trace: faint for the whole window, bright up to the playhead
+  const E = ev.edges;
+  g.strokeStyle = TOK['--muted']; g.globalAlpha = 0.45; g.lineWidth = 1; g.beginPath();
+  { let l = ev.lb; g.moveTo(0, l ? yP : yP + H); for (const e of E) { const x = X(e.t); if (x > w) break; g.lineTo(x, l ? yP : yP + H); g.lineTo(x, e.l ? yP : yP + H); l = e.l; } g.lineTo(w, l ? yP : yP + H); }
+  g.stroke(); g.globalAlpha = 1;
+  g.strokeStyle = TOK['--accent']; g.lineWidth = 1.8; g.beginPath();
+  let lvl = ev.lb; g.moveTo(0, lvl ? yP : yP + H);
+  for (const e of E) { if (e.t > tau) break; const x = X(e.t); if (x > w) break; g.lineTo(x, lvl ? yP : yP + H); g.lineTo(x, e.l ? yP : yP + H); lvl = e.l; }
+  g.lineTo(Math.min(w, X(tau)), lvl ? yP : yP + H); g.stroke();
+  // edge ticks: green = started an ISR, red = merged, gray = ignored (FALLING mode, rising edge)
+  const starter = new Set(runs.map(r => r.first)), merged = new Set(runs.flatMap(r => r.merged));
+  for (let k = 0; k < E.length; k++) {
+    const e = E[k]; if (e.t > tau) break; const x = X(e.t); if (x < 0 || x > w) continue;
+    g.fillStyle = starter.has(k) ? TOK['--ok'] : merged.has(k) ? TOK['--bad'] : TOK['--muted'];
+    g.fillRect(x - 1.5, yP + H + 6, 3, 8);
+  }
+  // pending flag and ISR boxes
+  let pend = false, inIsr = false, count = 0;
+  g.lineWidth = 1;
+  let prevLevel = null;
+  const pendFill = 'rgba(' + getComputedStyle(document.documentElement).getPropertyValue('--hot').trim() + ',.55)';
+  runs.forEach((r, n) => {
+    if (r.from <= tau) {
+      const x1 = X(r.from), x2 = X(Math.min(r.e, tau));
+      g.fillStyle = pendFill;
+      if (x2 > 0 && x1 < w) g.fillRect(Math.max(0, x1), yF, Math.max(1, Math.min(w, x2) - Math.max(0, x1)), H);
+      if (tau >= r.from && tau < r.e) pend = true;
+    }
+    if (r.s <= tau) {
+      count++;
+      const x1 = X(r.s), x2 = Math.max(x1 + 2, X(Math.min(r.e, tau)));
+      g.fillStyle = TOK['--z']; if (x2 > 0 && x1 < w) g.fillRect(Math.max(0, x1), yI, x2 - Math.max(0, x1), H);
+      if (tau >= r.s && tau < r.e) inIsr = true;
+      if (x1 > -20 && x1 < w) {
+        const flip = app.mcuMode === 'CHANGE' && prevLevel === r.level;
+        g.fillStyle = flip ? TOK['--hi'] : TOK['--scope-text'];
+        g.fillText((r.level ? '^' : 'v') + (flip ? '!' : ''), x1 + 3, yI + H + 14);
+        if (r.merged.length && w / (b - a) * (r.e - r.from) > 14) { g.fillStyle = TOK['--bad']; g.fillText('+' + r.merged.length, Math.max(2, X(r.from)) + 2, yF + H - 6); }
+      }
+    }
+    prevLevel = r.level;
+  });
+  // playhead
+  const xp = X(tau); g.strokeStyle = TOK['--hi']; g.lineWidth = 1.5; g.beginPath(); g.moveTo(xp, 16); g.lineTo(xp, h); g.stroke();
+  // legend
+  g.fillStyle = TOK['--ok']; g.fillRect(w - 312, h - 14, 8, 8); g.fillStyle = TOK['--scope-text']; g.fillText('запустив ISR', w - 300, h - 6);
+  g.fillStyle = TOK['--bad']; g.fillRect(w - 210, h - 14, 8, 8); g.fillStyle = TOK['--scope-text']; g.fillText('злився', w - 198, h - 6);
+  g.fillStyle = TOK['--hi']; g.fillText('^! — той самий рівень', w - 140, h - 6);
+  $('#ledPend').classList.toggle('on', pend);
+  $('#ledIsr').classList.toggle('on', inIsr);
+  $('#mcuTau').textContent = `τ = ${fmtUs(Math.max(0, tau))} від першого фронту`;
+  // counters (at tau) and totals
+  const nA = E.filter(e => e.t <= tau).length, nB = E.filter(e => e.t <= tau && e.l === 0).length;
+  const nC = m.change.filter(r => r.s <= tau).length, nD = m.falling.filter(r => r.s <= tau).length;
+  [['cA', nA], ['cB', nB], ['cC', nC], ['cD', nD]].forEach(([id, v], i) => {
+    const el = $('#' + id); if (+el.textContent !== v) { el.textContent = v; if (!REDUCED && v > prevCounts[i]) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } prevCounts[i] = v; }
+  });
+  if (count > prevRunCount) heatIsr();
+  prevRunCount = count;
+  if (tau >= ev.bounce + app.L && !mcuEvent.loopHeated) { heatLoop(); mcuEvent.loopHeated = true; }
+  if (tau < 0) mcuEvent.loopHeated = false;
+  const fin = finished();
+  let tA = 0, tB = 0, tC = 0, tD = 0, tCr = 0;
+  for (const e of fin) { tA += e.edges.length; tB += e.fall; const mm = evModel(e); tC += mm.change.length; tD += mm.falling.length; tCr += mcuCount(e); }
+  $('#cAs').textContent = `усього: ${tA}`;
+  $('#cBs').textContent = `усього: ${tB}`;
+  $('#cCs').textContent = app.src === 'real' ? `модель: ${tC} · Wokwi: ${tCr}` : `усього: ${tC}`;
+  $('#cDs').textContent = `усього: ${tD} за ${fin.filter(e => e.kind === 'PRESS').length} натискань`;
+  // flow blocks
+  const fl = $$('#flowMini .fb');
+  const atEdge = E.some(e => Math.abs(e.t - tau) < (b - a) / w * 3);
+  const flowOn = [atEdge, pend, pend && !inIsr, inIsr, tau > ev.bounce + app.L, tau >= endT - 1];
+  fl.forEach((f, i) => f.classList.toggle('on', flowOn[i]));
+  $('#mcuExplain').innerHTML = mcuText(ev, m, tau);
+}
+function mcuText(ev, m, tau) {
+  const A = ev.edges.length, C = m.change.length, mergedN = m.change.reduce((s, r) => s + r.merged.length, 0);
+  const flips = m.change.filter((r, i) => i && r.level === m.change[i - 1].level).length;
+  if (tau < 0) return `Подія з <b>${A}</b> фронтів за <b>${fmtUs(ev.bounce)}</b>. Затримка входу в ISR <b>${app.L} мкс</b>. Найкоротший імпульс <b>${fmtUs(ev.minGap)}</b>: він коротший за затримку, тож частина фронтів зіллється. Натисніть «▶ Повільно».`;
+  if (tau < ev.bounce) return `Зелені риски — фронти, що запустили ISR. Червоні — ті, що прийшли, поки прапорець уже стояв: вони <b>злилися</b>. Наприкінці: <b>${C}</b> запусків ISR на <b>${A}</b> фронтів, злилося <b>${mergedN}</b>.`;
+  return `Підсумок події: аналізатор — <b>${A}</b>, ESP32 (CHANGE) — <b>${C}</b> (${Math.round(C / A * 100)} %). ISR ${flips ? `<b>${flips}</b> разів прочитав той самий рівень, що й минулого разу (позначка «!»): між ними був фронт, який він «проспав»` : 'щоразу читав новий рівень'}. Код з умови (FALLING) додав би <b>${m.falling.length}</b>${ev.kind === 'release' ? ', хоча це відпускання' : ''}.`;
+}
+$('#mcuPlay').addEventListener('click', () => {
+  if (app.mcuDone) { app.tau = -5; app.mcuDone = false; prevRunCount = 0; mcuEvent.loopHeated = false; }
+  app.mcuPlaying = !app.mcuPlaying;
+  $('#mcuPlay').textContent = app.mcuPlaying ? '❚❚ Пауза' : '▶ Далі';
+});
+$('#mcuStep').addEventListener('click', () => {
+  const ev = mcuEvent(); if (!ev) return;
+  app.mcuPlaying = false; $('#mcuPlay').textContent = '▶ Далі';
+  const nx = ev.edges.find(e => e.t > app.tau + 1e-6);
+  if (nx) {
+    // land just after the ISR this edge triggers (or the edge itself when it merges)
+    const m = evModel(ev), runs = app.mcuMode === 'CHANGE' ? m.change : m.falling;
+    const k = ev.edges.indexOf(nx), r = runs.find(r => r.first === k);
+    app.tau = r ? r.e + 0.05 : nx.t + 0.01;
+  } else { app.tau = ev.bounce + app.L + app.D + 10; app.mcuDone = true; tick('compare'); }
+  dirty.mcu = true;
+});
+$('#mcuRestart').addEventListener('click', () => { resetMcuAnim(); dirty.mcu = true; });
+function mcuPick(dir) {
+  const evs = started(); if (!evs.length) return;
+  const cur = mcuEvent(); let i = evs.indexOf(cur) + dir; i = clamp(i, 0, evs.length - 1);
+  app.sel = evs[i]; app.selUser = true; resetMcuAnim(); dirty.mcu = true;
+}
+$('#mcuPrev').addEventListener('click', () => mcuPick(-1));
+$('#mcuNext').addEventListener('click', () => mcuPick(1));
+$$('#mcuWin button').forEach(b => b.addEventListener('click', () => { app.mcuWin = +b.dataset.w; $$('#mcuWin button').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+$$('#mcuRate button').forEach(b => b.addEventListener('click', () => { app.rate = +b.dataset.r; $$('#mcuRate button').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+$$('#modeSeg button').forEach(b => b.addEventListener('click', () => { app.mcuMode = b.dataset.mode; $$('#modeSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); prevRunCount = 0; }));
+function setParams(L, D, preset) {
+  app.L = L; app.D = D;
+  $('#lat').value = L; $('#dur').value = D;
+  $('#latV').textContent = L.toFixed(L < 10 ? 1 : 0) + ' мкс'; $('#durV').textContent = D.toFixed(2).replace(/0$/, '') + ' мкс';
+  $$('[data-preset]').forEach(c => c.setAttribute('aria-pressed', c.dataset.preset === preset));
+  serialState.key = ''; dirtyAll();
+}
+$('#lat').addEventListener('input', e => setParams(+e.target.value, app.D, ''));
+$('#dur').addEventListener('input', e => setParams(app.L, +e.target.value, ''));
+$$('[data-preset]').forEach(c => c.addEventListener('click', () => c.dataset.preset === 'wokwi' ? setParams(14, 0.3, 'wokwi') : setParams(3, 1.5, 'real')));
+
+/* =====================================================================
+   Code panel
+   ===================================================================== */
+const SRC = { hw: $('#src-hw').textContent.replace(/\n$/, '').split('\n'), lab: $('#src-lab').textContent.replace(/\n$/, '').split('\n') };
+function highlight(line) {
+  if (/^\s*#/.test(line)) return `<span class="t-p">${esc(line)}</span>`;
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)')|\b(const|constexpr|for|if|else|return|void|bool|struct|namespace|static_cast|static_assert|while|true|false|sizeof|switch|case|break|default|volatile)\b|\b(uint32_t|uint8_t|char|Edge|Event|Stats|unsigned|long|float)\b|\b(\d+(?:\.\d+)?U?L?)\b|\b(IRAM_ATTR|Serial|INPUT_PULLUP|OUTPUT|FALLING|CHANGE|LOW|HIGH|REG_WRITE|REG_READ)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line))) {
+    const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'k' : m[4] ? 't' : m[5] ? 'n' : 'm';
+    out += esc(line.slice(last, m.index)) + `<span class="t-${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+const findLines = (fw, needles) => needles.map(n => SRC[fw].findIndex(l => l.includes(n))).filter(i => i >= 0);
+function rangeLines(fw, from, to) { const a = SRC[fw].findIndex(l => l.includes(from)); let b = a; while (b >= 0 && b < SRC[fw].length && !SRC[fw][b].startsWith(to)) b++; return a < 0 ? [] : Array.from({ length: b - a + 1 }, (_, i) => a + i); }
+const HEAT_LINES = {
+  hw: { isr: findLines('hw', ['void IRAM_ATTR button_isr() {', 'button_counter++;']), loop: findLines('hw', ['if (button_counter != last_count) {', 'last_count = button_counter;', 'Serial.print("Button Pressed! Count: ");', 'Serial.println(last_count);']) },
+  lab: { isr: rangeLines('lab', 'void IRAM_ATTR onButtonEdge() {', '}'), loop: [...findLines('lab', ['addEdge(gRing[gTail & (kRingSize - 1)]);', 'if (gInEvent && static_cast<uint32_t>(esp_timer_get_time()) - gEvent.lastUs >= kQuietUs) {', 'finishEvent();']), ...rangeLines('lab', 'Serial.printf("%3lu  %-7s', 'Serial.println();').slice(0, 4)] },
+};
+let codeFw = 'lab';
+const heat = new Float32Array(400);
+function showTab(fw) {
+  codeFw = fw;
+  $('#tabHw').setAttribute('aria-selected', fw === 'hw'); $('#tabLab').setAttribute('aria-selected', fw === 'lab');
+  $('#codeNote').textContent = fw === 'hw' ? 'env: homework-base · src/homework_base.cpp' : 'env: bounce-lab · src/main.cpp';
+  $('#codeBox').innerHTML = SRC[fw].map((l, i) => `<div class="ln" data-i="${i}"><span class="no">${i + 1}</span><span class="cur">▶</span><code>${highlight(l) || ' '}</code></div>`).join('');
+  heat.fill(0);
+}
+$('#tabHw').addEventListener('click', () => { showTab('hw'); tick('flash'); });
+$('#tabLab').addEventListener('click', () => { showTab('lab'); tick('flash'); });
+function heatIsr() { for (const i of HEAT_LINES[codeFw].isr) heat[i] = 1; }
+function heatLoop() { for (const i of HEAT_LINES[codeFw].loop) heat[i] = 1; }
+function heatFrame(dt) {
+  const lines = $('#codeBox').children;
+  for (let i = 0; i < lines.length; i++) {
+    if (heat[i] > 0.002) { heat[i] *= Math.exp(-dt / 450); lines[i].style.setProperty('--heat', heat[i].toFixed(3)); lines[i].classList.toggle('is-cur', heat[i] > 0.6); }
+    else if (heat[i]) { heat[i] = 0; lines[i].style.removeProperty('--heat'); lines[i].classList.remove('is-cur'); }
+  }
+}
+
+/* =====================================================================
+   Serial
+   ===================================================================== */
+const serialState = { key: '', lines: [], shown: 0 };
+const p3 = n => padL(n, 3);
+function labLines(evs) {
+  // JS port of finishEvent()/printSummary() from src/main.cpp, fed by the interrupt model
+  const out = [];
+  const push = (t, text, cls = '') => out.push({ t, text, cls });
+  push(0.09, ''); push(0.09, '=== ESP32-S3: button bounce lab (module 1.5) ===', 'hd'); push(0.09, 'Button: GPIO16 -> GND, INPUT_PULLUP, interrupt CHANGE');
+  push(0.09, 'ISR marker: GPIO17 is HIGH while the ISR runs (logic analyzer channel 2)'); push(0.09, 'An event ends after 50 ms without edges. Keys: s = summary, r = reset, h = help');
+  const S = { presses: 0, releases: 0, pe: 0, re: 0, pb: 0, rb: 0, pm: 0, rm: 0, fall: 0, mg: Infinity };
+  let rows = 0, stable = 1;
+  for (const ev of evs) {
+    const runs = evModel(ev).change; if (!runs.length) continue;
+    const base = ev.t0 * 1000, ts = runs.map(r => Math.floor(base + r.s));
+    const lastLevel = runs[runs.length - 1].level;
+    const press = lastLevel === 0 && stable === 1, release = lastLevel === 1 && stable === 0;
+    stable = lastLevel;
+    const bounce = ts[ts.length - 1] - ts[0];
+    let mg = Infinity; for (let i = 1; i < ts.length; i++) mg = Math.min(mg, ts[i] - ts[i - 1]);
+    const fall = runs.filter(r => r.level === 0).length, rise = runs.length - fall;
+    if (press) { S.presses++; S.pe += runs.length; S.pb += bounce; S.pm = Math.max(S.pm, bounce); }
+    else if (release) { S.releases++; S.re += runs.length; S.rb += bounce; S.rm = Math.max(S.rm, bounce); }
+    S.fall += fall; S.mg = Math.min(S.mg, mg);
+    const t = (ts[ts.length - 1] / 1000) + QUIET_MS;
+    if (rows % 20 === 0) { push(t, ''); push(t, '  #  event    edges  fall  rise  bounce,us  min gap,us  edges, us from the first (v = LOW, ^ = HIGH)', 'hd'); push(t, '---  -------  -----  ----  ----  ---------  ----------  ----------------------------------------------', 'hd'); }
+    rows++;
+    const name = press ? 'PRESS' : release ? 'release' : 'glitch';
+    let s = `${p3(press ? S.presses : release ? S.releases : 0)}  ${name.padEnd(7)}  ${padL(runs.length, 5)}  ${padL(fall, 4)}  ${padL(rise, 4)}  ${padL(bounce, 9)}  ${runs.length > 1 ? padL(mg, 10) : padL('-', 10)}  `;
+    for (let i = 0; i < Math.min(12, runs.length); i++) s += (runs[i].level ? '^' : 'v') + (ts[i] - ts[0]) + ' ';
+    if (runs.length > 12) s += '... +' + (runs.length - 12);
+    push(t, s, 'row');
+    if (release && S.releases % 10 === 0) {
+      const worst = Math.max(S.pm, S.rm), dms = Math.max(1, Math.floor((worst * 3 / 2 + 999) / 1000));
+      push(t, ''); push(t, `=== summary: ${S.presses} presses, ${S.releases} releases ===`, 'sum');
+      if (S.presses) push(t, `press:   edges avg ${(S.pe / S.presses).toFixed(1)}, bounce avg ${Math.floor(S.pb / S.presses)} us, max ${S.pm} us`, 'sum');
+      if (S.releases) push(t, `release: edges avg ${(S.re / S.releases).toFixed(1)}, bounce avg ${Math.floor(S.rb / S.releases)} us, max ${S.rm} us`, 'sum');
+      push(t, `edges read as LOW (~ homework FALLING counter): ${S.fall} for ${S.presses} presses`, 'sum');
+      if (S.mg < Infinity) push(t, `shortest gap between edges: ${S.mg} us`, 'sum');
+      push(t, `debounce >= ${dms} ms (worst bounce ${worst} us x 1.5)`, 'sum'); push(t, '');
+      rows = 0;
+    }
+  }
+  return out;
+}
+function hwLines(evs) {
+  // homework_base.cpp: ISR counts FALLING runs; loop() prints the counter every 10 ms when it changed
+  const out = [{ t: 0.05, text: '(код з умови нічого не друкує при старті — лише «Button Pressed! Count: N», коли лічильник змінився)', cls: 'sim' }];
+  if (app.src === 'real') out.push({ t: 0.05, text: '(у Wokwi записувалась лабораторна прошивка; лічильник тут рахує модель переривань з розділу 4)', cls: 'sim' });
+  const starts = [];
+  for (const ev of evs) for (const r of evModel(ev).falling) starts.push(ev.t0 + r.s / 1000);
+  starts.sort((a, b) => a - b);
+  let count = 0, i = 0, lastPrinted = 0;
+  const phase = 3.7;
+  while (i < starts.length) {
+    const tick = Math.ceil((starts[i] - phase) / 10) * 10 + phase;
+    while (i < starts.length && starts[i] <= tick) { count++; i++; }
+    if (count !== lastPrinted) { out.push({ t: tick, text: 'Button Pressed! Count: ' + count, cls: 'row' }); lastPrinted = count; }
+  }
+  return out;
+}
+function realLabLines() {
+  // the real Serial log of the Wokwi run, scheduled at each event's end
+  const out = [], rows = [];
+  SERIAL_REAL.forEach((l, i) => { if (/^\s*\d+\s+(PRESS|release|glitch)\s/.test(l)) rows.push(i); });
+  const fin = REAL.map(e => { const r = e.isr; return e.t0 + (r.length ? r[r.length - 1][0] : e.bounce) / 1000 + QUIET_MS; });
+  SERIAL_REAL.forEach((l, i) => {
+    // banner → right after boot; header (3 lines before the first row) → with the first row;
+    // each row → when its event ends; summary (after the last row) → with the last row
+    const k = rows.findIndex(r => r >= i);
+    const t = k < 0 ? fin[fin.length - 1] : k === 0 && i < rows[0] - 3 ? 0.09 : fin[k];
+    const cls = /^\s*\d+\s+(PRESS|release)/.test(l) ? 'row' : /^(===|press:|release:|edges read|shortest|debounce)/.test(l) ? (l.startsWith('=== ESP32') ? 'hd' : 'sum') : /^(  #|---)/.test(l) ? 'hd' : '';
+    out.push({ t, text: l, cls });
+  });
+  return out;
+}
+function serialLines() {
+  const key = [app.src, app.fw, app.L, app.D, EVENTS().length].join('|');
+  if (serialState.key !== key || serialState.srcLen !== EVENTS().length) {
+    serialState.key = key; serialState.srcLen = EVENTS().length; serialState.shown = 0; $('#serialBox').innerHTML = '';
+    serialState.lines = app.fw === 'hw' ? hwLines(EVENTS()) : app.src === 'real' ? realLabLines() : labLines(EVENTS());
+  }
+  return serialState.lines;
+}
+function renderSerial() {
+  if (app.serialFrozen) return;
+  const lines = serialLines(), T = nowT(), box = $('#serialBox');
+  let n = serialState.shown;
+  if (n > 0 && n <= lines.length && lines[n - 1].t > T + 1e-6) { serialState.shown = 0; box.innerHTML = ''; n = 0; }
+  let html = '';
+  while (n < lines.length && lines[n].t <= T) { const l = lines[n]; html += `<div class="${l.cls}${l.cls === 'row' ? ' row-new' : ''}">${esc(l.text) || ' '}</div>`; n++; }
+  if (html) {
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    box.insertAdjacentHTML('beforeend', html); serialState.shown = n;
+    if (atBottom || n < 40) box.scrollTop = box.scrollHeight;
+  }
+  $('#serFw').textContent = app.fw === 'hw' ? 'homework-base' : 'bounce-lab';
+}
+$('#serPause').addEventListener('click', e => { app.serialFrozen = !app.serialFrozen; e.currentTarget.setAttribute('aria-pressed', app.serialFrozen); e.currentTarget.textContent = app.serialFrozen ? '▶ Продовжити' : '❚❚ Заморозити'; });
+$('#serClear').addEventListener('click', () => { $('#serialBox').innerHTML = ''; });
+$('#serCopy').addEventListener('click', () => copyText($('#serialBox').innerText, $('#serCopy')));
+function copyText(text, btn) {
+  const done = () => { const o = btn.textContent; btn.textContent = '✓ Скопійовано'; setTimeout(() => btn.textContent = o, 1400); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ } ta.remove();
+}
+
+/* =====================================================================
+   Results table
+   ===================================================================== */
+function pairs() {
+  // pair each PRESS with the following release
+  const fin = finished(), out = [];
+  for (let i = 0; i < fin.length; i++) {
+    if (fin[i].kind !== 'PRESS') continue;
+    const rel = fin[i + 1] && fin[i + 1].kind === 'release' ? fin[i + 1] : null;
+    out.push({ p: fin[i], r: rel });
+  }
+  return out;
+}
+function tableData() {
+  return pairs().map((x, n) => {
+    const pm = evModel(x.p), rm = x.r ? evModel(x.r) : null;
+    return {
+      n: n + 1,
+      pA: x.p.edges.length, pC: mcuCount(x.p), pD: pm.falling.length, pB: x.p.bounce / 1000, pMin: x.p.minGap,
+      rA: x.r ? x.r.edges.length : null, rC: x.r ? mcuCount(x.r) : null, rD: rm ? rm.falling.length : null, rB: x.r ? x.r.bounce / 1000 : null,
+    };
+  });
+}
+let tblRows = 0;
+function renderTable() {
+  const rows = tableData(), tbl = $('#resTable');
+  const f = (v, d = 0) => v === null || v === undefined || !isFinite(v) ? '—' : v.toFixed(d);
+  let html = `<thead><tr><th rowspan="2">#</th><th class="grp" colspan="5">Натискання</th><th class="grp" colspan="4">Відпускання</th><th rowspan="2">button_counter після пари</th></tr>
+  <tr><th>фронтів (аналізатор)</th><th>ESP32 CHANGE</th><th>FALLING (умова)</th><th>брязкіт, мс</th><th>найкоротший імпульс, мкс</th><th>фронтів</th><th>ESP32 CHANGE</th><th>FALLING (умова)</th><th>брязкіт, мс</th></tr></thead><tbody>`;
+  let cum = 0;
+  rows.forEach((r, i) => {
+    cum += r.pD + (r.rD || 0);
+    html += `<tr class="${i >= tblRows ? 'new' : ''}"><td>${r.n}</td><td>${r.pA}</td><td class="bad">${r.pC}</td><td>${r.pD}</td><td>${f(r.pB, 2)}</td><td>${f(r.pMin, r.pMin < 10 ? 1 : 0)}</td><td>${f(r.rA)}</td><td class="bad">${f(r.rC)}</td><td>${f(r.rD)}</td><td>${f(r.rB, 2)}</td><td>${cum} <span class="lbl-sm">(мало б ${r.n})</span></td></tr>`;
+  });
+  if (rows.length) {
+    const avg = k => { const v = rows.map(r => r[k]).filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    const max = k => Math.max(...rows.map(r => r[k]).filter(x => x !== null));
+    html += `<tr class="avg"><td>сер.</td><td>${f(avg('pA'), 1)}</td><td>${f(avg('pC'), 1)}</td><td>${f(avg('pD'), 1)}</td><td>${f(avg('pB'), 2)}</td><td>${f(Math.min(...rows.map(r => r.pMin)), 1)} (мін.)</td><td>${f(avg('rA'), 1)}</td><td>${f(avg('rC'), 1)}</td><td>${f(avg('rD'), 1)}</td><td>${f(avg('rB'), 2)}</td><td></td></tr>`;
+    const worst = Math.max(max('pB'), rows.some(r => r.rB !== null) ? max('rB') : 0);
+    $('#tblNote').innerHTML = `Найдовший брязкіт — <b>${worst.toFixed(2)} мс</b>. Рекомендований debounce ≥ <b>${Math.max(1, Math.ceil(worst * 1.5))} мс</b> (×1.5, округлено вгору; так само рахує прошивка). Стовпці «ESP32 CHANGE» ${app.src === 'real' ? 'взято з маркера ISR у записі Wokwi' : 'пораховано моделлю переривань'}, «FALLING (умова)» — моделлю з розділу 4 (L = ${app.L} мкс).`;
+    if (vis.table === true) tick('measure');
+  } else {
+    html += `<tr><td colspan="11" style="text-align:left;color:var(--muted)">Поки порожньо. Натисніть «⏩ Весь запис», «▶ Відтворити» або утримуйте кнопку S1.</td></tr>`;
+    $('#tblNote').textContent = '';
+  }
+  tbl.innerHTML = html + '</tbody>';
+  tblRows = rows.length;
+  if (rows.length >= 10 && (app.src === 'live' || playedFull)) tick('press10');
+}
+let playedFull = false;
+function csv() {
+  const rows = tableData();
+  const head = 'press,press_edges_analyzer,press_isr_change,press_falling_counter,press_bounce_ms,press_shortest_pulse_us,release_edges_analyzer,release_isr_change,release_falling_counter,release_bounce_ms';
+  return head + '\n' + rows.map(r => [r.n, r.pA, r.pC, r.pD, r.pB.toFixed(3), isFinite(r.pMin) ? r.pMin.toFixed(2) : '', r.rA ?? '', r.rC ?? '', r.rD ?? '', r.rB !== null ? r.rB.toFixed(3) : ''].join(',')).join('\n') + '\n';
+}
+function markdown() {
+  const rows = tableData();
+  let s = '| # | фронтів (аналізатор) | ESP32 CHANGE | FALLING (умова) | брязкіт натиск., мс | найкоротший імпульс, мкс | фронтів відпуск. | брязкіт відпуск., мс |\n|---|---|---|---|---|---|---|---|\n';
+  for (const r of rows) s += `| ${r.n} | ${r.pA} | ${r.pC} | ${r.pD} | ${r.pB.toFixed(2)} | ${isFinite(r.pMin) ? r.pMin.toFixed(1) : '—'} | ${r.rA ?? '—'} | ${r.rB !== null ? r.rB.toFixed(2) : '—'} |\n`;
+  return s;
+}
+$('#tblCsv').addEventListener('click', () => {
+  const blob = new Blob([csv()], { type: 'text/csv' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = app.src === 'real' ? 'bounce-wokwi-10-presses.csv' : 'bounce-my-presses.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$('#tblMd').addEventListener('click', e => copyText(markdown(), e.currentTarget));
+
+/* =====================================================================
+   Debounce strategies
+   ===================================================================== */
+const DB_TEXT = {
+  lock: n => `<b>Блокування:</b> на першому фронті програма одразу перемикає стан і ${n} мс ігнорує пін. Реакція миттєва, але якщо брязкіт довший за ${n} мс, після блокування вона побачить ще один перехід. А одиночна завада теж спрацює.`,
+  stable: n => `<b>Чекати стабільності:</b> стан змінюється, лише коли пін ${n} мс не змінювався. Завад не пропускає, але відповідь приходить через «брязкіт + ${n} мс». Найнадійніший і найпоширеніший спосіб (Ганссл, Bounce2).`,
+  rc: n => `<b>RC + тригер Шмітта:</b> конденсатор згладжує сигнал зі сталою часу τ = ${n} мс, а тригер із порогами 30 % / 70 % дає чистий фронт. Апаратне рішення, програмі нічого робити не треба. Насправді заряд іде через підтяжку (повільно), а розряд — через кнопку (швидко). Тут модель симетрична. Більше: <a href="../pull-resistors/">тригер Шмітта</a>.`,
+  glitch: () => `<b>Glitch filter ESP32-S3:</b> апаратно відкидає імпульси, коротші за два такти IO_MUX (≈ 25 нс на 80 МГц). Імпульси брязкоту тривають від 100 нс до сотень мкс, тож фільтр майже нічого не прибирає. Він проти голок-завад, а не проти брязкоту.`,
+};
+let dbOutCache = [];
+function renderDB() {
+  const evs = finished(), s = app.db, N = app.dbN;
+  $('#dbCtl').style.visibility = s === 'glitch' ? 'hidden' : 'visible';
+  $('#dbNLabel').textContent = s === 'rc' ? 'Стала часу τ = R·C' : s === 'lock' ? 'Блокування N' : 'Стабільність N';
+  $('#dbNV').textContent = N.toFixed(N < 10 ? 1 : 0) + ' мс';
+  dbOutCache = evs.map(ev => debounce(ev, s, N));
+  let ok = 0, extra = 0, latSum = 0, latN = 0;
+  const cells = evs.map((ev, i) => {
+    const out = dbOutCache[i], good = out.length === 1 && out[0].l === ev.last;
+    if (good) ok++; extra += Math.max(0, out.length - 1);
+    if (out.length) { latSum += out[out.length - 1].t; latN++; }
+    const lat = out.length ? out[out.length - 1].t : null;
+    return `<button type="button" class="cell ${good ? 'ok' : 'bad'}${i === app.dbSel ? ' sel' : ''}" data-i="${i}"><canvas width="110" height="40"></canvas><b class="${good ? 'ok' : 'bad'}">${good ? '✓' : '✗ ' + out.length}</b> ${ev.kind === 'PRESS' ? '▼' : '▲'}${i + 1} · ${lat === null ? '—' : lat < 0.5 ? '0' : fmtUs(lat)}</button>`;
+  });
+  $('#dbCells').innerHTML = cells.join('') || '<p style="margin:0;color:var(--muted)">Немає завершених подій. Натисніть «⏩ Весь запис» у розділі 7 або натискайте S1.</p>';
+  $$('#dbCells .cell').forEach(c => {
+    const i = +c.dataset.i, cv = c.querySelector('canvas');
+    drawDbMini(cv, evs[i], dbOutCache[i]);
+    c.addEventListener('click', () => { app.dbSel = i; renderDB(); });
+  });
+  $('#dbOk').textContent = evs.length ? `${ok} / ${evs.length}` : '—';
+  $('#dbExtra').textContent = evs.length ? extra : '—';
+  $('#dbLat').textContent = latN ? (latSum / latN < 0.5 ? 'миттєво' : fmtUs(latSum / latN)) : '—';
+  let gap = Infinity; for (let i = 1; i < evs.length; i++) gap = Math.min(gap, (evs[i].t0 - evs[i - 1].t0) * 1000 - evs[i - 1].bounce);
+  $('#dbGap').textContent = gap < Infinity ? fmtUs(gap) : '—';
+  const warn = s !== 'glitch' && gap < Infinity && (s === 'rc' ? N * 2 : N) * 1000 > gap ? ` <b style="color:var(--bad)">Увага:</b> N більший за найкоротшу паузу між подіями (${fmtUs(gap)}). Швидке подвійне натискання буде втрачено.` : '';
+  const human = s !== 'glitch' && latN && latSum / latN > 100000 ? ' Затримка понад 100 мс уже помітна людині.' : '';
+  $('#dbExplain').innerHTML = DB_TEXT[s](N.toFixed(N < 10 ? 1 : 0)) + warn + human;
+  drawDbBig(evs[app.dbSel] || evs[0], dbOutCache[app.dbSel] || dbOutCache[0]);
+}
+function drawTrace(g, ev, out, x0, w, y, H, span, rawColor, outColor, lw) {
+  const X = t => x0 + t / span * w;
+  g.strokeStyle = rawColor; g.lineWidth = 1; g.beginPath();
+  let l = ev.lb; g.moveTo(x0, l ? y : y + H);
+  for (const e of ev.edges) { const x = X(e.t); g.lineTo(x, l ? y : y + H); g.lineTo(x, e.l ? y : y + H); l = e.l; }
+  g.lineTo(x0 + w, l ? y : y + H); g.stroke();
+  if (!out) return;
+  const y2 = y + H + 8;
+  g.strokeStyle = outColor; g.lineWidth = lw; g.beginPath();
+  l = ev.lb; g.moveTo(x0, l ? y2 : y2 + H);
+  for (const e of out) { const x = Math.min(x0 + w, X(e.t)); g.lineTo(x, l ? y2 : y2 + H); g.lineTo(x, e.l ? y2 : y2 + H); l = e.l; }
+  g.lineTo(x0 + w, l ? y2 : y2 + H); g.stroke();
+}
+function drawDbMini(cv, ev, out) {
+  const g = cv.getContext('2d'); const w = cv.width, h = cv.height;
+  g.fillStyle = TOK['--scope']; g.fillRect(0, 0, w, h);
+  const span = Math.max(ev.bounce, out.length ? out[out.length - 1].t : 0) * 1.15 + 50;
+  drawTrace(g, ev, out, 2, w - 4, 3, 13, span, TOK['--muted'], out.length === 1 ? TOK['--ok'] : TOK['--bad'], 1.5);
+}
+function drawDbBig(ev, out) {
+  const c = $('#dbCanvas'); const [g, w, h] = fitCanvas(c);
+  g.fillStyle = TOK['--scope']; g.fillRect(0, 0, w, h);
+  if (!ev) return;
+  g.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  const span = Math.max(ev.bounce, out.length ? out[out.length - 1].t : 0) * 1.12 + 100;
+  const step = niceStep(span / 6);
+  g.strokeStyle = TOK['--scope-grid']; g.fillStyle = TOK['--scope-text'];
+  for (let t = 0; t <= span; t += step) { const x = 70 + t / span * (w - 80); g.beginPath(); g.moveTo(x, 14); g.lineTo(x, h); g.stroke(); g.fillText(fmtUs(t), x + 2, 11); }
+  g.fillText('пін', 6, 46); g.fillText('після', 6, 108); g.fillText('фільтра', 6, 122);
+  drawTrace(g, ev, out, 70, w - 80, 30, 46, span, TOK['--accent'], out.length === 1 ? TOK['--ok'] : TOK['--bad'], 2.2);
+  if (out.length) {
+    const x = 70 + out[out.length - 1].t / span * (w - 80);
+    g.strokeStyle = TOK['--hi']; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(70, 160); g.lineTo(x, 160); g.stroke(); g.setLineDash([]);
+    g.fillStyle = TOK['--hi']; g.fillText(`затримка ${fmtUs(out[out.length - 1].t)}`, Math.min(x + 6, w - 140), 164);
+  }
+}
+$$('#dbSeg button').forEach(b => b.addEventListener('click', () => { app.db = b.dataset.s; $$('#dbSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); tick('debounce'); dirty.db = true; }));
+$('#dbN').addEventListener('input', e => { app.dbN = +e.target.value; tick('debounce'); dirty.db = true; });
+
+/* =====================================================================
+   Answers (numbers from the current data)
+   ===================================================================== */
+function renderAnswers() {
+  const fin = finished();
+  const box = $('#ansBox');
+  const open = new Set($$('details', box).filter(d => d.open).map(d => d.dataset.k));
+  if (!fin.length) { box.innerHTML = '<p style="margin:0;color:var(--muted)">Поки немає даних. Натисніть «⏩ Весь запис» у розділі 7 або натискайте S1.</p>'; return; }
+  const presses = fin.filter(e => e.kind === 'PRESS'), rels = fin.filter(e => e.kind === 'release');
+  let A = 0, C = 0, mergedN = 0, fallI = 0, D = 0, Drel = 0, flips = 0, minPulse = Infinity;
+  for (const e of fin) {
+    const m = evModel(e); A += e.edges.length; C += mcuCount(e); fallI += e.fall; D += m.falling.length; if (e.kind === 'release') Drel += m.falling.length;
+    mergedN += m.change.reduce((s, r) => s + r.merged.length, 0); flips += m.change.filter((r, i) => i && r.level === m.change[i - 1].level).length;
+    minPulse = Math.min(minPulse, e.minGap);
+  }
+  const avg = a => a.length ? a.reduce((s, e) => s + e.bounce, 0) / a.length : 0;
+  const maxB = Math.max(...fin.map(e => e.bounce));
+  const dms = Math.max(1, Math.ceil(maxB * 1.5 / 1000));
+  const stableOk = fin.filter(e => { const o = debounce(e, 'stable', dms); return o.length === 1 && o[0].l === e.last; }).length;
+  const n = v => `<b class="num">${v}</b>`;
+  const card = (k, title, body) => `<details class="q" data-k="${k}"${open.has(k) ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
+  box.innerHTML =
+    card('1', '1. Чи співпадає кількість імпульсів аналізатора і лічильника мікроконтролера?',
+      `<p>Ні. За ${n(presses.length)} натискань і ${n(rels.length)} відпускань аналізатор бачив ${n(A)} фронтів. ESP32 у режимі CHANGE запустив ISR ${n(C)} разів (${n(Math.round(C / A * 100) + ' %')})${app.src === 'real' ? ', це справжнє число з маркера GPIO17 у Wokwi' : ''}. Код з умови (FALLING) нарахував би ${n(D)}, хоча людина натиснула лише ${n(presses.length)} разів.</p><p>Тобто ані «скільки фронтів», ані «скільки натискань» лічильник не показує.</p>`) +
+    card('2', '2. Коли мікроконтролер пропускає брязкіт, а коли рахує зайве?',
+      `<p><b>Пропускає:</b> коли фронти йдуть щільніше, ніж ISR встигає. Прапорець переривання — один біт, тож фронти за ті ${n(app.L + ' мкс')} до входу в обробник зливаються. У ваших даних злилося ${n(mergedN)} фронтів (модель), найкоротший імпульс — ${n(isFinite(minPulse) ? fmtUs(minPulse) : '—')}. А ${n(flips)} разів ISR прочитав той самий рівень двічі поспіль: між ними був фронт, який він «проспав».</p><p><b>Рахує зайве:</b> з погляду «одне натискання = +1» лічильник FALLING завжди рахує зайве. Брязкіт дає десятки фронтів униз, і ${n(Drel)} з ${n(D)} прийшли під час <i>відпускання</i>. Ще зайве рахують завади на довгому дроті без підтяжки (див. «Підтяжка входу»).</p>`) +
+    card('3', '3. Яка середня тривалість брязкоту для вашої кнопки?',
+      `<p>Натискання: ${n(fmtUs(avg(presses)))} у середньому, відпускання: ${n(fmtUs(avg(rels)))}, найдовший — ${n(fmtUs(maxB))}. ${app.src === 'real' ? 'Кнопка Wokwi брязкотить ~2 мс завжди. Справжня 6×6 кнопка дає від десятків мкс до кількох мс і по-різному від сили натискання.' : 'Порівняйте з виміром Ганссла: у середньому 1.6 мс, максимум 6.2 мс у 16 кнопок.'}</p>`) +
+    card('4', '4. Який мінімальний debounce був би достатній?',
+      `<p>Найдовший брязкіт ${n(fmtUs(maxB))} × запас 1.5 → ${n('≥ ' + dms + ' мс')}. Зі способом «чекати стабільності ${dms} мс» правильно відпрацювали ${n(stableOk + ' / ' + fin.length)} подій. Перевірте в розділі 8.</p><p>Запас потрібен, бо 10 натискань — мала вибірка, а кнопка старіє. Верхня межа: debounce має бути набагато коротшим за найшвидше подвійне натискання (~50–100 мс) і за поріг помітної затримки (~100 мс).</p>`);
+  $$('details', box).forEach(d => d.addEventListener('toggle', () => { if (d.open) tick('questions'); }));
+}
+$$('#answers details.q').forEach(d => d.addEventListener('toggle', () => { if (d.open) tick('questions'); }));
+
+/* =====================================================================
+   Frame loop
+   ===================================================================== */
+let lastFin = -1, lastStarted = -1, layoutW = 0;
+function frame(now) {
+  const dt = Math.min(100, now - app.last); app.last = now;
+  if (app.src === 'live') app.liveT += dt;
+  else if (app.playing) {
+    app.T += dt * app.speed;
+    if (app.T >= REAL_END) { app.T = REAL_END; app.playing = false; playedFull = true; dirty.table = true; updatePlayBtn(); }
+  }
+  const T = nowT();
+  $('#clock').textContent = T.toLocaleString('uk-UA', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const nS = started().length, nF = finished().length;
+  if (nS !== lastStarted) { lastStarted = nS; dirty.la = true; if (!app.selUser) { resetMcuAnim(); if (app.src === 'live' && !REDUCED) { app.mcuPlaying = false; } } dirty.mcu = true; }
+  if (nF !== lastFin) { lastFin = nF; dirty.table = dirty.db = dirty.ans = true; }
+  if (app.follow && (app.playing || app.src === 'live')) { const v = defaultView(); if (!app.view || v.a !== app.view.a || v.b !== app.view.b) { app.view = v; dirty.la = true; } }
+  benchUpdate(now);
+  if (la.clientWidth !== layoutW) { layoutW = la.clientWidth; dirtyAll(); }
+  if (dirty.la && isVisible('la')) { dirty.la = false; drawLA(); }
+  if (isVisible('mcu')) { drawMCU(dt); }
+  if (dirty.table) { dirty.table = false; renderTable(); }
+  if (dirty.db && isVisible('debounce')) { dirty.db = false; renderDB(); }
+  if (dirty.ans) { dirty.ans = false; renderAnswers(); }
+  renderSerial();
+  heatFrame(dt);
+  requestAnimationFrame(frame);
+}
+const vis = {};
+const io = new IntersectionObserver(es => es.forEach(e => { vis[e.target.id] = e.isIntersecting; if (e.isIntersecting) dirty[e.target.id === 'debounce' ? 'db' : e.target.id] = true; }), { rootMargin: '200px' });
+['la', 'mcu', 'debounce', 'table'].forEach(id => io.observe(document.getElementById(id)));
+const isVisible = id => vis[id] !== false;
+
+readTokens();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+window.addEventListener('resize', dirtyAll);
+showTab('lab');
+setParams(14, 0.3, 'wokwi');
+updatePlayBtn();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Microcontroller chip with a digital pulse: the site icon for all study pages. -->
+  <g fill="#c8a24a">
+    <rect x="17" y="2" width="6" height="10" rx="1.5"/><rect x="29" y="2" width="6" height="10" rx="1.5"/><rect x="41" y="2" width="6" height="10" rx="1.5"/>
+    <rect x="17" y="52" width="6" height="10" rx="1.5"/><rect x="29" y="52" width="6" height="10" rx="1.5"/><rect x="41" y="52" width="6" height="10" rx="1.5"/>
+    <rect x="2" y="17" width="10" height="6" rx="1.5"/><rect x="2" y="29" width="10" height="6" rx="1.5"/><rect x="2" y="41" width="10" height="6" rx="1.5"/>
+    <rect x="52" y="17" width="10" height="6" rx="1.5"/><rect x="52" y="29" width="10" height="6" rx="1.5"/><rect x="52" y="41" width="10" height="6" rx="1.5"/>
+  </g>
+  <rect x="9" y="9" width="46" height="46" rx="7" fill="#13212c"/>
+  <rect x="9" y="9" width="46" height="46" rx="7" fill="none" stroke="#2f4a5e" stroke-width="2"/>
+  <circle cx="17" cy="17" r="2.6" fill="#566875"/>
+  <path d="M15 41 H23 V23 H33 V41 H41 V27 H49" fill="none" stroke="#45bfdc" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

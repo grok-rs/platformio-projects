@@ -1,0 +1,2234 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Осцилограф і кнопка</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="description" content="Інтерактивний конспект модуля 1.5 для початківців: часова область, V/под і с/под, тригер, фронти й час наростання, період, частота, коефіцієнт заповнення, щуп ×10 і смуга пропускання, брязкіт кнопки на осцилографі, логічний аналізатор, осцилограф на ESP32, конспекти відео й питання для обговорення.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one long study sheet on graph paper (same system as pull-resistors/).
+   Each topic = explanation column (predict → explain → worked example → "Головне") + live instrument. */
+:root {
+  --paper: #eaf0f4;
+  --grid: rgba(28, 74, 110, .07);
+  --panel: #fbfcfd;
+  --panel-2: #f1f5f8;
+  --scope: #0f1a22;
+  --scope-grid: rgba(150, 200, 230, .12);
+  --scope-text: #9fb4c3;
+  --ink: #13212c;
+  --muted: #566875;
+  --line: #c6d2db;
+  --accent: #0a6a86;
+  --accent-ink: #ffffff;
+  --hi: #d97f00;
+  --lo: #8a9aa6;
+  --z: #8b5cd6;
+  --pwr: #c2410c;
+  --gnd: #2a3945;
+  --flow: #f59e0b;
+  --sig: #38bdf8;
+  --sig2: #f472b6;
+  --ok: #15803d;
+  --bad: #c62828;
+  --band: rgba(139, 92, 214, .16);
+  --light: #facc15;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+    --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+    --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+    --sig: #38bdf8; --sig2: #f472b6; --ok: #4ade80; --bad: #f87171; --band: rgba(178, 140, 245, .14); --light: #fde047;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+  --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+  --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+  --sig: #38bdf8; --sig2: #f472b6; --ok: #4ade80; --bad: #f87171; --band: rgba(178, 140, 245, .14); --light: #fde047;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { overflow-x: hidden; }
+body {
+  margin: 0;
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font: 15.5px/1.6 var(--f-body);
+  padding-inline: 16px;
+  padding-block: 0 56px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; }
+a { color: var(--accent); }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; line-height: 1.1; text-wrap: balance; }
+code, kbd { font-family: var(--f-mono); font-size: .92em; }
+code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { padding-block: 32px 12px; display: grid; gap: 10px; }
+.eyebrow { font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+header.top h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); font-weight: 700; }
+header.top h1 span { color: var(--accent); }
+header.top p { margin: 0; max-width: 70ch; color: var(--muted); font-size: 1.05rem; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+nav.toc a {
+  font: 600 .98rem var(--f-display); letter-spacing: .03em; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--panel); padding: 5px 11px; border-radius: 999px;
+}
+nav.toc a span { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-right: 5px; }
+nav.toc a:hover { border-color: var(--accent); }
+
+.intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; min-width: 0; }
+.card h3 { font-size: .92rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.card ul, .card ol { margin: 0; padding-left: 20px; }
+.card li + li { margin-top: 3px; }
+.card p { margin: 0 0 6px; }
+.card .big-n { font: 700 2.2rem/1 var(--f-display); color: var(--accent); }
+
+section.topic {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px;
+  margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); scroll-margin-top: 12px;
+}
+section.full { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); scroll-margin-top: 12px; display: grid; gap: 14px; }
+@media (max-width: 980px) { section.topic { grid-template-columns: minmax(0, 1fr); } }
+.explain { min-width: 0; }
+.explain h2, section.full h2 { font-size: 2rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; }
+.explain h2 .n, section.full h2 .n { font: 600 1rem var(--f-mono); color: var(--accent); }
+.explain p, .explain li { max-width: 62ch; }
+.explain ul, .explain ol { padding-left: 20px; }
+.note { border-left: 3px solid var(--accent); background: var(--panel); padding: 8px 12px; margin: 12px 0; font-size: 14.5px; }
+.note.warn { border-left-color: var(--hi); }
+.note.bad { border-left-color: var(--bad); }
+.key { margin: 14px 0 0; padding: 8px 12px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); font-size: 14.5px; }
+.key b:first-child { font: 700 .95rem var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-right: 6px; }
+.formula { font-family: var(--f-mono); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 10px 0; overflow-x: auto; white-space: pre; font-size: 13.5px; }
+.formula .m { color: var(--hi); font-weight: 600; }
+
+/* predict → reveal */
+.predict { border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; margin: 12px 0; background: var(--panel); }
+.predict .tag, .try .tag { font: 600 11.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.predict p { margin: 2px 0 8px; font-weight: 600; }
+.opts { display: grid; gap: 6px; }
+.opt { text-align: left; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 6px; padding: 7px 10px; font: 14px var(--f-body); cursor: pointer; }
+.opt:hover { border-color: var(--accent); }
+.opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--panel)); }
+.opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--panel)); }
+.fb { margin-top: 6px; font-size: 14px; color: var(--muted); min-height: 1.2em; }
+.fb.ok { color: var(--ok); } .fb.no { color: var(--bad); }
+
+/* worked + faded example */
+.worked { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; }
+.worked h4, .try h4 { margin: 0 0 4px; font: 700 1.05rem var(--f-display); letter-spacing: .04em; }
+.worked ol { margin: 0; padding-left: 20px; font-size: 14.5px; }
+.try { border: 1px solid var(--hi); border-radius: 8px; padding: 10px 12px; margin: 12px 0; background: var(--panel); }
+.try .tag { color: var(--hi); }
+.try .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.try input, .calc input {
+  font: 600 15px var(--f-mono); width: 120px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.calc-f { display: inline-flex; align-items: center; gap: 8px; font: 600 13px var(--f-mono); color: var(--muted); }
+.btn { font: 600 13.5px var(--f-body); border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+.btn.ghost { background: var(--panel); color: var(--accent); }
+details { font-size: 14px; margin-top: 6px; }
+details summary { cursor: pointer; color: var(--accent); }
+
+.bench { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.ph h3 { font-size: .92rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ph .hint { font-size: 12.5px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 12px; }
+.controls + .controls { border-top: 1px dashed var(--line); }
+.ctl { display: grid; gap: 3px; font-size: 13px; min-width: 180px; flex: 1 1 200px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.ctl label b { font: 600 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); color: var(--ink); font: 500 13px var(--f-body); padding: 6px 10px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 999px; font: 500 12.5px var(--f-mono); padding: 3px 9px; cursor: pointer; }
+.chip-btn:hover, .chip-btn[aria-pressed="true"] { border-color: var(--accent); }
+.hold {
+  font: 600 14px var(--f-body); border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
+  padding: 9px 16px; border-radius: 999px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.hold[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 0; border-top: 1px solid var(--line); }
+.stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
+.stat:last-child { border-right: 0; }
+.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat .v { font: 600 1.15rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .v.hi { color: var(--hi); } .stat .v.lo { color: var(--muted); } .stat .v.z { color: var(--z); } .stat .v.bad { color: var(--bad); } .stat .v.ok { color: var(--ok); } .stat .v.sig { color: var(--sig); }
+
+canvas.scope { display: block; width: 100%; background: var(--scope); cursor: pointer; }
+canvas.scope.last { border-radius: 0 0 8px 8px; }
+canvas.plot { cursor: default; }
+.scope-wrap { position: relative; }
+.scope-wrap .paused { position: absolute; top: 8px; right: 10px; font: 600 11px var(--f-mono); color: var(--scope-text); background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 4px; pointer-events: none; }
+
+.codeline { font: 13px/1.6 var(--f-mono); padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel-2); overflow-x: auto; white-space: pre; }
+.codeline:last-child { border-radius: 0 0 8px 8px; }
+.codeline .c { color: var(--muted); font-style: italic; } .codeline .k { color: var(--accent); font-weight: 600; } .codeline .m { color: var(--hi); font-weight: 600; }
+.live { font: 600 13.5px var(--f-mono); padding: 8px 12px; border-top: 1px solid var(--line); overflow-x: auto; white-space: pre; color: var(--ink); }
+.live .m { color: var(--hi); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.pininfo { padding: 10px 12px; border-top: 1px solid var(--line); min-height: 96px; }
+.pininfo h4 { margin: 0 0 4px; font: 700 1.3rem var(--f-display); }
+.pininfo p { margin: 0; font-size: 14.5px; }
+.badge { display: inline-block; font: 600 11.5px var(--f-mono); border-radius: 999px; padding: 1px 8px; margin-right: 6px; border: 1px solid currentColor; }
+.badge.ok { color: var(--ok); } .badge.warn { color: var(--hi); } .badge.bad { color: var(--bad); } .badge.z { color: var(--z); } .badge.lo { color: var(--muted); }
+
+.tbl-wrap { overflow-x: auto; }
+table.att { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.att th, table.att td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.att th { font: 600 11.5px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+table.att td { font-family: var(--f-mono); }
+table.att tr.pick { cursor: pointer; }
+table.att tr.pick:hover td { background: var(--panel-2); }
+table.att tr.on td { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); font-weight: 600; }
+
+.mist { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+.mist .card h4 { margin: 0 0 4px; font: 700 1.15rem var(--f-display); }
+.mist .card p { font-size: 14px; }
+.mist .card .fix { color: var(--ok); }
+.mist .card .sym { color: var(--muted); font-size: 13.5px; }
+
+.quiz .q { padding: 12px; border-bottom: 1px solid var(--line); }
+.quiz .q:last-child { border-bottom: 0; }
+.quiz .q p { margin: 0 0 8px; font-weight: 600; }
+.score { font: 600 14px var(--f-mono); }
+
+.cheat { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+dl.gloss { margin: 0; display: grid; gap: 6px; }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 0 0 4px; color: var(--muted); font-size: 14.5px; }
+ul.links { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+ul.links li { font-size: 14.5px; }
+ul.links .lvl { font: 600 11px var(--f-mono); border-radius: 999px; padding: 1px 7px; margin-right: 6px; border: 1px solid currentColor; white-space: nowrap; }
+ul.links .lvl.b { color: var(--ok); } ul.links .lvl.d { color: var(--z); } ul.links .lvl.o { color: var(--accent); }
+ul.links small { display: block; color: var(--muted); }
+
+footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; display: grid; gap: 6px; }
+
+/* ---- module 1.5: virtual oscilloscope controls ---- */
+canvas.scope.osc { border-radius: 0; cursor: default; touch-action: pan-y; }
+canvas.scope.osc.curs { cursor: ew-resize; touch-action: none; }
+canvas.scope.osc.curs.cv { cursor: ns-resize; }
+.sc-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }
+.sc-ctl + .sc-ctl { border-top: 1px dashed var(--line); }
+.sc-ctl .grp { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sc-ctl .gl { font: 600 11px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.step { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.step .l { display: flex; align-items: center; padding: 0 7px; font: 600 11px var(--f-mono); color: var(--muted); background: var(--panel-2); border-right: 1px solid var(--line); }
+.step.c1 .l { color: var(--sig); } .step.c2 .l { color: var(--sig2); }
+.step button { border: 0; background: var(--panel); color: var(--ink); width: 32px; min-height: 32px; font: 600 16px var(--f-mono); cursor: pointer; }
+.step button:hover { background: var(--panel-2); }
+.step b { display: flex; align-items: center; justify-content: center; min-width: 84px; padding: 0 6px; font: 600 13px var(--f-mono); font-variant-numeric: tabular-nums; border-inline: 1px solid var(--line); }
+.runbtn { font: 700 13px var(--f-mono); letter-spacing: .06em; border: 1px solid var(--ok); background: var(--ok); color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; min-width: 74px; }
+.runbtn[aria-pressed="false"] { background: var(--bad); border-color: var(--bad); }
+.minirange { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.minirange input { width: 130px; }
+.minirange b { font: 600 13px var(--f-mono); color: var(--ink); min-width: 62px; font-variant-numeric: tabular-nums; }
+.sc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); border-top: 1px solid var(--line); }
+.sc-stats .stat { border-bottom: 1px solid var(--line); }
+.sc-stats .stat .v { font-size: 1rem; }
+.sc-stats .stat.cur .k { color: var(--hi); }
+.taskline { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.taskline.ok { color: var(--ok); font-weight: 600; }
+.gen { border-top: 1px solid var(--line); }
+.gen .ph { border-bottom: 0; padding-bottom: 0; }
+.hold.big { font-size: 15px; padding: 12px 22px; }
+.hold.big[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+select.sel { font: 500 13.5px var(--f-body); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 100%; }
+.steps-list { margin: 8px 0; padding-left: 22px; }
+.steps-list li { margin: 4px 0; }
+.steps-list li.done { color: var(--ok); }
+.steps-list li.done::marker { content: '✓  '; }
+.note.danger { border-left: 5px solid var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--panel)); }
+.note.danger b:first-child { color: var(--bad); }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
+table.cmp th, table.cmp td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.cmp th { font: 600 11.5px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+table.cmp td:first-child { font-weight: 600; white-space: nowrap; }
+table.cmp tr.on td { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+table.la { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.la th, table.la td { padding: 5px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+table.la th { font: 600 11px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+table.la td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+table.la td.ok { color: var(--ok); } table.la td.bad { color: var(--bad); }
+.vids { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 12px; }
+.vid h3 { font: 700 1.35rem/1.15 var(--f-display); letter-spacing: 0; text-transform: none; color: var(--ink); margin-bottom: 2px; }
+.vid .meta { font: 500 12.5px var(--f-mono); color: var(--muted); margin-bottom: 6px; }
+.vid .why { font-size: 14.5px; margin: 0 0 8px; }
+.vid ol.ts { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: 14px; }
+.vid ol.ts a { font: 600 12.5px var(--f-mono); text-decoration: none; display: inline-block; min-width: 50px; }
+.vid .warn { margin-top: 10px; border-left: 3px solid var(--hi); padding: 6px 10px; background: var(--panel-2); font-size: 14px; }
+.vid .warn b { color: var(--hi); }
+.vid .tag2 { display: inline-block; font: 600 11px var(--f-mono); border: 1px solid currentColor; border-radius: 999px; padding: 0 7px; margin-right: 4px; }
+.vid .tag2.must { color: var(--ok); } .vid .tag2.opt { color: var(--muted); } .vid .tag2.en { color: var(--z); }
+.disc { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: start; }
+.disc h3 { font: 700 1.25rem var(--f-display); letter-spacing: .04em; margin: 4px 0 8px; color: var(--accent); }
+details.dq { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0; margin: 0 0 8px; font-size: 14.5px; }
+details.dq > summary { list-style: none; cursor: pointer; padding: 10px 12px; color: var(--ink); font-weight: 600; display: flex; gap: 10px; }
+details.dq > summary::-webkit-details-marker { display: none; }
+details.dq > summary .qn { font: 600 12px var(--f-mono); color: var(--accent); min-width: 26px; padding-top: 2px; }
+details.dq > summary::after { content: '+'; margin-left: auto; font: 600 16px var(--f-mono); color: var(--accent); }
+details.dq[open] > summary::after { content: '−'; }
+details.dq .body { padding: 0 12px 10px 48px; }
+details.dq .hint { color: var(--muted); margin: 0 0 6px; }
+details.dq .talk { margin: 0; padding-left: 18px; }
+details.dq .talk li { margin: 3px 0; }
+.lvlq { font: 600 10.5px var(--f-mono); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 6px; color: var(--muted); white-space: nowrap; }
+pre.serial { margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--scope); color: #b8f7c6; font: 12.5px/1.5 var(--f-mono); height: 128px; overflow: hidden; white-space: pre; }
+.memout { font: 600 14px var(--f-mono); padding: 8px 12px; border-top: 1px solid var(--line); white-space: pre-wrap; }
+.memout .m { color: var(--hi); }
+.picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.pick-why { min-height: 1.4em; font-size: 14.5px; color: var(--muted); }
+@media (max-width: 520px) {
+  .step b { min-width: 70px; }
+  .minirange input { width: 100px; }
+  details.dq .body { padding-left: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Модуль 1.5 · Сигнали та кнопка · інтерактивний конспект</div>
+  <h1>Осцилограф і <span>кнопка</span></h1>
+  <p>Що насправді відбувається на піні, коли ти натискаєш кнопку? Мікроконтролер бачить лише 0 і 1. Осцилограф і логічний аналізатор показують, <b>як</b> і <b>коли</b> ці 0 і 1 змінюються. На сторінці є віртуальний осцилограф із ручками, як у справжнього. Порядок той самий, що й раніше: <b>спрогнозуй → покрути → перевір себе</b>.</p>
+  <nav class="toc" aria-label="Розділи">
+    <a href="#time"><span>01</span>Часова область</a>
+    <a href="#scales"><span>02</span>Шкали</a>
+    <a href="#trigger"><span>03</span>Тригер</a>
+    <a href="#edges"><span>04</span>Фронти</a>
+    <a href="#duty"><span>05</span>Період і заповнення</a>
+    <a href="#probe"><span>06</span>Щуп і смуга</a>
+    <a href="#bounce"><span>07</span>Брязкіт</a>
+    <a href="#la"><span>08</span>Логічний аналізатор</a>
+    <a href="#diy"><span>09</span>ESP32-осцилограф</a>
+    <a href="#tools"><span>10</span>Інструменти</a>
+    <a href="#videos"><span>11</span>Відео</a>
+    <a href="#discuss"><span>12</span>Обговорення</a>
+    <a href="#quiz"><span>13</span>Самоперевірка</a>
+    <a href="#cheat"><span>14</span>Шпаргалка</a>
+  </nav>
+  <div class="intro">
+    <div class="card">
+      <h3>Після цієї сторінки ти зможеш</h3>
+      <ol>
+        <li>прочитати екран осцилографа: порахувати розмах, період і частоту за клітинками;</li>
+        <li>«зупинити» картинку тригером;</li>
+        <li>виміряти тривалість імпульсу, коефіцієнт заповнення й час наростання курсорами;</li>
+        <li>пояснити, навіщо щуп ×10 і що таке смуга пропускання;</li>
+        <li>зловити брязкіт кнопки одиночним запуском і порахувати імпульси;</li>
+        <li>вибрати частоту дискретизації логічного аналізатора для домашнього завдання.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Час і підготовка</h3>
+      <p><span class="big-n">~45 хв</span> &nbsp;14 розділів. 01–07 — головні, 08–09 — до домашнього завдання, 10–14 — довідка й обговорення.</p>
+      <p><b>Згадай перед стартом:</b> підтяжку входу (<code>INPUT_PULLUP</code>) і брязкіт з модуля 1.4. Ненатиснута кнопка з підтяжкою дає HIGH, натиснута — LOW. <a href="../pull-resistors/">Освіжити модуль 1.4 →</a> · <a href="../lab/">стенд попередніх прошивок →</a></p>
+    </div>
+    <div class="card">
+      <h3>Як працювати зі сторінкою</h3>
+      <ul>
+        <li>Кнопки <b>−</b>/<b>+</b> — це ручки осцилографа: <b>В/под</b> (вертикаль) і <b>с/под</b> (горизонталь).</li>
+        <li><b>RUN/STOP</b> заморожує екран. Курсори перетягуй мишею або пальцем; з клавіатури — клавіші 1/2 і стрілки.</li>
+        <li><b>AUTO</b> (автоналаштування) сам підбирає шкали, як кнопка Auto на справжньому приладі.</li>
+        <li>Практика: <a href="../bounce-lab/">симуляція домашнього завдання →</a></li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================ 01 -->
+<section class="topic" id="time">
+  <div class="explain">
+    <h2><span class="n">01</span>Часова область</h2>
+    <p><b>Осцилограф</b> — це вольтметр, який міряє напругу дуже часто, мільйони разів за секунду, і малює результат графіком. По горизонталі на графіку <b>час</b>, по вертикалі <b>напруга</b>. Такий погляд на сигнал називається <b>часовою областю</b>.</p>
+    <p>Схоже на кардіограму: лікар бачить не одне число «пульс 70», а форму кожного удару серця. Мультиметр показує одне число, осцилограф показує, як напруга змінювалася.</p>
+    <p>Екран поділений на клітинки (<b>поділки</b>): 10 по горизонталі й 8 по вертикалі. Кожна клітинка має «ціну», і все вимірювання зводиться до підрахунку клітинок.</p>
+    <div class="worked">
+      <h4>Розібраний приклад (як у відео 1)</h4>
+      <ol>
+        <li>Шкала часу: <b>2 с/под</b>, тобто промінь проходить одну клітинку за 2 секунди.</li>
+        <li>Половина синусоїди (від нуля до нуля) займає <b>5 клітинок</b>: 5 · 2 с = 10 с.</li>
+        <li>Повний період — дві половини: <b>T = 20 с</b>.</li>
+        <li>Частота — скільки періодів за секунду: f = 1 / T = 1 / 20 = <b>0,05 Гц</b>.</li>
+      </ol>
+      <p style="margin:6px 0 0;font-size:14px;color:var(--muted)">У відео (02:30) автор називає це «0,5 Гц», але на екрані період 20 с, тобто 0,05 Гц. Трохи далі (05:04) справжні 0,5 Гц займають одну клітинку, 2 с на період. Перевір обидва варіанти справа.</p>
+    </div>
+    <div class="predict" data-ok="2" data-hook="t1" data-why="Період 2 клітинки · 2 с = 4 с, частота 1 / 4 = 0,25 Гц. Генератор справа вже перемкнуто на 0,25 Гц: порахуй клітинки сам.">
+      <span class="tag">Спрогнозуй</span>
+      <p>Шкала 2 с/под, повний період займає 2 клітинки. Яка частота?</p>
+      <div class="opts">
+        <button type="button" class="opt">2 Гц</button>
+        <button type="button" class="opt">0,5 Гц</button>
+        <button type="button" class="opt">0,25 Гц</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p class="key"><b>Головне</b>Осцилограф = напруга в часі. Період T рахуємо клітинками · ціна клітинки, частота f = 1 / T.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Осцилограф · повільна розгортка</h3><span class="hint">промінь іде зліва направо в реальному часі</span></div>
+      <div id="s1-scope"></div>
+      <div class="gen" id="s1-gen"></div>
+      <div class="stats">
+        <div class="stat"><div class="k">Мультиметр зараз</div><div class="v sig" id="s1-dmm">—</div></div>
+        <div class="stat"><div class="k">Період T</div><div class="v hi" id="s1-T">—</div></div>
+        <div class="stat"><div class="k">Клітинок на період</div><div class="v" id="s1-div">—</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section class="topic" id="scales">
+  <div class="explain">
+    <h2><span class="n">02</span>Шкали: В/под і с/под</h2>
+    <p>У осцилографа дві головні ручки:</p>
+    <ul>
+      <li><b>Вертикальна шкала, В/под</b> (Volts/Division): скільки вольт в одній клітинці по вертикалі. 1 В/под → одна клітинка = 1 В. 0,5 В/под → одна клітинка = 0,5 В, і сигнал розтягується вдвічі.</li>
+      <li><b>Горизонтальна шкала, с/под</b> (Time/Division, «розгортка»): скільки часу в одній клітинці. 1 мс/под → клітинка = 1 мс; 100 мкс/под → клітинка = 100 мкс.</li>
+    </ul>
+    <p>Ціни йдуть кроками <b>1–2–5</b>: 1, 2, 5, 10, 20, 50… У Hantek з відео крок <b>1–2–4</b>, тому там бувають 400 мкс і 40 нс.</p>
+    <p><b>Правило доброго вимірювання:</b> сигнал займає більшу частину екрана по вертикалі, а по горизонталі видно 1–4 періоди. Дрібна картинка = неточний підрахунок клітинок.</p>
+    <div class="worked">
+      <h4>Розібраний приклад (відео 1, 07:36–08:30)</h4>
+      <ol>
+        <li>Генератор видає меандр <b>1 кГц</b>, розгортка <b>400 мкс/под</b>.</li>
+        <li>Період займає <b>2,5 клітинки</b>: 2,5 · 400 мкс = 1000 мкс = <b>1 мс</b>.</li>
+        <li>f = 1 / 1 мс = <b>1 кГц</b> ✓. Розмах 5 В при 1 В/под — це ±2,5 клітинки від центру.</li>
+      </ol>
+      <p style="margin:6px 0 0;font-size:14px;color:var(--muted)">Не плутай префікси: <b>мс</b> (ms) = 10⁻³ с, <b>мкс</b> (µs, на приладах часто «us») = 10⁻⁶ с, <b>нс</b> (ns) = 10⁻⁹ с. Близько 23:00 автор відео плутається в них. Правильний підрахунок наведено в коментарі під відео: 2,5 · 400 мкс = 1 мс.</p>
+    </div>
+    <div class="try" data-ans="5" data-tol="0.05" data-unit="клітинок" data-dec="0">
+      <span class="tag">Твоя черга</span>
+      <h4>Меандр 2 кГц, розгортка 100 мкс/под. Скільки клітинок займає один період?</h4>
+      <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь у клітинках"><span>клітинок</span><button type="button" class="btn">Перевірити</button></div>
+      <div class="fb" aria-live="polite"></div>
+      <details><summary>Підказка</summary>Спершу період: T = 1 / 2000 Гц = 0,5 мс = 500 мкс. Тепер поділи на ціну клітинки.</details>
+    </div>
+    <div class="try" data-ans="6.6" data-tol="0.05" data-unit="клітинки" data-dec="1">
+      <span class="tag">Твоя черга</span>
+      <h4>Сигнал 0…3,3 В, шкала 0,5 В/под. Скільки клітинок по вертикалі він займе?</h4>
+      <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь у клітинках"><span>клітинок</span><button type="button" class="btn">Перевірити</button></div>
+      <div class="fb" aria-live="polite"></div>
+      <details><summary>Підказка</summary>Розмах 3,3 В поділи на ціну клітинки 0,5 В.</details>
+    </div>
+    <p class="key"><b>Головне</b>Значення = клітинки · ціна клітинки. Налаштуй шкали так, щоб сигнал заповнив екран.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Завдання: налаштуй шкали</h3><span class="hint">зараз картинка дрібна й незручна</span></div>
+      <div id="s2-scope"></div>
+      <div class="taskline" id="s2-task" aria-live="polite">—</div>
+      <div class="gen" id="s2-gen"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section class="topic" id="trigger">
+  <div class="explain">
+    <h2><span class="n">03</span>Тригер: як «зупинити» картинку</h2>
+    <p>Осцилограф малює кадр за кадром. Якщо кожен кадр починається у випадковий момент, синусоїди з різних кадрів не збігаються, і картинка «біжить» або розмазується.</p>
+    <p><b>Тригер</b> (синхронізація, запуск) — це правило, з якого моменту починати кадр: «коли сигнал перетне <b>рівень</b> 1 В <b>знизу вгору</b>». Тоді кожен кадр починається в тій самій точці хвилі, і картинка стоїть.</p>
+    <ul>
+      <li><b>Рівень</b> має бути <b>всередині</b> сигналу. Вище максимуму перетину не буде ніколи.</li>
+      <li><b>Фронт</b>: ↑ — сигнал іде вгору, ↓ — униз.</li>
+      <li><b>Джерело</b>: за яким каналом синхронізуватися, CH1 чи CH2.</li>
+      <li><b>Режим</b>: AUTO малює навіть без тригера (тоді картинка біжить); NORMAL оновлює кадр лише після тригера; SINGLE ловить <b>один</b> кадр і зупиняється. SINGLE знадобиться для кнопки.</li>
+    </ul>
+    <div class="predict" data-ok="1" data-hook="t3" data-why="У режимі AUTO осцилограф не дочекався тригера й малює кадри з випадкових моментів, тож картинка біжить. У NORMAL він просто чекав би, і на екрані застиг би останній кадр. Рівень справа вже піднято вище сигналу: подивись.">
+      <span class="tag">Спрогнозуй</span>
+      <p>Сигнал ±2 В, режим AUTO. Рівень тригера підняли до +3 В. Що буде на екрані?</p>
+      <div class="opts">
+        <button type="button" class="opt">Нічого не зміниться</button>
+        <button type="button" class="opt">Картинка почне бігти й мерехтіти</button>
+        <button type="button" class="opt">Сигнал зникне з екрана</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p><b>Два сигнали різної частоти</b> (відео 1, 17:31): CH1 = 1,0 кГц, CH2 = 1,1 кГц. Стабільним вийде лише той канал, який є джерелом тригера. Другий «пливе» відносно нього. Перемкни джерело справа.</p>
+    <p class="key"><b>Головне</b>Тригер = «починай кадр, коли сигнал перетне рівень у потрібний бік». Рівень — усередині сигналу.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Два канали й тригер</h3><span class="hint">CH1 — блакитний, CH2 — рожевий</span></div>
+      <div id="s3-scope"></div>
+      <div class="controls">
+        <div class="ctl"><label for="s3-f2">Частота CH2 <b id="s3-f2-v">1,1 кГц</b></label><input id="s3-f2" type="range" min="900" max="1200" step="5" value="1100"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section class="topic" id="edges">
+  <div class="explain">
+    <h2><span class="n">04</span>Фронти й час наростання</h2>
+    <p><b>Фронт</b> — перехід між рівнями. <b>Передній</b> (rising edge, ↑): LOW → HIGH. <b>Задній</b> (falling edge, ↓): HIGH → LOW. Для кнопки з підтяжкою натискання — задній фронт, відпускання — передній.</p>
+    <p>Справжній фронт не миттєвий. Провід, пін і щуп мають ємність <b>C</b>, яка заряджається через опір <b>R</b> (наприклад, через резистор підтяжки). Напруга росте плавно, за експонентою зі сталою часу <b>τ = R · C</b>.</p>
+    <p><b>Час наростання</b> (rise time) міряють від <b>10 %</b> до <b>90 %</b> розмаху, а не від 0 до 100 %. Біля самих країв крива дуже повільно «доповзає», а ще там шум. Межі 10/90 % дають стабільне число, яке однаково міряють усі прилади.</p>
+    <div class="formula">t<sub>r</sub> (10 → 90 %) ≈ <span class="m">2,2 · R · C</span></div>
+    <div class="worked">
+      <h4>Розібраний приклад</h4>
+      <ol>
+        <li>R = 10 кОм, C = 100 пФ → τ = 10 000 · 100·10⁻¹² = 10⁻⁶ с = <b>1 мкс</b>.</li>
+        <li>t<sub>r</sub> ≈ 2,2 · 1 мкс = <b>2,2 мкс</b>.</li>
+      </ol>
+    </div>
+    <div class="try" data-ans="3" data-tol="0.15" data-unit="мкс" data-dec="1">
+      <span class="tag">Твоя черга · модуль 1.4</span>
+      <h4>Внутрішня підтяжка ESP32-S3 ≈ 45 кОм, ємність піна з проводом ≈ 30 пФ. Який час наростання при відпусканні кнопки?</h4>
+      <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь у мікросекундах"><span>мкс</span><button type="button" class="btn">Перевірити</button></div>
+      <div class="fb" aria-live="polite"></div>
+      <details><summary>Підказка</summary>τ = 45 000 · 30·10⁻¹² = 1,35 мкс. Помнож на 2,2.</details>
+    </div>
+    <div class="predict" data-ok="0" data-hook="t4" data-why="t_r ≈ 2,2·R·C пропорційний C. Удвічі більша ємність — удвічі довший фронт. Повзунок C справа вже подвоєно.">
+      <span class="tag">Спрогнозуй</span>
+      <p>Ємність C збільшили вдвічі. Що станеться з часом наростання?</p>
+      <div class="opts">
+        <button type="button" class="opt">Збільшиться вдвічі</button>
+        <button type="button" class="opt">Зменшиться вдвічі</button>
+        <button type="button" class="opt">Не зміниться, бо R той самий</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p class="key"><b>Головне</b>Фронт не миттєвий: τ = R·C, час наростання 10→90 % ≈ 2,2·τ.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Фронт через R·C</h3><span class="hint">пунктир — рівні 10 % і 90 %</span></div>
+      <div id="s4-scope"></div>
+      <div class="controls">
+        <div class="ctl"><label for="s4-r">R <b id="s4-r-v">10 кОм</b></label><input id="s4-r" type="range" min="3" max="5.3" step="0.01" value="4"></div>
+        <div class="ctl"><label for="s4-c">C <b id="s4-c-v">100 пФ</b></label><input id="s4-c" type="range" min="-11" max="-7" step="0.01" value="-10"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">τ = R·C</div><div class="v" id="s4-tau">—</div></div>
+        <div class="stat"><div class="k">2,2·τ (теорія)</div><div class="v hi" id="s4-tr">—</div></div>
+        <div class="stat"><div class="k">Виміряно 10→90 %</div><div class="v sig" id="s4-meas">—</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section class="topic" id="duty">
+  <div class="explain">
+    <h2><span class="n">05</span>Період, частота, імпульс, заповнення</h2>
+    <ul>
+      <li><b>Період T</b> — час одного повного циклу, від переднього фронту до наступного переднього.</li>
+      <li><b>Частота f = 1 / T</b> — скільки циклів за секунду, у герцах (Гц). Кнопку натискають раз на 2 с → T = 2 с, f = 0,5 Гц.</li>
+      <li><b>Тривалість імпульсу</b> t<sub>high</sub> (pulse width) — скільки часу сигнал у стані HIGH.</li>
+      <li><b>Коефіцієнт заповнення D</b> (duty cycle) — яку частку періоду сигнал у HIGH.</li>
+    </ul>
+    <div class="formula">D = t<sub>high</sub> / T · 100 %
+шпаруватість S = T / t<sub>high</sub> = 1 / D
+<span class="m">меандр</span>: t<sub>high</sub> = t<sub>low</sub> → D = 50 %, S = 2</div>
+    <div class="note warn"><b>Пастка термінів.</b> Українське «<b>шпаруватість</b>» (часто кажуть «скважність») — це величина, <b>обернена</b> до коефіцієнта заповнення: S = T / t<sub>high</sub>. У відео 1 (08:30) автор називає «скважністю» те, що прилад показує як Duty, тобто коефіцієнт заповнення. Для меандру D = 50 %, а S = 2.</div>
+    <div class="worked">
+      <h4>Розібраний приклад</h4>
+      <ol>
+        <li>Курсорами виміряли: T = <b>2 мс</b>, t<sub>high</sub> = <b>1 мс</b>.</li>
+        <li>f = 1 / 2 мс = <b>500 Гц</b>.</li>
+        <li>D = 1 / 2 · 100 % = <b>50 %</b>, це меандр. S = 2 / 1 = <b>2</b>.</li>
+      </ol>
+    </div>
+    <div class="try" data-ans="25" data-tol="0.5" data-unit="%" data-dec="0">
+      <span class="tag">Твоя черга</span>
+      <h4>T = 10 мс, t<sub>high</sub> = 2,5 мс. Який коефіцієнт заповнення?</h4>
+      <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь у відсотках"><span>%</span><button type="button" class="btn">Перевірити</button></div>
+      <div class="fb" aria-live="polite"></div>
+      <details><summary>Підказка</summary>2,5 / 10 · 100 %.</details>
+    </div>
+    <div class="try" data-ans="4" data-tol="0.05" data-unit="" data-dec="0">
+      <span class="tag">Твоя черга</span>
+      <h4>А шпаруватість S того самого сигналу?</h4>
+      <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь: шпаруватість"><button type="button" class="btn">Перевірити</button></div>
+      <div class="fb" aria-live="polite"></div>
+      <details><summary>Підказка</summary>S = T / t<sub>high</sub> = 10 / 2,5.</details>
+    </div>
+    <p class="key"><b>Головне</b>Курсорами міряй T і t<sub>high</sub>. D = t<sub>high</sub> / T. Меандр — 50 %.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Курсори часу</h3><span class="hint">перетягни помаранчеві лінії на фронти</span></div>
+      <div id="s5-scope"></div>
+      <div class="gen" id="s5-gen"></div>
+      <div class="stats">
+        <div class="stat"><div class="k">D (заповнення)</div><div class="v hi" id="s5-d">—</div></div>
+        <div class="stat"><div class="k">S (шпаруватість)</div><div class="v" id="s5-s">—</div></div>
+        <div class="stat"><div class="k">Меандр?</div><div class="v" id="s5-m">—</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section class="topic" id="probe">
+  <div class="explain">
+    <h2><span class="n">06</span>Щуп ×1 / ×10 і смуга пропускання</h2>
+    <p><b>Щуп</b> (probe) — провід від осцилографа до схеми. Більшість щупів мають перемикач <b>×1 / ×10</b>:</p>
+    <ul>
+      <li><b>×10</b> ділить напругу в 10 разів. Можна міряти більші напруги (на щупі з відео написано 600 В), і щуп менше навантажує схему. <b>У меню каналу теж треба виставити ×10</b>, інакше прилад покаже в 10 разів менше.</li>
+      <li><b>×1</b> не ділить, але має малу <b>смугу пропускання</b>: у відео на щупі вказано 6 МГц для ×1 і 100 МГц для ×10.</li>
+    </ul>
+    <p><b>Смуга пропускання</b> (bandwidth) — до якої частоти прилад чесно показує сигнал. Меандр складається з синусоїд: основної частоти f і «гармонік» 3f, 5f, 7f… Саме гармоніки роблять кути гострими. Прилад, що їх «зрізає», округлює меандр, а потім перетворює його на синусоїду.</p>
+    <div class="formula">t<sub>r</sub> приладу ≈ 0,35 / смуга     (100 МГц → 3,5 нс)
+для меандру бери смугу ≥ <span class="m">5 × f</span></div>
+    <div class="predict" data-ok="1" data-hook="t6" data-why="Смуга щупа ×1 близько 6 МГц. Від меандру 6 МГц проходить лише основна синусоїда, гармоніки 18, 30 МГц… зрізані. Виходить майже синус. Справа вже стоїть 6 МГц і ×1. Перемкни на ×10.">
+      <span class="tag">Спрогнозуй</span>
+      <p>Меандр 6 МГц, щуп у положенні ×1 (смуга ~6 МГц). Що покаже екран?</p>
+      <div class="opts">
+        <button type="button" class="opt">Ідеальний прямокутник</button>
+        <button type="button" class="opt">Округлену хвилю, майже синус</button>
+        <button type="button" class="opt">Нічого, сигнал занадто швидкий</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p><b>Компенсація щупа ×10.</b> У щупі є підстроювальний конденсатор. Його крутять викруткою, дивлячись на меандр 1 кГц із гнізда калібрування на осцилографі. Недокомпенсований щуп завалює фронти, перекомпенсований дає «вуха».</p>
+    <div class="note bad"><b>Земля щупа = земля розетки.</b> У настільного осцилографа крокодил щупа з'єднаний із заземленням мережі. Приєднуй його лише до GND своєї схеми. Обидва канали мають спільну землю (відео 1, 15:31), тому два крокодили на різні точки замкнуть схему.</div>
+    <p class="key"><b>Головне</b>Щуп ×10 + ×10 у меню. Прилад «бачить» лише до своєї смуги, і швидкий меандр на ньому стає синусом.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Меандр 0…5 В через щуп і прилад 100 МГц</h3><span class="hint">AUTO підбирає шкали</span></div>
+      <div id="s6-scope"></div>
+      <div class="controls">
+        <div class="ctl"><label for="s6-f">Частота меандру <b id="s6-f-v">6 МГц</b></label><input id="s6-f" type="range" min="3" max="7.78" step="0.01" value="6.78"></div>
+        <div class="chips" id="s6-chips" aria-label="Готові частоти">
+          <button type="button" class="chip-btn" data-f="1e3">1 кГц</button><button type="button" class="chip-btn" data-f="1e6">1 МГц</button><button type="button" class="chip-btn" data-f="6e6">6 МГц</button><button type="button" class="chip-btn" data-f="10e6">10 МГц</button><button type="button" class="chip-btn" data-f="30e6">30 МГц</button><button type="button" class="chip-btn" data-f="60e6">60 МГц</button>
+        </div>
+      </div>
+      <div class="controls">
+        <span class="gl" style="font:600 11px var(--f-mono);color:var(--muted)">ЩУП</span>
+        <div class="seg" role="group" aria-label="Перемикач щупа" id="s6-probe"><button type="button" data-v="1" aria-pressed="true">×1</button><button type="button" data-v="10" aria-pressed="false">×10</button></div>
+        <span class="gl" style="font:600 11px var(--f-mono);color:var(--muted)">МЕНЮ КАНАЛУ</span>
+        <div class="seg" role="group" aria-label="Множник у меню каналу" id="s6-menu"><button type="button" data-v="1" aria-pressed="true">×1</button><button type="button" data-v="10" aria-pressed="false">×10</button></div>
+        <span class="gl" style="font:600 11px var(--f-mono);color:var(--muted)">КОМПЕНСАЦІЯ ×10</span>
+        <div class="seg" role="group" aria-label="Компенсація щупа" id="s6-comp"><button type="button" data-v="0.72" aria-pressed="false">недо</button><button type="button" data-v="1" aria-pressed="true">норма</button><button type="button" data-v="1.35" aria-pressed="false">пере</button></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Смуга щупа</div><div class="v" id="s6-bwp">—</div></div>
+        <div class="stat"><div class="k">Смуга разом</div><div class="v hi" id="s6-bw">—</div></div>
+        <div class="stat"><div class="k">t<sub>r</sub> ≈ 0,35/смуга</div><div class="v" id="s6-tr">—</div></div>
+        <div class="stat"><div class="k">Схоже на</div><div class="v sig" id="s6-shape">—</div></div>
+      </div>
+      <div class="taskline" id="s6-note" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 -->
+<section class="topic" id="bounce">
+  <div class="explain">
+    <h2><span class="n">07</span>Брязкіт кнопки на осцилографі</h2>
+    <p><b>Брязкіт контактів</b> (contact bounce): металеві контакти кнопки при ударі кілька разів відскакують, як м'ячик. Замість одного чистого переходу виходить серія коротких імпульсів. Причина механічна: пружність металу. Іскри тут ні до чого.</p>
+    <p>Сценарій з уроку, крок за кроком (галочки ставляться самі):</p>
+    <ol class="steps-list" id="s7-steps">
+      <li data-k="a"><b>100 мс/под</b>: натисни й відпусти кнопку. Видно чисту сходинку вниз і вгору.</li>
+      <li data-k="b"><b>10 мс/под</b>, тригер SINGLE ↓: натисни. Перехід уже не ідеальний.</li>
+      <li data-k="c"><b>1 мс/под</b>: натисни ще раз. З'являються «зуби» — це брязкіт.</li>
+      <li data-k="d"><b>100 мкс/под</b> і <b>10 мкс/под</b> на зупиненому кадрі: окремі імпульси, деякі коротші за мікросекунду.</li>
+      <li data-k="e">Перемкни тригер на <b>↑ відпускання</b>: відпускання теж брязкотить.</li>
+    </ol>
+    <p><b>Скільки триває брязкіт?</b> Джек Ганссл (Jack Ganssle) виміряв 18 перемикачів. Без двох «поганих» середнє було <b>1,6 мс</b> (1557 мкс), максимум <b>6,2 мс</b>. Перемикач «E» на відпусканні брязкотів <b>157 мс</b>, а на натисканні не довше 20 мкс. Багато відскоків на розмиканні були <b>коротші за 1 мкс</b>. Однакові кнопки відрізнялися вдвічі, а сила й швидкість натискання теж змінювали результат.</p>
+    <p>У конспекті курсу сказано «типово 5–20 мс». Це обережна оцінка для розрахунку затримки, а не закон. <b>Виміряй свою кнопку</b>: це і є домашнє завдання.</p>
+    <div class="predict" data-ok="2" data-why="Одна клітинка 100 мс/под на екрані завширшки ~600 пікселів — це ~1,7 мс на піксель. Брязкіт на 1–2 мс злипається в одну вертикальну лінію. Він є, просто його не видно. Тому й треба крутити с/под.">
+      <span class="tag">Спрогнозуй</span>
+      <p>На 100 мс/под фронт виглядає ідеально чистим. Чи означає це, що брязкоту немає?</p>
+      <div class="opts">
+        <button type="button" class="opt">Так, кнопка якісна</button>
+        <button type="button" class="opt">Так, бо осцилограф міряє дуже часто</button>
+        <button type="button" class="opt">Ні, на такій шкалі він стискається в одну лінію</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p class="key"><b>Головне</b>Брязкіт видно лише на дрібній розгортці (мс і мкс на клітинку). Лови його одиночним запуском SINGLE за заднім фронтом.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Кнопка → GPIO з підтяжкою → осцилограф</h3><span class="hint">тримай кнопку, як справжню (або пробіл)</span></div>
+      <div id="s7-scope"></div>
+      <div class="controls">
+        <button type="button" class="hold big" id="s7-btn" aria-pressed="false">Натисни й тримай</button>
+        <div class="chips" id="s7-tdiv" aria-label="Розгортка">
+          <button type="button" class="chip-btn" data-t="0.1" aria-pressed="true">100 мс</button><button type="button" class="chip-btn" data-t="0.01">10 мс</button><button type="button" class="chip-btn" data-t="0.001">1 мс</button><button type="button" class="chip-btn" data-t="0.0001">100 мкс</button><button type="button" class="chip-btn" data-t="0.00001">10 мкс</button><button type="button" class="chip-btn" data-t="0.000001">1 мкс</button>
+        </div>
+      </div>
+      <div class="controls">
+        <label class="minirange">Кнопка <select class="sel" id="s7-type" aria-label="Тип кнопки"></select></label>
+        <div class="seg" role="group" aria-label="Як натискати" id="s7-style"><button type="button" data-v="snap" aria-pressed="false">різко</button><button type="button" data-v="normal" aria-pressed="true">звичайно</button><button type="button" data-v="slow" aria-pressed="false">плавно</button></div>
+        <div class="seg" role="group" aria-label="Що ловити" id="s7-edge"><button type="button" data-v="fall" aria-pressed="true">↓ натискання</button><button type="button" data-v="rise" aria-pressed="false">↑ відпускання</button></div>
+        <div class="seg" role="group" aria-label="Підтяжка" id="s7-pu"><button type="button" data-v="45000" aria-pressed="true">INPUT_PULLUP ~45 кОм</button><button type="button" data-v="10000" aria-pressed="false">10 кОм</button></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Подія</div><div class="v" id="s7-ev">—</div></div>
+        <div class="stat"><div class="k">Перетинів порогу</div><div class="v hi" id="s7-n">—</div></div>
+        <div class="stat"><div class="k">Брязкіт триває</div><div class="v sig" id="s7-d">—</div></div>
+        <div class="stat"><div class="k">Найкоротший імпульс</div><div class="v" id="s7-min">—</div></div>
+        <div class="stat"><div class="k">Не дотягли до порогу</div><div class="v z" id="s7-part">—</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 08 -->
+<section class="topic" id="la">
+  <div class="explain">
+    <h2><span class="n">08</span>Логічний аналізатор</h2>
+    <p><b>Логічний аналізатор</b> записує не напругу, а лише <b>0 або 1</b> на кожному каналі. Він багато разів за секунду (<b>частота дискретизації</b>, Sa/s) порівнює напругу з порогом і записує біт. Дешевий аналізатор на 8 каналів і 24 МГц коштує як піца й підключається по USB до програми <a href="https://sigrok.org/wiki/PulseView" target="_blank" rel="noopener">PulseView</a>.</p>
+    <ul>
+      <li><b>Пам'ять.</b> На один відлік йде 1 біт на канал: 8 каналів = 1 байт. Осцилограф пише 8–12 біт на <b>кожен</b> канал. Тому аналізатор може писати довго й на багатьох каналах (відео 2, 02:30).</li>
+      <li><b>Тригер</b> може бути складним: «канал 0 упав, поки канал 3 = 1» (відео 2, 02:02).</li>
+      <li><b>Чого він не бачить:</b> форму, рівні напруги, «недотягнуті» імпульси. І все, що коротше за проміжок між відліками.</li>
+    </ul>
+    <div class="formula">проміжок між відліками = 1 / f<sub>s</sub>    (24 МГц → 42 нс, 1 МГц → 1 мкс)
+щоб надійно бачити імпульс: <span class="m">≥ 4–10 відліків</span> на його тривалість</div>
+    <div class="predict" data-ok="0" data-hook="t8" data-why="Між відліками 1 мкс, імпульс 0,5 мкс. Він або проскочить між двома відліками, або потрапить в один. Тобто то видно, то ні, і довжину не виміряти. Порівняй рядки 24 МГц і 1 МГц справа.">
+      <span class="tag">Спрогнозуй</span>
+      <p>Аналізатор на 1 МГц, імпульс брязкоту 0,5 мкс. Що побачиш?</p>
+      <div class="opts">
+        <button type="button" class="opt">Іноді один відлік, іноді нічого</button>
+        <button type="button" class="opt">Завжди чіткий імпульс 0,5 мкс</button>
+        <button type="button" class="opt">Імпульс завдовжки 1 мкс</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p><b>Спостерігач змінює експеримент</b> (відео 2, 04:30). Щуп додає ємність, а налагоджувальний код (<code>Serial.print</code>, зайвий пін) змінює час виконання. Буває, що «з аналізатором працює, без нього — ні». Тоді аналізатор не лагодить проблему, а лише ховає її. Шукай справжню причину.</p>
+    <p><b>Для ДЗ у PulseView:</b> канал D0 → GPIO16, GND → GND плати. Частота 4–24 МГц, тривалість запису ~1 с, тригер ↓ на D0. Після запису збільш масштаб і порахуй фронти: <i>File → Export → VCD</i> збереже запис для аналізу скриптом.</p>
+    <p class="key"><b>Головне</b>Аналізатор = багато каналів 0/1 за копійки. Частоту дискретизації бери так, щоб на найкоротший імпульс припадало кілька відліків.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Той самий брязкіт на різних частотах</h3><span class="hint">точки — моменти відліків</span></div>
+      <div class="scope-wrap"><canvas class="scope" id="la-cv" height="330" role="img" aria-label="Аналогова напруга кнопки і чотири доріжки логічного аналізатора з різною частотою дискретизації"></canvas></div>
+      <div class="controls">
+        <button type="button" class="btn" id="la-new">Нове натискання</button>
+        <button type="button" class="btn ghost" id="la-take">Взяти з розділу 07</button>
+        <div class="seg" role="group" aria-label="Подія" id="la-kind"><button type="button" data-v="press" aria-pressed="true">натискання</button><button type="button" data-v="release" aria-pressed="false">відпускання</button></div>
+        <button type="button" class="btn ghost" id="la-phase">Інша фаза відліків</button>
+      </div>
+      <div class="controls">
+        <div class="chips" id="la-zoom" aria-label="Ширина вікна">
+          <button type="button" class="chip-btn" data-w="0.01">10 мс</button><button type="button" class="chip-btn" data-w="0.002" aria-pressed="true">2 мс</button><button type="button" class="chip-btn" data-w="0.0002">200 мкс</button><button type="button" class="chip-btn" data-w="0.00002">20 мкс</button><button type="button" class="chip-btn" data-w="0.000005">5 мкс</button>
+        </div>
+        <div class="ctl"><label for="la-pan">Позиція вікна <b id="la-pan-v">0 %</b></label><input id="la-pan" type="range" min="0" max="1" step="0.001" value="0"></div>
+      </div>
+      <div class="tbl-wrap"><table class="la" aria-label="Скільки фронтів побачив аналізатор"><thead><tr><th>Частота</th><th>Між відліками</th><th>Фронтів побачено</th><th>Справжніх</th><th>Пропущено</th></tr></thead><tbody id="la-tb"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Скільки пам'яті потрібно</h3><span class="hint">аналізатор (1 біт) проти осцилографа (8 біт)</span></div>
+      <div class="controls">
+        <label class="minirange">Каналів <select class="sel" id="mem-ch"><option>1</option><option>2</option><option>4</option><option selected>8</option><option>16</option></select></label>
+        <label class="minirange">f<sub>s</sub> <select class="sel" id="mem-fs"><option value="1e6">1 МГц</option><option value="4e6">4 МГц</option><option value="24e6" selected>24 МГц</option><option value="1e9">1 ГГц</option></select></label>
+        <div class="ctl"><label for="mem-t">Тривалість запису <b id="mem-t-v">1 с</b></label><input id="mem-t" type="range" min="-2" max="1" step="0.01" value="0"></div>
+      </div>
+      <div class="memout" id="mem-out"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 09 -->
+<section class="topic" id="diy">
+  <div class="explain">
+    <h2><span class="n">09</span>Осцилограф на ESP32 і Serial Plotter</h2>
+    <p>Можна зробити «осцилограф» із самого мікроконтролера (відео 5, плата ESP32 з дисплеєм). Його АЦП робить до ~1 мільйона вимірів за секунду (1 MSa/s). Для звуку цього досить, для брязкоту — замало.</p>
+    <ul>
+      <li><b>Найквіст:</b> щоб хоча б частоту побачити правильно, потрібно <b>більше 2 відліків на період</b>. Щоб бачити форму — ~10 і більше. На 1 MSa/s синусоїда 20 кГц має 50 точок на період, а 200 кГц — лише 5, «квадратиками».</li>
+      <li>Якщо відліків менше двох, з'являється <b>аліасинг</b>: на екрані повільна хвиля, якої насправді немає. Так колеса машини у відео крутяться «назад».</li>
+      <li><b>Від'ємна напруга.</b> АЦП міряє лише від 0 до ~3,1 В (у класичного ESP32 при 11 дБ — приблизно 0,15…3,1 В за документацією Arduino-ESP32). Нижня половина змінного сигналу «зрізається», як у відео. Допомагає <b>зміщення</b>: подільник на 1,65 В піднімає сигнал у середину діапазону.</li>
+    </ul>
+    <div class="note danger"><b>Небезпечно!</b> У відео 5 автор вимірює мережу 220 В через простий резисторний подільник. <b>Ніколи так не роби.</b> Без гальванічної розв'язки плата, USB-кабель, ноутбук і ти самий опиняються під потенціалом мережі. Одна помилка в монтажі чи пробитий резистор — і це удар струмом або пожежа. Для мережі існують ізольовані диференційні щупи. У цьому курсі ми з мережею не працюємо.</div>
+    <p><b>Serial Plotter</b> (відео 4): програма друкує числа в Serial, а середовище будує графік. В Arduino IDE 2: <i>Tools → Serial Plotter</i>, швидкість (бод) має збігатися з <code>Serial.begin()</code>. Формат рядка: <code>light:512,threshold:600</code>. У VS Code + PlatformIO те саме робить розширення <b>Teleplot</b>, формат <code>&gt;light:512</code>. Це не осцилограф: точок десятки–сотні за секунду, зате видно повільні сигнали датчиків.</p>
+    <div class="predict" data-ok="1" data-hook="t9" data-why="1 000 000 / 200 000 = 5 відліків на період. Частоту ще видно, а форму вже ні: синус перетворюється на ламану. Справа вже стоїть 200 кГц.">
+      <span class="tag">Спрогнозуй</span>
+      <p>ESP32-осцилограф на 1 MSa/s, синусоїда 200 кГц. Скільки точок на період і що видно?</p>
+      <div class="opts">
+        <button type="button" class="opt">50 точок, гарна синусоїда</button>
+        <button type="button" class="opt">5 точок: частоту видно, форму — ні</button>
+        <button type="button" class="opt">0,2 точки, нічого не видно</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p class="key"><b>Головне</b>Віртуальний осцилограф обмежений частотою дискретизації та діапазоном АЦП. Для кнопки він пропустить найкоротші імпульси.</p>
+  </div>
+  <div class="bench">
+    <div class="panel">
+      <div class="ph"><h3>Що побачить АЦП ESP32</h3><span class="hint">тонка лінія — справжній сигнал, точки — виміри</span></div>
+      <div class="scope-wrap"><canvas class="scope" id="diy-cv" height="270" role="img" aria-label="Справжній сигнал і точки вимірювання АЦП ESP32"></canvas></div>
+      <div class="controls">
+        <div class="ctl"><label for="diy-f">Частота сигналу <b id="diy-f-v">20 кГц</b></label><input id="diy-f" type="range" min="2" max="6" step="0.01" value="4.3"></div>
+        <label class="minirange">f<sub>s</sub> АЦП <select class="sel" id="diy-fs"><option value="20000">20 kSa/s</option><option value="100000">100 kSa/s</option><option value="500000">500 kSa/s</option><option value="1000000" selected>1 MSa/s</option></select></label>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Сигнал" id="diy-sig"><button type="button" data-v="ac" aria-pressed="true">змінний ±1,5 В</button><button type="button" data-v="bias" aria-pressed="false">зі зміщенням 1,65 В</button><button type="button" data-v="sq" aria-pressed="false">меандр 0…3,3 В</button></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Відліків на період</div><div class="v hi" id="diy-n">—</div></div>
+        <div class="stat"><div class="k">Межа Найквіста</div><div class="v" id="diy-ny">—</div></div>
+        <div class="stat"><div class="k">На екрані частота</div><div class="v sig" id="diy-fa">—</div></div>
+        <div class="stat"><div class="k">Висновок</div><div class="v" id="diy-v">—</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Serial Plotter / Teleplot</h3><span class="hint">датчик світла + поріг, 10 рядків/с</span></div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Формат рядків" id="sp-fmt"><button type="button" data-v="ard" aria-pressed="true">Arduino IDE 2</button><button type="button" data-v="tp" aria-pressed="false">Teleplot (VS Code)</button></div>
+      </div>
+      <div class="codeline" id="sp-code"></div>
+      <div class="scope-wrap"><canvas class="scope" id="sp-cv" height="150" role="img" aria-label="Графік двох величин із Serial"></canvas></div>
+      <pre class="serial" id="sp-out" aria-label="Останні рядки Serial"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section class="full" id="tools">
+  <h2><span class="n">10</span>Інструменти: що чим міряти</h2>
+  <p style="margin:0;max-width:75ch">Жоден прилад не бачить «усе». Обери задачу, і таблиця підсвітить, що для неї підходить.</p>
+  <div class="picker" id="tool-pick" role="group" aria-label="Задача">
+    <button type="button" class="chip-btn" data-k="bounce">порахувати імпульси брязкоту</button>
+    <button type="button" class="chip-btn" data-k="shape">побачити форму й рівні напруги</button>
+    <button type="button" class="chip-btn" data-k="many">8 сигналів одночасно, протокол I²C/SPI</button>
+    <button type="button" class="chip-btn" data-k="slow">повільний датчик: світло, температура</button>
+    <button type="button" class="chip-btn" data-k="nohw">заліза немає, перевірити ідею</button>
+  </div>
+  <p class="pick-why" id="tool-why" aria-live="polite"></p>
+  <div class="tbl-wrap panel">
+    <table class="cmp" id="tool-tbl">
+      <thead><tr><th>Прилад</th><th>Що бачить</th><th>Швидкість</th><th>Канали</th><th>Ціна</th><th>Що пропускає</th></tr></thead>
+      <tbody>
+        <tr data-k="scope"><td>Настільний осцилограф</td><td>форму напруги, шум, «недотягнуті» імпульси, час наростання</td><td>сотні МSa/s … ГSa/s, смуга 50–200 МГц</td><td>2–4</td><td>$$$</td><td>мало каналів, коротка пам'ять, протоколи — лише в дорожчих</td></tr>
+        <tr data-k="la"><td>Логічний аналізатор (24 МГц) + PulseView</td><td>0/1 на багатьох каналах, точний час фронтів, декодери протоколів</td><td>до 24 МSa/s (дешеві)</td><td>8–16</td><td>$</td><td>форму й рівні, імпульси коротші за ~4 відліки</td></tr>
+        <tr data-k="esp"><td>Осцилограф на ESP32</td><td>форму повільних сигналів 0…3,1 В</td><td>≤ ~1 МSa/s</td><td>1</td><td>$</td><td>усе швидше за ~100 кГц, від'ємну напругу, короткий брязкіт</td></tr>
+        <tr data-k="plot"><td>Serial Plotter / Teleplot</td><td>числа, які друкує твоя програма</td><td>десятки–сотні точок/с</td><td>скільки надрукуєш</td><td>безкоштовно</td><td>усе між рядками; друк сам змінює таймінг програми</td></tr>
+        <tr data-k="sim"><td>Симулятор (Wokwi + logic analyzer → VCD)</td><td>піни моделі, ідеальний час, повторюваність</td><td>за моделлю</td><td>8</td><td>безкоштовно</td><td>реальну фізику: брязкіт у Wokwi — лише модель</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ 11 -->
+<section class="full" id="videos">
+  <h2><span class="n">11</span>Конспекти відео з уроку</h2>
+  <p style="margin:0;max-width:78ch">Короткий зміст кожного відео з мітками часу (клік відкриває відео з потрібного місця) і примітки, де автор помиляється чи щось спрощує. Конспекти зроблено за автоматичними субтитрами YouTube. Це переказ, а не дослівна розшифровка.</p>
+  <div class="vids">
+    <article class="card vid">
+      <h3>1 · Застосування осцилографа і генератора</h3>
+      <div class="meta">«Пошук по життю» · 35:24 · Hantek DSO5102P + генератор JDS6600</div>
+      <p class="why"><span class="tag2 must">дивитися</span>Найкорисніше відео модуля: живий прилад, шкали, тригер, щупи.</p>
+      <ol class="ts">
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=30s" target="_blank" rel="noopener">00:30</a> Генератор: форми, частота, два канали, вхід синхронізації.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=90s" target="_blank" rel="noopener">01:30</a> Осцилограф — це «вольтметр, що малює напругу в часі».</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=150s" target="_blank" rel="noopener">02:30</a> Повільна синусоїда, 2 с/под, кнопка STOP, рахуємо клітинки.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=304s" target="_blank" rel="noopener">05:04</a> 0,5 Гц — період в одну клітинку; 1 Гц — пів клітинки.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=360s" target="_blank" rel="noopener">06:00</a> 200 мс/под, перемикання на прямокутну форму.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=456s" target="_blank" rel="noopener">07:36</a> 1 кГц на 400 мкс/под: період 2,5 клітинки.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=510s" target="_blank" rel="noopener">08:30</a> Меню вимірювань: частота, заповнення, розмах (Vpp).</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=570s" target="_blank" rel="noopener">09:30</a> Розмах 5 В на 1 В/под, зміна амплітуди та В/под.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=753s" target="_blank" rel="noopener">12:33</a> Щуп ×1 / ×10, межі вимірювання, 600 В на щупі.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=931s" target="_blank" rel="noopener">15:31</a> Два канали мають спільну землю.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=963s" target="_blank" rel="noopener">16:03</a> Синхронізація: рівень, джерело CH1/CH2/зовнішнє.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=1051s" target="_blank" rel="noopener">17:31</a> Різні частоти на каналах: стабільний лише один.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=1170s" target="_blank" rel="noopener">19:30</a> Цифровий проти аналогового: зупинка кадру, збереження, USB.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=1440s" target="_blank" rel="noopener">24:00</a> 1 МГц, компенсація щупа.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=1592s" target="_blank" rel="noopener">26:32</a> Смуга щупа; 6 і 10 МГц: меандр округлюється, на ×1 — майже трикутник.</li>
+        <li><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0&amp;t=1925s" target="_blank" rel="noopener">32:05</a> 33–60 МГц: амплітуда падає, межа смуги.</li>
+      </ol>
+      <div class="warn"><b>Уважно!</b> 02:30: на екрані період 20 с, тобто 0,05 Гц, а не «0,5 Гц». ~23:00: автор плутає мс/мкс/нс; правильно 2,5 · 400 мкс = 1 мс. 08:30: «скважність» насправді є коефіцієнтом заповнення; шпаруватість = 1 / заповнення.</div>
+    </article>
+    <article class="card vid">
+      <h3>2 · Інтерфейс зовнішнього логічного аналізатора</h3>
+      <div class="meta">Лабораторія Цифрового Дизайну · 11:52 · лекція про ПЛІС (Quartus, SignalTap)</div>
+      <p class="why"><span class="tag2 opt">за бажанням</span>Лекція для ПЛІС, не для ESP32. Бери з неї лише загальні ідеї.</p>
+      <ol class="ts">
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=31s" target="_blank" rel="noopener">00:31</a> Аналізатор ≠ осцилограф; SignalTap вбудовано в ПЛІС.</li>
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=62s" target="_blank" rel="noopener">01:02</a> Тригер — умова початку запису (чекаємо потрібну подію).</li>
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=122s" target="_blank" rel="noopener">02:02</a> Складні умови: комбінація кількох ліній.</li>
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=150s" target="_blank" rel="noopener">02:30</a> Запис у пам'ять: 8 каналів = 8 біт на відлік, набагато менше, ніж в осцилографа.</li>
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=270s" target="_blank" rel="noopener">04:30</a> Аналізатор займає ресурси й змінює проєкт: «з ним працює» ≠ виправлено.</li>
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=330s" target="_blank" rel="noopener">05:30</a> Мультиплексор виводить внутрішні сигнали на вільні піни.</li>
+        <li><a href="https://www.youtube.com/watch?v=bOVcHbEco70&amp;t=631s" target="_blank" rel="noopener">10:31</a> Порівняння вбудованого й зовнішнього аналізатора.</li>
+      </ol>
+      <div class="warn"><b>Уважно!</b> Терміни Quartus, SignalTap, ПЛІС до нашого курсу не стосуються. Корисні три ідеї: тригер-умова, 1 біт на канал, ефект спостерігача.</div>
+    </article>
+    <article class="card vid">
+      <h3>3 · Керування світлодіодом через кнопку</h3>
+      <div class="meta">Олексій Кот · 9:00 · Arduino Uno + Tinkercad</div>
+      <p class="why"><span class="tag2 must">дивитися</span>Простий старт: збираємо в симуляторі, потім на макетці. Містить помилку для розбору.</p>
+      <ol class="ts">
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=0s" target="_blank" rel="noopener">00:00</a> Компоненти: Uno, макетка, LED, 220 Ом, 10 кОм, кнопка.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=35s" target="_blank" rel="noopener">00:35</a> Резистор і кольорове маркування.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=64s" target="_blank" rel="noopener">01:04</a> Кнопка і брязкіт контактів.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=93s" target="_blank" rel="noopener">01:33</a> Чотири ніжки кнопки (з'єднані попарно).</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=122s" target="_blank" rel="noopener">02:02</a> Tinkercad: нова схема, компоненти.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=157s" target="_blank" rel="noopener">02:37</a> Монтаж: GND — чорний, живлення — червоний; LED на пін 8.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=216s" target="_blank" rel="noopener">03:36</a> Кнопка: 5 В на ніжку, 10 кОм до GND, сигнал на пін 4.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=270s" target="_blank" rel="noopener">04:30</a> Код: змінні стану кнопки й LED.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=360s" target="_blank" rel="noopener">06:00</a> loop: digitalRead і виявлення моменту натискання.</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=427s" target="_blank" rel="noopener">07:07</a> delay(50) «від хибних спрацювань».</li>
+        <li><a href="https://www.youtube.com/watch?v=cTEL89ot52Q&amp;t=455s" target="_blank" rel="noopener">07:35</a> Симуляція, потім завантаження на справжню плату.</li>
+      </ol>
+      <div class="warn"><b>Уважно!</b> Кнопка підключена до 5 В, а 10 кОм — до GND. Це підтяжка <b>вниз</b>: натиснута = HIGH. А в поясненні коду (06:33) сказано «натиснута = LOW». Знайди, що саме не так (питання 15 в обговоренні). Брязкіт механічний, а не через «мікроіскри». <code>delay(50)</code> після фронту — найпростіший debounce, але він блокує програму.</div>
+    </article>
+    <article class="card vid">
+      <h3>4 · How To: Use the Serial Plotter</h3>
+      <div class="meta">Thimble.io · 1:16 · англійською · Arduino IDE</div>
+      <p class="why"><span class="tag2 en">EN</span>Хвилина про те, де знайти Serial Plotter.</p>
+      <ol class="ts">
+        <li><a href="https://www.youtube.com/watch?v=CAu4zhg_DIE&amp;t=3s" target="_blank" rel="noopener">00:03</a> Serial Plotter будує графік того, що друкує програма.</li>
+        <li><a href="https://www.youtube.com/watch?v=CAu4zhg_DIE&amp;t=16s" target="_blank" rel="noopener">00:16</a> Приклад: датчик світла на A0, друк у Serial.</li>
+        <li><a href="https://www.youtube.com/watch?v=CAu4zhg_DIE&amp;t=30s" target="_blank" rel="noopener">00:30</a> Tools → Serial Plotter; бод (9600) має збігатися з кодом.</li>
+        <li><a href="https://www.youtube.com/watch?v=CAu4zhg_DIE&amp;t=52s" target="_blank" rel="noopener">00:52</a> Дані допомагають обрати поріг спрацювання.</li>
+      </ol>
+      <div class="warn"><b>Уважно!</b> У PlatformIO вбудованого плотера немає. Використовуй розширення Teleplot (розділ 09) або Arduino IDE 2.</div>
+    </article>
+    <article class="card vid">
+      <h3>5 · DIY осцилограф з ESP32 за $8</h3>
+      <div class="meta">Іван RIO · 7:27 · плата ESP32 з дисплеєм 2,8″</div>
+      <p class="why"><span class="tag2 opt">за бажанням</span>Наочно про межі «самопального» осцилографа. Є небезпечний момент.</p>
+      <ol class="ts">
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=30s" target="_blank" rel="noopener">00:30</a> Меандр 1 кГц з генератора на екрані ESP32.</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=60s" target="_blank" rel="noopener">01:00</a> Саморобний щуп: GND і GPIO35 (на платі вже є резистор 1 кОм).</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=92s" target="_blank" rel="noopener">01:32</a> Мережа через подільник: синусоїда «зрізана» знизу.</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=121s" target="_blank" rel="noopener">02:01</a> Максимум ~3,3 В; для більшого — подільник напруги.</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=151s" target="_blank" rel="noopener">02:31</a> ~1 MSa/s: на 20 кГц синус уже ступінчастий, до ~60 кГц видно лише частоту.</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=210s" target="_blank" rel="noopener">03:30</a> Онлайн-інсталятор прошивки (лише для версії плати з USB-C).</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=271s" target="_blank" rel="noopener">04:31</a> Драйвер CH340, Connect → Install, кнопка BOOT.</li>
+        <li><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c&amp;t=361s" target="_blank" rel="noopener">06:01</a> Застосування: аудіо; для точних вимірів не годиться.</li>
+      </ol>
+      <div class="warn"><b>Уважно!</b> Вимірювання мережі 220 В через простий подільник <b>небезпечне</b> (розділ 09). Синусоїду зрізано, бо АЦП не міряє від'ємну напругу. Реальний діапазон АЦП ESP32 при 11 дБ ≈ 0,15…3,1 В, а не 0…3,3 В.</div>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================ 12 -->
+<section class="full" id="discuss">
+  <h2><span class="n">12</span>Питання для обговорення на занятті</h2>
+  <p style="margin:0;max-width:80ch">Тут немає однієї правильної відповіді. Спершу подумай сам або обговори в парі 2–3 хвилини, потім відкрий підказку. «Що варто обговорити» — пункти, до яких добре дійти разом. Позначки: <span class="lvlq">старт</span> — для всіх, <span class="lvlq">глибше</span> — коли база вже зрозуміла.</p>
+  <div class="disc" id="disc">
+    <div>
+      <h3>Вимірювання</h3>
+      <details class="dq"><summary><span class="qn">1</span><span>Генератор показує 1 кГц, осцилограф — 998 Гц, частотомір — 1000,3 Гц. Хто з них «правий»? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: як кожен прилад рахує частоту і скільки періодів бачить?</p>
+        <ul class="talk"><li>Осцилограф рахує за кількома періодами на екрані, і точність залежить від розгортки.</li><li>Частотомір рахує багато періодів за секунду й опирається на кварц.</li><li>У кожного приладу своя похибка. «Правий» той, чия похибка менша за потрібну тобі точність.</li><li>Скільки знаків після коми насправді мають сенс?</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">2</span><span>Чому час наростання міряють від 10 до 90 %, а не від 0 до 100 %? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: як виглядає експонента біля 100 %? Де «закінчується» фронт?</p>
+        <ul class="talk"><li>Експонента ніколи точно не доходить до 100 %, тож «кінець» не визначений.</li><li>Шум на полицях зсуває точки 0 % і 100 % випадково.</li><li>10/90 % — домовленість, щоб різні прилади давали однакове число.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">3</span><span>На 1 с/под фронт натискання ідеальний. Чи означає це, що брязкоту немає? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: скільки часу припадає на один піксель екрана?</p>
+        <ul class="talk"><li>10 с на ~600 пікселів ≈ 17 мс на піксель. Брязкіт на 2 мс сховається в один піксель.</li><li>Роздільна здатність по часу залежить від шкали. Відсутність доказу — не доказ відсутності.</li><li>Що робить режим «peak detect» на справжньому осцилографі?</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">4</span><span>На щупі ×1 меандр 10 МГц став трикутником. Сигнал справді трикутний? Як довести? <span class="lvlq">глибше</span></span></summary><div class="body">
+        <p class="hint">Підказка: прилад і щуп теж частина кола.</p>
+        <ul class="talk"><li>Смуга щупа ×1 (~6 МГц) зрізає гармоніки, тож форма — артефакт вимірювання.</li><li>Перевірка: ×10 (ширша смуга), інший прилад, нижча частота. Якщо форма змінюється від приладу — винен прилад.</li><li>Правило «смуга ≥ 5× частоти».</li></ul></div></details>
+    </div>
+    <div>
+      <h3>Брязкіт і переривання</h3>
+      <details class="dq"><summary><span class="qn">5</span><span>Код ДЗ рахує переривання FALLING. Чому лічильник росте й тоді, коли кнопку <i>відпускають</i>? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: подивись у розділі 07 на «↑ відпускання» при 10 мкс/под.</p>
+        <ul class="talk"><li>Відпускання — це LOW → HIGH, але з відскоками HIGH → LOW → HIGH.</li><li>Кожен відскік містить <b>спадаючий</b> фронт, і FALLING його рахує.</li><li>Отже «натискань» у лічильнику більше, ніж реальних натискань: і через брязкіт натискання, і через брязкіт відпускання.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">6</span><span>Чи може мікроконтролер нарахувати <i>менше</i> фронтів, ніж показує аналізатор? А <i>більше</i>? <span class="lvlq">глибше</span></span></summary><div class="body">
+        <p class="hint">Підказка: що відбувається, коли новий фронт приходить, поки обробник ще не завершився?</p>
+        <ul class="talk"><li><b>Менше:</b> прапорець переривання — один біт. Кілька фронтів до входу в ISR (затримка ~мкс) зливаються в одне переривання.</li><li>Деякі імпульси «не дотягують» до порогу піна, хоча аналізатор з іншим порогом їх бачить.</li><li><b>Більше:</b> повільний або шумний фронт біля порогу може дати кілька перетинів; аналізатор із низькою f<sub>s</sub> їх пропустить.</li><li>Хто тоді «правий»? Обидва бачать по-своєму.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">7</span><span>Натисни 10 разів «різко» і 10 разів «плавно». Чого очікуєш і чому? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: Ганссл помітив, що швидкість дії змінює брязкіт до 3 разів.</p>
+        <ul class="talk"><li>Сила й швидкість змінюють енергію удару контактів.</li><li>Навіть однакові кнопки відрізняються вдвічі.</li><li>Висновок для ДЗ: потрібно кілька вимірів і різні манери натискання, а не одне «гарне» натискання.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">8</span><span>Найдовший брязкіт твоєї кнопки — 3,2 мс. Який debounce обрати? І яка затримка вже дратує людину? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: запас і людське сприйняття.</p>
+        <ul class="talk"><li>Беруть із запасом ×2–3: 8–10 мс. Кнопки старіють, брязкіт росте.</li><li>Людина помічає затримку від ~50–100 мс. 10–20 мс непомітні.</li><li>Занадто довгий debounce «з'їсть» швидкий подвійний клік.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">9</span><span>Апаратний debounce (RC + тригер Шмітта) чи програмний? Коли який? <span class="lvlq">глибше</span></span></summary><div class="body">
+        <p class="hint">Підказка: ціна, місце на платі, переривання, гнучкість.</p>
+        <ul class="talk"><li>Апаратний: чисте переривання, нуль коду, але деталі й місце; τ треба розрахувати.</li><li>Програмний: безкоштовний і легко змінюваний, але треба таймер або стан.</li><li>Glitch filter ESP32-S3 (ESP-IDF) відсіює лише імпульси коротші за 2 такти IO_MUX, тобто наносекунди. Брязкіт на мілісекунди він <b>не</b> прибере.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">10</span><span>Чому не можна робити <code>Serial.print()</code> всередині ISR? І що означає «спостерігач змінює експеримент»? <span class="lvlq">глибше</span></span></summary><div class="body">
+        <p class="hint">Підказка: скільки триває друк 30 символів на 115200 бод?</p>
+        <ul class="talk"><li>Друк довгий (мілісекунди) і може блокувати; поки ISR друкує, нові фронти зливаються.</li><li>Налагоджувальний код змінює саме те, що ми міряємо, — таймінг.</li><li>Правильно: в ISR лише інкремент або мітка часу, друк — у <code>loop()</code>.</li></ul></div></details>
+    </div>
+    <div>
+      <h3>Інструменти</h3>
+      <details class="dq"><summary><span class="qn">11</span><span>Аналізатор на 1 МГц, імпульс брязкоту 0,5 мкс. Що побачиш? А на 24 МГц? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: розділ 08, таблиця частот.</p>
+        <ul class="talk"><li>1 МГц: проміжок 1 мкс — імпульс то видно одним відліком, то ні.</li><li>24 МГц: ~12 відліків на 0,5 мкс — видно й довжину.</li><li>Правило: ≥ 4–10 відліків на найкоротший імпульс.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">12</span><span>Як виміряти затримку переривання ESP32-S3 логічним аналізатором? <span class="lvlq">глибше</span></span></summary><div class="body">
+        <p class="hint">Підказка: другий канал аналізатора і ще один пін.</p>
+        <ul class="talk"><li>У першому рядку ISR перемикай вільний GPIO (наприклад, <code>digitalWrite</code> або регістр).</li><li>Канал 0 — кнопка, канал 1 — цей пін. Δt між фронтами = затримка входу в ISR.</li><li>Зроби кілька вимірів: затримка не стала (кеш, інші переривання).</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">13</span><span>Чому тригер «зупиняє» синусоїду, а для кнопки потрібен режим SINGLE? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: синусоїда повторюється, а натискання — ні.</p>
+        <ul class="talk"><li>Періодичний сигнал дає однакові кадри, і вони накладаються в стабільну картинку.</li><li>Натискання — одноразова подія, кожен брязкіт інший. AUTO/NORMAL перезапишуть кадр.</li><li>SINGLE ловить один кадр і чекає, поки ти його роздивишся.</li></ul></div></details>
+    </div>
+    <div>
+      <h3>Інженерне мислення</h3>
+      <details class="dq"><summary><span class="qn">14</span><span>Як записати 10 натискань із мітками часу, якщо аналізатора немає? <span class="lvlq">глибше</span></span></summary><div class="body">
+        <p class="hint">Підказка: МК сам уміє міряти час (<code>micros()</code>, <code>esp_timer_get_time()</code>).</p>
+        <ul class="talk"><li>ISR на CHANGE записує мітку часу й рівень у кільцевий буфер; <code>loop()</code> потім друкує.</li><li>Обмеження: затримка ISR, злиті фронти, роздільна здатність таймера.</li><li>Це чесні дані «з погляду МК», а не «з погляду дроту».</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">15</span><span>Відео 3: кнопка до 5 В, 10 кОм до GND, а автор каже «натиснута = LOW». Знайди помилку й виправ двома способами. <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: куди тягне резистор, коли кнопка відпущена?</p>
+        <ul class="talk"><li>Резистор до GND — це підтяжка вниз: відпущена = LOW, натиснута = HIGH.</li><li>Спосіб 1: у коді шукати перехід LOW → HIGH.</li><li>Спосіб 2: кнопку на GND, резистор (або <code>INPUT_PULLUP</code>) до живлення, як у нашому курсі.</li><li>Чому в Tinkercad усе одно «працює»? Подумай, що робить перевірка зміни стану.</li></ul></div></details>
+      <details class="dq"><summary><span class="qn">16</span><span>Автор відео 5 міряв мережу 220 В саморобним щупом. Які ризики? Що взяти натомість? <span class="lvlq">старт</span></span></summary><div class="body">
+        <p class="hint">Підказка: що з'єднано з GND плати через USB?</p>
+        <ul class="talk"><li>Без розв'язки GND плати, USB і ноутбук отримують потенціал мережі.</li><li>Пробій резистора подільника подає 220 В на пін і далі в USB.</li><li>Безпечно: ізольований диференційний щуп, трансформатор, готовий модуль із розв'язкою. Або не міряти мережу взагалі.</li></ul></div></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 13 -->
+<section class="topic" id="quiz">
+  <div class="explain">
+    <h2><span class="n">13</span>Самоперевірка</h2>
+    <p>12 питань без підглядання. Спроба згадати тренує пам'ять сильніше, ніж перечитування. Після кожної відповіді буде пояснення й номер розділу.</p>
+    <p class="score" id="qz-score">0 / 0</p>
+    <button type="button" class="btn ghost" id="qz-retry" hidden>Повторити помилки</button>
+  </div>
+  <div class="bench">
+    <div class="panel quiz" id="qz"></div>
+  </div>
+</section>
+
+<!-- ============================================================ 14 -->
+<section class="full" id="cheat">
+  <h2><span class="n">14</span>Шпаргалка, глосарій, матеріали</h2>
+  <div class="cheat">
+    <div class="card">
+      <h3>Шпаргалка</h3>
+      <div class="formula" style="margin:0">значення = клітинки · ціна клітинки
+T = клітинки · с/под       f = 1 / T
+Vpp = клітинки · В/под
+D = t_high / T · 100 %    S = T / t_high = 1 / D
+меандр: D = 50 %, S = 2
+t_r (10→90 %) ≈ 2,2 · R · C
+t_r приладу ≈ 0,35 / смуга
+смуга ≥ 5 · f меандру
+аналізатор: ≥ 4–10 відліків на імпульс
+Найквіст: f_s > 2 · f (форма — від ~10)
+кнопка з підтяжкою: натиснули = ↓, відпустили = ↑
+брязкіт: ловити SINGLE, 1 мс…10 мкс/под</div>
+      <p style="margin-top:8px"><a href="../bounce-lab/">Відкрити симуляцію ДЗ →</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce" target="_blank" rel="noopener">код проєкту на GitHub ↗</a></p>
+    </div>
+    <div class="card">
+      <h3>Глосарій</h3>
+      <dl class="gloss">
+        <dt>Часова область</dt><dd>Сигнал як графік «напруга від часу».</dd>
+        <dt>В/под (V/div)</dt><dd>Скільки вольт в одній клітинці по вертикалі.</dd>
+        <dt>с/под (time/div), розгортка</dt><dd>Скільки часу в одній клітинці по горизонталі.</dd>
+        <dt>Тригер</dt><dd>Умова початку кадру: рівень і напрям перетину. Робить картинку стабільною.</dd>
+        <dt>Фронт</dt><dd>Перехід між рівнями: передній (↑, rising) або задній (↓, falling).</dd>
+        <dt>Час наростання</dt><dd>Час фронту від 10 до 90 % розмаху.</dd>
+        <dt>Період T</dt><dd>Тривалість одного повного циклу.</dd>
+        <dt>Частота f</dt><dd>Кількість циклів за секунду, f = 1 / T, у герцах.</dd>
+        <dt>Тривалість імпульсу</dt><dd>Скільки часу сигнал у HIGH (або в LOW).</dd>
+        <dt>Коефіцієнт заповнення (duty cycle)</dt><dd>Частка періоду в HIGH, у відсотках.</dd>
+        <dt>Шпаруватість (скважність)</dt><dd>T / t<sub>high</sub>, величина, обернена до заповнення.</dd>
+        <dt>Меандр</dt><dd>Прямокутний сигнал із заповненням рівно 50 %.</dd>
+        <dt>Брязкіт контактів</dt><dd>Серія коротких імпульсів, бо контакти відскакують при замиканні й розмиканні.</dd>
+        <dt>Логічний аналізатор</dt><dd>Записує лише 0/1 на багатьох каналах із точним часом.</dd>
+        <dt>Частота дискретизації</dt><dd>Скільки відліків за секунду робить прилад, Sa/s.</dd>
+        <dt>Смуга пропускання</dt><dd>До якої частоти прилад чесно передає сигнал.</dd>
+        <dt>Щуп ×10</dt><dd>Щуп, що ділить напругу в 10 разів. Ширша смуга, менше навантаження, у меню треба виставити ×10.</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h3>Матеріали (посилання перевірено 04.10.2026)</h3>
+      <ul class="links">
+        <li><span class="lvl b">базово</span><a href="https://a-radio.com.ua/blog/shcho-take-ostsylohraf-i-dlia-choho-vykorystovuietsia/" target="_blank" rel="noopener">Що таке осцилограф і для чого використовується</a><small>Огляд приладу, шкал і режимів простою мовою.</small></li>
+        <li><span class="lvl b">базово</span><a href="https://220.km.ua/blog/poradi/ostsilograf-fnirsi-dso-510-oglyad" target="_blank" rel="noopener">Осцилограф FNIRSI DSO-510: налаштування</a><small>Практика з недорогим кишеньковим осцилографом.</small></li>
+        <li><span class="lvl b">базово</span><a href="https://sea-tm.com.ua/lohichni-analizatory/" target="_blank" rel="noopener">Логічні аналізатори: принципи</a><small>Чим аналізатор відрізняється від осцилографа, тригери, протоколи.</small></li>
+        <li><span class="lvl b">базово</span><a href="https://itmaster.biz.ua/electronics/esp8266/esp8266-button.html" target="_blank" rel="noopener">Цифрові входи ESP8266/ESP32, кнопка</a><small>INPUT, INPUT_PULLUP, INPUT_PULLDOWN і digitalRead.</small></li>
+        <li><span class="lvl b">базово</span><a href="https://hackyourmom.com/osvita/arduino-dlya-pochatkivcziv-keruvannya-kompyuterom-ta-serijna-peredacha-danyh-za-dopomogoyu-arduin" target="_blank" rel="noopener">Arduino для початківців: Serial</a><small>Serial.begin/print, монітор порту.</small></li>
+        <li><span class="lvl b">базово</span><a href="https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-serial-plotter" target="_blank" rel="noopener">Arduino IDE 2: Serial Plotter</a><small>Формат міток і кілька графіків одночасно.</small></li>
+        <li><span class="lvl d">поглиблено</span><a href="http://www.ganssle.com/debouncing.htm" target="_blank" rel="noopener">Jack Ganssle: A Guide to Debouncing (англ.)</a><small>Справжні виміри брязкоту 18 перемикачів, звідки цифри розділу 07.</small></li>
+        <li><span class="lvl d">поглиблено</span><a href="https://elartu.tntu.edu.ua/bitstream/123456789/13547/2/VseukrStud_2012v1_Len_M-Metodyka_vymiriuvannia_chasovykh_193-194.pdf" target="_blank" rel="noopener">ТНТУ: методика вимірювання часових параметрів (PDF)</a><small>Як МК міряє частоту, період і інтервали.</small></li>
+        <li><span class="lvl d">поглиблено</span><a href="https://files.znu.edu.ua/files/Bibliobooks/Inshi78/0058527.pdf" target="_blank" rel="noopener">ЗНУ: часова й частотна область (PDF, с. 9–12)</a><small>Період, частота, дискретизація в академічному викладі.</small></li>
+        <li><span class="lvl d">поглиблено</span><a href="https://gb.mistoboyarka.gov.ua/files/project/1632/documents/15120646387077_1512063065297762.pdf" target="_blank" rel="noopener">Робота з цифровими сигналами в Arduino (PDF)</a><small>pinMode, digitalRead/Write на прикладах.</small></li>
+        <li><span class="lvl o">офіційно</span><a href="https://docs.espressif.com/projects/arduino-esp32/en/latest/api/gpio.html" target="_blank" rel="noopener">Arduino-ESP32: GPIO і переривання</a><small><code>attachInterrupt</code>, режими RISING/FALLING/CHANGE.</small></li>
+        <li><span class="lvl o">офіційно</span><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/gpio.html" target="_blank" rel="noopener">ESP-IDF: GPIO ESP32-S3</a><small>Glitch filter і налаштування переривань на рівні IDF.</small></li>
+        <li><span class="lvl o">офіційно</span><a href="https://sigrok.org/wiki/PulseView" target="_blank" rel="noopener">PulseView (sigrok)</a><small>Безкоштовна програма для дешевих аналізаторів, експорт VCD.</small></li>
+        <li><span class="lvl o">офіційно</span><a href="https://docs.wokwi.com/parts/wokwi-logic-analyzer" target="_blank" rel="noopener">Wokwi: логічний аналізатор</a> і <a href="https://docs.wokwi.com/parts/wokwi-pushbutton" target="_blank" rel="noopener">кнопка (атрибут bounce)</a><small>Як записати VCD у симуляторі й увімкнути/вимкнути брязкіт.</small></li>
+      </ul>
+    </div>
+  </div>
+  <div class="note warn" id="fixes">
+    <b>Виправлення до конспекту курсу.</b> Конспект добре вводить у тему. Кілька уточнень для нашої плати:
+    <ul style="margin:6px 0 0; padding-left:20px">
+      <li>«МК реєструє момент перетину порогу (зазвичай половина живлення)». У ESP32-S3 два пороги: LOW — нижче 0,25·VDD, HIGH — вище 0,75·VDD, а між ними невизначена зона. Одного «порогу на половині» немає. Див. <a href="../pull-resistors/">модуль 1.4, розділ про тригер Шмітта</a>.</li>
+      <li>«Брязкіт зазвичай триває 5–20 мс». Виміри Ганссла: в середньому ~1,6 мс, максимум 6,2 мс, рідкісні викиди до 157 мс. Тривалість залежить від кнопки, тож 5–20 мс — оцінка із запасом, а не типове значення.</li>
+      <li>Згаданий проєкт «Esp32_oscilloscop» у конспекті без посилання. Схожий готовий варіант розібрано у відео 5.</li>
+      <li>Шпаруватість («скважність») і коефіцієнт заповнення — обернені величини, а не синоніми (див. розділ 05).</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <p><a href="../">← Усі матеріали</a> · <a href="../pull-resistors/">Підтяжка входу (модуль 1.4)</a> · <a href="../bounce-lab/">Симуляція ДЗ модуля 1.5</a> · <a href="../adc-light/">АЦП і світло (модуль 1.6)</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce" target="_blank" rel="noopener">esp32-s3-button-bounce на GitHub</a></p>
+  <p>Модель брязкоту випадкова, але її масштаби взято з вимірів Ганссла: середнє ~1,6 мс, максимум 6,2 мс, на розмиканні часто відскоки коротші за 1 мкс. Підтяжка ESP32-S3 ~45 кОм, ємність піна з проводом ~30 пФ. Смуга щупа ×1 ≈ 6 МГц, ×10 ≈ 100 МГц, прилад 100 МГц (як у відео 1). Віртуальний осцилограф спрощений: без шуму АЦП, з ідеальним тригером.</p>
+</footer>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += Math.random(); return (u - 3) * 1.4142; };
+
+// ---------- formatting: 3 significant digits, decimal comma, SI prefixes ----------
+const dec = s => String(s).replace('.', ',').replace('-', '−');
+function sig(x, n = 3) {
+  if (x == null || !isFinite(x)) return '—';
+  if (x === 0) return '0';
+  let s = String(+x.toPrecision(n));
+  if (s.includes('e')) s = x.toFixed(2);
+  return dec(s);
+}
+const PFX = {
+  'с': [[1, ''], [1e-3, 'м'], [1e-6, 'мк'], [1e-9, 'н'], [1e-12, 'п']],
+  'В': [[1, ''], [1e-3, 'м'], [1e-6, 'мк']],
+  'Гц': [[1e6, 'М'], [1e3, 'к'], [1, '']],
+  'Ом': [[1e6, 'М'], [1e3, 'к'], [1, '']],
+  'Ф': [[1e-6, 'мк'], [1e-9, 'н'], [1e-12, 'п']],
+};
+function U(x, base, n = 3) {
+  if (x == null || !isFinite(x)) return '—';
+  if (x === 0) return '0 ' + base;
+  const a = Math.abs(x), P = PFX[base];
+  for (const [m, p] of P) if (a >= m * 0.9995) return sig(x / m, n) + ' ' + p + base;
+  const [m, p] = P[P.length - 1];
+  return sig(x / m, n) + ' ' + p + base;
+}
+const num = s => parseFloat(String(s).replace(/\s/g, '').replace(',', '.').replace('−', '-'));
+function bytes(b) {
+  const u = [[1e12, 'ТБ'], [1e9, 'ГБ'], [1e6, 'МБ'], [1e3, 'КБ']];
+  for (const [m, n] of u) if (b >= m) return sig(b / m, 3) + ' ' + n;
+  return sig(b, 3) + ' Б';
+}
+
+// ---------- theme tokens for canvas ----------
+const T = {};
+const redrawers = [];
+function redrawAll() { for (const r of redrawers) r(); }
+function tokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['--scope', '--scope-grid', '--scope-text', '--sig', '--sig2', '--hi', '--z', '--ok', '--bad', '--band', '--lo', '--accent', '--light'])
+    T[k] = cs.getPropertyValue(k).trim();
+  redrawAll();
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', tokens);
+new MutationObserver(tokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+window.addEventListener('resize', () => redrawAll());
+tokens();
+
+function fit(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth;
+  const H = cv._H || (cv._H = +cv.getAttribute('height'));
+  if (!w) return null;
+  if (cv._w !== w || cv._dpr !== dpr) { cv.width = Math.round(w * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px'; cv._w = w; cv._dpr = dpr; }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, H };
+}
+
+// ---------- simulation clock + animation manager (only visible things run) ----------
+const SIM = { t: 1000 };
+const sims = [];
+function addSim(s) {
+  sims.push(s); s.visible = false;
+  new IntersectionObserver(es => { s.visible = es[0].isIntersecting; if (s.visible) s.draw(); }).observe(s.root);
+  redrawers.push(() => s.draw());
+}
+let lastNow = performance.now();
+function frame(now) {
+  const dt = Math.min(0.1, (now - lastNow) / 1000); lastNow = now;
+  SIM.t += dt;
+  for (const s of sims) { if (!s.visible) continue; if (s.step) s.step(dt); s.draw(); }
+  requestAnimationFrame(frame);
+}
+const hooks = {};
+
+// ---------- measurements on a noise-free sample array ----------
+function measureArr(a, dt) {
+  let mx = -Infinity, mn = Infinity;
+  for (const v of a) { if (v > mx) mx = v; if (v < mn) mn = v; }
+  const r = { vmax: mx, vmin: mn, vpp: mx - mn, dt };
+  const pp = mx - mn;
+  if (!(pp > 1e-3)) return r;
+  const mid = (mx + mn) / 2, hi = mid + pp * 0.1, lo = mid - pp * 0.1;
+  const cross = (i, L) => { const j = Math.max(1, i); const d = a[j] - a[j - 1]; return (j - 1 + (d ? (L - a[j - 1]) / d : 0)) * dt; };
+  let st = a[0] > mid ? 1 : 0;
+  const rises = [], falls = [];
+  for (let i = 1; i < a.length; i++) {
+    if (!st && a[i] >= hi) { st = 1; let j = i; while (j > 1 && a[j - 1] >= mid) j--; rises.push(cross(j, mid)); }
+    else if (st && a[i] <= lo) { st = 0; let j = i; while (j > 1 && a[j - 1] <= mid) j--; falls.push(cross(j, mid)); }
+  }
+  if (rises.length >= 2) r.T = (rises[rises.length - 1] - rises[0]) / (rises.length - 1);
+  else if (falls.length >= 2) r.T = (falls[falls.length - 1] - falls[0]) / (falls.length - 1);
+  if (r.T) r.f = 1 / r.T;
+  const ws = [];
+  for (const t of rises) { const fl = falls.find(x => x > t); if (fl != null) ws.push(fl - t); }
+  if (ws.length) r.w = ws.reduce((s, x) => s + x, 0) / ws.length;
+  if (r.T && r.w) r.duty = r.w / r.T;
+  const l10 = mn + 0.1 * pp, l90 = mn + 0.9 * pp;
+  let below = false, t10 = null;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] <= l10) { below = true; t10 = null; }
+    else if (below && t10 == null) t10 = cross(i, l10);
+    if (t10 != null && a[i] >= l90) { r.rise = cross(i, l90) - t10; break; }
+  }
+  if (r.rise != null && r.rise < 2 * dt) { r.rise = 2 * dt; r.riseLim = true; }
+  return r;
+}
+
+/* ================================================================ virtual oscilloscope */
+function seq125(lo, hi) { const o = []; for (let e = -9; e <= 1; e++) for (const m of [1, 2, 5]) { const v = +(m * 10 ** e).toPrecision(3); if (v >= lo * 0.999 && v <= hi * 1.001) o.push(v); } return o; }
+const TDIV = seq125(1e-9, 2), VDIV = seq125(0.01, 10);
+const nearIdx = (arr, v) => { let b = 0; arr.forEach((x, i) => { if (Math.abs(Math.log(x / v)) < Math.abs(Math.log(arr[b] / v))) b = i; }); return b; };
+
+class Scope {
+  constructor(host, o) {
+    this.o = o;
+    this.ch = o.ch.map((c, i) => Object.assign({ name: 'CH' + (i + 1), col: i ? '--sig2' : '--sig', on: true, vdiv: 1, pos: 0, probe: 1, menu: 1, noise: 0.006 }, c));
+    this.tdiv = o.tdiv ?? 1e-3;
+    this.trig = Object.assign({ src: 0, edge: 'rise', level: 0, mode: 'auto', pos: 0.5 }, o.trig || {});
+    this.sweepAt = o.sweepAt ?? 0.05;
+    this.run = !reduce;
+    this.frames = []; this.P = reduce ? 1 : (o.persist ?? 6);
+    this.cur = { mode: o.cursors || 'off', t: o.curT ? [...o.curT] : [0.3, 0.7], v: [0.25, 0.75], sel: 0, drag: -1 };
+    this.status = 'AUTO'; this.lastAcq = 0; this.meas = null; this.lastMeas = 0; this.lastTrig = null;
+    this.ui = new Set(o.ui || ['v1', 'v2', 't', 'trig', 'mode', 'run', 'auto', 'cur', 'meas']);
+    this.refs = []; this.el = {};
+    this.root = host.closest('section');
+    this.build(host);
+    addSim(this);
+    this.acquire(true);
+    this.sync();
+  }
+  win() { return 10 * this.tdiv; }
+  sweep() { return this.tdiv >= this.sweepAt; }
+  cols() { return Math.max(120, Math.round(this.cv.clientWidth || 600)); }
+  k(c) { return c.menu / c.probe; }
+
+  // ---------- UI ----------
+  build(host) {
+    const wrap = document.createElement('div'); wrap.className = 'scope-wrap';
+    const cv = document.createElement('canvas'); cv.className = 'scope osc'; cv.setAttribute('height', this.o.height || 290); cv.tabIndex = 0;
+    cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', this.o.label || 'Віртуальний осцилограф');
+    wrap.appendChild(cv); host.appendChild(wrap); this.cv = cv;
+    const row = () => { const d = document.createElement('div'); d.className = 'sc-ctl'; host.appendChild(d); return d; };
+    const r1 = row();
+    this.ch.forEach((c, i) => {
+      if (!this.ui.has('v' + (i + 1))) return;
+      r1.appendChild(this.stepper(c.name + ' В/под', 'c' + (i + 1), () => U(c.vdiv, 'В'), d => this.setVdiv(i, d)));
+    });
+    if (this.ui.has('t')) r1.appendChild(this.stepper('с/под', '', () => U(this.tdiv, 'с'), d => this.setTdiv(this.tdiv, d)));
+    if (this.ui.has('run')) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'runbtn';
+      b.onclick = () => { this.setRun(!this.run); };
+      r1.appendChild(b); this.el.run = b;
+    }
+    if (this.ui.has('auto')) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost'; b.textContent = 'AUTO';
+      b.title = 'Автоналаштування шкал і тригера'; b.onclick = () => this.autoset(); r1.appendChild(b);
+    }
+    if (this.ui.has('trig') || this.ui.has('mode') || this.ui.has('cur')) {
+      const r2 = row();
+      if (this.ui.has('trig')) {
+        const g = document.createElement('div'); g.className = 'grp';
+        g.innerHTML = '<span class="gl">Тригер</span>';
+        if (this.ch.length > 1 && this.ui.has('tsrc')) g.appendChild(this.seg('Джерело тригера', this.ch.map((c, i) => [i, c.name]), () => this.trig.src, v => { this.trig.src = +v; this.rearm(); }));
+        g.appendChild(this.seg('Фронт тригера', [['rise', '↑'], ['fall', '↓']], () => this.trig.edge, v => { this.trig.edge = v; this.rearm(); }));
+        const lr = document.createElement('label'); lr.className = 'minirange';
+        lr.innerHTML = 'рівень <input type="range" min="-4" max="4" step="0.05" aria-label="Рівень тригера"><b></b>';
+        const inp = lr.querySelector('input'), out = lr.querySelector('b');
+        inp.addEventListener('input', () => { const c = this.ch[this.trig.src]; this.trig.level = (+inp.value - c.pos) * c.vdiv; this.rearm(); });
+        this.refs.push(() => { const c = this.ch[this.trig.src]; inp.value = this.trig.level / c.vdiv + c.pos; out.textContent = U(this.trig.level, 'В'); });
+        g.appendChild(lr); r2.appendChild(g);
+      }
+      if (this.ui.has('mode')) r2.appendChild(this.seg('Режим запуску', [['auto', 'AUTO'], ['normal', 'NORMAL'], ['single', 'SINGLE']], () => this.trig.mode, v => { this.trig.mode = v; this.setRun(true); }));
+      if (this.ui.has('cur')) {
+        const g = document.createElement('div'); g.className = 'grp'; g.innerHTML = '<span class="gl">Курсори</span>';
+        g.appendChild(this.seg('Курсори', [['off', 'вимк'], ['t', 'час'], ['v', 'напруга']], () => this.cur.mode, v => { this.cur.mode = v; this.sync(); this.draw(); }));
+        r2.appendChild(g);
+      }
+    }
+    if (this.ui.has('meas')) {
+      const st = document.createElement('div'); st.className = 'sc-stats';
+      const cells = [['f', 'Частота'], ['T', 'Період'], ['pp', 'Розмах Vpp'], ['max', 'Vmax'], ['min', 'Vmin'], ['w', '+Ширина'], ['d', 'Заповнення'], ['r', 'Наростання'], ['c1', 'Δt курсорів'], ['c2', '1/Δt'], ['c3', 'ΔV курсорів']];
+      st.innerHTML = cells.map(([k, n]) => `<div class="stat${k[0] === 'c' ? ' cur' : ''}" data-k="${k}"><div class="k">${n}</div><div class="v">—</div></div>`).join('');
+      host.appendChild(st); this.el.stats = st;
+    }
+    // cursors: drag with mouse/touch, keys 1/2 + arrows
+    const pick = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, r]; };
+    cv.addEventListener('pointerdown', e => {
+      if (this.cur.mode === 'off') return;
+      const [x, y, r] = pick(e), tm = this.cur.mode === 't', arr = tm ? this.cur.t : this.cur.v, p = tm ? x : y, size = tm ? r.width : r.height;
+      let best = 0; arr.forEach((c, i) => { if (Math.abs(c - p) < Math.abs(arr[best] - p)) best = i; });
+      this.cur.drag = this.cur.sel = best; arr[best] = clamp(p, 0, 1);
+      cv.setPointerCapture(e.pointerId); e.preventDefault(); this.updStats(); this.draw(); void size;
+    });
+    cv.addEventListener('pointermove', e => {
+      if (this.cur.drag < 0) return;
+      const [x, y] = pick(e), tm = this.cur.mode === 't';
+      (tm ? this.cur.t : this.cur.v)[this.cur.drag] = clamp(tm ? x : y, 0, 1); this.updStats(); this.draw();
+    });
+    const up = () => { this.cur.drag = -1; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('keydown', e => {
+      if (e.key === ' ') { e.preventDefault(); this.setRun(!this.run); return; }
+      if (this.cur.mode === 'off') return;
+      if (e.key === '1' || e.key === '2') { this.cur.sel = +e.key - 1; this.draw(); return; }
+      const tm = this.cur.mode === 't', arr = tm ? this.cur.t : this.cur.v, d = e.shiftKey ? 0.05 : 0.005;
+      const dir = { ArrowLeft: tm ? -1 : 0, ArrowRight: tm ? 1 : 0, ArrowUp: tm ? 0 : -1, ArrowDown: tm ? 0 : 1 }[e.key];
+      if (!dir) return;
+      e.preventDefault(); arr[this.cur.sel] = clamp(arr[this.cur.sel] + dir * d, 0, 1); this.updStats(); this.draw();
+    });
+  }
+  stepper(label, cls, text, fn) {
+    const s = document.createElement('div'); s.className = 'step ' + cls;
+    s.innerHTML = `<span class="l">${label}</span><button type="button" aria-label="${label}: менше">−</button><b></b><button type="button" aria-label="${label}: більше">+</button>`;
+    const [bm, bp] = s.querySelectorAll('button'), b = s.querySelector('b');
+    bm.onclick = () => fn(-1); bp.onclick = () => fn(1);
+    this.refs.push(() => { b.textContent = text(); });
+    return s;
+  }
+  seg(label, items, get, set) {
+    const s = document.createElement('div'); s.className = 'seg'; s.setAttribute('role', 'group'); s.setAttribute('aria-label', label);
+    s.innerHTML = items.map(([v, n]) => `<button type="button" data-v="${v}">${n}</button>`).join('');
+    s.addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(b.dataset.v); });
+    this.refs.push(() => s.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(get())))));
+    return s;
+  }
+  sync() {
+    for (const r of this.refs) r();
+    if (this.el.run) {
+      this.el.run.setAttribute('aria-pressed', String(this.run));
+      this.el.run.textContent = this.run ? 'RUN' : 'STOP';
+      this.el.run.title = this.run ? 'Натисни, щоб зупинити' : 'Натисни, щоб запустити';
+    }
+    this.cv.classList.toggle('curs', this.cur.mode !== 'off');
+    this.cv.classList.toggle('cv', this.cur.mode === 'v');
+    if (this.el.stats) this.el.stats.querySelectorAll('.stat.cur').forEach(s => { const k = s.dataset.k; s.hidden = this.cur.mode === 'off' || (this.cur.mode === 't' ? k === 'c3' : k !== 'c3'); });
+    this.updStats();
+    if (this.o.onChange) this.o.onChange(this);
+  }
+  setRun(on) {
+    this.run = on;
+    if (on) { if (this.trig.mode !== 'single') this.frames = []; this.searchFrom = null; if (this.ch[this.trig.src].live) this.searchFrom = SIM.t - this.win() * (1 - this.trig.pos); }
+    this.sync(); this.draw();
+  }
+  rearm() { if (this.trig.mode === 'single') this.setRun(true); else { this.frames = []; if (!this.run) this.recapture(); this.sync(); this.draw(); } }
+  setVdiv(i, d) {
+    const c = this.ch[i]; c.vdiv = VDIV[clamp(nearIdx(VDIV, c.vdiv) + d, 0, VDIV.length - 1)];
+    this.restage();
+  }
+  setTdiv(v, d = 0) {
+    this.tdiv = TDIV[clamp(nearIdx(TDIV, v) + d, 0, TDIV.length - 1)];
+    this.sw = null; this.restage();
+  }
+  restage() { this.frames = []; if (!this.run || this.sweep()) this.recapture(); this.sync(); this.draw(); }
+  recapture() {
+    if (this.sweep()) { this.prefillSweep(); return; }
+    const W = this.win();
+    let t0;
+    if (this.lastTrig != null) t0 = this.lastTrig - this.trig.pos * W;
+    else if (this.tc != null && !this.run) t0 = this.tc - W / 2;
+    else { this.acquire(true); return; }
+    this.capture(t0);
+  }
+  autoset() {
+    let hint = null;
+    this.ch.forEach((c, i) => {
+      const h = c.hint ? c.hint() : null; if (!h) return; if (i === this.trig.src) hint = h;
+      const k = this.k(c), vmin = h.vmin * k, vmax = h.vmax * k, pp = Math.max(vmax - vmin, 1e-3);
+      c.vdiv = VDIV.find(v => pp <= 6 * v) || VDIV[VDIV.length - 1];
+      c.pos = Math.round(-((vmax + vmin) / 2) / c.vdiv * 10) / 10 + (this.ch.length > 1 ? (i ? -1.6 : 1.6) : 0);
+    });
+    if (hint) {
+      const k = this.k(this.ch[this.trig.src]);
+      if (hint.f) this.tdiv = TDIV.find(v => 10 * v >= 2.5 / hint.f) || TDIV[TDIV.length - 1];
+      this.trig.level = (hint.vmax + hint.vmin) / 2 * k;
+    }
+    this.trig.mode = 'auto'; this.sw = null; this.lastTrig = null;
+    this.setRun(true); this.acquire(true); this.draw();
+  }
+
+  // ---------- acquisition ----------
+  findTrig(a, b) {
+    const c = this.ch[this.trig.src], k = this.k(c), L = this.trig.level / k, rise = this.trig.edge === 'rise';
+    if (c.edgeAt) return c.edgeAt(a, b, rise, L);
+    const W = this.win(), step = W / 300, n = Math.min(30000, Math.ceil((b - a) / step));
+    let p = c.fn(a);
+    for (let j = 1; j <= n; j++) {
+      const t = a + j * step, v = c.fn(t);
+      if (rise ? (p < L && v >= L) : (p > L && v <= L)) {
+        let lo = t - step, hi = t;
+        for (let q = 0; q < 40; q++) { const m = (lo + hi) / 2, vm = c.fn(m); if (rise ? vm >= L : vm <= L) hi = m; else lo = m; }
+        return hi;
+      }
+      p = v;
+    }
+    return null;
+  }
+  acquire(force) {
+    if (this.sweep()) { this.prefillSweep(); return; }
+    const W = this.win(), src = this.ch[this.trig.src], live = !!src.live;
+    let a, b;
+    if (live) { b = SIM.t - W * (1 - this.trig.pos); a = this.searchFrom ?? b; this.searchFrom = Math.max(a, b); }
+    else { a = SIM.t + Math.random() * W; b = a + W * 60; }
+    let tt = b > a ? this.findTrig(a, b) : null;
+    if (tt == null && force && !live) tt = this.findTrig(a, a + W * 400);
+    let t0;
+    if (tt != null) { t0 = tt - this.trig.pos * W; this.lastTrig = tt; this.status = 'TRIG\'D'; }
+    else if (this.trig.mode === 'auto' || force) { t0 = live ? SIM.t - W : SIM.t; this.lastTrig = null; this.status = this.trig.mode === 'auto' ? 'AUTO' : 'WAIT'; }
+    else { this.status = this.trig.mode === 'single' ? 'WAIT · SINGLE' : 'WAIT'; return; }
+    this.capture(t0);
+    if (tt != null && this.trig.mode === 'single' && !force) { this.run = false; this.sync(); if (this.o.onSingle) this.o.onSingle(tt, this); }
+  }
+  capture(t0) {
+    const W = this.win(), cols = this.cols(), fr = { t0, W, ch: [] };
+    this.ch.forEach(c => {
+      if (!c.on) { fr.ch.push(null); return; }
+      const mn = new Float32Array(cols), mx = new Float32Array(cols), k = this.k(c), K = 5;
+      for (let x = 0; x < cols; x++) {
+        const ta = t0 + x * W / cols, tb = ta + W / cols;
+        let lo, hi;
+        if (c.extrema) [lo, hi] = c.extrema(ta, tb);
+        else { lo = Infinity; hi = -Infinity; for (let j = 0; j <= K; j++) { const v = c.fn(ta + j * (tb - ta) / K); if (v < lo) lo = v; if (v > hi) hi = v; } }
+        const nz = c.noise * gauss();
+        mn[x] = lo * k + nz; mx[x] = hi * k + nz + Math.abs(c.noise * gauss()) * 0.5;
+      }
+      fr.ch.push({ mn, mx });
+    });
+    this.frames.push(fr); while (this.frames.length > this.P) this.frames.shift();
+    this.t0 = t0; this.tc = t0 + W / 2;
+    this.measure(true);
+  }
+  newSweep(W, cols, t) {
+    return { W, cols, tl: t - W * 0.999, ch: this.ch.map(c => c.on ? { mn: new Float32Array(cols).fill(NaN), mx: new Float32Array(cols).fill(NaN) } : null), lastX: -1, lastBase: null, beam: 0 };
+  }
+  prefillSweep() { this.sw = this.newSweep(this.win(), this.cols(), SIM.t); this.sweepStep(true); }
+  sweepStep(force) {
+    const W = this.win(), cols = this.cols(), t = SIM.t;
+    if (!this.sw || this.sw.W !== W || this.sw.cols !== cols) this.sw = this.newSweep(W, cols, t);
+    const s = this.sw;
+    let tl = Math.max(s.tl, t - W * 0.999), guard = cols * 3 + 10;
+    while (tl < t && guard-- > 0) {
+      const base = Math.floor(tl / W) * W, x = Math.min(cols - 1, Math.floor((tl - base) / W * cols));
+      const colEnd = base + (x + 1) * W / cols;
+      let te = Math.min(colEnd, t);
+      if (te <= tl) { tl += W / cols * 0.5; continue; }
+      if (s.lastX !== x || s.lastBase !== base) { s.lastX = x; s.lastBase = base; for (const b of s.ch) if (b) { b.mn[x] = Infinity; b.mx[x] = -Infinity; } }
+      this.ch.forEach((c, i) => {
+        const b = s.ch[i]; if (!b) return; const k = this.k(c);
+        let lo, hi;
+        if (c.extrema) [lo, hi] = c.extrema(tl, te);
+        else { lo = Infinity; hi = -Infinity; for (let j = 0; j <= 3; j++) { const v = c.fn(tl + j * (te - tl) / 3); if (v < lo) lo = v; if (v > hi) hi = v; } }
+        const nz = c.noise * gauss();
+        b.mn[x] = Math.min(b.mn[x], lo * k + nz); b.mx[x] = Math.max(b.mx[x], hi * k + nz);
+      });
+      tl = te;
+    }
+    s.tl = t; s.beam = (t - Math.floor(t / W) * W) / W;
+    this.t0 = t - W; this.tc = t - W / 2;
+    this.measure(force);
+  }
+  step() {
+    if (!this.run) return;
+    if (this.sweep()) { this.sweepStep(false); return; }
+    const now = performance.now();
+    if (now - this.lastAcq < (this.o.acqMs ?? 45)) return;
+    this.lastAcq = now; this.acquire(false);
+  }
+  measure(force) {
+    const now = performance.now();
+    if (!force && now - this.lastMeas < 200) return;
+    this.lastMeas = now;
+    const i = this.o.measCh ?? 0, c = this.ch[i]; if (!c || !c.on) return;
+    const W = this.win(), N = 4000, k = this.k(c), a = new Float32Array(N), t0 = this.sweep() ? SIM.t - W : this.t0;
+    for (let j = 0; j < N; j++) a[j] = c.fn(t0 + j * W / N) * k;
+    this.meas = measureArr(a, W / N);
+    this.updStats();
+    if (this.o.onMeasure) this.o.onMeasure(this.meas, this);
+  }
+  updStats() {
+    const st = this.el.stats; if (!st) return;
+    const m = this.meas || {}, set = (k, v) => { const e = st.querySelector(`[data-k="${k}"] .v`); if (e) e.textContent = v; };
+    set('f', U(m.f, 'Гц')); set('T', U(m.T, 'с')); set('pp', U(m.vpp, 'В')); set('max', U(m.vmax, 'В')); set('min', U(m.vmin, 'В'));
+    set('w', U(m.w, 'с')); set('d', m.duty != null ? sig(m.duty * 100) + ' %' : '—');
+    set('r', m.rise != null ? (m.riseLim ? '< ' : '') + U(m.rise, 'с') : '—');
+    const dt = Math.abs(this.cur.t[1] - this.cur.t[0]) * this.win();
+    set('c1', U(dt, 'с')); set('c2', dt > 0 ? U(1 / dt, 'Гц') : '—');
+    set('c3', U(Math.abs(this.cur.v[1] - this.cur.v[0]) * 8 * this.ch[0].vdiv, 'В'));
+  }
+
+  // ---------- drawing ----------
+  y(i, v, H) { const c = this.ch[i]; return H / 2 - (v / c.vdiv + c.pos) * H / 8; }
+  xOf(t, w) { return (t - this.t0) / this.win() * w; }
+  trace(ctx, w, H, i, mn, mx, x0, x1) {
+    const sx = w / mn.length; let pen = false;
+    ctx.beginPath();
+    for (let x = x0; x < x1; x++) {
+      if (!isFinite(mn[x]) || !isFinite(mx[x])) { pen = false; continue; }
+      const X = (x + .5) * sx, a = clamp(this.y(i, mn[x], H), -4, H + 4), b = clamp(this.y(i, mx[x], H), -4, H + 4);
+      if (!pen) { ctx.moveTo(X, x % 2 ? a : b); pen = true; }
+      if (x % 2) { ctx.lineTo(X, a); ctx.lineTo(X, b); } else { ctx.lineTo(X, b); ctx.lineTo(X, a); }
+    }
+    ctx.stroke();
+  }
+  draw() {
+    const c = fit(this.cv); if (!c) return;
+    const { ctx, w, H } = c, gx = w / 10, gy = H / 8;
+    ctx.fillStyle = T['--scope']; ctx.fillRect(0, 0, w, H);
+    ctx.strokeStyle = T['--scope-grid']; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 1; i < 10; i++) { const x = Math.round(i * gx) + .5; ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let j = 1; j < 8; j++) { const y = Math.round(j * gy) + .5; ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    const cx = Math.round(5 * gx) + .5, cy = Math.round(4 * gy) + .5;
+    for (let i = 0; i < 50; i++) { const x = Math.round(i * gx / 5) + .5; ctx.moveTo(x, cy - 3); ctx.lineTo(x, cy + 3); }
+    for (let j = 0; j < 40; j++) { const y = Math.round(j * gy / 5) + .5; ctx.moveTo(cx - 3, y); ctx.lineTo(cx + 3, y); }
+    ctx.stroke();
+    ctx.lineJoin = 'round';
+    if (this.sweep() && this.sw) {
+      const s = this.sw, bx = Math.floor(s.beam * s.cols), gap = Math.max(4, Math.round(s.cols * 0.02));
+      this.ch.forEach((ch, i) => {
+        const b = s.ch[i]; if (!b) return;
+        ctx.strokeStyle = T[ch.col]; ctx.lineWidth = 1.7; ctx.shadowColor = T[ch.col]; ctx.shadowBlur = reduce ? 0 : 5;
+        this.trace(ctx, w, H, i, b.mn, b.mx, 0, Math.min(bx + 1, s.cols));
+        this.trace(ctx, w, H, i, b.mn, b.mx, Math.min(s.cols, bx + gap), s.cols);
+        ctx.shadowBlur = 0;
+      });
+      if (this.run) { ctx.fillStyle = T['--scope-text']; ctx.globalAlpha = .25; ctx.fillRect(s.beam * w, 0, 2, H); ctx.globalAlpha = 1; }
+    } else {
+      this.frames.forEach((fr, n) => {
+        const newest = n === this.frames.length - 1;
+        fr.ch.forEach((b, i) => {
+          if (!b) return; const ch = this.ch[i];
+          ctx.strokeStyle = T[ch.col]; ctx.globalAlpha = newest ? 1 : 0.12 + 0.3 * (n + 1) / this.frames.length;
+          ctx.lineWidth = newest ? 1.7 : 1.2; ctx.shadowColor = T[ch.col]; ctx.shadowBlur = newest && !reduce ? 5 : 0;
+          this.trace(ctx, w, H, i, b.mn, b.mx, 0, b.mn.length);
+        });
+      });
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    }
+    if (this.o.overlay) this.o.overlay(ctx, w, H, this);
+    this.drawMarks(ctx, w, H);
+    this.drawCursors(ctx, w, H);
+    this.drawLabels(ctx, w, H);
+  }
+  drawMarks(ctx, w, H) {
+    ctx.font = '700 10px "JetBrains Mono", monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    this.ch.forEach((c, i) => {
+      if (!c.on) return; const y = clamp(this.y(i, 0, H), 6, H - 6);
+      ctx.fillStyle = T[c.col]; ctx.beginPath(); ctx.moveTo(0, y - 7); ctx.lineTo(11, y - 7); ctx.lineTo(17, y); ctx.lineTo(11, y + 7); ctx.lineTo(0, y + 7); ctx.fill();
+      ctx.fillStyle = T['--scope']; ctx.fillText(String(i + 1), 7, y + .5);
+    });
+    if (!this.sweep()) {
+      const s = this.trig.src, y = clamp(this.y(s, this.trig.level, H), 6, H - 6);
+      ctx.fillStyle = T[this.ch[s].col]; ctx.beginPath(); ctx.moveTo(w, y - 7); ctx.lineTo(w - 11, y - 7); ctx.lineTo(w - 17, y); ctx.lineTo(w - 11, y + 7); ctx.lineTo(w, y + 7); ctx.fill();
+      ctx.fillStyle = T['--scope']; ctx.fillText('T', w - 7, y + .5);
+      const x = this.trig.pos * w; ctx.fillStyle = T['--hi'];
+      ctx.beginPath(); ctx.moveTo(x - 6, 0); ctx.lineTo(x + 6, 0); ctx.lineTo(x, 8); ctx.fill();
+    }
+    ctx.textBaseline = 'alphabetic';
+  }
+  drawCursors(ctx, w, H) {
+    if (this.cur.mode === 'off') return;
+    const tm = this.cur.mode === 't', arr = tm ? this.cur.t : this.cur.v, col = tm ? T['--hi'] : T['--z'];
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    arr.forEach((p, i) => {
+      ctx.strokeStyle = col; ctx.lineWidth = i === this.cur.sel ? 2 : 1.3; ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      if (tm) { ctx.moveTo(p * w, 0); ctx.lineTo(p * w, H); } else { ctx.moveTo(0, p * H); ctx.lineTo(w, p * H); }
+      ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col;
+      if (tm) { ctx.textAlign = p > .9 ? 'right' : 'left'; ctx.fillText((tm ? 't' : 'v') + (i + 1), p * w + (p > .9 ? -5 : 5), 22); }
+      else { ctx.textAlign = 'left'; ctx.fillText('v' + (i + 1), 22, p * H - 5); }
+    });
+    ctx.textAlign = 'left';
+  }
+  drawLabels(ctx, w, H) {
+    ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left';
+    const parts = [];
+    this.ch.forEach(c => { if (c.on) parts.push([`${c.name} ${U(c.vdiv, 'В')}`, T[c.col]]); });
+    parts.push([`M ${U(this.tdiv, 'с')}`, T['--scope-text']]);
+    if (!this.sweep()) parts.push([`T${this.trig.edge === 'rise' ? '↑' : '↓'} ${U(this.trig.level, 'В')}`, T[this.ch[this.trig.src].col]]);
+    ctx.fillStyle = 'rgba(0,0,0,.42)'; ctx.fillRect(0, H - 19, w, 19);
+    let x = 22;
+    for (const [s, col] of parts) { const tw = ctx.measureText(s).width; if (x + tw > w - 6) break; ctx.fillStyle = col; ctx.fillText(s, x, H - 6); x += tw + 14; }
+    const st = !this.run ? 'STOP' : this.sweep() ? 'SCAN' : this.status;
+    const tw = ctx.measureText(st).width;
+    ctx.fillStyle = !this.run ? T['--bad'] : st.startsWith('WAIT') ? T['--hi'] : T['--ok'];
+    ctx.globalAlpha = .9; ctx.fillRect(w - tw - 34, 6, tw + 12, 17); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff'; ctx.fillText(st, w - tw - 28, 19);
+  }
+}
+
+/* ================================================================ signal generator */
+class Gen {
+  constructor(o = {}) {
+    Object.assign(this, { wave: 'sine', f: 1e3, amp: 5, off: 0, duty: 0.5 }, o);
+    this.fn = t => this.val(t);
+    this.hint = () => ({ vmin: this.off - this.amp / 2, vmax: this.off + this.amp / 2, f: this.f });
+  }
+  val(t) {
+    const x = t * this.f, ph = x - Math.floor(x), A = this.amp / 2;
+    if (this.wave === 'sine') return this.off + A * Math.sin(2 * Math.PI * ph);
+    if (this.wave === 'square') return this.off + (ph < this.duty ? A : -A);
+    return this.off + A * (ph < .5 ? 4 * ph - 1 : 3 - 4 * ph);
+  }
+}
+const WNAME = { sine: 'синус', square: 'меандр', tri: 'трикутник' };
+function genUI(host, g, o, onChange) {
+  const waves = o.waves || ['sine', 'square', 'tri'];
+  host.innerHTML = `<div class="ph"><h3>Генератор</h3><span class="hint">${o.hint || ''}</span></div>
+    <div class="controls">
+      ${waves.length > 1 ? `<div class="seg" role="group" aria-label="Форма сигналу">${waves.map(w => `<button type="button" data-w="${w}">${WNAME[w]}</button>`).join('')}</div>` : ''}
+      ${o.chips ? `<div class="chips" aria-label="Готові частоти">${o.chips.map(f => `<button type="button" class="chip-btn" data-f="${f}">${U(f, 'Гц')}</button>`).join('')}</div>` : ''}
+    </div>
+    <div class="controls">
+      <div class="ctl"><label>Частота <b class="gf"></b></label><input type="range" class="gfr" min="${Math.log10(o.fmin)}" max="${Math.log10(o.fmax)}" step="0.001" aria-label="Частота генератора"></div>
+      ${o.amp !== false ? '<div class="ctl"><label>Розмах <b class="ga"></b></label><input type="range" class="gar" min="0.2" max="10" step="0.1" aria-label="Розмах сигналу"></div>' : ''}
+      ${o.duty ? '<div class="ctl gdc"><label>Заповнення <b class="gd"></b></label><input type="range" class="gdr" min="5" max="95" step="1" aria-label="Коефіцієнт заповнення"></div>' : ''}
+    </div>`;
+  const q = s => host.querySelector(s);
+  const sync = () => {
+    host.querySelectorAll('[data-w]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.w === g.wave)));
+    host.querySelectorAll('[data-f]').forEach(b => b.setAttribute('aria-pressed', String(Math.abs(+b.dataset.f / g.f - 1) < 1e-3)));
+    q('.gf').textContent = U(g.f, 'Гц'); q('.gfr').value = Math.log10(g.f);
+    if (q('.ga')) { q('.ga').textContent = U(g.amp, 'В') + ' (пік-пік)'; q('.gar').value = g.amp; }
+    if (q('.gd')) { q('.gd').textContent = Math.round(g.duty * 100) + ' %'; q('.gdr').value = g.duty * 100; q('.gdc').hidden = g.wave !== 'square'; }
+  };
+  const ch = () => { sync(); if (onChange) onChange(); };
+  host.addEventListener('click', e => {
+    const w = e.target.closest('[data-w]'), f = e.target.closest('[data-f]');
+    if (w) { g.wave = w.dataset.w; ch(); }
+    if (f) { g.f = +f.dataset.f; ch(); }
+  });
+  q('.gfr').addEventListener('input', e => { g.f = +(10 ** +e.target.value).toPrecision(3); ch(); });
+  if (q('.gar')) q('.gar').addEventListener('input', e => { g.amp = +e.target.value; ch(); });
+  if (q('.gdr')) q('.gdr').addEventListener('input', e => { g.duty = +e.target.value / 100; ch(); });
+  sync(); g.sync = sync;
+  return { sync };
+}
+
+/* ================================================================ 01 time domain (slow sweep) */
+(() => {
+  const g = new Gen({ wave: 'sine', f: 0.05, amp: 5 });
+  const sc = new Scope($('#s1-scope'), {
+    ch: [{ fn: g.fn, hint: g.hint, vdiv: 1 }], tdiv: 2, ui: ['v1', 't', 'run', 'cur', 'meas'], height: 270,
+    label: 'Осцилограф: синусоїда, промінь рухається зліва направо',
+    onChange: s => upd(s), onMeasure: (m, s) => upd(s),
+  });
+  const ui = genUI($('#s1-gen'), g, { fmin: 0.05, fmax: 5, chips: [0.05, 0.25, 0.5, 1], waves: ['sine', 'square', 'tri'], hint: 'повільні сигнали' }, () => sc.restage());
+  function upd(s) {
+    const T = 1 / g.f;
+    $('#s1-T').textContent = U(T, 'с');
+    $('#s1-div').textContent = sig(T / s.tdiv) + ' клітинок';
+  }
+  const dmm = { root: $('#time'), draw() { $('#s1-dmm').textContent = U(g.fn(SIM.t), 'В'); } };
+  addSim(dmm);
+  hooks.t1 = () => { g.f = 0.25; ui.sync(); sc.setTdiv(2); };
+  upd(sc);
+})();
+
+/* ================================================================ 02 scales task */
+(() => {
+  const g = new Gen({ wave: 'square', f: 1000, amp: 5 });
+  const check = s => {
+    const divV = g.amp / s.ch[0].vdiv, per = 10 * s.tdiv * g.f;
+    const okV = divV >= 4 && divV <= 8.01, okT = per >= 0.95 && per <= 4.05;
+    const el = $('#s2-task');
+    el.className = 'taskline' + (okV && okT ? ' ok' : '');
+    el.textContent = (okV && okT ? '✓ Готово! ' : '') +
+      `Розмах займає ${sig(divV)} клітинки (треба 4–8) ${okV ? '✓' : '✗'} · на екрані ${sig(per)} періоди (треба 1–4) ${okT ? '✓' : '✗'}`;
+  };
+  const sc = new Scope($('#s2-scope'), {
+    ch: [{ fn: g.fn, hint: g.hint, vdiv: 5 }], tdiv: 0.01, ui: ['v1', 't', 'trig', 'mode', 'run', 'cur', 'meas'],
+    label: 'Осцилограф: меандр з незручними шкалами', onChange: check,
+  });
+  genUI($('#s2-gen'), g, { fmin: 10, fmax: 1e5, chips: [100, 1000, 2000, 10000], hint: 'змінюй сигнал — і шкали' }, () => { sc.restage(); check(sc); });
+  check(sc);
+})();
+
+/* ================================================================ 03 trigger, two channels */
+(() => {
+  const a = new Gen({ wave: 'sine', f: 1000, amp: 4 }), b = new Gen({ wave: 'sine', f: 1100, amp: 3 });
+  const sc = new Scope($('#s3-scope'), {
+    ch: [{ fn: a.fn, hint: a.hint, vdiv: 1, pos: 1.6 }, { fn: b.fn, hint: b.hint, vdiv: 1, pos: -1.6 }],
+    tdiv: 2e-4, trig: { src: 0, level: 0.5 }, ui: ['v1', 'v2', 't', 'trig', 'tsrc', 'mode', 'run'], height: 300,
+    label: 'Осцилограф: два канали з різною частотою',
+  });
+  const r = $('#s3-f2');
+  r.addEventListener('input', () => { b.f = +r.value; $('#s3-f2-v').textContent = U(b.f, 'Гц'); sc.restage(); });
+  hooks.t3 = () => { sc.trig.level = 3; sc.trig.mode = 'auto'; sc.setRun(true); };
+})();
+
+/* ================================================================ 04 edges, R·C */
+(() => {
+  const st = { R: 1e4, C: 1e-10 };
+  const tau = () => st.R * st.C;
+  const fn = t => { const P = 40 * tau(), x = t / P, ph = (x - Math.floor(x)) * P; return ph < P / 2 ? 3.3 * (1 - Math.exp(-ph / tau())) : 3.3 * Math.exp(-(ph - P / 2) / tau()); };
+  const overlay = (ctx, w, H, s) => {
+    const y10 = s.y(0, 0.33, H), y90 = s.y(0, 2.97, H);
+    ctx.strokeStyle = T['--scope-text']; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(0, y10); ctx.lineTo(w, y10); ctx.moveTo(0, y90); ctx.lineTo(w, y90); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = '600 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right';
+    ctx.fillText('90 %', w - 22, y90 - 4); ctx.fillText('10 %', w - 22, y10 - 4);
+    if (s.lastTrig == null) return;
+    const start = s.lastTrig - tau() * Math.LN2, t10 = start + tau() * Math.log(1 / 0.9), t90 = start + tau() * Math.LN10;
+    const x10 = s.xOf(t10, w), x90 = s.xOf(t90, w);
+    ctx.strokeStyle = T['--hi']; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x10, y10); ctx.lineTo(x10, H * 0.08); ctx.moveTo(x90, y90); ctx.lineTo(x90, H * 0.08); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x10, H * 0.1); ctx.lineTo(x90, H * 0.1); ctx.stroke();
+    ctx.fillStyle = T['--hi']; ctx.textAlign = 'left'; ctx.fillText('t_r = ' + U(t90 - t10, 'с'), x90 + 6, H * 0.1 + 4);
+  };
+  const sc = new Scope($('#s4-scope'), {
+    ch: [{ fn, vdiv: 0.5, pos: -3.3 }], tdiv: 1e-6, trig: { edge: 'rise', level: 1.65, pos: 0.2 }, ui: ['t', 'run', 'meas'],
+    overlay, height: 270, label: 'Осцилограф: передній фронт RC-ланцюга з рівнями 10 і 90 відсотків',
+    onMeasure: m => { $('#s4-meas').textContent = m.rise != null ? (m.riseLim ? '< ' : '') + U(m.rise, 'с') : '—'; },
+  });
+  const rR = $('#s4-r'), rC = $('#s4-c');
+  function upd() {
+    st.R = +(10 ** +rR.value).toPrecision(2); st.C = +(10 ** +rC.value).toPrecision(2);
+    $('#s4-r-v').textContent = U(st.R, 'Ом', 2); $('#s4-c-v').textContent = U(st.C, 'Ф', 2);
+    $('#s4-tau').textContent = U(tau(), 'с'); $('#s4-tr').textContent = U(2.2 * tau(), 'с');
+    sc.tdiv = TDIV.find(v => v >= tau() * 0.7) || TDIV[TDIV.length - 1];
+    sc.lastTrig = null; sc.restage(); if (!sc.run) sc.acquire(true);
+  }
+  rR.addEventListener('input', upd); rC.addEventListener('input', upd);
+  hooks.t4 = () => { rC.value = Math.min(+rC.max, +rC.value + Math.log10(2)); upd(); };
+  upd();
+})();
+
+/* ================================================================ 05 period, width, duty */
+(() => {
+  const g = new Gen({ wave: 'square', f: 500, amp: 5, off: 2.5, duty: 0.5 });
+  const sc = new Scope($('#s5-scope'), {
+    ch: [{ fn: g.fn, hint: g.hint, vdiv: 1, pos: -2.5 }], tdiv: 5e-4, trig: { edge: 'rise', level: 2.5, pos: 0.1 },
+    ui: ['v1', 't', 'trig', 'run', 'cur', 'meas'], cursors: 't', curT: [0.1, 0.5], height: 270,
+    label: 'Осцилограф: прямокутний сигнал з курсорами часу',
+    onMeasure: m => {
+      $('#s5-d').textContent = m.duty != null ? sig(m.duty * 100) + ' %' : '—';
+      $('#s5-s').textContent = m.duty ? sig(1 / m.duty) : '—';
+      $('#s5-m').textContent = m.duty == null ? '—' : Math.abs(m.duty - 0.5) < 0.01 ? 'так, 50 %' : 'ні';
+    },
+  });
+  genUI($('#s5-gen'), g, { fmin: 10, fmax: 1e4, chips: [100, 500, 1000], waves: ['square'], duty: true, amp: false, hint: '0…5 В' }, () => sc.restage());
+})();
+
+/* ================================================================ 06 probe ×1/×10 and bandwidth */
+(() => {
+  const bw = { f: 6e6, probe: 1, menu: 1, comp: 1, lut: null, N: 2048 };
+  function build() {
+    const N = bw.N, T0 = 1 / bw.f, dt = T0 / N;
+    const bwP = bw.probe === 10 ? 100e6 : 6e6, bwS = 100e6;
+    const t1 = 1 / (2 * Math.PI * bwP), t2 = 1 / (2 * Math.PI * bwS), tc = 1 / (2 * Math.PI * 2e3);
+    const k = bw.probe === 10 ? bw.comp : 1;
+    const a1 = 1 - Math.exp(-dt / t1), a2 = 1 - Math.exp(-dt / t2), ac = 1 - Math.exp(-dt / tc);
+    let y1 = 2.5, y2 = 2.5, yc = 2.5;
+    const lut = new Float32Array(N);
+    const periods = Math.min(300, Math.ceil(8 * Math.max(t1, t2) / T0) + 4 + (k !== 1 ? Math.ceil(6 * tc / T0) : 0));
+    for (let p = 0; p < periods; p++) for (let n = 0; n < N; n++) {
+      const x = n < N / 2 ? 5 : 0;
+      yc += (x - yc) * ac; const xc = k * x + (1 - k) * yc;
+      y1 += (xc - y1) * a1; y2 += (y1 - y2) * a2;
+      if (p === periods - 1) lut[n] = y2;
+    }
+    bw.lut = lut; bw.bwP = bwP; bw.bwT = 1 / Math.sqrt(1 / bwP ** 2 + 1 / bwS ** 2);
+    bw.max = Math.max(...lut); bw.min = Math.min(...lut);
+  }
+  build();
+  const fn = t => { const x = t * bw.f, ph = (x - Math.floor(x)) * bw.N, i = Math.floor(ph), fr = ph - i; return bw.lut[i] * (1 - fr) + bw.lut[(i + 1) % bw.N] * fr; };
+  const sc = new Scope($('#s6-scope'), {
+    ch: [{ fn, hint: () => ({ vmin: bw.min, vmax: bw.max, f: bw.f }), noise: 0.01 }], tdiv: 5e-8, trig: { level: 2.5 },
+    ui: ['v1', 't', 'run', 'auto', 'meas'], height: 270, label: 'Осцилограф: меандр після щупа й смуги пропускання приладу',
+    onMeasure: m => shape(m),
+  });
+  function shape(m) {
+    let s = '—';
+    if (bw.probe === 10 && bw.comp !== 1 && bw.f < 2e4) s = bw.comp > 1 ? '«вуха»' : 'завалені кути';
+    else if (m && m.rise != null && m.T) { const r = m.rise / m.T; s = r < 0.05 ? 'прямокутник' : r < 0.14 ? 'округлений' : r < 0.3 ? 'трикутник' : 'майже синус'; }
+    $('#s6-shape').textContent = s;
+  }
+  function upd(auto = true) {
+    build();
+    sc.ch[0].probe = bw.probe; sc.ch[0].menu = bw.menu;
+    $('#s6-f-v').textContent = U(bw.f, 'Гц'); $('#s6-f').value = Math.log10(bw.f);
+    $('#s6-bwp').textContent = U(bw.bwP, 'Гц'); $('#s6-bw').textContent = U(bw.bwT, 'Гц'); $('#s6-tr').textContent = U(0.35 / bw.bwT, 'с');
+    $$('#s6-chips [data-f]').forEach(b => b.setAttribute('aria-pressed', String(Math.abs(+b.dataset.f / bw.f - 1) < 1e-3)));
+    $$('#s6-probe button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === bw.probe)));
+    $$('#s6-menu button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === bw.menu)));
+    $$('#s6-comp button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === bw.comp)));
+    const note = $('#s6-note');
+    if (bw.probe !== bw.menu) note.textContent = `⚠ Щуп ×${bw.probe}, а в меню ×${bw.menu}: прилад показує в ${bw.probe > bw.menu ? '10 разів менше' : '10 разів більше'}, ніж є насправді (розмах буде ${U(5 * bw.menu / bw.probe, 'В')} замість 5 В).`;
+    else if (bw.probe === 10 && bw.comp !== 1) note.textContent = bw.f < 2e4 ? 'Подивись на кути меандру 1 кГц: так компенсацію й налаштовують викруткою.' : 'Компенсацію видно на низькій частоті: обери 1 кГц.';
+    else if (bw.probe === 1 && bw.f > 2e6) note.textContent = 'Смуга щупа ×1 ~6 МГц зрізає гармоніки. Перемкни щуп і меню на ×10.';
+    else note.textContent = 'Покрути частоту: на якій меандр перестає бути меандром?';
+    if (auto) sc.autoset();
+  }
+  $('#s6-f').addEventListener('input', e => { bw.f = +(10 ** +e.target.value).toPrecision(3); upd(); });
+  $('#s6-chips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { bw.f = +b.dataset.f; upd(); } });
+  $('#s6-probe').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { bw.probe = +b.dataset.v; upd(); } });
+  $('#s6-menu').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { bw.menu = +b.dataset.v; upd(); } });
+  $('#s6-comp').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { bw.comp = +b.dataset.v; upd(); } });
+  hooks.t6 = () => { bw.f = 6e6; bw.probe = 1; bw.menu = 1; upd(); };
+  upd();
+})();
+
+/* ================================================================ button contact model (sections 07, 08) */
+// Pin with a pull-up R to 3.3 V and capacitance C; the contact shorts it to GND.
+// Closed: falls to ~0 within nanoseconds. Open: rises slowly, τ = R·C, so sub-µs openings never reach HIGH.
+class Contact {
+  constructor(closed = false) { this.R = 45e3; this.C = 30e-12; this.ev = [{ t: -1e9, closed, v0: closed ? 0.02 : 3.3 }]; }
+  tau(e) { return e.closed ? 5e-9 : this.R * this.C; }
+  idx(t) { let lo = 0, hi = this.ev.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (this.ev[m].t <= t) lo = m; else hi = m - 1; } return lo; }
+  vEv(e, t) { const tg = e.closed ? 0.02 : 3.3; return tg + (e.v0 - tg) * Math.exp(-(t - e.t) / this.tau(e)); }
+  v(t) { return this.vEv(this.ev[this.idx(t)], t); }
+  cut(t) { while (this.ev.length > 1 && this.ev[this.ev.length - 1].t >= t) this.ev.pop(); }
+  push(t, closed) { const v0 = this.v(t); this.ev.push({ t, closed, v0 }); if (this.ev.length > 6000) this.ev.splice(1, 3000); }
+  extrema(a, b) {
+    let lo = this.v(a), hi = lo; const vb = this.v(b); if (vb < lo) lo = vb; if (vb > hi) hi = vb;
+    for (let j = this.idx(a) + 1; j < this.ev.length && this.ev[j].t <= b; j++) { const v = this.ev[j].v0; if (v < lo) lo = v; if (v > hi) hi = v; }
+    return [lo, hi];
+  }
+  // threshold crossings in [a, b]: [{ t, rise }]
+  cross(a, b, th = 1.65) {
+    const out = [];
+    for (let j = Math.max(0, this.idx(a)); j < this.ev.length && this.ev[j].t <= b; j++) {
+      const e = this.ev[j], tg = e.closed ? 0.02 : 3.3;
+      if ((e.v0 - th) * (tg - th) >= 0) continue;
+      const tc = e.t + this.tau(e) * Math.log((e.v0 - tg) / (th - tg));
+      const next = j + 1 < this.ev.length ? this.ev[j + 1].t : Infinity;
+      if (tc < next && tc >= a && tc <= b) out.push({ t: tc, rise: tg > th });
+    }
+    return out;
+  }
+  edgeAt(a, b, rise, th) { const c = this.cross(a, b, th).find(x => x.rise === rise); return c ? c.t : null; }
+}
+const BT = {
+  usual: { n: 'Звичайна тактова 6×6', c: [1.5e-3, .55], o: [4e-4, .9] },
+  good: { n: 'Хороша (нова, якісна)', c: [2.5e-4, .5], o: [6e-5, .8] },
+  bad: { n: 'Дешева або зношена', c: [4.5e-3, .45], o: [1.8e-3, .7] },
+  E: { n: 'Перемикач «E» з досліду Ганссла', c: [1.2e-5, .3], o: [0.12, .25] },
+};
+const STY = { snap: 0.6, normal: 1, slow: 1.9 };
+// Bounce: after the first transition the contact flips away and back several times, mostly within D.
+function bounceSeq(spec, k, closing, rand = Math.random) {
+  const g = () => { let u = 0; for (let i = 0; i < 6; i++) u += rand(); return (u - 3) * 1.4142; };
+  const D = Math.min(0.2, spec[0] * k * Math.exp(spec[1] * g()));
+  const out = [[0, closing]], shortP = closing ? 0.35 : 0.6;
+  let t = 0;
+  while (out.length < 80) {
+    const rem = Math.max(1 - t / D, 0.1);
+    const back = rand() < shortP ? 3e-7 + rand() * 3e-6 : D * (0.03 + 0.25 * rand() * rem);
+    const away = rand() < shortP ? 1.5e-7 + rand() * 1.2e-6 : D * (0.01 + 0.12 * rand() * rem);
+    if (t + back + away > D) break;
+    t += back; out.push([t, !closing]); t += away; out.push([t, closing]);
+  }
+  return out;
+}
+function groupStats(ct, g) {
+  const cr = ct.cross(g.t0 - 1e-9, g.t1);
+  const evs = ct.ev.filter(e => e.t >= g.t0 - 1e-12 && e.t <= g.t1).length;
+  let mn = Infinity; for (let i = 1; i < cr.length; i++) mn = Math.min(mn, cr[i].t - cr[i - 1].t);
+  return { n: cr.length, dur: cr.length > 1 ? cr[cr.length - 1].t - cr[0].t : 0, min: mn, partial: Math.max(0, Math.round(((evs - 1) - (cr.length - 1)) / 2)), cr };
+}
+const BTN = { type: 'usual', style: 'normal' };
+
+/* ================================================================ 07 bounce on the scope */
+const S7 = (() => {
+  const ct = new Contact(false), groups = [];
+  const steps = new Set();
+  const mark = k => { if (steps.has(k)) return; steps.add(k); const li = $(`#s7-steps [data-k="${k}"]`); if (li) li.classList.add('done'); };
+  const sc = new Scope($('#s7-scope'), {
+    ch: [{ fn: t => ct.v(t), extrema: (a, b) => ct.extrema(a, b), edgeAt: (a, b, r, th) => ct.edgeAt(a, b, r, th), live: true, vdiv: 1, pos: -1.65, noise: 0.012 }],
+    tdiv: 0.1, sweepAt: 0.05, trig: { edge: 'fall', level: 1.65, pos: 0.1, mode: 'single' }, ui: ['t', 'trig', 'mode', 'run'], persist: 1, height: 290,
+    label: 'Осцилограф: напруга на піні кнопки з підтяжкою',
+    onSingle: tt => {
+      const g = groups.find(x => tt >= x.t0 - 1e-9 && tt <= x.t1) || groups[groups.length - 1];
+      if (g) show(g);
+      if (sc.tdiv <= 0.011 && sc.tdiv > 0.002) mark('b');
+      if (sc.tdiv <= 0.0011) mark('c');
+      if (sc.trig.edge === 'rise') mark('e');
+    },
+    onChange: s => {
+      $$('#s7-tdiv [data-t]').forEach(b => b.setAttribute('aria-pressed', String(Math.abs(+b.dataset.t / s.tdiv - 1) < 1e-3)));
+      $$('#s7-edge button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === s.trig.edge)));
+      if (!s.run && s.lastTrig != null && s.tdiv <= 1.1e-4) mark('d');
+    },
+  });
+  function show(g) {
+    const s = groupStats(ct, g);
+    $('#s7-ev').textContent = g.kind === 'press' ? '↓ натискання' : '↑ відпускання';
+    $('#s7-n').textContent = String(s.n);
+    $('#s7-d').textContent = s.n > 1 ? U(s.dur, 'с') : 'без брязкоту';
+    $('#s7-min').textContent = s.n > 1 ? U(s.min, 'с') : '—';
+    $('#s7-part').textContent = String(s.partial);
+  }
+  let pressed = false, sweepPress = false;
+  function act(down) {
+    if (down === pressed) return;
+    pressed = down;
+    const t = SIM.t, spec = BT[BTN.type][down ? 'c' : 'o'];
+    ct.cut(t);
+    const seq = bounceSeq(spec, STY[BTN.style], down);
+    for (const [dt, closed] of seq) ct.push(t + dt, closed);
+    const g = { kind: down ? 'press' : 'release', t0: t, t1: t + seq[seq.length - 1][0] + 2e-3 };
+    groups.push(g); if (groups.length > 50) groups.shift();
+    setTimeout(() => show(g), Math.min(400, (g.t1 - t) * 1000 + 30));
+    const b = $('#s7-btn'); b.setAttribute('aria-pressed', String(down)); b.textContent = down ? 'Натиснуто… відпусти' : 'Натисни й тримай';
+    if (sc.sweep()) { if (down) sweepPress = true; else if (sweepPress) mark('a'); }
+    else if ((down && sc.trig.edge === 'fall') || (!down && sc.trig.edge === 'rise')) {
+      sc.trig.mode = 'single'; sc.run = true; sc.searchFrom = t - 1e-9; sc.sync();
+    }
+  }
+  const b = $('#s7-btn');
+  b.addEventListener('pointerdown', e => { b.setPointerCapture(e.pointerId); act(true); e.preventDefault(); });
+  b.addEventListener('pointerup', () => act(false));
+  b.addEventListener('pointercancel', () => act(false));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+  b.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); act(true); } });
+  b.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); act(false); } });
+  b.addEventListener('blur', () => act(false));
+  $('#s7-tdiv').addEventListener('click', e => {
+    const c = e.target.closest('[data-t]'); if (!c) return;
+    const tdiv = +c.dataset.t;
+    const zoom = !sc.run && sc.lastTrig != null && tdiv < sc.sweepAt;
+    sc.tdiv = tdiv; sc.sw = null;
+    if (tdiv >= sc.sweepAt) { sc.setRun(true); }
+    else if (zoom) { sc.restage(); }
+    else { sc.trig.mode = 'single'; sc.lastTrig = null; sc.setRun(true); }
+  });
+  const sel = $('#s7-type');
+  sel.innerHTML = Object.entries(BT).map(([k, v]) => `<option value="${k}">${v.n}</option>`).join('');
+  sel.addEventListener('change', () => { BTN.type = sel.value; });
+  $('#s7-style').addEventListener('click', e => { const x = e.target.closest('button'); if (!x) return; BTN.style = x.dataset.v; $$('#s7-style button').forEach(y => y.setAttribute('aria-pressed', String(y === x))); });
+  $('#s7-edge').addEventListener('click', e => { const x = e.target.closest('button'); if (!x) return; sc.trig.edge = x.dataset.v; if (!sc.sweep()) { sc.trig.mode = 'single'; sc.lastTrig = null; sc.setRun(true); } else sc.sync(); });
+  $('#s7-pu').addEventListener('click', e => { const x = e.target.closest('button'); if (!x) return; ct.R = +x.dataset.v; $$('#s7-pu button').forEach(y => y.setAttribute('aria-pressed', String(y === x))); });
+  sc.setRun(true);
+  return { ct, groups };
+})();
+
+/* ================================================================ 08 logic analyzer: same bounce, four sample rates */
+(() => {
+  const RATES = [[24e6, '24 МГц'], [1e6, '1 МГц'], [1e5, '100 кГц'], [1e4, '10 кГц']];
+  const cv = $('#la-cv');
+  const st = { ct: null, kind: 'press', W: 0.002, pan: 0, ph: RATES.map(() => Math.random()), end: 0, truth: [], lanes: [] };
+  const lvl0 = () => st.kind === 'press' ? 1 : 0;
+  function levelAt(t) { let l = lvl0(); for (const c of st.truth) { if (c.t > t) break; l = c.rise ? 1 : 0; } return l; }
+  function sampled(fs, ph) {
+    const tr = st.truth, out = [{ t: -Infinity, l: lvl0() }], b = [-1, ...tr.map(c => c.t), 1e3];
+    let last = lvl0();
+    for (let i = 0; i < b.length - 1; i++) {
+      const L = i === 0 ? lvl0() : (tr[i - 1].rise ? 1 : 0);
+      const ka = Math.ceil((b[i] - ph / fs) * fs), kb = Math.ceil((b[i + 1] - ph / fs) * fs) - 1;
+      if (kb >= ka && L !== last) { out.push({ t: ph / fs + ka / fs, l: L }); last = L; }
+    }
+    return out;
+  }
+  function analyse() {
+    st.lanes = RATES.map(([fs], i) => sampled(fs, st.ph[i]));
+    $('#la-tb').innerHTML = RATES.map(([fs, name], i) => {
+      const seen = st.lanes[i].length - 1, tru = st.truth.length, miss = tru - seen;
+      return `<tr><td>${name}</td><td>${U(1 / fs, 'с')}</td><td>${seen}</td><td>${tru}</td><td class="${miss ? 'bad' : 'ok'}">${miss ? miss : '0 ✓'}</td></tr>`;
+    }).join('');
+  }
+  function load(ct, kind, end) { st.ct = ct; st.kind = kind; st.end = end; st.truth = ct.cross(-1, end + 1); analyse(); sync(); draw(); }
+  function gen(kind) {
+    const closing = kind === 'press', ct = new Contact(!closing); ct.R = S7.ct.R;
+    const seq = bounceSeq(BT[BTN.type][closing ? 'c' : 'o'], STY[BTN.style], closing);
+    for (const [dt, c] of seq) ct.push(dt, c);
+    load(ct, kind, seq[seq.length - 1][0]);
+  }
+  function take() {
+    const g = S7.groups[S7.groups.length - 1], btn = $('#la-take');
+    if (!g) { btn.textContent = 'Спершу натисни кнопку в розділі 07'; return; }
+    btn.textContent = 'Взяти з розділу 07';
+    const ct = new Contact(g.kind !== 'press'); ct.R = S7.ct.R;
+    let end = 0;
+    for (const e of S7.ct.ev) if (e.t >= g.t0 - 1e-12 && e.t <= g.t1) { ct.push(e.t - g.t0, e.closed); end = e.t - g.t0; }
+    load(ct, g.kind, end);
+  }
+  function sync() {
+    $$('#la-kind button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === st.kind)));
+    $$('#la-zoom [data-w]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.w === st.W)));
+    $('#la-pan-v').textContent = Math.round(st.pan * 100) + ' %';
+  }
+  function draw() {
+    const c = fit(cv); if (!c || !st.ct) return;
+    const { ctx, w, H } = c, L = 76, R = 10, pw = w - L - R, W = st.W, margin = W * 0.08;
+    const x0 = -margin + st.pan * Math.max(0, st.end + 2 * margin - W);
+    const X = t => L + (t - x0) / W * pw;
+    ctx.fillStyle = T['--scope']; ctx.fillRect(0, 0, w, H);
+    ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left';
+    // analog lane
+    const aT = 10, aH = 108, Ya = v => aT + aH - v / 3.4 * aH;
+    ctx.strokeStyle = T['--scope-grid']; ctx.lineWidth = 1;
+    ctx.beginPath(); for (let i = 0; i <= 10; i++) { const x = Math.round(L + i * pw / 10) + .5; ctx.moveTo(x, aT); ctx.lineTo(x, H - 18); } ctx.stroke();
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = T['--scope-text']; ctx.beginPath(); ctx.moveTo(L, Ya(1.65)); ctx.lineTo(L + pw, Ya(1.65)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = T['--scope-text']; ctx.fillText('аналог', 6, aT + 14); ctx.fillText('поріг', 6, Ya(1.65) + 4);
+    ctx.strokeStyle = T['--sig']; ctx.lineWidth = 1.6; ctx.beginPath();
+    for (let x = 0; x < pw; x++) {
+      const ta = x0 + x / pw * W, tb = ta + W / pw, [lo, hi] = st.ct.extrema(ta, tb), X0 = L + x + .5;
+      if (x % 2) { ctx.lineTo(X0, Ya(lo)); ctx.lineTo(X0, Ya(hi)); } else { if (!x) ctx.moveTo(X0, Ya(hi)); ctx.lineTo(X0, Ya(hi)); ctx.lineTo(X0, Ya(lo)); }
+    }
+    ctx.stroke();
+    ctx.fillStyle = T['--hi'];
+    for (const cr of st.truth) { const x = X(cr.t); if (x >= L && x <= L + pw) ctx.fillRect(x - .5, aT + aH - 6, 1.5, 8); }
+    // digital lanes
+    RATES.forEach(([fs, name], i) => {
+      const top = 128 + i * 46, yH = top + 8, yL = top + 34, sm = st.lanes[i];
+      ctx.fillStyle = T['--scope-text']; ctx.fillText(name, 6, top + 25);
+      ctx.strokeStyle = T['--scope-grid']; ctx.beginPath(); ctx.moveTo(L, top + 42.5); ctx.lineTo(L + pw, top + 42.5); ctx.stroke();
+      let l = sm[0].l; for (const s of sm) { if (s.t <= x0) l = s.l; else break; }
+      ctx.strokeStyle = T['--ok']; ctx.lineWidth = 2; ctx.beginPath();
+      let x = L, y = l ? yH : yL; ctx.moveTo(x, y);
+      for (const s of sm) { if (s.t <= x0 || s.t > x0 + W) continue; const xs = X(s.t); ctx.lineTo(xs, y); y = s.l ? yH : yL; ctx.lineTo(xs, y); }
+      ctx.lineTo(L + pw, y); ctx.stroke();
+      if (W * fs <= 320) {
+        ctx.fillStyle = T['--hi'];
+        const ph = st.ph[i] / fs, k0 = Math.ceil((x0 - ph) * fs), k1 = Math.floor((x0 + W - ph) * fs);
+        for (let k = k0; k <= k1; k++) { const t = ph + k / fs; ctx.beginPath(); ctx.arc(X(t), levelAt(t) ? yH : yL, 2.6, 0, 7); ctx.fill(); }
+      }
+    });
+    // time axis
+    ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'center';
+    for (let i = 0; i <= 4; i++) { const t = x0 + i * W / 4; ctx.fillText(U(t, 'с', 2), L + i * pw / 4, H - 4); }
+    ctx.textAlign = 'left';
+  }
+  $('#la-new').addEventListener('click', () => gen(st.kind));
+  $('#la-take').addEventListener('click', take);
+  $('#la-phase').addEventListener('click', () => { st.ph = RATES.map(() => Math.random()); analyse(); draw(); });
+  $('#la-kind').addEventListener('click', e => { const b = e.target.closest('button'); if (b) gen(b.dataset.v); });
+  $('#la-zoom').addEventListener('click', e => { const b = e.target.closest('[data-w]'); if (b) { st.W = +b.dataset.w; sync(); draw(); } });
+  $('#la-pan').addEventListener('input', e => { st.pan = +e.target.value; sync(); draw(); });
+  hooks.t8 = () => { st.W = 2e-5; st.pan = 0; $('#la-pan').value = 0; sync(); draw(); };
+  redrawers.push(draw);
+  gen('press');
+
+  // memory calculator
+  const mc = $('#mem-ch'), mf = $('#mem-fs'), mt = $('#mem-t');
+  function mem() {
+    const ch = +mc.value, fs = +mf.value, t = +(10 ** +mt.value).toPrecision(2);
+    $('#mem-t-v').textContent = U(t, 'с');
+    const la = Math.ceil(ch / 8) * fs * t, sc = ch * fs * t;
+    $('#mem-out').innerHTML = `Аналізатор (1 біт/канал): <span class="m">${bytes(la)}</span>\nОсцилограф (8 біт/канал): <span class="m">${bytes(sc)}</span> — у ${sig(sc / la)} раз${sc / la >= 5 ? 'ів' : 'и'} більше\nВідліків: ${sig(fs * t)} на канал`;
+  }
+  [mc, mf, mt].forEach(x => x.addEventListener('input', mem)); mem();
+})();
+
+/* ================================================================ 09 ESP32 ADC scope + Serial Plotter */
+(() => {
+  const cv = $('#diy-cv'), st = { f: +(10 ** 4.3).toPrecision(3), fs: 1e6, sig: 'ac', t0: 0 };
+  const v = t => { const s = Math.sin(2 * Math.PI * st.f * t); return st.sig === 'ac' ? 1.5 * s : st.sig === 'bias' ? 1.65 + 1.4 * s : ((t * st.f) % 1 < .5 ? 3.3 : 0); };
+  const adc = x => clamp(x, 0, 3.1);
+  const Wv = () => Math.max(3 / st.f, 40 / st.fs);
+  const sim = {
+    root: $('#diy'),
+    step(dt) { if (!reduce) st.t0 += dt * Wv() * 0.12; },
+    draw() {
+      const c = fit(cv); if (!c) return;
+      const { ctx, w, H } = c, L = 46, R = 10, Tp = 12, B = 22, pw = w - L - R, ph = H - Tp - B, W = Wv();
+      const Y = x => Tp + (3.6 - x) / 5.6 * ph, X = t => L + (t - st.t0) / W * pw;
+      ctx.fillStyle = T['--scope']; ctx.fillRect(0, 0, w, H);
+      ctx.fillStyle = T['--band']; ctx.fillRect(L, Y(0), pw, Y(-2) - Y(0)); ctx.fillRect(L, Tp, pw, Y(3.1) - Tp);
+      ctx.strokeStyle = T['--scope-grid']; ctx.lineWidth = 1; ctx.beginPath();
+      for (const yv of [-1.5, 0, 1.65, 3.1]) { const y = Math.round(Y(yv)) + .5; ctx.moveTo(L, y); ctx.lineTo(L + pw, y); }
+      ctx.stroke();
+      ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right';
+      for (const yv of [-1.5, 0, 1.65, 3.1]) ctx.fillText(dec(yv) + ' В', L - 5, Y(yv) + 3.5);
+      ctx.textAlign = 'left'; ctx.fillText('АЦП не бачить', L + 6, Y(-1.75));
+      // true signal
+      ctx.strokeStyle = T['--sig']; ctx.globalAlpha = .55; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (let x = 0; x <= pw; x++) { const t = st.t0 + x / pw * W; const yy = Y(v(t)); if (x) ctx.lineTo(L + x, yy); else ctx.moveTo(L, yy); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+      // ADC samples
+      const k0 = Math.ceil(st.t0 * st.fs), k1 = Math.min(k0 + 3000, Math.floor((st.t0 + W) * st.fs));
+      ctx.strokeStyle = T['--hi']; ctx.lineWidth = 2; ctx.beginPath();
+      for (let k = k0; k <= k1; k++) { const t = k / st.fs, xx = X(t), yy = Y(adc(v(t))); if (k === k0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy); }
+      ctx.stroke();
+      if (k1 - k0 < 260) { ctx.fillStyle = T['--hi']; for (let k = k0; k <= k1; k++) { const t = k / st.fs; ctx.beginPath(); ctx.arc(X(t), Y(adc(v(t))), 2.8, 0, 7); ctx.fill(); } }
+      ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right'; ctx.fillText('вікно ' + U(W, 'с'), L + pw, H - 6);
+    },
+  };
+  addSim(sim);
+  function upd() {
+    const n = st.fs / st.f, ny = st.fs / 2;
+    $('#diy-f-v').textContent = U(st.f, 'Гц');
+    $('#diy-n').textContent = sig(n, 2);
+    $('#diy-ny').textContent = U(ny, 'Гц');
+    const fa = n >= 2 ? st.f : Math.abs(st.f - Math.round(st.f / st.fs) * st.fs);
+    $('#diy-fa').textContent = U(fa, 'Гц');
+    let verdict = n >= 10 ? 'форму видно' : n > 2.2 ? 'частоту видно, форму — ні' : 'аліасинг: брехня!';
+    if (st.sig === 'ac') verdict += ' · низ зрізано';
+    const el = $('#diy-v'); el.textContent = verdict; el.className = 'v ' + (n >= 10 && st.sig !== 'ac' ? 'ok' : n > 2.2 ? 'hi' : 'bad');
+    $$('#diy-sig button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === st.sig)));
+    sim.draw();
+  }
+  $('#diy-f').addEventListener('input', e => { st.f = +(10 ** +e.target.value).toPrecision(3); upd(); });
+  $('#diy-fs').addEventListener('change', e => { st.fs = +e.target.value; upd(); });
+  $('#diy-sig').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { st.sig = b.dataset.v; upd(); } });
+  hooks.t9 = () => { st.f = 2e5; $('#diy-f').value = Math.log10(2e5); st.fs = 1e6; $('#diy-fs').value = '1000000'; st.sig = 'bias'; upd(); };
+  upd();
+
+  // Serial Plotter / Teleplot
+  const spc = $('#sp-cv'), out = $('#sp-out'), TH = 2000;
+  const sp = { fmt: 'ard', light: 2700, hist: [], lines: [], acc: 0, hand: 0 };
+  const CODE = {
+    ard: '<span class="c">// Arduino IDE 2 → Tools → Serial Plotter</span>\nSerial.printf(<span class="m">"light:%d,threshold:%d\\n"</span>, light, 2000);',
+    tp: '<span class="c">// VS Code: розширення Teleplot</span>\nSerial.printf(<span class="m">"&gt;light:%d\\n&gt;threshold:%d\\n"</span>, light, 2000);',
+  };
+  function tick() {
+    if (sp.hand > 0) { sp.hand--; sp.light += (450 - sp.light) * 0.35; }
+    else { if (Math.random() < 0.025) sp.hand = 12 + (Math.random() * 15 | 0); sp.light += (2700 - sp.light) * 0.12 + gauss() * 55; }
+    const Lv = Math.round(clamp(sp.light, 0, 4095));
+    sp.hist.push(Lv); if (sp.hist.length > 120) sp.hist.shift();
+    sp.lines.push(...(sp.fmt === 'ard' ? [`light:${Lv},threshold:${TH}`] : [`>light:${Lv}`, `>threshold:${TH}`]));
+    while (sp.lines.length > 7) sp.lines.shift();
+  }
+  for (let i = 0; i < 120; i++) tick();
+  const plot = {
+    root: $('#diy'),
+    step(dt) { if (reduce) return; sp.acc += dt; let n = 0; while (sp.acc >= 0.1) { sp.acc -= 0.1; tick(); n++; } if (n) out.textContent = sp.lines.join('\n'); },
+    draw() {
+      const c = fit(spc); if (!c) return;
+      const { ctx, w, H } = c, L = 40, pw = w - L - 8, Tp = 18, ph = H - Tp - 8, Y = v => Tp + ph - v / 4095 * ph, X = i => L + i / 119 * pw;
+      ctx.fillStyle = T['--scope']; ctx.fillRect(0, 0, w, H);
+      ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right';
+      ctx.strokeStyle = T['--scope-grid']; ctx.lineWidth = 1; ctx.beginPath();
+      for (const v of [0, 2048, 4095]) { const y = Math.round(Y(v)) + .5; ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.fillText(String(v), L - 4, y + 3.5); }
+      ctx.stroke();
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = T['--hi']; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, Y(TH)); ctx.lineTo(L + pw, Y(TH)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = T['--sig']; ctx.lineWidth = 2; ctx.beginPath();
+      sp.hist.forEach((v, i) => { if (i) ctx.lineTo(X(i), Y(v)); else ctx.moveTo(X(i), Y(v)); }); ctx.stroke();
+      ctx.textAlign = 'left'; ctx.font = '600 11px "JetBrains Mono", monospace';
+      ctx.fillStyle = T['--sig']; ctx.fillText('light', L + 4, 12); ctx.fillStyle = T['--hi']; ctx.fillText('threshold', L + 52, 12);
+    },
+  };
+  addSim(plot);
+  function setFmt(f) {
+    sp.fmt = f; sp.lines = []; tick(); out.textContent = sp.lines.join('\n');
+    $('#sp-code').innerHTML = CODE[f];
+    $$('#sp-fmt button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === f)));
+  }
+  $('#sp-fmt').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setFmt(b.dataset.v); });
+  setFmt('ard');
+})();
+
+/* ================================================================ 10 tool picker */
+(() => {
+  const REC = {
+    bounce: [['la', 'scope'], 'Аналізатор на 4–24 МГц порахує всі фронти й покаже час. Осцилограф додатково покаже «недотягнуті» до порогу імпульси.'],
+    shape: [['scope'], 'Лише осцилограф показує справжню напругу: шум, викиди, повільні фронти.'],
+    many: [['la'], 'Багато каналів і декодери протоколів — головна сила логічного аналізатора.'],
+    slow: [['plot', 'esp'], 'Для повільних датчиків вистачить Serial Plotter/Teleplot. Нічого купувати не треба.'],
+    nohw: [['sim', 'plot'], 'Wokwi запише VCD з логічного аналізатора моделі. Але брязкіт там — модель, а не твоя кнопка.'],
+  };
+  $('#tool-pick').addEventListener('click', e => {
+    const b = e.target.closest('[data-k]'); if (!b) return;
+    const [rows, why] = REC[b.dataset.k];
+    $$('#tool-pick [data-k]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $$('#tool-tbl tbody tr').forEach(tr => tr.classList.toggle('on', rows.includes(tr.dataset.k)));
+    $('#tool-why').textContent = why;
+  });
+})();
+
+/* ================================================================ predict + try (generic) */
+$$('.predict').forEach(p => {
+  const ok = +p.dataset.ok, opts = [...p.querySelectorAll('.opt')], fb = p.querySelector('.fb');
+  opts.forEach((b, j) => b.addEventListener('click', () => {
+    if (p.dataset.done) return; p.dataset.done = '1';
+    opts.forEach((o, k) => { if (k === ok) o.classList.add('right'); else if (k === j) o.classList.add('wrong'); });
+    fb.className = 'fb ' + (j === ok ? 'ok' : 'no');
+    fb.textContent = (j === ok ? 'Так! ' : 'Не зовсім. ') + p.dataset.why;
+    if (hooks[p.dataset.hook]) hooks[p.dataset.hook]();
+  }));
+});
+$$('.try').forEach(tr => {
+  const inp = tr.querySelector('input'), fb = tr.querySelector('.fb'), ans = +tr.dataset.ans, tol = +tr.dataset.tol, unit = tr.dataset.unit, d = +(tr.dataset.dec || 0);
+  const check = () => {
+    const v = num(inp.value);
+    if (!isFinite(v)) { fb.className = 'fb'; fb.textContent = 'Введи число (кома чи крапка — неважливо).'; return; }
+    if (Math.abs(v - ans) <= tol) { fb.className = 'fb ok'; fb.textContent = `✓ Правильно: ${dec(ans.toFixed(d))}${unit ? ' ' + unit : ''}.`; }
+    else { fb.className = 'fb no'; fb.textContent = `Ще ні: правильна відповідь ${v < ans ? 'більша' : 'менша'}. Глянь підказку.`; }
+  };
+  tr.querySelector('.btn').addEventListener('click', check);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+});
+
+/* ================================================================ 13 quiz */
+(() => {
+  const Q = [
+    ['Шкала 1 В/под. Від мінімуму до максимуму сигнал займає 3 клітинки. Який розмах?', ['1 В', '3 В', '8 В'], 1, 'Vpp = 3 клітинки · 1 В = 3 В (розділ 02).'],
+    ['Розгортка 400 мкс/под, період займає 2,5 клітинки. Яка частота?', ['1 кГц', '400 Гц', '2,5 кГц'], 0, 'T = 2,5 · 400 мкс = 1 мс, f = 1 / 1 мс = 1 кГц (розділ 02).'],
+    ['Період сигналу 20 мс. Яка частота?', ['20 Гц', '50 Гц', '200 Гц'], 1, 'f = 1 / 0,02 с = 50 Гц (розділ 01).'],
+    ['Режим AUTO, рівень тригера вище за сигнал. Що на екрані?', ['Стабільна картинка', 'Картинка біжить і мерехтить', 'Порожній екран'], 1, 'Тригера немає, тож кадри починаються у випадкові моменти (розділ 03).'],
+    ['Кнопка з підтяжкою до 3,3 В. Натискання на осцилографі — це…', ['передній фронт ↑', 'задній фронт ↓', 'рівна лінія'], 1, 'Ненатиснута = HIGH, натиснута = LOW, отже перехід униз (розділ 04).'],
+    ['R = 10 кОм, C = 100 пФ. Час наростання 10→90 %?', ['≈ 1 мкс', '≈ 2,2 мкс', '≈ 10 мкс'], 1, 'τ = R·C = 1 мкс, t_r ≈ 2,2·τ (розділ 04).'],
+    ['t_high = 1 мс, T = 4 мс. Коефіцієнт заповнення?', ['25 %', '40 %', '4 %'], 0, '1 / 4 · 100 % = 25 % (розділ 05).'],
+    ['Прилад пише «скважність 2». Який коефіцієнт заповнення?', ['2 %', '20 %', '50 %'], 2, 'Шпаруватість S = 1 / D, тож D = 1/2 = 50 %, це меандр (розділ 05).'],
+    ['Щуп ×10, а в меню каналу ×1. Сигнал 5 В прилад покаже як…', ['5 В', '50 В', '0,5 В'], 2, 'Щуп ділить на 10, а прилад про це не знає (розділ 06).'],
+    ['Чому брязкоту не видно на 100 мс/под?', ['Його там немає', 'Мілісекунди стискаються в одну лінію', 'Осцилограф його фільтрує'], 1, 'Один піксель ≈ 1,7 мс, брязкіт ховається в ньому (розділ 07).'],
+    ['Аналізатор на 100 кГц, імпульс брязкоту 2 мкс. Що буде?', ['Імпульс видно чітко', 'Найімовірніше, пропустить', 'Покаже 20 імпульсів'], 1, 'Між відліками 10 мкс, а імпульс 2 мкс (розділ 08).'],
+    ['ESP32-осцилограф на 1 MSa/s, синус 200 кГц. Скільки точок на період?', ['5', '50', '200'], 0, '1 000 000 / 200 000 = 5. Частоту видно, форму — ні (розділ 09).'],
+  ];
+  const box = $('#qz'), retry = $('#qz-retry');
+  box.innerHTML = Q.map(([q, opts], i) => `<div class="q" data-i="${i}"><p>${i + 1}. ${q}</p><div class="opts">${opts.map((o, j) => `<button type="button" class="opt" data-j="${j}">${o}</button>`).join('')}</div><div class="fb" aria-live="polite"></div></div>`).join('');
+  const score = () => {
+    const qs = $$('#qz .q'), done = qs.filter(q => q.dataset.done), right = done.filter(q => q.dataset.ok === '1').length;
+    $('#qz-score').textContent = `${right} / ${done.length} правильно з ${Q.length}` + (done.length === Q.length ? (right === Q.length ? ' · Чудово!' : right >= 9 ? ' · Добре!' : ' · Перечитай розділи з помилками') : '');
+    retry.hidden = !done.some(q => q.dataset.ok === '0');
+  };
+  box.addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if (!b) return;
+    const q = b.closest('.q'); if (q.dataset.done) return;
+    const [, , ok, why] = Q[+q.dataset.i], j = +b.dataset.j;
+    q.dataset.done = '1'; q.dataset.ok = j === ok ? '1' : '0';
+    q.querySelectorAll('.opt').forEach((o, k) => { if (k === ok) o.classList.add('right'); else if (k === j) o.classList.add('wrong'); });
+    const fb = q.querySelector('.fb'); fb.className = 'fb ' + (j === ok ? 'ok' : 'no'); fb.textContent = (j === ok ? 'Так. ' : 'Ні. ') + why;
+    score();
+  });
+  retry.addEventListener('click', () => {
+    let first = null;
+    $$('#qz .q').forEach(q => { if (q.dataset.ok !== '0') return; delete q.dataset.done; delete q.dataset.ok; q.querySelectorAll('.opt').forEach(o => o.classList.remove('right', 'wrong')); const fb = q.querySelector('.fb'); fb.textContent = ''; fb.className = 'fb'; first = first || q; });
+    score(); if (first) { first.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); first.querySelector('.opt').focus({ preventScroll: true }); }
+  });
+  score();
+})();
+
+tokens();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
