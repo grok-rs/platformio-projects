@@ -1,0 +1,7 @@
+# Wokwi simulation (VS Code extension "Wokwi Simulator" or wokwi-cli).
+# Firmware comes from PlatformIO: build first with `pio run`, then F1 -> "Wokwi: Start Simulator".
+# For the original homework code: `pio run -e homework-base` and change both paths to .../homework-base/...
+[wokwi]
+version  = 1
+firmware = '.pio/build/bounce-lab/firmware.bin'
+elf      = '.pio/build/bounce-lab/firmware.elf'

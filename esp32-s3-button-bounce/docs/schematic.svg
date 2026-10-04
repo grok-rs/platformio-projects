@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 430" width="640" height="430" font-family="DejaVu Sans, Arial, sans-serif" font-size="14">
+  <title>Кнопка на GPIO16 (INPUT_PULLUP) і логічний аналізатор: CH1 = GPIO16, CH2 = GPIO17</title>
+  <rect width="640" height="430" fill="#ffffff"/>
+  <g stroke="#13212c" stroke-width="2" fill="none" stroke-linecap="round">
+    <!-- ESP32-S3 box -->
+    <rect x="30" y="40" width="240" height="300" rx="8"/>
+    <!-- GPIO17 (ISR marker) -> CH2, above the button net so nothing crosses -->
+    <line x1="270" y1="130" x2="490" y2="130"/>
+    <!-- internal pull-up: 3V3 -> R -> GPIO16 -->
+    <line x1="205" y1="160" x2="245" y2="160"/>
+    <line x1="225" y1="160" x2="225" y2="175"/>
+    <rect x="217" y="175" width="16" height="44" stroke-dasharray="4 3"/>
+    <line x1="225" y1="219" x2="225" y2="240"/>
+    <line x1="225" y1="240" x2="270" y2="240"/>
+    <!-- GPIO16 net -> CH1 -->
+    <line x1="270" y1="240" x2="490" y2="240"/>
+    <!-- S1 from the GPIO16 net down to GND -->
+    <line x1="390" y1="240" x2="390" y2="270"/>
+    <line x1="378" y1="276" x2="402" y2="276"/>
+    <line x1="390" y1="270" x2="390" y2="276"/>
+    <line x1="376" y1="312" x2="404" y2="286"/>
+    <line x1="390" y1="312" x2="390" y2="340"/>
+    <line x1="370" y1="340" x2="410" y2="340"/>
+    <line x1="378" y1="348" x2="402" y2="348"/>
+    <line x1="386" y1="356" x2="394" y2="356"/>
+    <!-- logic analyzer -->
+    <rect x="490" y="90" width="130" height="250" rx="8"/>
+    <line x1="460" y1="320" x2="490" y2="320"/>
+    <line x1="460" y1="320" x2="460" y2="340"/>
+    <line x1="446" y1="340" x2="474" y2="340"/>
+    <line x1="451" y1="347" x2="469" y2="347"/>
+    <line x1="456" y1="354" x2="464" y2="354"/>
+  </g>
+  <circle cx="390" cy="240" r="5" fill="#0a6a86"/>
+  <circle cx="270" cy="240" r="4" fill="#13212c"/>
+  <circle cx="270" cy="130" r="4" fill="#13212c"/>
+  <g fill="#13212c">
+    <text x="45" y="68" font-weight="bold">ESP32-S3</text>
+    <text x="45" y="86" fill="#566875" font-size="12">YD-ESP32-S3</text>
+    <text x="150" y="124" font-weight="bold">GPIO17</text>
+    <text x="45" y="146" fill="#566875" font-size="12">маркер ISR: HIGH,</text>
+    <text x="45" y="162" fill="#566875" font-size="12">поки працює обробник</text>
+    <text x="236" y="176" font-size="12">3V3</text>
+    <text x="45" y="196" fill="#566875" font-size="12">внутрішня</text>
+    <text x="45" y="212" fill="#566875" font-size="12">підтяжка ≈ 45 кОм</text>
+    <text x="150" y="262" font-weight="bold">GPIO16</text>
+    <text x="45" y="300" fill="#566875" font-size="12">INPUT_PULLUP,</text>
+    <text x="45" y="316" fill="#566875" font-size="12">переривання CHANGE / FALLING</text>
+    <text x="300" y="122" fill="#8b5cd6" font-weight="bold" font-size="13">ISR</text>
+    <text x="300" y="232" fill="#0a6a86" font-weight="bold" font-size="13">BUTTON</text>
+    <text x="414" y="296" font-weight="bold">S1</text>
+    <text x="414" y="314" fill="#566875" font-size="12">6×6 мм</text>
+    <text x="372" y="376" font-size="13">GND</text>
+    <text x="500" y="200" font-weight="bold">Логічний</text>
+    <text x="500" y="218" font-weight="bold">аналізатор</text>
+    <text x="500" y="282" fill="#566875" font-size="12">8 кан., 24 МГц</text>
+    <text x="500" y="135" font-size="13">← CH2 (D1)</text>
+    <text x="500" y="245" font-size="13">← CH1 (D0)</text>
+    <text x="500" y="324" font-size="13">GND</text>
+    <text x="30" y="404" font-size="13">Відпущена: GPIO16 = HIGH (3.3 В через підтяжку). Натиснута: GPIO16 = LOW.</text>
+    <text x="30" y="424" fill="#566875" font-size="13">Брязкіт: замість одного фронту — десятки переходів HIGH ⇄ LOW за 1…6 мс.</text>
+  </g>
+</svg>

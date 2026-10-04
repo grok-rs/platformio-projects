@@ -1,0 +1,35 @@
+
+=== ESP32-S3: button bounce lab (module 1.5) ===
+Button: GPIO16 -> GND, INPUT_PULLUP, interrupt CHANGE
+ISR marker: GPIO17 is HIGH while the ISR runs (logic analyzer channel 2)
+An event ends after 50 ms without edges. Keys: s = summary, r = reset, h = help
+
+  #  event    edges  fall  rise  bounce,us  min gap,us  edges, us from the first (v = LOW, ^ = HIGH)
+---  -------  -----  ----  ----  ---------  ----------  ----------------------------------------------
+  1  PRESS       66    35    31       2336          15  v0 v49 v105 ^136 v169 ^213 v238 v270 ^312 ^349 v376 ^402 ... +54
+  1  release    105    47    58       2200           1  v0 ^35 v55 ^75 v94 ^113 v133 v150 ^169 v189 v205 v226 ... +93
+  2  PRESS       56    27    29       2029          17  v0 ^32 ^61 v115 ^150 v191 ^228 ^257 v285 ^315 v338 v375 ... +44
+  2  release     76    41    35       1932          15  v0 ^38 v60 ^79 v96 ^121 ^162 v198 ^213 v246 v276 ^298 ... +64
+  3  PRESS       64    30    34       2118          16  v0 ^45 v93 v111 v155 ^194 v227 v275 ^306 ^327 v349 ^390 ... +52
+  3  release     47    20    27       1956          16  v0 ^46 v65 ^81 v117 ^151 ^220 ^275 v313 v374 ^408 v461 ... +35
+  4  PRESS       19     9    10       1731          16  v0 ^54 v86 ^278 v372 ^416 v505 ^521 v646 ^754 v818 ^1015 ... +7
+  4  release    107    54    53       2415           1  ^0 ^21 v44 ^63 ^94 v112 ^137 v153 v177 ^201 v220 ^241 ... +95
+  5  PRESS       64    30    34       2124          16  ^0 v42 ^60 ^109 v136 ^158 v209 ^228 v251 ^294 v319 ^366 ... +52
+  5  release    101    50    51       2259           2  ^0 v19 v35 ^70 v95 ^97 ^118 ^142 v158 ^181 ^201 ^232 ... +89
+  6  PRESS       79    43    36       2187           2  v0 ^15 v32 v62 v95 v115 v144 v165 ^185 v236 v272 ^312 ... +67
+  6  release     53    25    28       2088           1  ^0 ^18 v35 ^99 ^122 v123 ^157 v189 v239 ^284 v337 ^370 ... +41
+  7  PRESS       86    49    37       2016           5  v0 v43 ^71 v87 ^114 v138 ^153 v181 ^207 v227 v245 v276 ... +74
+  7  release     28    14    14       2000          17  ^0 v19 ^92 v111 ^129 v266 ^344 v470 ^487 v529 ^631 v703 ... +16
+  8  PRESS       54    27    27       2174           1  ^0 v59 ^112 v157 ^184 ^227 v258 ^290 v322 ^365 v399 ^427 ... +42
+  8  release     38    19    19       2357          17  ^0 v95 ^114 v178 ^285 v311 ^360 v381 ^398 v489 ^507 v605 ... +26
+  9  PRESS       44    25    19       2278          18  v0 ^64 v101 ^155 v190 ^262 v312 ^332 v377 ^453 v501 ^536 ... +32
+  9  release    100    56    44       2198           1  ^0 v19 ^43 v60 v76 ^109 v129 v145 ^169 v194 ^218 v234 ... +88
+ 10  PRESS       72    37    35       2151          16  v0 ^27 v56 v79 v98 v131 ^162 v178 ^208 v244 ^270 v310 ... +60
+ 10  release     95    58    37       2297          10  v0 v27 v43 ^59 v77 v98 v138 ^164 ^186 v217 v239 ^258 ... +83
+
+=== summary: 10 presses, 10 releases ===
+press:   edges avg 60.4, bounce avg 2114 us, max 2336 us
+release: edges avg 75.0, bounce avg 2170 us, max 2415 us
+edges read as LOW (~ homework FALLING counter): 696 for 10 presses
+shortest gap between edges: 1 us
+debounce >= 4 ms (worst bounce 2415 us x 1.5)

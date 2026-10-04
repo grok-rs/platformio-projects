@@ -1,0 +1,33 @@
+channel BUTTON: 1996 edges, 20 events (an event ends after 50 ms without edges)
+
+  #  event    edges  fall  rise  bounce,us  min gap,us  edges, us from the first (v = LOW, ^ = HIGH)
+---  -------  -----  ----  ----  ---------  ----------  ----------------------------------------------
+  1  PRESS       83    42    41       2337         1.8  v0 ^50 v54 ^105 v119 ^136 v170 ^214 v238 ^271 v275 ^313 ... +71
+  1  release    197    98    99       2212         0.3  ^0 v13 ^35 v36 ^45 v55 ^76 v79 ^80 v93 ^114 v116 ... +185
+  2  PRESS       79    40    39       2030         0.5  v0 ^32 v67 ^75 v116 ^151 v192 ^229 v258 ^271 v285 ^315 ... +67
+  2  release    123    61    62       1943         0.2  ^0 v8 ^38 v44 ^47 v60 ^78 v105 ^120 v132 ^135 v162 ... +111
+  3  PRESS       87    44    43       2118         0.1  v0 ^44 v92 ^111 v112 ^119 v120 ^155 v155 ^194 v227 ^274 ... +75
+  3  release     63    31    32       1956         1.2  ^0 v9 ^46 v65 ^81 v117 ^151 v219 ^223 v275 ^289 v313 ... +51
+  4  PRESS       21    11    10       1731         0.2  v0 ^54 v85 ^278 v372 ^416 v505 ^520 v646 ^753 v818 ^1015 ... +9
+  4  release    159    79    80       2415         0.1  ^0 v22 ^32 v45 ^45 v56 ^64 v77 ^78 v94 ^95 v112 ... +147
+  5  PRESS       87    44    43       2135         0.5  v0 ^1 v42 ^60 v109 ^112 v136 ^158 v209 ^228 v230 ^240 ... +75
+  5  release    175    87    88       2258         0.1  ^0 v19 ^34 v49 ^70 v74 ^76 v95 ^109 v117 ^126 v140 ... +163
+  6  PRESS      109    55    54       2187         1.0  v0 ^15 v32 ^62 v70 ^96 v99 ^116 v120 ^145 v153 ^166 ... +97
+  6  release     67    33    34       2089         0.1  ^0 v8 ^9 v19 ^21 v35 ^100 v123 ^124 v137 ^157 v189 ... +55
+  7  PRESS      151    76    75       2016         0.1  v0 ^6 v14 ^43 v44 ^70 v72 ^82 v99 ^114 v138 ^153 ... +139
+  7  release     29    14    15       2003         2.8  ^0 v11 ^86 v106 ^123 v260 ^338 v465 ^481 v523 ^625 v697 ... +17
+  8  PRESS       65    33    32       2174         1.7  v0 ^10 v59 ^112 v157 ^184 v227 ^241 v258 ^291 v322 ^365 ... +53
+  8  release     39    19    20       2356         3.5  ^0 v94 ^114 v178 ^285 v310 ^360 v381 ^397 v488 ^507 v605 ... +27
+  9  PRESS       51    26    25       2278         0.5  v0 ^77 v101 ^155 v189 ^262 v312 ^332 v377 ^453 v501 ^536 ... +39
+  9  release    171    85    86       2210         0.1  ^0 v18 ^43 v59 ^59 v69 ^83 v83 ^109 v129 ^145 v154 ... +159
+ 10  PRESS       91    46    45       2151         0.8  v0 ^27 v56 ^79 v83 ^98 v103 ^131 v133 ^162 v177 ^208 ... +79
+ 10  release    149    74    75       2297         0.2  ^0 v15 ^27 v38 ^43 v53 ^59 v85 ^98 v109 ^138 v151 ... +137
+
+press    edges avg 82.4, bounce avg 2116 us, max 2337 us
+release  edges avg 117.2, bounce avg 2174 us, max 2415 us
+falling edges (an ideal FALLING interrupt would count them all): 998 for 10 presses
+debounce >= 4 ms (worst bounce 2415 us x 1.5)
+
+ISR channel ISR: handler ran 1354 times for 1996 button edges
+ISR latency after the last edge: min 0.0 us, median 14.3 us, max 16.7 us
+Fewer ISR runs than edges: edges that arrive while the interrupt is still pending are merged.

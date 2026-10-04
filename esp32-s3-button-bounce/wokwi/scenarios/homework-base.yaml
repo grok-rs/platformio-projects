@@ -1,0 +1,18 @@
+# Автотест коду з умови завдання (env homework-base). Лічильник FALLING зростає не на 1 за
+# натискання: у брязкоті десятки фронтів униз, а loop() друкує лише раз на 10 мс, тож перший
+# рядок — одразу «Count: 20…40». І ще раз лічильник росте при ВІДПУСКАННІ: брязкіт відпускання
+# теж містить фронти униз.
+#   pio run -e homework-base
+#   wokwi-cli . --elf .pio/build/homework-base/firmware.elf --scenario wokwi/scenarios/homework-base.yaml
+name: 'Homework base code: bounce on press AND release increments the counter'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - delay: 500ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - wait-serial: 'Button Pressed! Count: '
+  - delay: 150ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  # Нічого не натискаємо — а лічильник знову змінюється: брязкіт відпускання.
+  - wait-serial: 'Button Pressed! Count: '

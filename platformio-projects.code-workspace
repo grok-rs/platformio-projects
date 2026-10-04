@@ -2,6 +2,7 @@
   "folders": [
     { "path": "esp32-s3-led-blink" },
     { "path": "esp32-s3-two-buttons" },
+    { "path": "esp32-s3-button-bounce" },
     { "path": "esp32-s3-ldr-adc" }
   ],
   "settings": {

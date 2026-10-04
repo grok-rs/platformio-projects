@@ -1,0 +1,56 @@
+# Автотест для wokwi-cli: 10 натискань, як у завданні. Кнопка у Wokwi брязкотить (атрибут bounce
+# за замовчуванням увімкнений), тож кожне натискання і відпускання дає десятки фронтів.
+#   wokwi-cli . --scenario wokwi/scenarios/ten-presses.yaml --timeout 30000 --vcd-file bounce.vcd
+#   python3 tools/vcd_bounce.py bounce.vcd        # те саме з боку «логічного аналізатора»
+name: 'Bounce lab: 10 presses -> per-event report and summary'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'Keys: s = summary, r = reset, h = help'
+  - delay: 100ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 135ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 150ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 165ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 180ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 195ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 210ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 225ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 240ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 120ms
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - delay: 255ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  # wait-serial бачить лише текст, що прийшов ПІСЛЯ початку кроку, тому чекаємо одразу:
+  # підсумок друкується через 50 мс тиші після 10-го відпускання.
+  - wait-serial: '=== summary: 10 presses, 10 releases ==='
+  # Команда «s» друкує підсумок ще раз — перевіряємо і її, і останній рядок підсумку.
+  - write-serial: 's'
+  - wait-serial: 'debounce >= '
