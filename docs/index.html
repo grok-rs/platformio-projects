@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: short index on graph paper — study pages, then the Wokwi projects. */
+/* Layout: short index on graph paper — one section per course module: theory, homework, code / Wokwi. */
 :root {
   --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --ink: #13212c; --muted: #566875;
   --line: #c6d2db; --accent: #0a6a86; --hi: #d97f00;
@@ -49,6 +49,18 @@ a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .card p { font-size: 14.5px; }
 .card .go { font: 500 13px var(--f-mono); color: var(--accent); }
 .card .tag { font: 500 12px var(--f-mono); color: var(--hi); }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.jump a {
+  font: 500 13px var(--f-mono); text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--panel); padding: 6px 12px; border-radius: 999px;
+}
+.jump a:hover { border-color: var(--accent); }
+.module { display: grid; gap: 10px; scroll-margin-top: 16px; padding-top: 22px; border-top: 1px solid var(--line); }
+.mod-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.mod-num { font: 500 13px var(--f-mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+.module h2 { font: 700 clamp(1.6rem, 4vw, 2.1rem)/1.1 var(--f-display); letter-spacing: 0; text-transform: none; color: var(--ink); margin: 0; }
+.module .lead { font-size: 15px; }
+a.card.ext { background: transparent; }
 footer { font-size: 14px; color: var(--muted); }
 footer a { color: var(--accent); }
 </style>
@@ -61,35 +73,21 @@ footer a { color: var(--accent); }
     <p>Інтерактивні сторінки до лабораторних із репозиторію. Код, схеми та тести лежать поруч у тих самих папках проєктів.</p>
   </header>
 
-  <section>
-    <h2>Навчальні сторінки</h2>
+  <nav class="jump" aria-label="Модулі">
+    <a href="#m1-4">1.3–1.4 · GPIO і кнопки</a>
+    <a href="#m1-5">1.5 · Сигнали та кнопка</a>
+    <a href="#m1-6">1.6 · АЦП і світло</a>
+  </nav>
+
+  <section class="module" id="m1-4">
+    <div class="mod-head">
+      <span class="mod-num">Модуль 1.3–1.4</span>
+      <h2>GPIO, світлодіоди й кнопки</h2>
+    </div>
+    <p class="lead">Перші прошивки: миготіння, входи з підтяжкою, кнопки й режими.</p>
     <div class="grid">
-      <a class="card" href="scope-signals/">
-        <span class="tag">Модуль 1.5 · теорія</span>
-        <h3>Осцилограф і кнопка</h3>
-        <p>Віртуальний осцилограф і генератор, шкали, тригер, фронти, період і заповнення, брязкіт, логічний аналізатор, конспекти відео, питання для обговорення.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="bounce-lab/">
-        <span class="tag">Модуль 1.5 · домашнє завдання</span>
-        <h3>Лабораторія брязкоту</h3>
-        <p>Справжній запис 10 натискань у переглядачі аналізатора, що бачить переривання ESP32, таблиця результатів і стратегії debounce.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="adc-light/">
-        <span class="tag">Модуль 1.6 · теорія</span>
-        <h3>АЦП і світло</h3>
-        <p>Аналог і цифра, квантування, АЦП як лінійка на 4096 поділок, фоторезистор у подільнику, піни ADC1/ADC2, ослаблення, шум. Тест.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="ldr-lab/">
-        <span class="tag">Модуль 1.6 · домашнє завдання</span>
-        <h3>Люксметр на ESP32-S3</h3>
-        <p>Макетка з ліхтариком, як АЦП шукає число, код і блок-схема крок за кроком, Serial-таблиця, графік і звідки береться похибка.</p>
-        <span class="go">Відкрити →</span>
-      </a>
       <a class="card" href="pull-resistors/">
-        <span class="tag">Модуль 1.4 · теорія</span>
+        <span class="tag">Теорія</span>
         <h3>Підтяжка входу</h3>
         <p>Вхід, що висить, pull-up і pull-down, R·C і герци, тригер Шмітта, брязкіт контактів. Живі осцилографи й тест.</p>
         <span class="go">Відкрити →</span>
@@ -100,29 +98,79 @@ footer a { color: var(--accent); }
         <p>Схема з рівнями й струмом, рядки коду, що виконуються, змінні, логічний аналізатор і Serial для всіх трьох прошивок.</p>
         <span class="go">Відкрити →</span>
       </a>
-    </div>
-  </section>
-
-  <section>
-    <h2>Проєкти в Wokwi · справжня прошивка в браузері</h2>
-    <div class="grid">
-      <a class="card" href="https://wokwi.com/projects/476609614353588225" target="_blank" rel="noopener">
-        <span class="tag">esp32-s3-two-buttons</span>
+      <a class="card ext" href="https://wokwi.com/projects/476609614353588225" target="_blank" rel="noopener">
+        <span class="tag">Wokwi · esp32-s3-two-buttons</span>
         <h3>Дві кнопки</h3>
         <p>D1/D2 на GPIO15/16, зовнішня S1 на GPIO21 (клавіша 1), BOOT на платі (клавіша 2).</p>
         <span class="go">wokwi.com ↗</span>
       </a>
-      <a class="card" href="https://wokwi.com/projects/476610317583371265" target="_blank" rel="noopener">
-        <span class="tag">esp32-s3-led-blink</span>
+      <a class="card ext" href="https://wokwi.com/projects/476610317583371265" target="_blank" rel="noopener">
+        <span class="tag">Wokwi · esp32-s3-led-blink</span>
         <h3>Миготіння LED</h3>
         <p>Червоний, синій і зелений на GPIO4/5/6, патерни й швидкості, BOOT (клавіша B), команди Serial.</p>
         <span class="go">wokwi.com ↗</span>
       </a>
-      <a class="card" href="https://wokwi.com/projects/476610461509906433" target="_blank" rel="noopener">
-        <span class="tag">esp32-s3-led-blink · single-gpio</span>
+      <a class="card ext" href="https://wokwi.com/projects/476610461509906433" target="_blank" rel="noopener">
+        <span class="tag">Wokwi · single-gpio</span>
         <h3>Один GPIO</h3>
         <p>Два світлодіоди на GPIO7: HIGH, LOW і Hi-Z, мультиплекс для кадру «обидва разом».</p>
         <span class="go">wokwi.com ↗</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="module" id="m1-5">
+    <div class="mod-head">
+      <span class="mod-num">Модуль 1.5</span>
+      <h2>Сигнали та кнопка</h2>
+    </div>
+    <p class="lead">Що бачать осцилограф і логічний аналізатор, коли натискаєш кнопку, і скільки з цього помічає переривання.</p>
+    <div class="grid">
+      <a class="card" href="scope-signals/">
+        <span class="tag">Теорія</span>
+        <h3>Осцилограф і кнопка</h3>
+        <p>Віртуальний осцилограф і генератор, шкали, тригер, фронти, період і заповнення, брязкіт, логічний аналізатор, конспекти відео, питання для обговорення.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card" href="bounce-lab/">
+        <span class="tag">Домашнє завдання</span>
+        <h3>Лабораторія брязкоту</h3>
+        <p>Справжній запис 10 натискань у переглядачі аналізатора, що бачить переривання ESP32, таблиця результатів і стратегії debounce.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce" target="_blank" rel="noopener">
+        <span class="tag">Код · esp32-s3-button-bounce</span>
+        <h3>Прошивки й інструменти</h3>
+        <p>Код з умови і лабораторна прошивка, vcd_bounce.py для запису аналізатора, Wokwi з аналізатором.</p>
+        <span class="go">GitHub ↗</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="module" id="m1-6">
+    <div class="mod-head">
+      <span class="mod-num">Модуль 1.6</span>
+      <h2>АЦП: як «читати» світло</h2>
+    </div>
+    <p class="lead">Аналоговий вхід: подільник напруги з фоторезистором, 4096 сходинок АЦП і звідки береться похибка.</p>
+    <div class="grid">
+      <a class="card" href="adc-light/">
+        <span class="tag">Теорія</span>
+        <h3>АЦП і світло</h3>
+        <p>Аналог і цифра, квантування, АЦП як лінійка на 4096 поділок, фоторезистор у подільнику, піни ADC1/ADC2, ослаблення, шум. Тест.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card" href="ldr-lab/">
+        <span class="tag">Домашнє завдання</span>
+        <h3>Люксметр на ESP32-S3</h3>
+        <p>Макетка з ліхтариком, як АЦП шукає число, код і блок-схема крок за кроком, Serial-таблиця, графік і звідки береться похибка.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc" target="_blank" rel="noopener">
+        <span class="tag">Код · esp32-s3-ldr-adc</span>
+        <h3>Прошивка й симуляція</h3>
+        <p>analogRead і analogReadMilliVolts, похибка, власний чип «LDR + 10 кОм» для Wokwi.</p>
+        <span class="go">GitHub ↗</span>
       </a>
     </div>
   </section>

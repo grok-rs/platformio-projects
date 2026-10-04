@@ -1,0 +1,34 @@
+/* Site navigation strip shared by every study page: back to the index + all pages grouped by module.
+   Uses each page's own tokens (--panel, --line, --ink, --muted, --accent, --f-mono, --f-display),
+   so it follows the page's light/dark theme. Not sticky: lab pages have their own sticky control bar. */
+.site-nav {
+  display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap;
+  max-width: 1240px; margin: 0 auto; padding: 10px 0 8px;
+  border-bottom: 1px solid var(--line);
+  font: 500 13px/1.3 var(--f-mono);
+}
+.site-nav a { color: var(--ink); text-decoration: none; border-radius: 6px; }
+.site-nav a:hover { color: var(--accent); }
+.site-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.site-nav .sn-home {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+  border: 1px solid var(--line); background: var(--panel); font-weight: 600;
+}
+.site-nav .sn-home img { width: 16px; height: 16px; display: block; }
+.site-nav .sn-group { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.site-nav .sn-mod { color: var(--muted); font-size: 11.5px; letter-spacing: .06em; margin-right: 4px; }
+.site-nav .sn-group a { padding: 4px 8px; }
+.site-nav .sn-group a[aria-current="page"] {
+  background: var(--accent); color: var(--panel); font-weight: 600;
+}
+/* Phones: one row that scrolls sideways instead of wrapping into a tall block. */
+@media (max-width: 640px) {
+  .site-nav {
+    flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; gap: 10px;
+    font-size: 12px; scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+  }
+  .site-nav .sn-group { flex-wrap: nowrap; flex: none; }
+  .site-nav .sn-home { flex: none; }
+  .site-nav .sn-group a { padding: 4px 6px; }
+}
+@media print { .site-nav { display: none; } }
