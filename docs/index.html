@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ESP32-S3 · навчальні матеріали</title>
-<meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): стенд проєктів, підтяжка входів, проєкти Wokwi.">
+<meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): АЦП і фоторезистор, стенд проєктів, підтяжка входів, проєкти Wokwi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: short index on graph paper — two study pages, then the three Wokwi projects. */
+/* Layout: short index on graph paper — study pages, then the Wokwi projects. */
 :root {
   --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --ink: #13212c; --muted: #566875;
   --line: #c6d2db; --accent: #0a6a86; --hi: #d97f00;
@@ -61,6 +61,18 @@ footer a { color: var(--accent); }
   <section>
     <h2>Навчальні сторінки</h2>
     <div class="grid">
+      <a class="card" href="adc-light/">
+        <span class="tag">Модуль 1.6 · теорія</span>
+        <h3>АЦП і світло</h3>
+        <p>Аналог і цифра, квантування, АЦП як лінійка на 4096 поділок, фоторезистор у подільнику, піни ADC1/ADC2, ослаблення, шум. Тест.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card" href="ldr-lab/">
+        <span class="tag">Модуль 1.6 · домашнє завдання</span>
+        <h3>Люксметр на ESP32-S3</h3>
+        <p>Макетка з ліхтариком, як АЦП шукає число, код і блок-схема крок за кроком, Serial-таблиця, графік і звідки береться похибка.</p>
+        <span class="go">Відкрити →</span>
+      </a>
       <a class="card" href="pull-resistors/">
         <span class="tag">Модуль 1.4 · теорія</span>
         <h3>Підтяжка входу</h3>

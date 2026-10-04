@@ -1,0 +1,1770 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Люксметр на ESP32-S3</title>
+<meta name="description" content="Домашнє завдання модуля 1.6: фоторезистор у подільнику напруги, analogRead() і analogReadMilliVolts() на ESP32-S3, похибка обчислення — з живою макеткою, кодом, блок-схемою, АЦП зсередини та Serial-монітором.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lab bench on graph paper. Task checklist → breadboard + schematic → code + flowchart → serial + plot → ADC inside → error model → real board. */
+:root {
+  --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --panel-2: #f1f5f8;
+  --ink: #13212c; --muted: #566875; --line: #c6d2db; --accent: #0a6a86; --accent-ink: #ffffff;
+  --hi: #d97f00; --lo: #8a9aa6; --z: #8b5cd6; --pwr: #c2410c; --gnd: #2a3945; --flow: #f59e0b;
+  --ok: #15803d; --warn: #b45309; --bad: #c62828; --hot: 217, 127, 0;
+  --bb: #f5f2ea; --bb-edge: #d9d3c4; --hole: #8f887a; --rail-p: #d6453d; --rail-n: #2f6fd1;
+  --pcb: #18232d; --pcb-ink: #c9d4dc; --shield: #c9d0d6; --pin: #d4a93a;
+  --scope: #0f1a22; --scope-grid: rgba(150, 200, 230, .12); --scope-text: #9fb4c3;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+    --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+    --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+    --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
+    --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
+    --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+  --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+  --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+  --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
+  --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
+  --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font: 15px/1.55 var(--f-body);
+  margin: 0; padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+a { color: var(--accent); }
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+code, kbd, pre, .code, .serial, .anatomy, .formula, .flowc { font-family: var(--f-mono); font-variant-ligatures: none; }
+code { font-size: .92em; }
+p code, li code, td code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: .85em; background: var(--panel); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+.masthead { display: grid; gap: 10px; padding-block: 28px 14px; }
+.eyebrow { font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.masthead h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; }
+.masthead h1 span { color: var(--accent); }
+.masthead p { margin: 0; color: var(--muted); max-width: 72ch; font-size: 1.02rem; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+nav.toc a {
+  font: 600 .98rem var(--f-display); letter-spacing: .03em; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--panel); padding: 4px 11px; border-radius: 999px;
+}
+nav.toc a span { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-right: 5px; }
+nav.toc a:hover { border-color: var(--accent); }
+
+/* ---------- sticky transport bar ---------- */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-block: 8px 4px;
+  box-shadow: 0 6px 18px -14px rgba(0, 0, 0, .5);
+}
+.bar .grp { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); color: var(--ink); font: 500 12.5px var(--f-mono); padding: 5px 9px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer;
+  font: 500 13px var(--f-body); padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.btn:hover, .seg button:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); min-width: 92px; justify-content: center; }
+.btn.mono { font-family: var(--f-mono); }
+.clock { font: 600 13px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.clock b { color: var(--ink); }
+.lbl-sm { font-size: 12px; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 70px; }
+.sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; margin-bottom: 12px; }
+.sec-head h2 { font-size: 1.9rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; }
+.sec-head h2 .n { font: 600 1rem var(--f-mono); color: var(--accent); }
+.sec-head p { margin: 0; color: var(--muted); max-width: 72ch; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.grid2.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.grid2.code-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+@media (max-width: 980px) { .grid2, .grid2.even, .grid2.code-grid { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.ph h3 { font-size: .95rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ph .note { font-size: 12.5px; color: var(--muted); }
+.pb { padding: 12px; }
+.prose p, .prose li { max-width: 70ch; }
+.prose p { margin: 0 0 10px; }
+.callout { border-left: 3px solid var(--accent); background: var(--panel); padding: 8px 12px; margin: 10px 0; font-size: 14.5px; border-radius: 0 6px 6px 0; }
+.callout.warn { border-left-color: var(--hi); }
+.formula { font: 13.5px var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; overflow-x: auto; white-space: pre; }
+
+/* ---------- checklist ---------- */
+.tasks { list-style: none; margin: 0; padding: 4px 0; counter-reset: t; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); }
+.tasks li { counter-increment: t; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 9px 14px; border-top: 1px solid var(--line); align-items: start; cursor: pointer; }
+.tasks li:hover { background: var(--panel-2); }
+.tasks .box { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font: 700 13px var(--f-mono); color: var(--muted); transition: background .25s, border-color .25s, transform .25s; }
+.tasks .box::before { content: counter(t); }
+.tasks li.done .box { background: var(--ok); border-color: var(--ok); color: var(--panel); transform: scale(1.06); }
+.tasks li.done .box::before { content: "✓"; }
+.tasks li.pop .box { animation: pop .5s ease-out; }
+@keyframes pop { 40% { transform: scale(1.35); } }
+.tasks b { font-weight: 600; }
+.tasks small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.progress { font: 600 13px var(--f-mono); color: var(--muted); }
+.progress b { color: var(--ok); }
+
+/* ---------- bench (breadboard) ---------- */
+.bench svg, .schem svg, .sar svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
+.bench svg { touch-action: pan-x pan-y; }
+.bench .lamp { touch-action: none; }
+@media (max-width: 600px) {
+  #benchSvg { overflow-x: auto; }
+  #benchSvg svg { width: 700px; max-width: none; }
+  .bar { gap: 6px 10px; padding: 6px 8px; }
+  .bar .lbl-sm { display: none; }
+  section.sec { scroll-margin-top: 140px; }
+}
+.bb-body { fill: var(--bb); stroke: var(--bb-edge); stroke-width: 1.5; }
+.bb-chan { fill: var(--bb-edge); opacity: .55; }
+.bb-holes { fill: var(--hole); }
+.bb-num { fill: var(--muted); font: 500 7px var(--f-mono); text-anchor: middle; }
+.rail-p { stroke: var(--rail-p); stroke-width: 1.6; } .rail-n { stroke: var(--rail-n); stroke-width: 1.6; }
+.rail-t { font: 700 11px var(--f-mono); }
+.pcb { fill: var(--pcb); }
+.pcb-t { fill: var(--pcb-ink); font: 600 6.3px var(--f-mono); text-anchor: middle; }
+.pcb-big { fill: var(--pcb-ink); font: 700 10px var(--f-display); letter-spacing: .06em; }
+.hdr-pin { fill: var(--pin); stroke: #00000055; stroke-width: .6; }
+.hdr-pin.key { stroke: var(--hi); stroke-width: 1.6; }
+.shield { fill: var(--shield); stroke: #0004; }
+.shield-t { fill: #2b3640; font: 700 9px var(--f-mono); text-anchor: middle; }
+.usb { fill: #a9b2b9; stroke: #5a656e; }
+.jw-o { fill: none; stroke: #0000004d; stroke-width: 6.2; stroke-linecap: round; stroke-linejoin: round; }
+.jw { fill: none; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
+.jend { stroke: #0006; stroke-width: .8; }
+.leg { stroke: #9aa3aa; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.ldr-rim { fill: #e9e2cf; stroke: #6d5d3a; stroke-width: 1.4; }
+.ldr-track { fill: none; stroke: #b4572a; stroke-width: 1.6; stroke-linecap: round; }
+.res-body { fill: #d8c49a; stroke: #6b5a3b; stroke-width: 1; }
+.part-t { fill: var(--ink); font: 600 10.5px var(--f-body); paint-order: stroke; stroke: var(--bb); stroke-width: 3px; text-anchor: middle; }
+.flowp { fill: none; stroke: var(--flow); stroke-width: 5; stroke-linecap: round; stroke-dasharray: .1 13; opacity: .95; }
+.node-strip { fill: var(--hi); }
+.vlabel rect { fill: var(--panel); stroke: var(--hi); stroke-width: 1.5; }
+.vlabel text { fill: var(--ink); font: 600 12.5px var(--f-mono); text-anchor: middle; }
+.vlabel .s { fill: var(--muted); font: 500 9.5px var(--f-body); }
+.dark-ov { fill: #020a12; pointer-events: none; }
+.glow-spot { pointer-events: none; }
+.lamp { cursor: grab; outline: none; }
+.lamp:active { cursor: grabbing; }
+.lamp:focus-visible .lamp-ring { stroke: var(--accent); stroke-width: 2.5; }
+.lamp-ring { fill: transparent; stroke: transparent; }
+.lamp-body { fill: #3b4652; stroke: #12181e; stroke-width: 1.2; }
+.lamp-head { fill: #59656f; stroke: #12181e; stroke-width: 1.2; }
+.lamp-lens { stroke: #12181e; stroke-width: 1; }
+.lamp-t { fill: var(--ink); font: 600 10px var(--f-body); text-anchor: middle; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+.meter-body { fill: #f2c230; stroke: #6d5510; stroke-width: 1.5; }
+.meter-lcd { fill: #b7c4a3; stroke: #5b6650; }
+.meter-val { fill: #1b2318; font: 600 25px var(--f-mono); text-anchor: end; }
+.meter-u { fill: #1b2318; font: 600 9px var(--f-mono); }
+.meter-t { fill: #3d2f05; font: 700 9px var(--f-mono); text-anchor: middle; }
+.probe { fill: none; stroke-width: 2.6; stroke-linecap: round; }
+.hand { fill: #e8b48c; stroke: #8c5a35; stroke-width: 1.2; opacity: .96; transition: opacity .3s, transform .4s; }
+.hand.off { opacity: 0; transform: translate(0, -60px); pointer-events: none; }
+.asm-on [data-asm].ghost { opacity: .1; }
+.asm-on [data-asm].focus { animation: focus 1.1s ease-in-out infinite; }
+@keyframes focus { 50% { opacity: .55; } }
+[data-asm] { transition: opacity .35s; }
+.asm-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel-2); }
+.asm-bar p { margin: 0; flex: 1 1 280px; font-size: 14px; }
+.asm-bar .dots { display: flex; gap: 4px; }
+.asm-bar .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.asm-bar .dots i.on { background: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); }
+.ctl { display: grid; gap: 3px; font-size: 13px; min-width: 200px; flex: 1 1 260px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.ctl label b { font: 600 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="range"]:disabled { opacity: .4; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 999px; font: 500 12.5px var(--f-body); padding: 3px 10px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); }
+.chip-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.chip-btn.mono { font-family: var(--f-mono); font-size: 12px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); border-top: 1px solid var(--line); }
+.stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
+.stat:last-child { border-right: 0; }
+.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat .v { font: 600 1.12rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat .v.hi { color: var(--hi); } .stat .v.ok { color: var(--ok); } .stat .v.bad { color: var(--bad); } .stat .v.acc { color: var(--accent); }
+
+/* ---------- schematic ---------- */
+.schem .w { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+.schem .w.p { stroke: var(--pwr); } .schem .w.g { stroke: var(--gnd); } .schem .w.n { stroke: var(--hi); }
+.schem .rb { fill: var(--panel); stroke: var(--ink); stroke-width: 2.2; }
+.schem .t { fill: var(--ink); font: 600 13px var(--f-body); }
+.schem .tm { fill: var(--muted); font: 500 11.5px var(--f-mono); }
+.schem .tv { font: 600 13px var(--f-mono); }
+.schem .tv.n { fill: var(--hi); } .schem .tv.f { fill: var(--flow); } .schem .tv.r { fill: var(--accent); }
+.schem .arr { fill: none; stroke: var(--hi); stroke-width: 1.8; }
+.schem .pinbox { fill: var(--panel-2); stroke: var(--ink); stroke-width: 1.6; }
+.schem .flowp { stroke-width: 4; }
+.eq { padding: 8px 12px 12px; font: 13px/1.7 var(--f-mono); color: var(--muted); border-top: 1px dashed var(--line); overflow-x: auto; }
+.eq b { color: var(--ink); font-weight: 600; }
+
+/* ---------- code + flowchart ---------- */
+.code { font: 12.5px/1.6 var(--f-mono); overflow: auto; max-height: 620px; padding: 6px 0; }
+.ln { display: grid; grid-template-columns: 4ch 1.4ch minmax(0, 1fr); gap: 0 6px; padding: 0 12px 0 6px; white-space: pre; background: rgba(var(--hot), calc(var(--heat, 0) * .28)); }
+.ln .no { color: var(--muted); text-align: right; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
+.ln .cur { color: var(--hi); visibility: hidden; }
+.ln.is-cur .cur { visibility: visible; }
+.ln.is-cur { box-shadow: inset 3px 0 0 var(--hi); background: rgba(var(--hot), .3); }
+.ln.is-ctx { box-shadow: inset 3px 0 0 var(--z); }
+.t-c { color: var(--muted); font-style: italic; }
+.t-s { color: var(--ok); }
+.t-k { color: var(--accent); font-weight: 600; }
+.t-t { color: var(--z); }
+.t-n { color: var(--pwr); }
+.t-m { color: var(--hi); font-weight: 600; }
+.t-p { color: var(--z); font-weight: 600; }
+.flowc { padding: 10px 12px 14px; display: grid; gap: 0; font: 12.5px/1.35 var(--f-mono); }
+.fgroup { font: 600 .9rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 0 4px; }
+.fb { position: relative; border: 1.5px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 10px; margin-inline: 0 64px; transition: border-color .15s, background-color .15s, box-shadow .15s; background-image: linear-gradient(rgba(var(--hot), calc(var(--heat, 0) * .22)), rgba(var(--hot), calc(var(--heat, 0) * .22))); }
+.fb.dec { border-radius: 18px; border-style: dashed; }
+.fb.sub { margin-left: 18px; }
+.fb.on { border-color: var(--hi); box-shadow: 0 0 0 2px rgba(var(--hot), .55); }
+.fb .br { position: absolute; right: -60px; top: 50%; transform: translateY(-50%); font: 600 11.5px var(--f-mono); padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); background: var(--panel); white-space: nowrap; }
+.fb .br.yes { color: var(--ok); border-color: var(--ok); } .fb .br.no { color: var(--bad); border-color: var(--bad); }
+.fb small { display: block; color: var(--muted); font: 11.5px var(--f-body); }
+.farr { height: 14px; margin-left: 22px; border-left: 2px solid var(--line); position: relative; }
+.farr::after { content: ""; position: absolute; left: -5px; bottom: -1px; border: 4px solid transparent; border-top: 6px solid var(--line); }
+.farr.sub { margin-left: 40px; }
+.fmeasure { border: 1.5px dashed var(--z); border-radius: 8px; padding: 2px 0 8px; margin-right: 64px; }
+.fmeasure > .fgroup { margin-left: 10px; color: var(--z); }
+.fmeasure .fb { margin-right: 10px; }
+.fback { font: 11.5px var(--f-body); color: var(--muted); margin: 6px 0 0; }
+.explain { margin: 0; padding: 10px 12px; border-top: 1px dashed var(--line); font-size: 13.5px; min-height: 3.4em; }
+.explain b { color: var(--ink); }
+.explain .ff { color: var(--z); }
+.watch { width: 100%; border-collapse: collapse; font-size: 13px; }
+.watch td { padding: 5px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.watch tr:last-child td { border-bottom: 0; }
+.watch td:first-child { font-family: var(--f-mono); color: var(--muted); white-space: nowrap; width: 1%; }
+.watch td:last-child { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.watch tr.chg td:last-child { color: var(--hi); }
+.meter { display: flex; align-items: center; gap: 8px; }
+.meter .track { flex: 1; height: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; min-width: 50px; position: relative; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.meter span { white-space: nowrap; font-size: 12px; color: var(--muted); }
+.toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* ---------- serial ---------- */
+.serial { font: 12px/1.5 var(--f-mono); background: var(--panel-2); height: 330px; overflow: auto; padding: 8px 12px; white-space: pre; }
+.serial .sim { color: var(--z); font-style: italic; white-space: pre-wrap; }
+.serial .log { color: var(--muted); }
+.serial .sum { color: var(--ok); font-weight: 600; }
+.serial .hd { color: var(--accent); }
+.anatomy { display: grid; grid-template-columns: repeat(6, auto); justify-content: start; gap: 0 4px; font: 12px var(--f-mono); padding: 10px 12px; overflow-x: auto; border-top: 1px solid var(--line); }
+.anatomy > div { padding: 0 0 0 0; white-space: pre; }
+.anatomy .v { padding: 2px 0; border-bottom: 3px solid var(--c); }
+.anatomy .k { font: 11px/1.3 var(--f-body); color: var(--c); padding: 3px 6px 0 0; white-space: normal; max-width: 14ch; }
+.plot canvas, .errc canvas { display: block; width: 100%; background: var(--scope); border-radius: 0 0 8px 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 20px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 5px; }
+
+/* ---------- SAR ---------- */
+.sar .bitbox { fill: var(--panel-2); stroke: var(--line); }
+.sar .bitbox.one { fill: var(--accent); stroke: var(--accent); }
+.sar .bitbox.zero { fill: var(--panel-2); stroke: var(--bad); }
+.sar .bitbox.cur { stroke: var(--hi); stroke-width: 2.2; }
+.sar .bitt { font: 600 12px var(--f-mono); text-anchor: middle; fill: var(--ink); }
+.sar .bitt.one { fill: var(--accent-ink); }
+.sar .bitl { font: 500 8.5px var(--f-mono); text-anchor: middle; fill: var(--muted); }
+.sar .ax { stroke: var(--line); stroke-width: 1; }
+.sar .axt { fill: var(--muted); font: 500 9.5px var(--f-mono); }
+.sar .uin { stroke: var(--hi); stroke-width: 2; stroke-dasharray: 6 4; }
+.sar .bar-k { fill: var(--ok); opacity: .75; }
+.sar .bar-r { fill: var(--bad); opacity: .35; }
+.sar .bar-c { stroke: var(--ink); stroke-width: 1.6; fill: none; }
+.sar .blk { fill: var(--panel-2); stroke: var(--ink); stroke-width: 1.5; }
+.sar .blkt { fill: var(--ink); font: 600 10.5px var(--f-body); text-anchor: middle; }
+.sar .wr { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.sar .wr.hi { stroke: var(--hi); }
+.sar .cap { fill: var(--hi); transition: opacity .3s; }
+.sar .sw { stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; transition: transform .25s; transform-box: view-box; transform-origin: 60px 72px; }
+.sar .sw.closed { transform: rotate(27deg); }
+.sar svg { max-width: 920px; margin: 0 auto; }
+.sar .cmp { fill: var(--panel); stroke: var(--ink); stroke-width: 1.6; }
+.sar .cmp.yes { fill: color-mix(in srgb, var(--ok) 25%, var(--panel)); }
+.sar .cmp.no { fill: color-mix(in srgb, var(--bad) 22%, var(--panel)); }
+.sar-text { padding: 10px 12px; border-top: 1px dashed var(--line); font-size: 13.5px; min-height: 3.2em; }
+
+/* ---------- error model / real board ---------- */
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 980px) { .cols3 { grid-template-columns: minmax(0, 1fr); } }
+.cols3 .col { padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.cols3 .col:first-child { border-left: 0; }
+@media (max-width: 980px) { .cols3 .col { border-left: 0; border-top: 1px solid var(--line); } .cols3 .col:first-child { border-top: 0; } }
+.cols3 h4 { font-size: 1.1rem; margin-bottom: 6px; }
+.cols3 p, .cols3 li { font-size: 13.8px; }
+.cols3 ul, .cols3 ol { padding-left: 18px; margin: 6px 0; }
+pre.cmd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; overflow-x: auto; margin: 6px 0; white-space: pre; }
+.tbl-wrap { overflow-x: auto; }
+table.trouble { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+table.trouble th, table.trouble td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.trouble th { font: 600 .85rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+table.trouble td:first-child { font-family: var(--f-mono); white-space: nowrap; }
+footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 86ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tasks li.pop .box, .asm-on [data-asm].focus { animation: none; }
+  .hand, [data-asm], .sar .sw, .tasks .box { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">Модуль 1.6 · домашнє завдання · YD-ESP32-S3</div>
+    <h1>Люксметр на <span>ESP32-S3</span></h1>
+    <p>Фоторезистор і резистор 10 кОм ділять 3.3 В. ESP32-S3 вимірює середню точку двома способами (<code>analogRead()</code> і <code>analogReadMilliVolts()</code>) і рахує похибку. Посвітіть ліхтариком на макетку і пройдіть програму крок за кроком. Ви побачите, як світло стає числом у Serial.</p>
+    <nav class="toc" aria-label="Розділи">
+      <a href="#task"><span>1</span>Завдання</a>
+      <a href="#bench"><span>2</span>Стенд і схема</a>
+      <a href="#code"><span>3</span>Код і блок-схема</a>
+      <a href="#serial"><span>4</span>Serial і графік</a>
+      <a href="#adc"><span>5</span>Всередині АЦП</a>
+      <a href="#error"><span>6</span>Звідки похибка</a>
+      <a href="#real"><span>7</span>На реальній платі</a>
+    </nav>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Керування симуляцією">
+    <div class="grp">
+      <button class="btn primary" id="play" type="button" title="Пробіл">❚❚ Пауза</button>
+      <button class="btn" id="step" type="button" title="Клавіша → : один рядок коду / один блок">Крок ▸</button>
+      <div class="seg" role="group" aria-label="Швидкість часу" id="speed">
+        <button type="button" data-v="5" aria-pressed="false">5×</button>
+        <button type="button" data-v="1" aria-pressed="true">1×</button>
+        <button type="button" data-v="0.25" aria-pressed="false">¼×</button>
+        <button type="button" data-v="0.1" aria-pressed="false">0.1×</button>
+      </div>
+      <button class="btn mono" id="rst" type="button" title="Кнопка RST: перезапуск програми">RST</button>
+      <span class="clock">millis() = <b id="clock">0</b></span>
+    </div>
+    <div class="grp">
+      <span class="lbl-sm">Модель АЦП:</span>
+      <div class="seg" role="group" aria-label="Модель АЦП" data-mode-seg>
+        <button type="button" data-mode="real" aria-pressed="true">Реальна плата</button>
+        <button type="button" data-mode="wokwi" aria-pressed="false">Wokwi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. TASK -->
+  <section class="sec" id="task">
+    <div class="sec-head">
+      <h2><span class="n">01</span>Завдання</h2>
+      <p>Вісім пунктів з умови. Кожен відмічається сам, щойно симуляція його показала. Натисніть пункт, щоб перейти до потрібного приладу. <span class="progress">Виконано <b id="taskDone">0</b> / 8</span></p>
+    </div>
+    <div class="panel">
+      <ol class="tasks" id="tasks">
+        <li data-go="bench" data-task="divider"><span class="box"></span><div><b>Підключити LDR як подільник напруги</b><small>3V3 → LDR → GPIO4 → 10 кОм → GND. Більше світла → вища напруга.</small></div></li>
+        <li data-go="code" data-task="period"><span class="box"></span><div><b>Зчитувати АЦП кожні 100 мс</b><small>Неблокуючий таймер на <code>millis()</code>, без <code>delay()</code>.</small></div></li>
+        <li data-go="code" data-task="raw"><span class="box"></span><div><b>RAW через <code>analogRead()</code></b><small>Число 0…4095 (12 біт).</small></div></li>
+        <li data-go="code" data-task="calc"><span class="box"></span><div><b>U<sub>calc</sub> = RAW / ADC<sub>max</sub> · U<sub>ref</sub></b><small>ADC<sub>max</sub> = 4095, U<sub>ref</sub> = 3100 мВ.</small></div></li>
+        <li data-go="code" data-task="mv"><span class="box"></span><div><b>Напруга через <code>analogReadMilliVolts()</code></b><small>Велика «V» у назві: <code>MilliVolts</code>. В умові опечатка <code>Millivolts</code>.</small></div></li>
+        <li data-go="error" data-task="err"><span class="box"></span><div><b>Відносна похибка у %</b><small>(U<sub>calc</sub> − U<sub>meas</sub>) / U<sub>meas</sub> · 100 %.</small></div></li>
+        <li data-go="serial" data-task="print"><span class="box"></span><div><b>Вивести RAW, U<sub>calc</sub>, U<sub>meas</sub> у Serial</b><small>Таблиця з шапкою і шкалою світла.</small></div></li>
+        <li data-go="serial" data-task="compare"><span class="box"></span><div><b>Порівняти й підсумувати</b><small>Кожні 10 с: середня та найбільша |похибка|.</small></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 2. BENCH -->
+  <section class="sec" id="bench">
+    <div class="sec-head">
+      <h2><span class="n">02</span>Стенд і схема</h2>
+      <p>Тягніть ліхтарик ближче до фоторезистора або рухайте повзунок. Точки — це струм (від «+» до «−»). Чим їх більше і чим швидше вони біжать, тим менший опір LDR.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel bench" id="benchPanel">
+        <div class="ph"><h3>Макетна плата</h3>
+          <div class="grp" style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn" id="asmBtn" aria-pressed="false">🔧 Збираємо крок за кроком</button></div>
+        </div>
+        <div id="benchSvg"></div>
+        <div class="asm-bar" id="asmBar" hidden>
+          <span class="dots" id="asmDots"></span>
+          <p id="asmText" aria-live="polite"></p>
+          <button type="button" class="btn" id="asmPrev">← Назад</button>
+          <button type="button" class="btn primary" id="asmNext">Далі →</button>
+          <button type="button" class="btn" id="asmExit">Готово</button>
+        </div>
+        <div class="controls">
+          <div class="ctl">
+            <label for="light">Освітленість <b id="luxOut">32 лк</b></label>
+            <input type="range" id="light" min="-1" max="5" step="0.05" value="1.5" aria-describedby="luxDesc">
+            <span class="lbl-sm" id="luxDesc">тьмяна кімната</span>
+          </div>
+          <div class="chips" role="group" aria-label="Готові умови">
+            <button type="button" class="chip-btn" data-preset="-1">🌙 Ніч</button>
+            <button type="button" class="chip-btn" data-preset="palm">✋ Закрий долонею</button>
+            <button type="button" class="chip-btn" data-preset="2.2">💡 Кімната</button>
+            <button type="button" class="chip-btn" data-preset="2.7">🏢 Офіс</button>
+            <button type="button" class="chip-btn" data-preset="5">☀️ Сонце</button>
+            <button type="button" class="chip-btn mono" data-preset="1" title="Як у сценарії Wokwi: light = 1">10 лк</button>
+            <button type="button" class="chip-btn mono" data-preset="2" title="Як у сценарії Wokwi: light = 2">100 лк</button>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="k">R<sub>LDR</sub></div><div class="v acc" id="stR">—</div></div>
+          <div class="stat"><div class="k">Струм</div><div class="v" id="stI" style="color:var(--flow)">—</div></div>
+          <div class="stat"><div class="k">U на GPIO4</div><div class="v hi" id="stU">—</div></div>
+          <div class="stat"><div class="k">RAW (останній)</div><div class="v" id="stRaw">—</div></div>
+          <div class="stat"><div class="k">похибка</div><div class="v" id="stErr">—</div></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel schem">
+          <div class="ph"><h3>Принципова схема</h3><span class="note">ті самі числа, що на макетці</span></div>
+          <div id="schemSvg"></div>
+          <div class="eq" id="schemEq"></div>
+        </div>
+        <div class="panel prose">
+          <div class="ph"><h3>Чому саме так</h3></div>
+          <div class="pb">
+            <p><b>АЦП міряє напругу, а не опір.</b> Тому LDR ставимо в пару з постійним резистором 10 кОм. Напруга між ними залежить від того, яку частку опору становить кожен.</p>
+            <p><b>LDR зверху (до 3V3), 10 кОм знизу (до GND).</b> Більше світла — менший R<sub>LDR</sub> — середня точка «підтягується» до 3.3 В. Якщо поміняти їх місцями, напрям зміниться: на світлі напруга падатиме.</p>
+            <p><b>GPIO4 — це ADC1.</b> Піни GPIO1…10 працюють завжди. ADC2 (GPIO11…20) ділить апаратуру з Wi-Fi, тому для датчиків його краще не брати.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. CODE -->
+  <section class="sec" id="code">
+    <div class="sec-head">
+      <h2><span class="n">03</span>Код і блок-схема</h2>
+      <p>Зліва — алгоритм блоками, справа — справжній <code>src/main.cpp</code>. Натисніть <b>Крок ▸</b> (або <kbd>→</kbd>): на кожен крок виконується один рядок. Блок, рядок і змінні підсвічуються разом. Порожні проходи <code>loop()</code> між вимірами перемотуються.</p>
+    </div>
+    <div class="grid2 code-grid">
+      <div class="stack">
+        <div class="panel">
+          <div class="ph"><h3>Блок-схема</h3><span class="note">так / ні — останнє рішення</span></div>
+          <div class="flowc" id="flow"></div>
+          <p class="explain" id="explain" aria-live="polite"></p>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Змінні</h3><span class="note">помаранчеве — щойно змінилось</span></div>
+          <table class="watch"><tbody id="watch"></tbody></table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>src/main.cpp</h3>
+          <label class="toggle"><input type="checkbox" id="follow" checked>стежити за рядком</label>
+        </div>
+        <div class="code" id="codeBox" tabindex="0" aria-label="Код прошивки"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SERIAL + PLOT -->
+  <section class="sec" id="serial">
+    <div class="sec-head">
+      <h2><span class="n">04</span>Serial-монітор і графік</h2>
+      <p>Так виглядає <code>pio device monitor</code> на 115200 бод: рядок у рядок, як друкує прошивка. Графік малює ті самі числа за останні 10 с.</p>
+    </div>
+    <div class="grid2 even">
+      <div class="panel">
+        <div class="ph"><h3>Serial · 115200</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn" id="serPause" aria-pressed="false">❚❚ Заморозити</button>
+            <button type="button" class="btn" id="serClear">Очистити</button>
+            <button type="button" class="btn" id="serCopy">Копіювати</button>
+          </div>
+        </div>
+        <div class="serial" id="serialBox" tabindex="0" aria-label="Вивід Serial"></div>
+        <div class="anatomy" aria-label="Як читати рядок">
+          <div style="--c:var(--muted)"><div class="v">    287</div><div class="k">t, мс: millis()</div></div>
+          <div style="--c:var(--accent)"><div class="v">  1744</div><div class="k">RAW з analogRead()</div></div>
+          <div style="--c:var(--accent)"><div class="v">     1320.2</div><div class="k">U_calc за формулою</div></div>
+          <div style="--c:var(--hi)"><div class="v">       1618</div><div class="k">U_meas, analogReadMilliVolts()</div></div>
+          <div style="--c:var(--z)"><div class="v">   -18.40</div><div class="k">похибка, %</div></div>
+          <div style="--c:var(--ok)"><div class="v">  ########........</div><div class="k">шкала: 16 поділок = 3100 мВ</div></div>
+        </div>
+      </div>
+      <div class="panel plot">
+        <div class="ph"><h3>Графік · 10 с</h3>
+          <div class="legend"><span><i style="border-color:var(--accent)"></i>U_calc</span><span><i style="border-color:var(--hi)"></i>U_meas</span><span><i style="border-color:var(--z)"></i>похибка %</span></div>
+        </div>
+        <canvas id="plot" height="380" aria-label="Графік напруги та похибки"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. ADC INSIDE -->
+  <section class="sec" id="adc">
+    <div class="sec-head">
+      <h2><span class="n">05</span>Всередині АЦП</h2>
+      <p>Як <code>analogRead()</code> отримує число? Конденсатор на мить «фотографує» напругу (вибірка й утримання). Потім АЦП послідовного наближення (SAR) за 12 кроків двійкового пошуку вгадує число: «більше чи менше?» — біт за бітом. Справжній чип робить це за кілька мікросекунд.</p>
+    </div>
+    <div class="panel sar">
+      <div class="ph"><h3>Вибірка й утримання + SAR, 12 біт</h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn" id="sarCap">📸 Захопити напругу</button>
+          <button type="button" class="btn primary" id="sarPlay">▶ Пуск</button>
+          <button type="button" class="btn" id="sarStep">Крок</button>
+          <button type="button" class="btn" id="sarReset">Скинути</button>
+        </div>
+      </div>
+      <div id="sarSvg"></div>
+      <p class="sar-text" id="sarText" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- 6. ERROR -->
+  <section class="sec" id="error">
+    <div class="sec-head">
+      <h2><span class="n">06</span>Звідки похибка</h2>
+      <p>Формула з умови вважає АЦП ідеальним: 0 мВ → 0, 3100 мВ → 4095, і пряма між ними. Справжній чип трохи інший. <code>analogReadMilliVolts()</code> бере поправки, які завод записав у eFuse кожного чипа. Покрутіть «чип» і подивіться, як змінюється крива похибки.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel errc">
+        <div class="ph"><h3>Похибка U<sub>calc</sub> залежно від напруги</h3>
+          <div class="seg" role="group" aria-label="Модель АЦП" data-mode-seg>
+            <button type="button" data-mode="real" aria-pressed="true">Реальна плата</button>
+            <button type="button" data-mode="wokwi" aria-pressed="false">Wokwi</button>
+          </div>
+        </div>
+        <canvas id="errCanvas" height="300" aria-label="Крива похибки"></canvas>
+        <div class="controls" id="chipCtl">
+          <div class="ctl"><label for="vfs">Справжня «стеля» АЦП <b id="vfsOut">3200 мВ</b></label><input type="range" id="vfs" min="3000" max="3300" step="10" value="3200"></div>
+          <div class="ctl"><label for="off">Зсув нуля <b id="offOut">20 мВ</b></label><input type="range" id="off" min="0" max="60" step="1" value="20"></div>
+          <div class="ctl"><label for="noise">Шум <b id="noiseOut">±3 RAW</b></label><input type="range" id="noise" min="0" max="8" step="1" value="3"></div>
+        </div>
+        <p class="explain" id="errNow"></p>
+      </div>
+      <div class="panel prose">
+        <div class="ph"><h3>Чотири причини</h3></div>
+        <div class="pb">
+          <p><b>1. «Стеля» — не рівно 3100 мВ.</b> 3100 мВ — це номінал для ослаблення 11 дБ. У кожного чипа справжнє значення трохи своє, тому формула помиляється на однаковий відсоток по всій шкалі.</p>
+          <p><b>2. Зсув нуля.</b> Найменші напруги АЦП «не бачить»: RAW залишається 0, хоча на піні вже 10–20 мВ.</p>
+          <p><b>3. Шум.</b> <code>analogRead()</code> і <code>analogReadMilliVolts()</code> — це два різні вимірювання. Між ними число може «стрибнути» на кілька одиниць.</p>
+          <p><b>4. Ділення на майже нуль.</b> Коли темно, U<sub>meas</sub> ≈ 10 мВ. Різниця у 3 мВ тоді дає вже 30 %. Тому прошивка не бере виміри нижче 100 мВ у підсумок (сіра зона на графіку).</p>
+          <div class="callout warn"><b>Режим Wokwi.</b> Симулятор не має eFuse-калібрування. Ядро пише в лог <code>Characterized using Default Vref</code>, і <code>analogReadMilliVolts()</code> показує на 14–23 % більше. Вище 3.1 В виходить узагалі 5090 мВ. Це артефакт симулятора, а не помилка вашого коду. Справжню похибку показує тільки справжня плата: зазвичай кілька відсотків.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. REAL BOARD -->
+  <section class="sec" id="real">
+    <div class="sec-head">
+      <h2><span class="n">07</span>Перевір на реальній платі</h2>
+      <p>Модель у браузері лише пояснює. Числа для звіту беріть з плати.</p>
+    </div>
+    <div class="panel">
+      <div class="cols3">
+        <div class="col">
+          <h4>Монтаж — чекліст</h4>
+          <ol>
+            <li>Плата на макетці, USB-C ще не підключено.</li>
+            <li>3V3 → шина «+», GND → шина «−».</li>
+            <li>LDR: одна ніжка до «+», друга в окремий ряд (середня точка).</li>
+            <li>10 кОм (коричневий-чорний-помаранчевий) — із середньої точки до «−».</li>
+            <li>Середня точка → <b>GPIO4</b>.</li>
+            <li>Мультиметром між GPIO4 і GND: при кімнатному світлі ~1.5–2.5 В (GL5528 + 10 кОм). Долоня над LDR — напруга падає.</li>
+          </ol>
+        </div>
+        <div class="col">
+          <h4>Запуск</h4>
+          <p>PlatformIO, папка <code>esp32-s3-ldr-adc</code>:</p>
+          <pre class="cmd">pio run -t upload &amp;&amp; pio device monitor</pre>
+          <p>Wokwi у VS Code: <code>pio run</code>, потім <b>F1 → Wokwi: Start Simulator</b>. Натисніть на чип LDR — з’явиться повзунок «light» (log₁₀ лк).</p>
+          <p>Автотест:</p>
+          <pre class="cmd">wokwi-cli . --scenario wokwi/scenarios/light-levels.yaml --timeout 20000</pre>
+        </div>
+        <div class="col">
+          <h4>Що здати</h4>
+          <ul>
+            <li>Фото зібраної схеми, на якому видно GPIO4, LDR і 10 кОм.</li>
+            <li>Скриншот Serial-монітора: кілька рядків при світлі, у тіні й під долонею, а також рядок <code>--- summary</code>.</li>
+            <li>Посилання на код: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc">esp32-s3-ldr-adc</a>.</li>
+            <li>Одне речення висновку: яка вийшла похибка і чому.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="trouble">
+          <thead><tr><th>Симптом</th><th>Імовірна причина</th><th>Що зробити</th></tr></thead>
+          <tbody>
+            <tr><td>RAW завжди 0</td><td>GPIO4 замкнено на GND, дріт не в тому ряду або в коді інший пін</td><td>Перевірте ряд середньої точки та <code>kLdrPin = 4</code>. Мультиметр на GPIO4 має показувати не 0.</td></tr>
+            <tr><td>RAW завжди 4095</td><td>Пін з’єднано прямо з 3V3, немає 10 кОм до GND або надто яскраве світло (&gt; 3.1 В)</td><td>Знайдіть 10 кОм до шини «−». Прикрийте LDR долонею: число має впасти.</td></tr>
+            <tr><td>Світліше → число менше</td><td>LDR і 10 кОм переставлені місцями</td><td>LDR має йти до 3V3, а резистор — до GND. Або просто врахуйте інверсію.</td></tr>
+            <tr><td>Числа «стрибають» на сотні</td><td>Поганий контакт у макетці, ніжки LDR ледь тримаються</td><td>Вставте ніжки глибше, укоротіть дроти. Шум у кілька одиниць — це нормально.</td></tr>
+            <tr><td>Порожній Serial</td><td>Монітор відкрито після банера або не той порт</td><td>Натисніть RST на платі. Прошивка чекає USB до 2 с.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="../">← Усі матеріали</a> · <a href="../adc-light/">Теорія: як «читати» світло</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc">Код на GitHub</a></p>
+    <p>Модель у браузері — це JavaScript-порт <code>src/main.cpp</code> з тими самими константами й форматом друку (числа рахуються у <code>float</code>, як на чипі). Справжній <code>loop()</code> прокручується сотні тисяч разів на секунду, модель — один раз на мілісекунду. Фізика подільника збігається з чипом Wokwi <code>wokwi/chip/ldr-divider</code>: R<sub>LDR</sub> = 15 кОм · (10 / лк)<sup>0.7</sup>.</p>
+  </footer>
+</div>
+
+<pre id="fw-src" hidden>// Модуль 1.6 — вимірювання освітленості: фоторезистор (LDR) + 10 кОм, АЦП ESP32-S3.
+//
+//   3V3 ── LDR ──┬── 10 кОм ── GND        Більше світла → менший опір LDR →
+//                └── GPIO4 (ADC1_CH3)      вища напруга на GPIO4 → більше число RAW.
+//
+// Кожні 100 мс програма:
+//   1. читає «сире» число АЦП:            RAW    = analogRead()            (0…4095);
+//   2. переводить його в мілівольти:       U_calc = RAW / 4095 · 3100 мВ;
+//   3. читає калібровану напругу:          U_meas = analogReadMilliVolts();
+//   4. рахує відносну похибку:             error  = (U_calc − U_meas) / U_meas · 100 %;
+//   5. друкує рядок таблиці в Serial.
+// Раз на 10 с — підсумок: середня й найбільша |похибка|. Пояснення — у README.md.
+
+#include &lt;Arduino.h&gt;
+
+namespace {
+
+// --- Вхід ---------------------------------------------------------------
+// GPIO4 належить ADC1 (GPIO1…10): працює завжди, навіть з увімкненим Wi-Fi.
+// ADC2 (GPIO11…20) ділить апаратуру з Wi-Fi — для датчиків його краще не брати.
+constexpr uint8_t kLdrPin = 4;
+
+// --- АЦП ----------------------------------------------------------------
+// 12 біт → 2^12 = 4096 сходинок, числа 0…4095.
+// Ослаблення 11 дБ: на ESP32-S3 це діапазон 0…3100 мВ, а не 0…3300 мВ.
+// Усе, що вище ~3.1 В, АЦП показує як 4095 («впирається в стелю»).
+constexpr float    kAdcMax   = 4095.0f;
+constexpr float    kUrefMv   = 3100.0f;
+constexpr uint8_t  kAdcBits  = 12;
+
+// --- Таблиця ------------------------------------------------------------
+constexpr uint32_t kSamplePeriodMs  = 100;    // з умови завдання
+constexpr uint32_t kSummaryPeriodMs = 10000;  // підсумок похибки
+constexpr uint32_t kHeaderEvery     = 25;     // повторювати шапку, щоб не губитися в стовпцях
+// Біля 0 мВ знаменник похибки дуже малий: 3 мВ різниці при 10 мВ — це вже 30 %.
+// У підсумок беремо лише виміри від 100 мВ, щоб він описував АЦП, а не ділення на «майже нуль».
+constexpr uint32_t kMinMvForStats   = 100;
+constexpr uint8_t  kBarWidth        = 16;     // ширина «шкали світла» у символах
+
+constexpr uint32_t kSerialBaud   = 115200;
+constexpr uint32_t kSerialWaitMs = 2000;      // чекати USB CDC, щоб не втратити банер
+
+// Один вимір — усе, що потрапляє в рядок таблиці.
+struct Sample {
+  uint16_t raw;
+  float    calcMv;
+  uint32_t measMv;
+  bool     hasError;  // false, якщо U_meas = 0 (ділити на нуль не можна)
+  float    errorPct;
+};
+
+// Накопичувач для підсумку.
+struct Stats {
+  uint32_t count  = 0;
+  float    sumAbs = 0;
+  float    maxAbs = 0;
+
+  void add(float errorPct) {
+    const float a = fabsf(errorPct);
+    ++count;
+    sumAbs += a;
+    if (a &gt; maxAbs) maxAbs = a;
+  }
+};
+
+// --- Стан програми -------------------------------------------------------
+uint32_t lastSampleAt  = 0;
+uint32_t lastSummaryAt = 0;
+uint32_t rowsPrinted   = 0;
+Stats    stats;
+
+// Формула з умови: U_calc = RAW / ADC_max · U_ref.
+float rawToMillivolts(uint16_t raw) { return raw / kAdcMax * kUrefMv; }
+
+Sample measure() {
+  Sample s{};
+  s.raw    = analogRead(kLdrPin);
+  // Це окреме перетворення, а не перерахунок того самого RAW: між ними кілька мікросекунд,
+  // тож у «похибку» потрапляє й шум АЦП (±кілька одиниць RAW).
+  s.measMv = analogReadMilliVolts(kLdrPin);
+  s.calcMv = rawToMillivolts(s.raw);
+
+  s.hasError = s.measMv &gt; 0;
+  if (s.hasError) {
+    s.errorPct = (s.calcMv - static_cast&lt;float&gt;(s.measMv)) / s.measMv * 100.0f;
+  }
+  return s;
+}
+
+void printHeader() {
+  Serial.println();
+  Serial.println("  t, ms   RAW  U_calc,mV  U_meas,mV  error,%  light");
+  Serial.println("-------  ----  ---------  ---------  -------  ----------------");
+}
+
+void printRow(uint32_t t, const Sample&amp; s) {
+  // Шкала світла: скільки «#» з kBarWidth — пропорційно U_meas до 3100 мВ.
+  char bar[kBarWidth + 1];
+  const uint32_t filled = min&lt;uint32_t&gt;(kBarWidth, (s.measMv * kBarWidth + kUrefMv / 2) / kUrefMv);
+  for (uint8_t i = 0; i &lt; kBarWidth; ++i) bar[i] = i &lt; filled ? '#' : '.';
+  bar[kBarWidth] = '\0';
+
+  char err[12];
+  if (s.hasError) {
+    snprintf(err, sizeof err, "%+7.2f", s.errorPct);
+  } else {
+    snprintf(err, sizeof err, "%7s", "n/a");
+  }
+
+  Serial.printf("%7lu  %4u  %9.1f  %9lu  %s  %s\n",
+                static_cast&lt;unsigned long&gt;(t), s.raw, s.calcMv,
+                static_cast&lt;unsigned long&gt;(s.measMv), err, bar);
+}
+
+void printSummary() {
+  if (stats.count == 0) {
+    Serial.printf("--- summary: no samples &gt;= %lu mV (too dark) ---\n",
+                  static_cast&lt;unsigned long&gt;(kMinMvForStats));
+  } else {
+    Serial.printf("--- summary: %lu samples &gt;= %lu mV, |error| avg %.2f %%, max %.2f %% ---\n",
+                  static_cast&lt;unsigned long&gt;(stats.count), static_cast&lt;unsigned long&gt;(kMinMvForStats),
+                  stats.sumAbs / stats.count, stats.maxAbs);
+  }
+  stats        = Stats{};
+  rowsPrinted  = 0;  // після підсумку — знову шапка
+}
+
+void waitForSerial(uint32_t timeoutMs) {
+  const uint32_t start = millis();
+  while (!Serial &amp;&amp; millis() - start &lt; timeoutMs) {
+  }
+}
+
+void printBanner() {
+  Serial.println();
+  Serial.println("=== ESP32-S3: LDR light meter (module 1.6) ===");
+  Serial.printf("Divider: 3V3 - LDR - GPIO%u - 10k - GND (more light -&gt; higher voltage)\n", kLdrPin);
+  Serial.printf("ADC: %u bit (0..%.0f), 11 dB, Uref = %.0f mV, every %lu ms\n",
+                kAdcBits, kAdcMax, kUrefMv, static_cast&lt;unsigned long&gt;(kSamplePeriodMs));
+  Serial.println("U_calc = RAW / 4095 * 3100 mV; error = (U_calc - U_meas) / U_meas * 100 %");
+}
+
+}  // namespace
+
+void setup() {
+  Serial.begin(kSerialBaud);
+  waitForSerial(kSerialWaitMs);
+
+  analogReadResolution(kAdcBits);
+  analogSetPinAttenuation(kLdrPin, ADC_11db);  // це й так типове значення; пишемо явно
+
+  printBanner();
+  lastSampleAt  = millis();
+  lastSummaryAt = lastSampleAt;
+}
+
+void loop() {
+  const uint32_t now = millis();
+
+  // Неблокуючий таймер: `now - lastSampleAt` правильно рахується й після переповнення millis().
+  // `+= period`, а не `= now`, — щоб крок не «повзав», якщо loop() трохи запізнився.
+  if (now - lastSampleAt &gt;= kSamplePeriodMs) {
+    lastSampleAt += kSamplePeriodMs;
+
+    const Sample s = measure();
+    if (rowsPrinted % kHeaderEvery == 0) printHeader();
+    printRow(now, s);
+    ++rowsPrinted;
+    if (s.hasError &amp;&amp; s.measMv &gt;= kMinMvForStats) stats.add(s.errorPct);
+  }
+
+  if (now - lastSummaryAt &gt;= kSummaryPeriodMs) {
+    lastSummaryAt += kSummaryPeriodMs;
+    printSummary();
+  }
+}
+</pre>
+
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const f32 = Math.fround;
+const padL = (s, w) => String(s).padStart(w);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let NOW = performance.now();
+
+function rng(seed) {
+  let s = seed >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+
+/* =====================================================================
+   Physics + ADC models
+   Divider = Wokwi chip wokwi/chip/ldr-divider: 3V3 ── LDR ── OUT ── 10 kΩ ── GND
+   ===================================================================== */
+const M = {
+  light: 1.5, palm: false, mode: 'real', vfs: 3200, off: 20, noise: 3,
+  lux() { return Math.pow(10, this.light); },
+  rldr() { return 15000 * Math.pow(10 / this.lux(), 0.7); },
+  umv() { return 3300 * 10000 / (this.rldr() + 10000); },
+  iua() { return 3.3 / (this.rldr() + 10000) * 1e6; },
+};
+// analogReadMilliVolts() pairs measured with wokwi-cli (no eFuse → "Default Vref" characterization)
+const WOKWI_MV = [[0, 0], [113, 111], [244, 238], [1001, 939], [1744, 1618], [3355, 2959], [3413, 2993], [3974, 3225], [4063, 5086], [4095, 5090]];
+function wokwiMv(raw) {
+  for (let i = 1; i < WOKWI_MV.length; i++) {
+    const [r1, m1] = WOKWI_MV[i];
+    if (raw <= r1) { const [r0, m0] = WOKWI_MV[i - 1]; return Math.round(m0 + (m1 - m0) * (raw - r0) / (r1 - r0)); }
+  }
+  return 5090;
+}
+// One conversion. `rand` = null → noise-free (for curves).
+function adcRaw(umv, rand) {
+  if (M.mode === 'wokwi') return Math.round(Math.min(umv, 3100) / 3100 * 4095);
+  const n = rand ? Math.round((rand() * 2 - 1) * M.noise) : 0;
+  return clamp(Math.round((umv - M.off) / M.vfs * 4095 + n), 0, 4095);
+}
+function adcMilliVolts(umv, rand) {
+  if (M.mode === 'wokwi') return wokwiMv(adcRaw(umv));
+  const n = rand ? (rand() * 2 - 1) * 2 : 0;
+  return Math.max(0, Math.round(Math.min(umv, M.vfs + M.off) + n));
+}
+const rawToMv = raw => f32(f32(raw / 4095) * 3100);
+const errPct = (calc, meas) => f32(f32(f32(calc - meas) / f32(meas)) * 100);
+function barOf(meas) {
+  const filled = Math.min(16, Math.trunc(f32(f32(f32(meas * 16) + 1550) / 3100)));
+  return '#'.repeat(filled) + '.'.repeat(16 - filled);
+}
+
+/* =====================================================================
+   Firmware model — line-by-line port of esp32-s3-ldr-adc/src/main.cpp
+   Every `yield 'id'` = the line with that id has just executed.
+   ===================================================================== */
+const BOOT_MS = 87;   // first row at 187 ms, as in the wokwi-cli run
+class Sim {
+  constructor() { this.reset(); }
+  reset() {
+    this.t = 0; this.phase = 'boot'; this.gen = null;
+    this.lastSampleAt = 0; this.lastSummaryAt = 0; this.rowsPrinted = 0;
+    this.stats = { count: 0, sumAbs: 0, maxAbs: 0 };
+    this.s = null; this.lines = []; this.seq = 0; this.hist = [];
+    this.rand = rng(20261004); this.logged = false; this.prevIdle = false;
+    this.br = {}; this.lastId = null; this.ff = ''; this.hits = {}; this.changed = new Set();
+    this.events = [];
+  }
+  out(text, kind = 'fw') { this.lines.push({ n: ++this.seq, text, kind }); if (this.lines.length > 1500) this.lines.splice(0, 500); }
+  println(s = '') { this.out(s, this.kindOf(s)); }
+  kindOf(s) { return s.startsWith('---') && s.includes('summary') ? 'sum' : (s.startsWith('  t, ms') || s.startsWith('-------')) ? 'hd' : 'fw'; }
+  set(k, v) { if (this[k] !== v) this.changed.add(k); this[k] = v; }
+  printBanner() {
+    this.println();
+    this.println('=== ESP32-S3: LDR light meter (module 1.6) ===');
+    this.println('Divider: 3V3 - LDR - GPIO4 - 10k - GND (more light -> higher voltage)');
+    this.println('ADC: 12 bit (0..4095), 11 dB, Uref = 3100 mV, every 100 ms');
+    this.println('U_calc = RAW / 4095 * 3100 mV; error = (U_calc - U_meas) / U_meas * 100 %');
+  }
+  printHeader() {
+    this.println();
+    this.println('  t, ms   RAW  U_calc,mV  U_meas,mV  error,%  light');
+    this.println('-------  ----  ---------  ---------  -------  ----------------');
+  }
+  printRow(t, s) {
+    const err = s.hasError ? padL((s.errorPct >= 0 ? '+' : '') + s.errorPct.toFixed(2), 7) : padL('n/a', 7);
+    this.println(`${padL(t, 7)}  ${padL(s.raw, 4)}  ${padL(s.calcMv.toFixed(1), 9)}  ${padL(s.measMv, 9)}  ${err}  ${barOf(s.measMv)}`);
+  }
+  printSummary() {
+    const st = this.stats;
+    if (st.count === 0) this.println('--- summary: no samples >= 100 mV (too dark) ---');
+    else this.println(`--- summary: ${st.count} samples >= 100 mV, |error| avg ${f32(st.sumAbs / f32(st.count)).toFixed(2)} %, max ${st.maxAbs.toFixed(2)} % ---`);
+    this.stats = { count: 0, sumAbs: 0, maxAbs: 0 }; this.changed.add('stats');
+    this.set('rowsPrinted', 0);
+  }
+  *setupGen() {
+    yield 'setup';
+    yield 'res';
+    yield 'att';
+    this.printBanner(); yield 'banner';
+    this.set('lastSampleAt', this.t); this.set('lastSummaryAt', this.t); yield 'init';
+  }
+  *loopGen() {
+    const now = this.t; this.set('now', now); yield 'now';
+    const due = now - this.lastSampleAt >= 100; this.br.chk = due; yield 'chk';
+    if (due) {
+      this.set('lastSampleAt', this.lastSampleAt + 100); yield 'adv';
+      const umv = M.umv();
+      const s = { raw: 0, calcMv: 0, measMv: 0, hasError: false, errorPct: 0, umv };
+      this.s = s;
+      s.raw = adcRaw(umv, this.rand); this.changed.add('raw'); yield 'raw';
+      if (!this.logged) {
+        this.logged = true;
+        if (M.mode === 'wokwi') { this.out(`[${padL(now + 1, 6)}][I][esp32-hal-adc.c:249] __analogReadMilliVolts(): ADC1: Characterized using Default Vref: 0`, 'log'); this.out('', 'log'); }
+        else this.out('(тут ядро друкує, як відкалібровано АЦП; на реальній платі — за eFuse)', 'sim');
+      }
+      s.measMv = adcMilliVolts(umv, this.rand); this.changed.add('meas'); yield 'mv';
+      s.calcMv = rawToMv(s.raw); this.changed.add('calc'); yield 'calc';
+      s.hasError = s.measMv > 0;
+      if (s.hasError) s.errorPct = errPct(s.calcMv, s.measMv);
+      this.changed.add('err'); yield 'err';
+      this.br.hdr = this.rowsPrinted % 25 === 0;
+      if (this.br.hdr) this.printHeader();
+      yield 'hdr';
+      this.printRow(now, s);
+      this.hist.push({ t: now, calc: s.calcMv, meas: s.measMv, err: s.hasError ? s.errorPct : null });
+      if (this.hist.length > 400) this.hist.splice(0, 200);
+      yield 'row';
+      this.set('rowsPrinted', this.rowsPrinted + 1); yield 'cnt';
+      this.br.stat = s.hasError && s.measMv >= 100;
+      if (this.br.stat) {
+        const a = Math.abs(s.errorPct), st = this.stats;
+        st.count++; st.sumAbs = f32(st.sumAbs + a); if (a > st.maxAbs) st.maxAbs = a;
+        this.changed.add('stats');
+      }
+      yield 'stat';
+    }
+    const due2 = now - this.lastSummaryAt >= 10000; this.br.chk2 = due2; yield 'chk2';
+    if (due2) {
+      this.set('lastSummaryAt', this.lastSummaryAt + 10000); yield 'adv2';
+      this.printSummary(); yield 'sum';
+    }
+  }
+  dueAny() { return this.t - this.lastSampleAt >= 100 || this.t - this.lastSummaryAt >= 10000; }
+  newGen() {
+    if (this.phase === 'setup') return this.setupGen();
+    return this.loopGen();
+  }
+  endGen() { this.gen = null; if (this.phase === 'setup') this.phase = 'loop'; else this.t++; }
+  trace(id) { this.lastId = id; this.hits[id] = (this.hits[id] || 0) + 1; this.events.push(id); }
+  // Run mode: advance `ms` of simulated time, executing whole loop() iterations (1 per ms).
+  runMs(ms) {
+    const end = this.t + ms;
+    let guard = 0;
+    while (this.t < end && guard++ < 50000) {
+      if (this.phase === 'boot') { this.t = Math.min(end, BOOT_MS); if (this.t >= BOOT_MS) this.phase = 'setup'; continue; }
+      if (!this.gen) this.gen = this.newGen();
+      for (;;) { const r = this.gen.next(); if (r.done) break; this.trace(r.value); }
+      this.endGen();
+    }
+    this.ff = '';
+  }
+  // Step mode: execute exactly one traced line; idle loop() passes are fast-forwarded.
+  stepOnce() {
+    this.ff = '';
+    for (let guard = 0; guard < 8; guard++) {
+      if (this.phase === 'boot') {
+        const d = BOOT_MS - this.t; this.t = BOOT_MS; this.phase = 'setup';
+        if (d > 0) this.ff = `⏩ +${d} мс: чип стартує (ROM-завантажувач), потім викликає setup(). `;
+      }
+      if (!this.gen) {
+        if (this.phase === 'loop') {
+          const idle = !this.dueAny();
+          if (idle && this.prevIdle) {
+            const target = Math.min(this.lastSampleAt + 100, this.lastSummaryAt + 10000);
+            this.ff = `⏩ +${target - this.t} мс: стільки разів loop() лише дивився на годинник і виходив. `;
+            this.t = target;
+            this.prevIdle = false;
+          } else this.prevIdle = idle;
+        }
+        this.gen = this.newGen();
+      }
+      const r = this.gen.next();
+      if (r.done) { this.endGen(); continue; }
+      this.trace(r.value);
+      return r.value;
+    }
+    return null;
+  }
+}
+
+/* =====================================================================
+   Firmware source: verbatim main.cpp, line marks for tracing
+   ===================================================================== */
+const SRC = $('#fw-src').textContent.replace(/\n$/, '');
+const SRC_LINES = SRC.split('\n');
+const MARKS = {
+  setup: ['Serial.begin(kSerialBaud);', 'waitForSerial(kSerialWaitMs);'],
+  res: ['analogReadResolution(kAdcBits);'],
+  att: ['analogSetPinAttenuation(kLdrPin, ADC_11db);'],
+  banner: ['printBanner();'],
+  init: ['lastSampleAt  = millis();', 'lastSummaryAt = lastSampleAt;'],
+  now: ['const uint32_t now = millis();'],
+  chk: ['if (now - lastSampleAt >= kSamplePeriodMs) {'],
+  adv: ['lastSampleAt += kSamplePeriodMs;'],
+  raw: ['s.raw    = analogRead(kLdrPin);'],
+  mv: ['s.measMv = analogReadMilliVolts(kLdrPin);'],
+  calc: ['s.calcMv = rawToMillivolts(s.raw);'],
+  err: ['s.hasError = s.measMv > 0;', 's.errorPct = (s.calcMv'],
+  hdr: ['if (rowsPrinted % kHeaderEvery == 0) printHeader();'],
+  row: ['printRow(now, s);'],
+  cnt: ['++rowsPrinted;'],
+  stat: ['if (s.hasError && s.measMv >= kMinMvForStats) stats.add(s.errorPct);'],
+  chk2: ['if (now - lastSummaryAt >= kSummaryPeriodMs) {'],
+  adv2: ['lastSummaryAt += kSummaryPeriodMs;'],
+  sum: ['printSummary();'],
+};
+const CTX = { raw: 'const Sample s = measure();', mv: 'const Sample s = measure();', calc: 'const Sample s = measure();', err: 'const Sample s = measure();' };
+const LINE_OF = {};
+for (const [id, marks] of Object.entries(MARKS)) {
+  LINE_OF[id] = marks.map(m => SRC_LINES.findIndex(l => l.trim().startsWith(m))).filter(i => i >= 0);
+  if (LINE_OF[id].length !== marks.length) console.warn('mark not found', id);
+}
+const CTX_LINE = {};
+for (const [id, m] of Object.entries(CTX)) CTX_LINE[id] = SRC_LINES.findIndex(l => l.trim() === m);
+
+function highlight(line) {
+  if (/^\s*#/.test(line)) return `<span class="t-p">${esc(line)}</span>`;
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)')|\b(const|constexpr|for|if|else|return|void|bool|struct|namespace|static_cast|while|true|false|sizeof)\b|\b(uint32_t|uint16_t|uint8_t|float|char|Sample|Stats|unsigned|long)\b|\b(\d+(?:\.\d+)?f?)\b|\b(ADC_11db|Serial|INPUT|OUTPUT)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line))) {
+    const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'k' : m[4] ? 't' : m[5] ? 'n' : 'm';
+    out += esc(line.slice(last, m.index)) + `<span class="t-${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+
+/* =====================================================================
+   Bench SVG: YD-ESP32-S3 on a full breadboard (geometry as wokwi/breadboard.py)
+   ===================================================================== */
+const P = 13.6, X0 = 34;
+const cx = r => +(X0 + (r - 1) * P).toFixed(2);
+const LY = { a: 250, b: 263.6, c: 277.2, d: 290.8, e: 304.4, f: 340, g: 353.6, h: 367.2, i: 380.8, j: 394.4 };
+const RY = { tn: 206, tp: 220, bp: 424, bn: 438 };
+const J1 = ['3V3.1', '3V3.2', 'RST', '4', '5', '6', '7', '15', '16', '17', '18', '8', '3', '46', '9', '10', '11', '12', '13', '14', '5V', 'GND.1'];
+const J3 = ['GND.2', 'TX', 'RX', '1', '2', '42', '41', '40', '39', '38', '37', '36', '35', '0', '45', '48', '47', '21', '20', '19', 'GND.3', 'GND.4'];
+const LDR_X = cx(30.5), LDR_Y = LY.c;
+const COL = { red: '#d93a2f', black: '#2b2f33', orange: '#f08a1c' };
+
+function wire(d, color, asm, extra = '') {
+  return `<g data-asm="${asm}" ${extra}><path class="jw-o" d="${d}"/><path class="jw" d="${d}" stroke="${color}"/></g>`;
+}
+function benchSVG() {
+  const sq = (x, y) => `M${(x - 1.7).toFixed(1)} ${(y - 1.7).toFixed(1)}h3.4v3.4h-3.4z`;
+  let holes = '';
+  for (let r = 1; r <= 63; r++) for (const L of 'abcdefghij') holes += sq(cx(r), LY[L]);
+  for (let r = 3; r <= 61; r++) if ((r - 3) % 6 !== 5) for (const y of Object.values(RY)) holes += sq(cx(r), y);
+  let nums = '';
+  for (let r = 1; r <= 63; r++) if (r === 1 || r % 5 === 0) nums += `<text class="bb-num" x="${cx(r)}" y="242">${r}</text><text class="bb-num" x="${cx(r)}" y="412">${r}</text>`;
+  const letters = 'abcde'.split('').map(L => `<text class="bb-num" x="18" y="${LY[L] + 2.5}">${L}</text>`).join('') + 'fghij'.split('').map(L => `<text class="bb-num" x="18" y="${LY[L] + 2.5}">${L}</text>`).join('');
+  const lab = n => n.replace(/\.\d$/, '');
+  const key = new Set(['3V3.1', '4', 'GND.1']);
+  let pins = '';
+  J1.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin${key.has(p) ? ' key' : ''}" x="${x - 3}" y="${LY.b - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.b + 12}"${key.has(p) ? ' style="fill:var(--hi)"' : ''}>${lab(p)}</text>`; });
+  J3.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin" x="${x - 3}" y="${LY.i - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.i - 7}">${lab(p)}</text>`; });
+  let zig = 'M296 286';
+  for (let k = 0; k < 7; k++) zig += ` h22 v5 h-22 v5`;
+  const rx = cx(35);
+  const flowD = `M${cx(22)} ${LY.b} V${RY.tp} H${cx(29)} V${LY.c} H${cx(32)} V${LY.e} H${cx(38)} V${RY.tn} H${cx(1)} V${LY.b}`;
+  const arc = `M${cx(19)} ${LY.a} V182 Q${cx(19)} 172 ${cx(19) + 10} 172 H${cx(32) - 10} Q${cx(32)} 172 ${cx(32)} 182 V${LY.a}`;
+  return `<svg viewBox="0 0 920 462" role="img" aria-labelledby="benchT">
+  <title id="benchT">Макетна плата: YD-ESP32-S3, фоторезистор, резистор 10 кОм, мультиметр</title>
+  <defs>
+    <radialGradient id="glow"><stop offset="0" stop-color="#fff6c4" stop-opacity=".95"/><stop offset=".35" stop-color="#ffe680" stop-opacity=".45"/><stop offset="1" stop-color="#ffd84d" stop-opacity="0"/></radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect class="bb-body" x="6" y="190" width="908" height="262" rx="8"/>
+  <rect class="bb-chan" x="6" y="317" width="908" height="10"/>
+  <line class="rail-n" x1="28" x2="900" y1="198" y2="198"/><line class="rail-p" x1="28" x2="900" y1="228" y2="228"/>
+  <line class="rail-p" x1="28" x2="900" y1="416" y2="416"/><line class="rail-n" x1="28" x2="900" y1="446" y2="446"/>
+  <text class="rail-t" x="10" y="${RY.tn + 4}" fill="var(--rail-n)">−</text><text class="rail-t" x="10" y="${RY.tp + 4}" fill="var(--rail-p)">+</text>
+  <text class="rail-t" x="10" y="${RY.bp + 4}" fill="var(--rail-p)">+</text><text class="rail-t" x="10" y="${RY.bn + 4}" fill="var(--rail-n)">−</text>
+  <path class="bb-holes" d="${holes}"/>
+  ${nums}${letters}
+  <rect id="nodeStrip" class="node-strip" x="${cx(32) - 5.5}" y="${LY.a - 6}" width="11" height="${LY.e - LY.a + 12}" rx="3" opacity="0"/>
+  <g data-asm="1" class="board">
+    <rect class="usb" x="12" y="284" width="20" height="24" rx="3"/><rect class="usb" x="12" y="336" width="20" height="24" rx="3"/>
+    <rect class="pcb" x="25" y="${LY.b - 8}" width="304" height="${LY.i - LY.b + 16}" rx="6"/>
+    ${pins}
+    <rect class="shield" x="150" y="281" width="142" height="82" rx="3"/>
+    <text class="shield-t" x="221" y="318">ESP32-S3</text><text class="shield-t" x="221" y="331" style="font-size:7px;font-weight:500">WROOM-1 · N16R8</text>
+    <path d="${zig}" fill="none" stroke="#c9a03a" stroke-width="1.6"/>
+    <rect x="52" y="292" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="311">BOOT</text>
+    <rect x="52" y="334" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="353">RST</text>
+    <circle cx="100" cy="300" r="4" fill="#3a8fe0" opacity=".85"/><text class="pcb-t" x="100" y="314">RGB</text>
+    <text class="pcb-big" x="82" y="338">YD-ESP32-S3</text>
+  </g>
+  ${wire(`M${cx(22)} ${LY.a} V${RY.tp}`, COL.red, 2)}
+  ${wire(`M${cx(1)} ${LY.a} V${RY.tn}`, COL.black, 2)}
+  <g data-asm="4">
+    <path class="leg" d="M${cx(32)} ${LY.e} H${rx - 22} M${rx + 22} ${LY.e} H${cx(38)}"/>
+    <rect class="res-body" x="${rx - 22}" y="${LY.e - 6.5}" width="44" height="13" rx="5"/>
+    <rect x="${rx - 14}" y="${LY.e - 6.5}" width="4" height="13" fill="#7a4a1d"/><rect x="${rx - 6}" y="${LY.e - 6.5}" width="4" height="13" fill="#141414"/>
+    <rect x="${rx + 2}" y="${LY.e - 6.5}" width="4" height="13" fill="#f07a10"/><rect x="${rx + 13}" y="${LY.e - 6.5}" width="3" height="13" fill="#c9a23a"/>
+    <text class="part-t" x="${rx}" y="${LY.e + 21}">10 кОм</text>
+  </g>
+  ${wire(`M${cx(38)} ${LY.a} V${RY.tn}`, COL.black, 4)}
+  <g data-asm="3">
+    <path class="leg" d="M${cx(29)} ${LY.c} H${LDR_X - 15} M${LDR_X + 15} ${LY.c} H${cx(32)}"/>
+    <circle class="ldr-rim" cx="${LDR_X}" cy="${LDR_Y}" r="16"/>
+    <circle id="ldrFace" cx="${LDR_X}" cy="${LDR_Y}" r="13" fill="#d9cfb2"/>
+    <path class="ldr-track" d="M${LDR_X - 9} ${LDR_Y - 7} h18 M${LDR_X - 9} ${LDR_Y - 3.5} h18 M${LDR_X - 9} ${LDR_Y} h18 M${LDR_X - 9} ${LDR_Y + 3.5} h18 M${LDR_X - 9} ${LDR_Y + 7} h18"/>
+    <text class="part-t" x="${LDR_X}" y="${LDR_Y - 21}">LDR</text>
+  </g>
+  ${wire(`M${cx(29)} ${LY.a} V${RY.tp}`, COL.red, 3)}
+  ${wire(arc, COL.orange, 5)}
+  <path id="flowBench" class="flowp" d="${flowD}" data-asm="4"/>
+  <rect id="darkOv" class="dark-ov" x="0" y="0" width="920" height="462" opacity="0"/>
+  <circle id="spot" class="glow-spot" cx="${LDR_X}" cy="${LDR_Y}" r="46" fill="url(#glow)" opacity="0"/>
+  <circle id="lampGlow" class="glow-spot" r="120" fill="url(#glow)" opacity="0"/>
+  <g id="hand" class="hand off" aria-hidden="true">
+    <ellipse cx="${LDR_X}" cy="${LDR_Y + 4}" rx="30" ry="25"/>
+    <rect x="${LDR_X - 30}" y="${LDR_Y - 52}" width="12" height="40" rx="6"/><rect x="${LDR_X - 16}" y="${LDR_Y - 62}" width="12" height="50" rx="6"/>
+    <rect x="${LDR_X - 2}" y="${LDR_Y - 60}" width="12" height="48" rx="6"/><rect x="${LDR_X + 12}" y="${LDR_Y - 50}" width="12" height="40" rx="6"/>
+    <rect x="${LDR_X + 22}" y="${LDR_Y - 14}" width="30" height="12" rx="6" transform="rotate(-25 ${LDR_X + 22} ${LDR_Y - 8})"/>
+  </g>
+  <g data-asm="5" id="vlabel" class="vlabel" transform="translate(${(cx(19) + cx(32)) / 2} 150)">
+    <rect x="-58" y="-17" width="116" height="30" rx="7"/>
+    <text id="vlabelT" y="-1">GPIO4 = —</text><text class="s" y="9">середня точка → АЦП</text>
+  </g>
+  <g data-asm="6">
+    <path class="probe" d="M836 168 C 836 236, 520 196, ${cx(32)} ${LY.b}" stroke="${COL.red}"/>
+    <path class="probe" d="M784 168 C 784 216, 690 186, ${cx(45)} ${RY.tn}" stroke="${COL.black}"/>
+    <circle cx="${cx(32)}" cy="${LY.b}" r="3.2" fill="${COL.red}"/><circle cx="${cx(45)}" cy="${RY.tn}" r="3.2" fill="${COL.black}"/>
+    <rect class="meter-body" x="730" y="14" width="160" height="156" rx="12"/>
+    <rect class="meter-lcd" x="744" y="26" width="132" height="50" rx="4"/>
+    <text id="meterVal" class="meter-val" x="846" y="60">0.000</text><text class="meter-u" x="850" y="60">V</text>
+    <text class="meter-u" x="750" y="38">DC</text>
+    <circle cx="810" cy="114" r="22" fill="#2d2d2d"/><line x1="810" y1="114" x2="796" y2="98" stroke="#eee" stroke-width="3" stroke-linecap="round"/>
+    <text class="meter-t" x="770" y="100">V⎓</text>
+    <circle cx="784" cy="160" r="6" fill="#1c1c1c"/><circle cx="836" cy="160" r="6" fill="#b71c1c"/>
+    <text class="meter-t" x="784" y="150">COM</text><text class="meter-t" x="836" y="150">V</text>
+  </g>
+  <g id="lamp" class="lamp" tabindex="0" role="slider" aria-label="Ліхтарик: тягніть ближче до LDR або стрілками" aria-valuemin="-1" aria-valuemax="5">
+    <circle class="lamp-ring" r="30"/>
+    <g id="lampRot">
+      <rect class="lamp-body" x="-8" y="10" width="16" height="34" rx="4"/>
+      <path class="lamp-head" d="M-13 -6 L13 -6 L9 12 L-9 12 Z"/>
+      <ellipse id="lampLens" class="lamp-lens" cx="0" cy="-6" rx="13" ry="4" fill="#fff6c4"/>
+      <rect x="-3" y="22" width="6" height="8" rx="1.5" fill="#d94b3a"/>
+    </g>
+    <text class="lamp-t" y="58">ліхтарик</text>
+  </g>
+</svg>`;
+}
+
+function schemSVG() {
+  return `<svg viewBox="0 0 360 380" role="img" aria-labelledby="schT">
+  <title id="schT">Принципова схема подільника: 3V3, LDR, вузол GPIO4, 10 кОм, GND</title>
+  <path class="w p" d="M110 34 V84"/>
+  <path class="w p" d="M98 26 L110 12 L122 26"/><text class="t" x="128" y="24">3V3</text>
+  <rect class="rb" x="96" y="84" width="28" height="72" rx="2"/>
+  <path class="arr" d="M52 82 L86 104 M80 96 L86 104 L77 105 M52 108 L86 130 M80 122 L86 130 L77 131"/>
+  <text class="t" x="132" y="112">LDR</text><text class="tv r" id="schR" x="132" y="130">—</text>
+  <path class="w n" d="M110 156 V214"/>
+  <path class="w n" d="M110 186 H246"/>
+  <circle cx="110" cy="186" r="4.5" fill="var(--hi)"/>
+  <text class="tv n" id="schU" x="130" y="178">—</text>
+  <rect class="pinbox" x="246" y="170" width="104" height="32" rx="4"/>
+  <text class="t" x="298" y="185" text-anchor="middle">GPIO4</text><text class="tm" x="298" y="198" text-anchor="middle">ADC1_CH3</text>
+  <rect class="rb" x="96" y="214" width="28" height="72" rx="2"/>
+  <text class="t" x="132" y="246">R2</text><text class="tm" x="132" y="263">10 кОм</text>
+  <path class="w g" d="M110 286 V330"/>
+  <path class="w g" d="M88 330 H132 M95 338 H125 M102 346 H118"/><text class="tm" x="140" y="342">GND</text>
+  <path id="flowSch" class="flowp" d="M110 34 V84 M110 156 V214 M110 286 V330" />
+  <path d="M70 60 V300" stroke="var(--flow)" stroke-width="1.6" fill="none"/>
+  <path d="M64 290 L70 302 L76 290" fill="var(--flow)"/>
+  <text class="tv f" id="schI" x="62" y="200" text-anchor="end">—</text>
+  <text class="tm" x="62" y="216" text-anchor="end">струм</text>
+</svg>`;
+}
+
+/* =====================================================================
+   SAR ADC animation
+   ===================================================================== */
+const SAR = { u: 0, k: 0, code: 0, trials: [], playing: false, timer: 0, sampled: false };
+const SX0 = 238, SCW = 32.5, SY0 = 236, SY1 = 30;
+const sy = mv => SY0 - (mv / 3100) * (SY0 - SY1);
+function sarSVG() {
+  let grid = '';
+  for (const mv of [0, 775, 1550, 2325, 3100]) grid += `<line class="ax" x1="${SX0 - 6}" x2="${SX0 + SCW * 12}" y1="${sy(mv)}" y2="${sy(mv)}"/><text class="axt" x="${SX0 - 9}" y="${sy(mv) + 3}" text-anchor="end">${mv}</text>`;
+  let bits = '';
+  for (let i = 0; i < 12; i++) {
+    const x = SX0 + i * SCW + 4;
+    bits += `<rect class="bitbox" id="bb${i}" x="${x}" y="252" width="${SCW - 8}" height="22" rx="4"/><text class="bitt" id="bt${i}" x="${x + (SCW - 8) / 2}" y="267">?</text><text class="bitl" x="${x + (SCW - 8) / 2}" y="286">b${11 - i}</text>`;
+  }
+  return `<svg viewBox="0 0 640 292" role="img" aria-labelledby="sarT">
+  <title id="sarT">АЦП послідовного наближення: вибірка, порівняння з ЦАП, 12 бітів</title>
+  <text class="axt" x="6" y="64">U з GPIO4</text>
+  <path class="wr hi" d="M6 72 H56"/><circle cx="56" cy="72" r="2.5" fill="var(--ink)"/>
+  <line id="sarSw" class="sw" x1="60" y1="72" x2="88" y2="58"/>
+  <circle cx="90" cy="72" r="2.5" fill="var(--ink)"/>
+  <path class="wr" d="M90 72 H130"/>
+  <path class="wr" d="M104 72 V92 M92 92 H116 M92 100 H116 M104 100 V116 M96 116 H112 M99 120 H109"/>
+  <rect id="sarCap" class="cap" x="92" y="93" width="24" height="6" opacity=".15"/>
+  <text class="axt" x="20" y="98" id="sarHold">—</text>
+  <text class="axt" x="58" y="50">вибірка</text>
+  <polygon id="sarCmp" class="cmp" points="130,52 130,128 186,90"/>
+  <text class="blkt" x="141" y="78">+</text><text class="blkt" x="141" y="120">−</text>
+  <path class="wr" d="M130 112 H120 V176 H130"/>
+  <rect class="blk" x="130" y="160" width="62" height="32" rx="4"/><text class="blkt" x="161" y="180">ЦАП</text>
+  <rect class="blk" x="130" y="210" width="62" height="32" rx="4"/><text class="blkt" x="161" y="230">SAR</text>
+  <path class="wr" d="M186 90 H204 V226 H192"/><path class="wr" d="M161 210 V192"/>
+  <text class="axt" x="150" y="152" id="sarDac">ЦАП: —</text>
+  ${grid}
+  <text class="axt" x="${SX0}" y="20">мВ · пробний рівень ЦАП на кожному кроці</text>
+  <g id="sarBars"></g>
+  <line id="sarUin" class="uin" x1="${SX0 - 6}" x2="${SX0 + SCW * 12}" y1="${SY0}" y2="${SY0}"/>
+  <text id="sarUinT" class="axt" x="${SX0 + SCW * 12}" y="${SY0 - 4}" text-anchor="end" style="fill:var(--hi)">U</text>
+  ${bits}
+</svg>`;
+}
+function sarCapture() {
+  SAR.u = clamp(M.umv(), 0, 3100); SAR.k = 0; SAR.code = 0; SAR.trials = []; SAR.sampled = true;
+  const sw = $('#sarSw'); sw.classList.add('closed');
+  setTimeout(() => sw.classList.remove('closed'), REDUCED ? 0 : 450);
+  sarRender(`Ключ замкнувся на мить: конденсатор зарядився до <b>${SAR.u.toFixed(0)} мВ</b> і тримає цю напругу, поки йде перетворення. Тепер 12 кроків двійкового пошуку.`);
+}
+function sarStep() {
+  if (!SAR.sampled) sarCapture();
+  if (SAR.k >= 12) return false;
+  const bit = 11 - SAR.k, trial = SAR.code | (1 << bit), vdac = trial / 4095 * 3100, keep = SAR.u >= vdac;
+  if (keep) SAR.code = trial;
+  SAR.trials.push({ bit, trial, vdac, keep });
+  SAR.k++;
+  const last = SAR.k === 12;
+  sarRender(`Крок ${SAR.k}: ставимо 1 у біт ${bit} → пробне число ${trial}, ЦАП видає <b>${vdac.toFixed(1)} мВ</b>. ` +
+    `${SAR.u.toFixed(0)} ${keep ? '≥' : '<'} ${vdac.toFixed(0)} → компаратор каже «${keep ? 'більше' : 'менше'}», біт = <b>${keep ? 1 : 0}</b>.` +
+    (last ? ` <br>Готово: RAW = <b>${SAR.code}</b> (0b${SAR.code.toString(2).padStart(12, '0')}). Ідеальний АЦП дав би ${Math.floor(SAR.u / 3100 * 4095)}.` : ''));
+  return !last;
+}
+function sarRender(text) {
+  $('#sarHold').textContent = SAR.sampled ? `${SAR.u.toFixed(0)} мВ` : '—';
+  $('#sarCap').setAttribute('opacity', SAR.sampled ? (0.25 + 0.75 * SAR.u / 3100).toFixed(2) : '.15');
+  $('#sarUin').setAttribute('y1', sy(SAR.u)); $('#sarUin').setAttribute('y2', sy(SAR.u));
+  $('#sarUinT').setAttribute('y', sy(SAR.u) - 4); $('#sarUinT').textContent = SAR.sampled ? `U = ${SAR.u.toFixed(0)} мВ` : '';
+  let bars = '';
+  SAR.trials.forEach((t, i) => {
+    const x = SX0 + i * SCW + 4, y = sy(t.vdac);
+    bars += `<rect class="${t.keep ? 'bar-k' : 'bar-r'}" x="${x}" y="${y}" width="${SCW - 8}" height="${SY0 - y}"/>`;
+    if (i === SAR.trials.length - 1) bars += `<rect class="bar-c" x="${x}" y="${y}" width="${SCW - 8}" height="${SY0 - y}"/>`;
+  });
+  $('#sarBars').innerHTML = bars;
+  for (let i = 0; i < 12; i++) {
+    const t = SAR.trials[i], b = $('#bb' + i), tx = $('#bt' + i);
+    b.setAttribute('class', 'bitbox' + (t ? (t.keep ? ' one' : ' zero') : '') + (i === SAR.k - 1 ? ' cur' : ''));
+    tx.setAttribute('class', 'bitt' + (t && t.keep ? ' one' : ''));
+    tx.textContent = t ? (t.keep ? '1' : '0') : '?';
+  }
+  const last = SAR.trials[SAR.trials.length - 1];
+  $('#sarDac').textContent = last ? `ЦАП: ${last.vdac.toFixed(0)} мВ` : 'ЦАП: —';
+  $('#sarCmp').setAttribute('class', 'cmp' + (last ? (last.keep ? ' yes' : ' no') : ''));
+  if (text) $('#sarText').innerHTML = text;
+}
+function sarPlay(on) {
+  SAR.playing = on; $('#sarPlay').textContent = on ? '❚❚ Пауза' : '▶ Пуск';
+  clearTimeout(SAR.timer);
+  if (!on) return;
+  if (SAR.k >= 12) sarCapture();
+  const tick = () => { if (!SAR.playing) return; const more = sarStep(); if (more) SAR.timer = setTimeout(tick, REDUCED ? 150 : 700); else sarPlay(false); };
+  SAR.timer = setTimeout(tick, REDUCED ? 0 : 500);
+}
+
+/* =====================================================================
+   Flowchart
+   ===================================================================== */
+const FLOW = [
+  { g: 'setup() — один раз' },
+  { id: 'f-serial', ids: ['setup'], t: 'Serial.begin(115200)', s: 'чекаємо USB до 2 с' },
+  { id: 'f-adc', ids: ['res', 'att'], t: 'АЦП: 12 біт, 11 дБ', s: '0…4095 ↔ 0…3100 мВ' },
+  { id: 'f-banner', ids: ['banner', 'init'], t: 'банер; lastSampleAt = millis()' },
+  { g: 'loop() — без кінця' },
+  { id: 'f-now', ids: ['now'], t: 'now = millis()' },
+  { id: 'f-chk', ids: ['chk'], t: 'now − lastSampleAt ≥ 100 мс?', dec: 'chk', no: 'ні → до перевірки 10 с' },
+  { m: 'measure()' },
+  { id: 'f-raw', ids: ['adv', 'raw'], t: 'RAW = analogRead(4)', sub: 1 },
+  { id: 'f-mv', ids: ['mv'], t: 'U_meas = analogReadMilliVolts(4)', sub: 1 },
+  { id: 'f-calc', ids: ['calc'], t: 'U_calc = RAW / 4095 · 3100', sub: 1 },
+  { id: 'f-err', ids: ['err'], t: 'error = (U_calc − U_meas) / U_meas · 100', sub: 1 },
+  { mEnd: 1 },
+  { id: 'f-hdr', ids: ['hdr'], t: 'кожен 25-й рядок?', dec: 'hdr', yes: 'шапка' },
+  { id: 'f-row', ids: ['row', 'cnt'], t: 'друк рядка; rowsPrinted++' },
+  { id: 'f-stat', ids: ['stat'], t: 'U_meas ≥ 100 мВ?', dec: 'stat', yes: 'у статистику' },
+  { id: 'f-chk2', ids: ['chk2'], t: 'now − lastSummaryAt ≥ 10 с?', dec: 'chk2', no: 'ні → loop() знову' },
+  { id: 'f-sum', ids: ['adv2', 'sum'], t: 'підсумок: avg і max |error|' },
+];
+const BLOCK_OF = {};
+function buildFlow() {
+  let html = '', inM = false, prevBlock = false;
+  for (const f of FLOW) {
+    if (f.g) { if (inM) { html += '</div>'; inM = false; } html += `<div class="fgroup">${f.g}</div>`; prevBlock = false; continue; }
+    if (f.m) { html += `<div class="farr"></div><div class="fmeasure"><div class="fgroup">${f.m}</div>`; inM = true; prevBlock = false; continue; }
+    if (f.mEnd) { html += '</div>'; inM = false; continue; }
+    if (prevBlock) html += `<div class="farr${f.sub ? ' sub' : ''}"></div>`;
+    html += `<div class="fb${f.dec ? ' dec' : ''}${f.sub ? ' sub' : ''}" id="${f.id}">${esc(f.t)}${f.s ? `<small>${f.s}</small>` : ''}${f.no ? `<small>${f.no}</small>` : ''}${f.dec ? `<span class="br" data-br="${f.dec}">?</span>` : ''}</div>`;
+    prevBlock = true;
+    for (const id of f.ids) BLOCK_OF[id] = f.id;
+  }
+  html += '<p class="fback">↺ після останнього блока loop() починається знову.</p>';
+  $('#flow').innerHTML = html;
+}
+
+/* =====================================================================
+   App state, rendering
+   ===================================================================== */
+const sim = new Sim();
+const app = { running: true, speed: 1, acc: 0, last: performance.now(), stepMode: false, serialFrozen: false, rendered: 0, asm: 0 };
+const blockHeat = {}, lineHeat = {};
+
+const TASK_TRIGGER = { raw: ['divider', 'raw'], calc: ['calc'], mv: ['mv'], row: ['print'], sum: ['compare'] };
+let advCount = 0;
+function tickTask(name) {
+  const li = $(`#tasks li[data-task="${name}"]`);
+  if (!li || li.classList.contains('done')) return;
+  li.classList.add('done', 'pop');
+  $('#taskDone').textContent = $$('#tasks li.done').length;
+}
+function onTrace(id) {
+  for (const t of TASK_TRIGGER[id] || []) tickTask(t);
+  if (id === 'adv' && ++advCount >= 3) tickTask('period');
+  if (id === 'err' && sim.s && sim.s.hasError) tickTask('err');
+  lineHeat[id] = NOW;
+  const b = BLOCK_OF[id]; if (b) blockHeat[b] = NOW;
+  if (app.stepMode && id === 'raw') { sarCapture(); }
+}
+
+// ---------- build static DOM ----------
+$('#benchSvg').innerHTML = benchSVG();
+$('#schemSvg').innerHTML = schemSVG();
+$('#sarSvg').innerHTML = sarSVG();
+buildFlow();
+const codeBox = $('#codeBox');
+codeBox.innerHTML = SRC_LINES.map((l, i) => `<div class="ln" data-i="${i}"><span class="no">${i + 1}</span><span class="cur">▶</span><code>${highlight(l) || ' '}</code></div>`).join('');
+const LN = $$('.ln', codeBox);
+sarRender('Натисніть «Захопити напругу» або «Пуск»: АЦП візьме поточну напругу з GPIO4 (зі стенда вище). У покроковому режимі програми це відбувається само на кожному analogRead().');
+
+// ---------- light / lamp ----------
+const lamp = { dir: [0.32, -0.95], x: 0, y: 0 };
+function luxDesc(lx) {
+  return lx < 1 ? 'темрява, ніч' : lx < 10 ? 'сутінки' : lx < 100 ? 'тьмяна кімната' : lx < 1000 ? 'кімната / офіс' : lx < 10000 ? 'хмарний день' : 'пряме сонце';
+}
+function fmtLux(lx) { return lx < 10 ? lx.toFixed(1) : lx < 1000 ? lx.toFixed(0) : lx < 1e5 ? (lx / 1000).toFixed(lx < 1e4 ? 1 : 0) + ' тис.' : '100 тис.'; }
+function fmtR(r) { return r >= 1e6 ? (r / 1e6).toFixed(2) + ' МОм' : r >= 1000 ? (r / 1000).toFixed(r >= 1e5 ? 0 : r >= 1e4 ? 1 : 2) + ' кОм' : r.toFixed(0) + ' Ом'; }
+function placeLamp() {
+  let x, y;
+  if (M.light <= 0) { x = 120; y = 70; }
+  else {
+    const d = 40 + (5 - M.light) / 5 * 220;
+    x = LDR_X + lamp.dir[0] * d; y = LDR_Y + lamp.dir[1] * d;
+    x = clamp(x, 30, 700); y = clamp(y, 20, 440);
+  }
+  lamp.x = x; lamp.y = y;
+  const ang = Math.atan2(LDR_Y - y, LDR_X - x) * 180 / Math.PI - 90 + 180;
+  $('#lamp').setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  $('#lampRot').setAttribute('transform', `rotate(${(ang + 180).toFixed(1)})`);
+}
+function setLight(v, opts = {}) {
+  M.light = clamp(+v, -1, 5);
+  if (!opts.keepPalm) M.palm = false;
+  $('#light').value = M.light;
+  if (!opts.fromDrag) placeLamp();
+  $$('[data-preset]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.preset === 'palm' ? M.palm : (!M.palm && Math.abs(+b.dataset.preset - M.light) < 0.001))));
+  updateStatic();
+}
+function updateStatic() {
+  const lx = M.lux(), r = M.rldr(), u = M.umv(), i = M.iua();
+  $('#luxOut').textContent = fmtLux(lx) + ' лк';
+  $('#luxDesc').textContent = (M.palm ? 'під долонею — ' : '') + luxDesc(lx) + ` · log₁₀(лк) = ${M.light.toFixed(2)}`;
+  $('#lamp').setAttribute('aria-valuenow', M.light.toFixed(2));
+  $('#lamp').setAttribute('aria-valuetext', `${fmtLux(lx)} люкс`);
+  $('#stR').textContent = fmtR(r);
+  $('#stI').textContent = i.toFixed(i < 10 ? 1 : 0) + ' мкА';
+  $('#stU').textContent = (u / 1000).toFixed(3) + ' В';
+  $('#vlabelT').textContent = `GPIO4 = ${(u / 1000).toFixed(2)} В`;
+  $('#meterVal').textContent = (u / 1000).toFixed(3);
+  const b = clamp((M.light + 1) / 6, 0, 1);
+  $('#ldrFace').setAttribute('fill', `color-mix(in srgb, #fff3a8 ${(b * 100).toFixed(0)}%, #8f8468)`);
+  $('#darkOv').setAttribute('opacity', (0.42 * (1 - clamp((M.light + 1) / 3.5, 0, 1))).toFixed(3));
+  $('#spot').setAttribute('opacity', (M.palm ? 0 : clamp(M.light / 5, 0, 1) * 0.95).toFixed(2));
+  $('#lampGlow').setAttribute('cx', lamp.x); $('#lampGlow').setAttribute('cy', lamp.y);
+  $('#lampGlow').setAttribute('opacity', (M.light > 0 ? 0.25 + 0.6 * M.light / 5 : 0).toFixed(2));
+  $('#lampLens').setAttribute('fill', M.light > 0 ? '#fff6c4' : '#6f7a83');
+  $('#hand').classList.toggle('off', !M.palm);
+  $('#nodeStrip').setAttribute('opacity', (0.12 + 0.6 * u / 3300).toFixed(2));
+  $('#vlabel').style.filter = `drop-shadow(0 0 ${(2 + 8 * u / 3300).toFixed(1)}px rgba(var(--hot), .8))`;
+  $('#schR').textContent = 'R = ' + fmtR(r);
+  $('#schU').textContent = `U = ${u.toFixed(0)} мВ`;
+  $('#schI').textContent = `${i.toFixed(i < 10 ? 1 : 0)} мкА`;
+  $('#schemEq').innerHTML = `U = 3.3 В · R2 / (R<sub>LDR</sub> + R2) = 3300 · 10 / (${(r / 1000).toFixed(2)} + 10) = <b>${u.toFixed(0)} мВ</b><br>I = 3.3 В / (R<sub>LDR</sub> + R2) = <b>${i.toFixed(1)} мкА</b> · ідеальний RAW = ${u > 3100 ? '<b>4095</b> (вище стелі 3100 мВ)' : `<b>${Math.round(u / 3100 * 4095)}</b>`}`;
+  drawErr();
+}
+$('#light').addEventListener('input', e => setLight(e.target.value));
+$$('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.preset === 'palm') { M.palm = true; setLight(0.5, { keepPalm: true }); }
+  else setLight(+b.dataset.preset);
+}));
+(() => {
+  const g = $('#lamp'), svg = $('#benchSvg svg');
+  const toSvg = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+  let drag = false;
+  g.addEventListener('pointerdown', e => { drag = true; g.setPointerCapture(e.pointerId); e.preventDefault(); });
+  g.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const p = toSvg(e);
+    const x = clamp(p.x, 20, 900), y = clamp(p.y, 14, 450);
+    const dx = x - LDR_X, dy = y - LDR_Y, d = Math.hypot(dx, dy) || 1;
+    lamp.dir = [dx / d, dy / d];
+    lamp.x = x; lamp.y = y;
+    const ang = Math.atan2(-dy, -dx) * 180 / Math.PI + 90;
+    g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+    $('#lampRot').setAttribute('transform', `rotate(${(ang + 180).toFixed(1)})`);
+    setLight(5 - 5 * clamp((d - 40) / 220, 0, 1.2), { fromDrag: true });
+  });
+  const up = () => { drag = false; };
+  g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+  g.addEventListener('keydown', e => {
+    const k = { ArrowUp: .1, ArrowRight: .1, ArrowDown: -.1, ArrowLeft: -.1, PageUp: .5, PageDown: -.5 }[e.key];
+    if (k) { setLight(M.light + k); e.preventDefault(); e.stopPropagation(); }
+  });
+})();
+
+// ---------- assembly mode ----------
+const ASM = [
+  'Ставимо плату на макетку: гребінка J1 — у ряд <b>b</b>, J3 — у ряд <b>i</b>. Кожні п’ять отворів a–e в одному стовпчику з’єднані між собою всередині макетки.',
+  'Живлення на шини: <b>3V3</b> (стовпчик 22) — червоним дротом на «+», <b>GND</b> (стовпчик 1) — чорним на «−».',
+  '<b>LDR</b>: ніжки в стовпчики 29 і 32. Стовпчик 29 червоною перемичкою — до «+». Полярності немає: LDR — звичайний резистор, тільки «світлочутливий».',
+  '<b>10 кОм</b> (коричневий-чорний-помаранчевий): стовпчики 32 → 38, стовпчик 38 — чорним до «−». Подільник замкнувся, і тепер тече струм.',
+  'Середня точка (стовпчик 32) — помаранчевим дротом до <b>GPIO4</b> (стовпчик 19). Саме тут АЦП «підглядає» за напругою.',
+  'Перевірка мультиметром: червоний щуп — у стовпчик 32, чорний — на «−». Закрийте LDR долонею — напруга має впасти. Тепер можна підключати USB-C і прошивати.',
+];
+function setAsm(n) {
+  app.asm = n;
+  const on = n > 0, panel = $('#benchPanel'), svg = $('#benchSvg svg');
+  svg.classList.toggle('asm-on', on);
+  $('#asmBar').hidden = !on;
+  $('#asmBtn').setAttribute('aria-pressed', String(on));
+  $$('[data-asm]', svg).forEach(el => { const k = +el.dataset.asm; el.classList.toggle('ghost', on && k > n); el.classList.toggle('focus', on && k === n); });
+  if (!on) return;
+  $('#asmText').innerHTML = `<b>Крок ${n} з ${ASM.length}.</b> ${ASM[n - 1]}`;
+  $('#asmDots').innerHTML = ASM.map((_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+  $('#asmPrev').disabled = n === 1;
+  $('#asmNext').disabled = n === ASM.length;
+  panel.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });
+}
+$('#asmBtn').addEventListener('click', () => setAsm(app.asm ? 0 : 1));
+$('#asmPrev').addEventListener('click', () => setAsm(Math.max(1, app.asm - 1)));
+$('#asmNext').addEventListener('click', () => setAsm(Math.min(ASM.length, app.asm + 1)));
+$('#asmExit').addEventListener('click', () => setAsm(0));
+
+// ---------- mode / chip sliders ----------
+function setMode(m) {
+  if (M.mode === m) return;
+  M.mode = m;
+  $$('[data-mode-seg] button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  $$('#chipCtl input').forEach(i => { i.disabled = m === 'wokwi'; });
+  sim.out(`· модель АЦП: ${m === 'wokwi' ? 'Wokwi (без eFuse-калібрування)' : 'реальна плата'} ·`, 'sim');
+  updateStatic();
+}
+$$('[data-mode-seg] button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+for (const [id, key, fmt] of [['vfs', 'vfs', v => `${v} мВ`], ['off', 'off', v => `${v} мВ`], ['noise', 'noise', v => `±${v} RAW`]]) {
+  $('#' + id).addEventListener('input', e => { M[key] = +e.target.value; $(`#${id}Out`).textContent = fmt(M[key]); drawErr(); });
+}
+
+// ---------- transport ----------
+const playBtn = $('#play');
+function setRunning(r) { app.running = r; if (r) app.stepMode = false; playBtn.textContent = r ? '❚❚ Пауза' : '▶ Пуск'; app.last = performance.now(); }
+playBtn.addEventListener('click', () => setRunning(!app.running));
+function doStep() {
+  if (app.running) setRunning(false);
+  app.stepMode = true;
+  sim.stepOnce();
+  flushEvents();
+  renderStep(true);
+}
+$('#step').addEventListener('click', doStep);
+$$('#speed button').forEach(b => b.addEventListener('click', () => {
+  app.speed = +b.dataset.v; app.acc = 0;
+  $$('#speed button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+$('#rst').addEventListener('click', () => {
+  sim.reset(); app.rendered = 0; advCount = 0; $('#serialBox').textContent = ''; app.stepMode = !app.running;
+  renderStep(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, select, button, [role="slider"]') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === ' ') { setRunning(!app.running); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { doStep(); e.preventDefault(); }
+});
+$$('#tasks li').forEach(li => li.addEventListener('click', () => $('#' + li.dataset.go).scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })));
+$$('#tasks li').forEach(li => li.addEventListener('animationend', () => li.classList.remove('pop')));
+
+// ---------- SAR controls ----------
+$('#sarCap').addEventListener('click', () => { sarPlay(false); sarCapture(); });
+$('#sarPlay').addEventListener('click', () => sarPlay(!SAR.playing));
+$('#sarStep').addEventListener('click', () => { sarPlay(false); if (SAR.k >= 12) sarCapture(); else sarStep(); });
+$('#sarReset').addEventListener('click', () => { sarPlay(false); Object.assign(SAR, { k: 0, code: 0, trials: [], sampled: false, u: 0 }); sarRender('Скинуто. Натисніть «Захопити напругу».'); });
+
+// ---------- serial ----------
+const serialBox = $('#serialBox');
+function renderSerial() {
+  if (app.serialFrozen) return;
+  const fresh = sim.lines.filter(l => l.n > app.rendered);
+  if (!fresh.length) return;
+  const atBottom = serialBox.scrollHeight - serialBox.scrollTop - serialBox.clientHeight < 30;
+  const frag = document.createDocumentFragment();
+  for (const l of fresh) {
+    const el = document.createElement('div');
+    if (l.kind !== 'fw') el.className = l.kind;
+    el.textContent = l.text || ' ';
+    frag.appendChild(el);
+  }
+  serialBox.appendChild(frag);
+  app.rendered = fresh[fresh.length - 1].n;
+  while (serialBox.childElementCount > 800) serialBox.firstElementChild.remove();
+  if (atBottom || fresh.length > 40) serialBox.scrollTop = serialBox.scrollHeight;
+}
+$('#serPause').addEventListener('click', e => {
+  app.serialFrozen = !app.serialFrozen;
+  e.currentTarget.setAttribute('aria-pressed', String(app.serialFrozen));
+  e.currentTarget.textContent = app.serialFrozen ? '▶ Продовжити' : '❚❚ Заморозити';
+});
+$('#serClear').addEventListener('click', () => { serialBox.textContent = ''; app.rendered = sim.seq; });
+$('#serCopy').addEventListener('click', async e => {
+  const btn = e.currentTarget, text = [...serialBox.children].map(d => d.textContent).join('\n');
+  try { await navigator.clipboard.writeText(text); btn.textContent = 'Скопійовано ✓'; }
+  catch (err) { btn.textContent = 'Не вдалося'; }
+  setTimeout(() => { btn.textContent = 'Копіювати'; }, 1400);
+});
+
+// ---------- code / flow / watch ----------
+let curLines = [], ctxLine = -1;
+function setCurrent(id) {
+  for (const i of curLines) LN[i].classList.remove('is-cur');
+  if (ctxLine >= 0) LN[ctxLine].classList.remove('is-ctx');
+  curLines = id ? LINE_OF[id] || [] : [];
+  ctxLine = id && CTX_LINE[id] !== undefined ? CTX_LINE[id] : -1;
+  for (const i of curLines) LN[i].classList.add('is-cur');
+  if (ctxLine >= 0) LN[ctxLine].classList.add('is-ctx');
+  $$('.fb.on').forEach(b => b.classList.remove('on'));
+  const b = id && BLOCK_OF[id]; if (b) $('#' + b).classList.add('on');
+  if (curLines.length && $('#follow').checked && (app.stepMode || app.speed <= 0.1)) {
+    const el = LN[curLines[0]], top = el.offsetTop - codeBox.offsetTop;
+    if (top < codeBox.scrollTop + 30 || top > codeBox.scrollTop + codeBox.clientHeight - 60) codeBox.scrollTop = top - codeBox.clientHeight / 2;
+  }
+}
+function heatAll() {
+  for (const [id, lines] of Object.entries(LINE_OF)) {
+    const h = lineHeat[id] ? Math.max(0, 1 - (NOW - lineHeat[id]) / 700) : 0;
+    for (const i of lines) LN[i].style.setProperty('--heat', h.toFixed(2));
+  }
+  for (const f of FLOW) if (f.id) {
+    const h = blockHeat[f.id] ? Math.max(0, 1 - (NOW - blockHeat[f.id]) / 700) : 0;
+    $('#' + f.id).style.setProperty('--heat', h.toFixed(2));
+  }
+  $$('[data-br]').forEach(el => {
+    const v = sim.br[el.dataset.br];
+    el.className = 'br' + (v === undefined ? '' : v ? ' yes' : ' no');
+    el.textContent = v === undefined ? '?' : v ? 'так' : 'ні';
+  });
+}
+const fmtErr = s => s && s.hasError ? (s.errorPct >= 0 ? '+' : '') + s.errorPct.toFixed(2) + ' %' : 'n/a';
+function meter(frac, text) { return `<div class="meter"><div class="track"><div class="fill" style="width:${(clamp(frac, 0, 1) * 100).toFixed(1)}%"></div></div><span>${text}</span></div>`; }
+function renderWatch() {
+  const s = sim.s, st = sim.stats, ch = sim.changed;
+  const rows = [
+    ['now', sim.now ?? '—', 'now'],
+    ['lastSampleAt', `${sim.lastSampleAt} <span class="lbl-sm">(наступний вимір через ${Math.max(0, sim.lastSampleAt + 100 - sim.t)} мс)</span>`, 'lastSampleAt'],
+    ['s.raw', s ? meter(s.raw / 4095, `${s.raw} / 4095`) : '—', 'raw'],
+    ['s.measMv', s ? `${s.measMv} мВ` : '—', 'meas'],
+    ['s.calcMv', s ? `${s.calcMv.toFixed(1)} мВ` : '—', 'calc'],
+    ['s.errorPct', s ? fmtErr(s) : '—', 'err'],
+    ['rowsPrinted', `${sim.rowsPrinted} <span class="lbl-sm">(шапка, коли % 25 == 0)</span>`, 'rowsPrinted'],
+    ['stats', `n = ${st.count}, avg ${st.count ? f32(st.sumAbs / st.count).toFixed(2) : '—'} %, max ${st.count ? st.maxAbs.toFixed(2) : '—'} %`, 'stats'],
+    ['lastSummaryAt', `${sim.lastSummaryAt} <span class="lbl-sm">(підсумок через ${Math.max(0, sim.lastSummaryAt + 10000 - sim.t)} мс)</span>`, 'lastSummaryAt'],
+  ];
+  $('#watch').innerHTML = rows.map(([k, v, c]) => `<tr class="${app.stepMode && ch.has(c) ? 'chg' : ''}"><td>${k}</td><td>${v}</td></tr>`).join('');
+  if (s) {
+    $('#stRaw').textContent = s.raw;
+    const e = $('#stErr'); e.textContent = fmtErr(s);
+    e.className = 'v ' + (!s.hasError ? '' : Math.abs(s.errorPct) < 5 ? 'ok' : Math.abs(s.errorPct) < 15 ? 'hi' : 'bad');
+  } else { $('#stRaw').textContent = '—'; $('#stErr').textContent = '—'; }
+}
+const EXPLAIN = {
+  setup: () => 'Serial.begin(115200) відкриває USB-порт. waitForSerial() чекає до 2 с, щоб банер не загубився.',
+  res: () => 'analogReadResolution(12): числа від 0 до 4095, бо 2¹² = 4096 сходинок.',
+  att: () => 'analogSetPinAttenuation(4, ADC_11db): діапазон 0…3100 мВ. Усе, що вище, буде 4095.',
+  banner: () => 'printBanner(): чотири рядки-підказки в Serial.',
+  init: () => `lastSampleAt = lastSummaryAt = millis() = <b>${sim.lastSampleAt}</b>. Від цього моменту рахуємо 100 мс і 10 с.`,
+  now: () => `now = millis() = <b>${sim.now}</b> мс від старту.`,
+  chk: () => { const d = sim.now - (sim.br.chk ? sim.lastSampleAt : sim.lastSampleAt); return sim.br.chk ? `now − lastSampleAt = ${sim.now - sim.lastSampleAt} ≥ 100 → <b>так</b>, пора міряти.` : `now − lastSampleAt = ${d} мс &lt; 100 → <b>ні</b>, ще рано. Пропускаємо вимір, без delay().`; },
+  adv: () => `lastSampleAt += 100 → <b>${sim.lastSampleAt}</b>. Саме «+=», а не «= now»: якщо loop() запізниться, крок усе одно не «попливе».`,
+  raw: () => `analogRead(4) → <b>RAW = ${sim.s.raw}</b>. На піні ${sim.s.umv.toFixed(0)} мВ; АЦП порівняв їх зі шкалою 0…4095 (див. «Всередині АЦП»).`,
+  mv: () => M.mode === 'wokwi' ? `analogReadMilliVolts(4) → <b>${sim.s.measMv} мВ</b>. У Wokwi немає eFuse-калібрування, тому значення завищене.` : `analogReadMilliVolts(4) → <b>${sim.s.measMv} мВ</b>. Це окреме вимірювання, перераховане за калібруванням з eFuse.`,
+  calc: () => `U_calc = ${sim.s.raw} / 4095 · 3100 = <b>${sim.s.calcMv.toFixed(1)} мВ</b>.`,
+  err: () => sim.s.hasError ? `error = (${sim.s.calcMv.toFixed(1)} − ${sim.s.measMv}) / ${sim.s.measMv} · 100 = <b>${fmtErr(sim.s)}</b>.` : 'U_meas = 0: ділити на нуль не можна, тож похибка — n/a.',
+  hdr: () => sim.br.hdr ? `rowsPrinted = ${sim.rowsPrinted}, ділиться на 25 → друкуємо <b>шапку таблиці</b>.` : `rowsPrinted = ${sim.rowsPrinted}, % 25 ≠ 0 → шапка не потрібна.`,
+  row: () => 'printRow(): рядок пішов у Serial (див. монітор нижче).',
+  cnt: () => `++rowsPrinted → ${sim.rowsPrinted}.`,
+  stat: () => sim.br.stat ? `U_meas ≥ 100 мВ → |похибка| іде в статистику: n = ${sim.stats.count}.` : 'U_meas &lt; 100 мВ → не враховуємо: при діленні на майже нуль відсоток нічого не каже.',
+  chk2: () => sim.br.chk2 ? 'Минуло 10 с → <b>так</b>, друкуємо підсумок.' : `now − lastSummaryAt = ${sim.now - sim.lastSummaryAt} мс &lt; 10 000 → ні.`,
+  adv2: () => `lastSummaryAt += 10000 → ${sim.lastSummaryAt}.`,
+  sum: () => 'Підсумок надруковано, статистику обнулено. Наступний рядок знову піде з шапкою.',
+};
+function flushEvents() {
+  for (const id of sim.events) onTrace(id);
+  sim.events.length = 0;
+}
+function renderStep(withExplain) {
+  setCurrent(sim.lastId);
+  renderWatch();
+  sim.changed.clear();
+  $('#explain').innerHTML = withExplain && sim.lastId ? `<span class="ff">${sim.ff}</span>${EXPLAIN[sim.lastId]()}` :
+    (app.running ? 'Програма працює в реальному часі. Натисніть <b>Крок ▸</b>, щоб пройти рядок за рядком.' : 'Пауза. <b>Крок ▸</b> — один рядок коду.');
+  renderSerial();
+  $('#clock').textContent = sim.t.toLocaleString('uk-UA');
+}
+
+/* =====================================================================
+   Canvases: time plot + error curve
+   ===================================================================== */
+let TOK = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['--scope', '--scope-grid', '--scope-text', '--accent', '--hi', '--z', '--bad', '--ok', '--line', '--muted']) TOK[k] = cs.getPropertyValue(k).trim();
+  drawErr();
+}
+function fitCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth;
+  const h = +(c.dataset.h ||= c.getAttribute('height'));
+  c.style.height = h + 'px';
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [g, w, h];
+}
+function drawPlot() {
+  const c = $('#plot'); const [g, w, h] = fitCanvas(c);
+  g.clearRect(0, 0, w, h);
+  const L = 46, R = 12, T1 = 14, B1 = h * 0.62, T2 = B1 + 26, B2 = h - 22;
+  const t1 = Math.max(sim.t, 10000), t0 = t1 - 10000;
+  const X = t => L + (t - t0) / 10000 * (w - L - R);
+  g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  g.lineWidth = 1; g.strokeStyle = TOK['--scope-grid']; g.fillStyle = TOK['--scope-text'];
+  const Y1 = mv => B1 - mv / 3400 * (B1 - T1);
+  for (const mv of [0, 1000, 2000, 3000]) { g.beginPath(); g.moveTo(L, Y1(mv)); g.lineTo(w - R, Y1(mv)); g.stroke(); g.fillText(String(mv), 6, Y1(mv) + 3); }
+  for (let s = Math.ceil(t0 / 1000) * 1000; s <= t1; s += 1000) { g.beginPath(); g.moveTo(X(s), T1); g.lineTo(X(s), B2); g.stroke(); g.fillText((s / 1000) + ' с', X(s) + 3, h - 6); }
+  g.setLineDash([5, 4]); g.strokeStyle = TOK['--bad']; g.beginPath(); g.moveTo(L, Y1(3100)); g.lineTo(w - R, Y1(3100)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = TOK['--bad']; g.fillText('стеля АЦП 3100 мВ', L + 4, Y1(3100) - 4);
+  g.fillStyle = TOK['--scope-text']; g.fillText('мВ', 6, T1 - 2);
+  const H = sim.hist.filter(p => p.t >= t0 - 100);
+  const line = (key, color, Y) => {
+    g.strokeStyle = color; g.lineWidth = 2; g.beginPath(); let first = true;
+    for (const p of H) { if (p[key] === null) { first = true; continue; } const x = X(p.t), y = Y(p[key]); if (first) { g.moveTo(x, y); first = false; } else g.lineTo(x, y); }
+    g.stroke();
+  };
+  line('calc', TOK['--accent'], Y1);
+  line('meas', TOK['--hi'], Y1);
+  // error strip
+  let span = 5;
+  for (const p of H) if (p.err !== null) span = Math.max(span, Math.min(60, Math.ceil(Math.abs(p.err) / 5) * 5));
+  const Y2 = e => (T2 + B2) / 2 - clamp(e, -span, span) / span * (B2 - T2) / 2;
+  g.strokeStyle = TOK['--scope-grid']; g.lineWidth = 1;
+  for (const e of [-span, 0, span]) { g.beginPath(); g.moveTo(L, Y2(e)); g.lineTo(w - R, Y2(e)); g.stroke(); g.fillStyle = TOK['--scope-text']; g.fillText((e > 0 ? '+' : '') + e + '%', 4, Y2(e) + 3); }
+  line('err', TOK['--z'], Y2);
+  const lastP = H[H.length - 1];
+  if (lastP) { g.fillStyle = TOK['--hi']; g.beginPath(); g.arc(X(lastP.t), Y1(lastP.meas), 3.5, 0, 7); g.fill(); g.fillStyle = TOK['--accent']; g.beginPath(); g.arc(X(lastP.t), Y1(lastP.calc), 3.5, 0, 7); g.fill(); }
+  if (!H.length) { g.fillStyle = TOK['--scope-text']; g.fillText('чекаємо на перший вимір…', L + 10, (T1 + B1) / 2); }
+}
+function expectedErr(umv) {
+  const raw = adcRaw(umv, null), meas = adcMilliVolts(umv, null);
+  if (meas <= 0) return null;
+  return errPct(rawToMv(raw), meas);
+}
+function drawErr() {
+  const c = $('#errCanvas'); if (!c || !TOK['--scope']) return;
+  const [g, w, h] = fitCanvas(c);
+  g.clearRect(0, 0, w, h);
+  const L = 44, R = 12, T = 14, B = h - 24, span = 40;
+  const X = mv => L + mv / 3300 * (w - L - R), Y = e => (T + B) / 2 - clamp(e, -span, span) / span * (B - T) / 2;
+  g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  g.fillStyle = 'rgba(140,160,175,.16)'; g.fillRect(X(0), T, X(100) - X(0), B - T);
+  g.fillStyle = TOK['--scope-text']; g.fillText('< 100 мВ', X(0) + 3, B - 4);
+  g.strokeStyle = TOK['--scope-grid']; g.lineWidth = 1;
+  for (const e of [-40, -20, -10, 0, 10, 20, 40]) { g.beginPath(); g.moveTo(L, Y(e)); g.lineTo(w - R, Y(e)); g.stroke(); g.fillText((e > 0 ? '+' : '') + e + '%', 4, Y(e) + 3); }
+  for (const mv of [0, 500, 1000, 1500, 2000, 2500, 3000]) { g.beginPath(); g.moveTo(X(mv), T); g.lineTo(X(mv), B); g.stroke(); g.fillText(String(mv), X(mv) - 8, h - 8); }
+  g.setLineDash([5, 4]); g.strokeStyle = TOK['--bad']; g.beginPath(); g.moveTo(X(3100), T); g.lineTo(X(3100), B); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = TOK['--z']; g.lineWidth = 2; g.beginPath(); let first = true;
+  for (let mv = 2; mv <= 3300; mv += 2) {
+    const e = expectedErr(mv); if (e === null) { first = true; continue; }
+    const x = X(mv), y = Y(e); if (first) { g.moveTo(x, y); first = false; } else g.lineTo(x, y);
+  }
+  g.stroke();
+  const u = M.umv(), e = expectedErr(u);
+  g.fillStyle = TOK['--hi']; g.beginPath(); g.arc(X(u), Y(e ?? 0), 5, 0, 7); g.fill();
+  g.fillStyle = TOK['--scope-text']; g.fillText('U на GPIO4, мВ →', w - R - 100, B - 4);
+  const raw = adcRaw(u, null), meas = adcMilliVolts(u, null);
+  $('#errNow').innerHTML = `Зараз на піні <b>${u.toFixed(0)} мВ</b>. Без шуму: RAW = ${raw}, U_calc = ${rawToMv(raw).toFixed(1)} мВ, U_meas = ${meas} мВ, похибка = <b>${e === null ? 'n/a' : (e >= 0 ? '+' : '') + e.toFixed(2) + ' %'}</b>.` +
+    (M.mode === 'real' ? ` Головний внесок — «стеля»: 3100 / ${M.vfs} − 1 = ${((3100 / M.vfs - 1) * 100).toFixed(1)} %.` : ' Режим Wokwi: це похибка симулятора, а не чипа.');
+}
+
+/* =====================================================================
+   Main loop
+   ===================================================================== */
+const flowBench = $('#flowBench'), flowSch = $('#flowSch');
+let flowOff = 0;
+function frame(now) {
+  const dt = Math.min(100, now - app.last); app.last = now; NOW = now;
+  if (app.running) {
+    app.acc += dt * app.speed;
+    const n = Math.min(Math.floor(app.acc), 600); app.acc -= Math.floor(app.acc);
+    if (n > 0) { sim.runMs(n); flushEvents(); }
+    setCurrent(sim.lastId);
+    renderWatch();
+    sim.changed.clear();
+    renderSerial();
+    $('#clock').textContent = sim.t.toLocaleString('uk-UA');
+  }
+  heatAll();
+  if (!REDUCED) {
+    flowOff -= dt / 1000 * (6 + M.iua() * 0.5);
+    flowBench.style.strokeDashoffset = flowOff.toFixed(1);
+    flowSch.style.strokeDashoffset = (flowOff * 0.6).toFixed(1);
+  }
+  flowBench.style.opacity = (0.35 + 0.65 * Math.min(1, M.iua() / 120)).toFixed(2);
+  drawPlot();
+  requestAnimationFrame(frame);
+}
+
+readTokens();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+window.addEventListener('resize', () => drawErr());
+setLight(1.5);
+renderStep(false);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
