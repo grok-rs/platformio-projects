@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 430" width="520" height="430" font-family="DejaVu Sans, Arial, sans-serif" font-size="14">
+  <title>Подільник напруги: 3V3 — LDR — GPIO4 — 10 кОм — GND</title>
+  <rect width="520" height="430" fill="#ffffff"/>
+  <g stroke="#13212c" stroke-width="2" fill="none" stroke-linecap="round">
+    <!-- 3V3 -->
+    <line x1="140" y1="40" x2="180" y2="40"/>
+    <line x1="160" y1="40" x2="160" y2="80"/>
+    <!-- LDR (R1): resistor box in a circle, light arrows -->
+    <rect x="148" y="80" width="24" height="70" fill="#fff"/>
+    <circle cx="160" cy="115" r="44"/>
+    <line x1="160" y1="150" x2="160" y2="200"/>
+    <!-- node to GPIO4 -->
+    <line x1="160" y1="200" x2="330" y2="200"/>
+    <!-- R2 10k -->
+    <line x1="160" y1="200" x2="160" y2="250"/>
+    <rect x="148" y="250" width="24" height="70" fill="#fff"/>
+    <line x1="160" y1="320" x2="160" y2="350"/>
+    <!-- GND -->
+    <line x1="140" y1="350" x2="180" y2="350"/>
+    <line x1="148" y1="358" x2="172" y2="358"/>
+    <line x1="156" y1="366" x2="164" y2="366"/>
+    <!-- ESP32-S3 box -->
+    <rect x="330" y="150" width="160" height="100" rx="6"/>
+  </g>
+  <g stroke="#d97f00" stroke-width="2" fill="#d97f00">
+    <line x1="80" y1="70" x2="122" y2="98"/><path d="M126 101 l-12 -1 6 -9z"/>
+    <line x1="72" y1="96" x2="114" y2="124"/><path d="M118 127 l-12 -1 6 -9z"/>
+  </g>
+  <circle cx="160" cy="200" r="5" fill="#0a6a86"/>
+  <circle cx="330" cy="200" r="4" fill="#13212c"/>
+  <g fill="#13212c">
+    <text x="190" y="45" font-weight="bold">+3.3 V</text>
+    <text x="214" y="110" font-weight="bold">R1 = LDR</text>
+    <text x="214" y="128" fill="#566875">світло ↑ → опір ↓</text>
+    <text x="214" y="146" fill="#566875">≈ 0.5 кОм … 1 МОм</text>
+    <text x="190" y="280" font-weight="bold">R2 = 10 кОм</text>
+    <text x="190" y="298" fill="#566875">коричн-чорн-оранж</text>
+    <text x="190" y="372" font-weight="bold">GND</text>
+    <text x="180" y="192" fill="#0a6a86" font-weight="bold">U_out</text>
+    <text x="340" y="180" font-weight="bold">ESP32-S3</text>
+    <text x="340" y="205">GPIO4</text>
+    <text x="340" y="225" fill="#566875">ADC1_CH3, 12 біт</text>
+    <text x="340" y="242" fill="#566875">0…3.1 В → 0…4095</text>
+    <text x="20" y="398" fill="#13212c" font-size="13">U_out = 3.3 В · R2 / (R1 + R2)</text>
+    <text x="20" y="418" fill="#566875" font-size="13">більше світла → менший R1 → вища напруга → більше RAW</text>
+  </g>
+</svg>

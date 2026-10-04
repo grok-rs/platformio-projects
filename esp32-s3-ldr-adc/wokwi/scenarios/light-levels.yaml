@@ -1,0 +1,32 @@
+# Автотест для wokwi-cli: світло змінюється — RAW, U_calc і шкала змінюються як у реальному подільнику.
+#   wokwi-cli . --scenario wokwi/scenarios/light-levels.yaml --timeout 20000
+# Чип ldr-divider рахує 3V3 ── LDR ── OUT ── 10 кОм ── GND і подає на АЦП рівно ту напругу,
+# яку бачив би справжній ESP32-S3 (0…3.1 В → 0…4095). Симуляція без шуму, тому числа точні.
+# U_meas і похибку тут не перевіряємо: у Wokwi немає eFuse-калібрування, тож analogReadMilliVolts()
+# дає ~−20 %, а на реальній платі — кілька відсотків (див. README).
+name: 'LDR divider: RAW and U_calc follow the light'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'U_calc = RAW / 4095 * 3100 mV'
+  - wait-serial: '  t, ms   RAW  U_calc,mV  U_meas,mV  error,%  light'
+
+  # 10 лк: R_ldr = 15 кОм → U = 3.3 · 10/25 = 1.32 В → RAW = 1.32/3.1 · 4095 = 1744.
+  - set-control: { part-id: ldr, control: light, value: 1 }
+  - wait-serial: '  1744     1320.2'
+
+  # 0.1 лк (майже темрява): R_ldr ≈ 377 кОм → U ≈ 85 мВ → RAW ≈ 113, шкала порожня.
+  - set-control: { part-id: ldr, control: light, value: -1 }
+  - wait-serial: '   113       85.5'
+
+  # 100 лк: R_ldr ≈ 3 кОм → U ≈ 2.54 В → RAW = 3355.
+  - set-control: { part-id: ldr, control: light, value: 2 }
+  - wait-serial: '  3355     2539.8'
+
+  # Пряме сонце: U ≈ 3.29 В > 3.1 В — АЦП «впирається в стелю»: 4095 і 3100 мВ.
+  - set-control: { part-id: ldr, control: light, value: 5 }
+  - wait-serial: '  4095     3100.0'
+
+  # Підсумок раз на 10 с.
+  - wait-serial: '--- summary:'

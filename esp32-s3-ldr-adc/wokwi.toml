@@ -1,0 +1,11 @@
+# Wokwi simulation (VS Code extension "Wokwi Simulator" or wokwi-cli).
+# Firmware comes from PlatformIO: build first with `pio run`, then F1 -> "Wokwi: Start Simulator".
+[wokwi]
+version  = 1
+firmware = '.pio/build/esp32-s3-devkitc-1/firmware.bin'
+elf      = '.pio/build/esp32-s3-devkitc-1/firmware.elf'
+
+# LDR + 10 kΩ divider as a custom chip (see wokwi/chip/ldr-divider.chip.c).
+[[chip]]
+name   = 'ldr-divider'
+binary = 'wokwi/chip/ldr-divider.chip.wasm'
