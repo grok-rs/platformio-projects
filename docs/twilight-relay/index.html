@@ -1,0 +1,2328 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сутінковий перемикач</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../site-nav.css">
+<meta name="description" content="Міні-проєкт блоку 1: фоторезистор у подільнику → АЦП ESP32-S3 → гістерезис → BC547B → модуль реле 5 В з навантаженням. Жива макетка з модулем живлення Type-C, принципова схема, анімація електронів, деталі з попередніх уроків, правила креслення, збирання, відладчик і тест.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lab bench on graph paper. Task → breadboard (live) → schematic (live) → hysteresis + code → parts from earlier lessons
+   → calculations → drawing rules → assembly → debugger → quiz. One electrical model drives every view. */
+:root {
+  --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --panel-2: #f1f5f8;
+  --ink: #13212c; --muted: #566875; --line: #c6d2db; --accent: #0a6a86; --accent-ink: #ffffff;
+  --hi: #d97f00; --lo: #8a9aa6; --z: #8b5cd6; --ok: #15803d; --warn: #b45309; --bad: #c62828; --hot: 217, 127, 0;
+  --flow: #e58a00; --electron: #1d6fe0; --hl: #0ea5e9;
+  --n33: #e07a00; --n5: #d1342b; --ngnd: #2a3945; --nsig: #a87a00; --nin: #7c4dd6;
+  --bb: #f5f2ea; --bb-edge: #d9d3c4; --hole: #8f887a; --rail-p: #d6453d; --rail-n: #2f6fd1;
+  --pcb: #18232d; --pcb-ink: #c9d4dc; --shield: #c9d0d6; --pin: #d4a93a;
+  --w-black: #2b2f33; --w-out: rgba(0, 0, 0, .3);
+  --scope: #0f1a22; --scope-grid: rgba(150, 200, 230, .12); --scope-text: #9fb4c3;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+    --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+    --flow: #ffc34d; --electron: #6aa8ff; --hl: #38bdf8;
+    --n33: #ffa94d; --n5: #ff7b72; --ngnd: #a9b8c4; --nsig: #f2c94c; --nin: #b28cf5;
+    --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
+    --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
+    --w-black: #1a2026; --w-out: rgba(255, 255, 255, .42);
+    --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
+  --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
+  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
+  --flow: #ffc34d; --electron: #6aa8ff; --hl: #38bdf8;
+  --n33: #ffa94d; --n5: #ff7b72; --ngnd: #a9b8c4; --nsig: #f2c94c; --nin: #b28cf5;
+  --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
+  --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
+  --w-black: #1a2026; --w-out: rgba(255, 255, 255, .42);
+  --scope: #081017; --scope-grid: rgba(150, 200, 230, .10); --scope-text: #8fa2b0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font: 15px/1.55 var(--f-body);
+  margin: 0; padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+a { color: var(--accent); }
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+code, kbd, pre, .code, .serial, .formula { font-family: var(--f-mono); font-variant-ligatures: none; }
+code { font-size: .92em; }
+p code, li code, td code, dd code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+.masthead { display: grid; gap: 10px; padding-block: 28px 14px; }
+.eyebrow { font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.masthead h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; }
+.masthead h1 span { color: var(--accent); }
+.masthead p { margin: 0; color: var(--muted); max-width: 76ch; font-size: 1.02rem; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+nav.toc a {
+  font: 600 .98rem var(--f-display); letter-spacing: .03em; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--panel); padding: 4px 11px; border-radius: 999px;
+}
+nav.toc a span { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-right: 5px; }
+nav.toc a:hover { border-color: var(--accent); }
+
+/* ---------- sticky control bar ---------- */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-block: 8px 4px;
+  box-shadow: 0 6px 18px -14px rgba(0, 0, 0, .5);
+}
+.bar .grp { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.bar .light-ctl { display: flex; align-items: center; gap: 8px; min-width: 240px; flex: 1 1 260px; max-width: 420px; }
+.bar .light-ctl input { flex: 1; }
+.bar .light-ctl b { font: 600 13px var(--f-mono); min-width: 9ch; text-align: right; font-variant-numeric: tabular-nums; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); color: var(--ink); font: 500 12.5px var(--f-mono); padding: 5px 9px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer;
+  font: 500 13px var(--f-body); padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.btn:hover, .seg button:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); min-width: 92px; justify-content: center; }
+.btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.lbl-sm { font-size: 12px; color: var(--muted); }
+.pill { font: 600 12.5px var(--f-mono); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pill.on { border-color: var(--ok); color: var(--ok); }
+#barState { min-width: 21ch; text-align: center; }
+.pill.off { color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 70px; }
+.sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; margin-bottom: 12px; }
+.sec-head h2 { font-size: 1.9rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; }
+.sec-head h2 .n { font: 600 1rem var(--f-mono); color: var(--accent); }
+.sec-head p { margin: 0; color: var(--muted); max-width: 76ch; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.grid2.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 980px) { .grid2, .grid2.even { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.ph h3 { font-size: .95rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ph .note { font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pb { padding: 12px 14px; }
+.prose p, .prose li { max-width: 72ch; }
+.prose p { margin: 0 0 10px; }
+.prose ul, .prose ol { margin: 4px 0 10px; padding-left: 20px; }
+.prose li { margin-bottom: 4px; }
+.callout { border-left: 3px solid var(--accent); background: var(--panel); padding: 8px 12px; margin: 10px 0; font-size: 14.5px; border-radius: 0 6px 6px 0; }
+.callout.warn { border-left-color: var(--hi); }
+.callout.bad { border-left-color: var(--bad); }
+.formula { font: 13px/1.6 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; overflow-x: auto; white-space: pre; }
+
+/* ---------- task ---------- */
+.task { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.task > div { padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.task > div:first-child { border-left: 0; }
+@media (max-width: 980px) { .task > div { border-left: 0; border-top: 1px solid var(--line); } .task > div:first-child { border-top: 0; } }
+.task h4 { font-size: 1.15rem; margin-bottom: 6px; }
+.task ol { margin: 0; padding-left: 20px; font-size: 14.2px; }
+.task li { margin-bottom: 6px; }
+.task .k { font: 600 12px var(--f-mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.lesson-fig { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 0; border-top: 1px solid var(--line); }
+.lesson-fig > div { padding: 10px 14px; font-size: 13.8px; border-left: 1px solid var(--line); }
+.lesson-fig > div:first-child { border-left: 0; }
+.lesson-fig b { display: block; font: 600 .95rem var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+
+/* ---------- bench (breadboard) ---------- */
+.bench svg, .schem svg, .loop svg, .mini svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
+.svg-scroll { overflow-x: auto; }
+@media (max-width: 760px) {
+  #benchSvg svg { width: 760px; max-width: none; }
+  #schemSvg svg { width: 780px; max-width: none; }
+  .bar { gap: 6px 10px; padding: 6px 8px; }
+  .bar .lbl-sm, #flowSpeed, #sound, #barState { display: none; }
+  .bar .light-ctl { min-width: 0; }
+  section.sec { scroll-margin-top: 150px; }
+}
+.bb-body { fill: var(--bb); stroke: var(--bb-edge); stroke-width: 1.5; }
+.bb-chan { fill: var(--bb-edge); opacity: .55; }
+.bb-holes { fill: var(--hole); }
+.bb-num { fill: var(--muted); font: 500 7px var(--f-mono); text-anchor: middle; }
+.rail-p { stroke: var(--rail-p); stroke-width: 1.6; } .rail-n { stroke: var(--rail-n); stroke-width: 1.6; }
+.rail-t { font: 700 11px var(--f-mono); }
+.zone-t { font: 600 10px var(--f-mono); letter-spacing: .06em; }
+.pcb { fill: var(--pcb); }
+.pcb-t { fill: var(--pcb-ink); font: 600 6.3px var(--f-mono); text-anchor: middle; }
+.pcb-big { fill: var(--pcb-ink); font: 700 10px var(--f-display); letter-spacing: .06em; }
+.hdr-pin { fill: var(--pin); stroke: #00000055; stroke-width: .6; }
+.hdr-pin.key { stroke: var(--hi); stroke-width: 1.6; }
+.shield { fill: var(--shield); stroke: #0004; }
+.shield-t { fill: #2b3640; font: 700 9px var(--f-mono); text-anchor: middle; }
+.usb { fill: #a9b2b9; stroke: #5a656e; }
+.jw-o { fill: none; stroke: var(--w-out); stroke-width: 6.4; stroke-linecap: round; stroke-linejoin: round; }
+.jw { fill: none; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
+.jw.dash { stroke-dasharray: 7 5; }
+.jend { stroke: #0006; stroke-width: .8; }
+.leg { stroke: #9aa3aa; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.ldr-rim { fill: #e9e2cf; stroke: #6d5d3a; stroke-width: 1.4; }
+.ldr-track { fill: none; stroke: #b4572a; stroke-width: 1.6; stroke-linecap: round; }
+.res-body { fill: #d8c49a; stroke: #6b5a3b; stroke-width: 1; }
+.to92 { fill: #23282d; stroke: #0b0d0f; stroke-width: 1; }
+.to92-t { fill: #c9d1d7; font: 600 5.2px var(--f-mono); text-anchor: middle; }
+.part-t { fill: var(--ink); font: 600 10.5px var(--f-body); paint-order: stroke; stroke: var(--bb); stroke-width: 3px; text-anchor: middle; }
+.part-s { fill: var(--muted); font: 500 8.5px var(--f-mono); paint-order: stroke; stroke: var(--bb); stroke-width: 3px; text-anchor: middle; }
+.cap-t { fill: var(--muted); font: 500 10px var(--f-body); }
+.cap-b { fill: var(--ink); font: 600 11px var(--f-body); }
+.flow { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: .1 13; pointer-events: none; }
+.flows-off .flow { display: none; }
+.asm-on .flow, .asm-on .glow { display: none; }
+.vlabel rect { fill: var(--panel); stroke: var(--hi); stroke-width: 1.5; }
+.vlabel text { fill: var(--ink); font: 600 12px var(--f-mono); text-anchor: middle; }
+.vlabel .s { fill: var(--muted); font: 500 9px var(--f-body); }
+.vlabel .cur { text-anchor: start; fill: var(--ink); font: 600 8.6px var(--f-mono); }
+.vlabel .cur.h { fill: var(--muted); font-weight: 500; }
+.dark-ov { fill: #020a12; pointer-events: none; }
+.glow { pointer-events: none; }
+.relay-pcb { fill: #1d5aa8; stroke: #0f3a72; stroke-width: 1.5; }
+.relay-body { fill: #2f74d6; stroke: #174a94; stroke-width: 1.4; }
+.relay-t { fill: #e9f1ff; font: 600 8px var(--f-mono); text-anchor: middle; }
+.relay-silk { fill: #e9f1ff; font: 600 7.5px var(--f-mono); }
+.term { fill: #2c67c7; stroke: #163f80; stroke-width: 1.2; }
+.screw { fill: #c9ced3; stroke: #6c747b; stroke-width: 1; }
+.smd { fill: #1b1f23; stroke: #555c63; stroke-width: .6; }
+.pm-pcb { fill: #8b1e2b; stroke: #5a0f19; stroke-width: 1.5; }
+.pm-t { fill: #ffe9ec; font: 600 7.5px var(--f-mono); text-anchor: middle; }
+.pm-big { fill: #ffe9ec; font: 700 11px var(--f-display); letter-spacing: .06em; text-anchor: middle; }
+.jumper { fill: #1d2228; stroke: #000; stroke-width: .8; }
+.xray { fill: none; stroke: #e9f1ff; stroke-width: 1.2; opacity: .55; }
+.blade { stroke: #ffd36b; stroke-width: 2.4; stroke-linecap: round; transition: transform .08s; transform-box: view-box; }
+.click-bubble { font: 700 13px var(--f-display); fill: var(--hi); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; opacity: 0; pointer-events: none; }
+.click-bubble.go { animation: bubble .7s ease-out; }
+@keyframes bubble { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-14px); } }
+.spark { opacity: 0; pointer-events: none; }
+.spark.go { animation: sparkle .9s ease-out; }
+@keyframes sparkle { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+.ghost-w { opacity: .18; }
+.fault { stroke: var(--bad); }
+[data-part] { cursor: pointer; transition: opacity .25s; }
+.has-hl [data-part]:not(.hl):not(:has(.hl)) { opacity: .28; }
+.hit { fill: transparent; stroke: none; }
+.hit.hl { fill: color-mix(in srgb, var(--hl) 30%, transparent); stroke: var(--hl); stroke-width: 1.5; }
+[data-part].hl { filter: drop-shadow(0 0 2.5px var(--hl)) drop-shadow(0 0 6px var(--hl)); opacity: 1; }
+.asm-on [data-asm].ghost { opacity: .1; }
+.asm-on [data-asm].focus { animation: focus 1.1s ease-in-out infinite; }
+@keyframes focus { 50% { opacity: .5; } }
+[data-asm] { transition: opacity .35s; }
+.asm-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel-2); }
+.asm-bar p { margin: 0; flex: 1 1 320px; font-size: 14px; }
+.asm-bar .dots { display: flex; gap: 4px; }
+.asm-bar .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.asm-bar .dots i.on { background: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); }
+.ctl { display: grid; gap: 3px; font-size: 13px; min-width: 200px; flex: 1 1 240px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.ctl label b { font: 600 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 999px; font: 500 12.5px var(--f-body); padding: 3px 10px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); }
+.chip-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.chip-btn.whatif[aria-pressed="true"] { border-color: var(--bad); background: var(--bad); color: #fff; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); border-top: 1px solid var(--line); }
+.stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
+.stat:last-child { border-right: 0; }
+.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.stat .v { font: 600 1.08rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.v.hi { color: var(--hi); } .v.ok { color: var(--ok); } .v.bad { color: var(--bad); } .v.acc { color: var(--accent); } .v.el { color: var(--electron); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 18px; height: 0; border-top: 4px solid; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+.legend i.dot { width: 8px; height: 8px; border: 0; border-radius: 50%; }
+
+/* ---------- cause → effect chain ---------- */
+.chain { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 18px; padding: 10px 12px 10px 24px; }
+.chain .lk { display: grid; align-content: start; gap: 1px; padding: 6px 9px; margin: 0; border: 1.5px solid var(--line); border-radius: 7px; background: var(--panel); min-width: 0; position: relative; transition: border-color .2s, background-color .2s; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.chain .lk > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.chain .lk::before { content: "→"; position: absolute; left: -16px; top: 50%; transform: translateY(-50%); color: var(--muted); font: 600 12px var(--f-mono); }
+.chain .lk .k { font: 600 10.5px var(--f-mono); color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.chain .lk .v { font: 600 13.5px var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chain .lk .s { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.chain .lk.on { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, var(--panel)); }
+.chain .lk.warn { border-color: var(--hi); background: color-mix(in srgb, var(--hi) 10%, var(--panel)); }
+.chain .lk.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--panel)); }
+
+/* ---------- inspector / what-if ---------- */
+.insp .pb { min-height: 330px; }
+.insp h4 { font-size: 1.35rem; margin-bottom: 2px; }
+.insp .role { font: 600 12px var(--f-mono); color: var(--accent); letter-spacing: .05em; text-transform: uppercase; }
+.insp dl { margin: 8px 0 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; font-size: 14px; }
+.insp dt { color: var(--muted); font-size: 12.5px; padding-top: 2px; }
+.insp dd { margin: 0; }
+.insp .live { font: 600 13px var(--f-mono); color: var(--hi); }
+.part-list { display: flex; flex-wrap: wrap; gap: 5px; padding: 10px 12px; border-top: 1px dashed var(--line); }
+.part-list button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 5px; font: 600 11.5px var(--f-mono); padding: 2px 7px; cursor: pointer; }
+.part-list button:hover, .part-list button[aria-pressed="true"] { border-color: var(--hl); color: var(--hl); }
+.wi-text { padding: 10px 12px; font-size: 14px; min-height: 5.5em; border-top: 1px dashed var(--line); }
+.wi-text p { margin: 0 0 6px; }
+.wi-text b { color: var(--bad); }
+
+/* ---------- schematic ---------- */
+.schem .w { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.schem .w.p5 { stroke: var(--n5); } .schem .w.p3 { stroke: var(--n33); } .schem .w.g { stroke: var(--ngnd); }
+.schem .w.adc { stroke: var(--nsig); } .schem .w.in { stroke: var(--nin); }
+.schem .w.thin { stroke-width: 1.4; }
+.schem .w.dash { stroke-dasharray: 6 4; }
+.schem .box { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.schem .mod { fill: color-mix(in srgb, var(--accent) 4%, var(--panel)); stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 9 5; }
+.schem .rb { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.schem .t { fill: var(--ink); font: 600 12.5px var(--f-body); }
+.schem .ts { fill: var(--ink); font: 600 11px var(--f-body); }
+.schem .tm { fill: var(--muted); font: 500 10.5px var(--f-mono); }
+.schem .tb { fill: var(--ink); font: 700 14px var(--f-display); letter-spacing: .04em; }
+.schem .tv { font: 600 11.5px var(--f-mono); fill: var(--hi); }
+.schem .dot { fill: var(--ink); }
+.schem .pt { fill: none; stroke: var(--ink); stroke-width: 2; }
+.schem .arr { fill: none; stroke: var(--hi); stroke-width: 1.6; }
+.schem .ledfill { fill: var(--panel); stroke: var(--ink); stroke-width: 1.8; stroke-linejoin: round; }
+.schem .tri { fill: var(--ink); }
+.schem .badge rect { fill: var(--panel); stroke: var(--hi); stroke-width: 1.3; }
+.schem .badge text { font: 600 11px var(--f-mono); fill: var(--ink); text-anchor: middle; }
+.schem .lvl-h { fill: var(--n5); } .schem .lvl-l { fill: var(--rail-n); }
+.schem .xmark { stroke: var(--bad); stroke-width: 3; stroke-linecap: round; }
+.schem .arm { stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; transition: none; }
+.schem .mlink { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+.schem-legend { padding: 8px 12px; border-top: 1px solid var(--line); }
+
+/* ---------- hysteresis + code ---------- */
+.plot canvas { display: block; width: 100%; height: 260px; background: var(--scope); border-radius: 0 0 8px 8px; }
+.loop svg { max-width: 460px; margin: 4px auto 8px; }
+.loop .lp-ax { stroke: var(--line); stroke-width: 1; }
+.loop .lp-t { fill: var(--muted); font: 500 10px var(--f-mono); }
+.loop .lp-on { stroke: var(--ok); stroke-width: 3; fill: none; }
+.loop .lp-off { stroke: var(--muted); stroke-width: 3; fill: none; }
+.loop .lp-v { stroke-width: 2; fill: none; stroke-dasharray: 5 3; }
+.loop .lp-band { fill: var(--hi); opacity: .12; }
+.loop .lp-dot { fill: var(--hi); stroke: var(--panel); stroke-width: 2; }
+.code { font: 12.5px/1.6 var(--f-mono); overflow: auto; max-height: 640px; padding: 6px 0; }
+.ln { display: grid; grid-template-columns: 3.4ch minmax(0, 1fr); gap: 0 10px; padding: 0 12px 0 6px; white-space: pre; background: rgba(var(--hot), calc(var(--heat, 0) * .3)); }
+.ln .no { color: var(--muted); text-align: right; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
+.ln.is-cur { box-shadow: inset 3px 0 0 var(--hi); }
+.t-c { color: var(--muted); font-style: italic; } .t-s { color: var(--ok); } .t-k { color: var(--accent); font-weight: 600; }
+.t-t { color: var(--z); } .t-n { color: var(--n5); } .t-m { color: var(--hi); font-weight: 600; } .t-p { color: var(--z); font-weight: 600; }
+.serial { font: 12px/1.5 var(--f-mono); background: var(--panel-2); height: 220px; overflow: auto; padding: 8px 12px; white-space: pre; border-radius: 0 0 8px 8px; }
+.serial .on { color: var(--ok); } .serial .chg { color: var(--hi); font-weight: 600; }
+
+/* ---------- part cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.card > * { min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: grid; grid-template-rows: auto auto 1fr auto; min-width: 0; }
+.card .ch { padding: 10px 14px 0; }
+.card .from { font: 600 11.5px var(--f-mono); color: var(--accent); letter-spacing: .05em; text-transform: uppercase; }
+.card h3 { font-size: 1.4rem; margin-top: 2px; }
+.card .mini { padding: 8px 14px 0; }
+.card .mini svg { max-height: 170px; }
+.card .cb { padding: 8px 14px 4px; font-size: 14.2px; }
+.card .cb p { margin: 0 0 8px; }
+.card .cb ul { margin: 0 0 8px; padding-left: 18px; }
+.card .cf { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 12px; border-top: 1px dashed var(--line); align-items: center; }
+.card .cf .lbl-sm { margin-right: 4px; }
+.mini .m-w { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mini .m-w.p5 { stroke: var(--n5); } .mini .m-w.p3 { stroke: var(--n33); } .mini .m-w.g { stroke: var(--ngnd); }
+.mini .m-r { fill: var(--panel); stroke: var(--ink); stroke-width: 1.8; }
+.mini .m-t { fill: var(--ink); font: 600 10.5px var(--f-body); }
+.mini .m-s { fill: var(--muted); font: 500 9.5px var(--f-mono); }
+.mini .m-v { fill: var(--hi); font: 600 10.5px var(--f-mono); }
+.mini .m-a { fill: none; stroke: var(--hi); stroke-width: 1.4; }
+.mini .m-dot { fill: var(--ink); }
+
+/* ---------- tables ---------- */
+.tbl-wrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+table.tbl th, table.tbl td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.tbl th { font: 600 .82rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+table.tbl td.m { font-family: var(--f-mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.tbl tr.row-link { cursor: pointer; }
+#calcTbl { table-layout: fixed; }
+#calcTbl th:first-child { width: 42%; }
+table.tbl td.cur, table.tbl th.cur { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+table.tbl tr.row-link:hover td { background: var(--panel-2); }
+table.tbl td.ok { color: var(--ok); font-weight: 600; } table.tbl td.bad { color: var(--bad); font-weight: 600; }
+.sw { display: inline-block; width: 22px; height: 7px; border-radius: 4px; vertical-align: middle; margin-right: 6px; border: 1px solid #0004; }
+.rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 980px) { .rules { grid-template-columns: minmax(0, 1fr); } }
+.rules > div { padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.rules > div:first-child { border-left: 0; }
+@media (max-width: 980px) { .rules > div { border-left: 0; border-top: 1px solid var(--line); } .rules > div:first-child { border-top: 0; } }
+.rules h4 { font-size: 1.15rem; margin-bottom: 6px; }
+.rules ol { margin: 0; padding-left: 20px; font-size: 14px; }
+.rules li { margin-bottom: 6px; }
+.checks { list-style: none; margin: 0; padding: 4px 0; }
+.checks li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 7px 14px; border-top: 1px solid var(--line); font-size: 14px; cursor: pointer; }
+.checks li:first-child { border-top: 0; }
+.checks li .bx { width: 20px; height: 20px; border: 2px solid var(--line); border-radius: 5px; display: grid; place-items: center; font: 700 12px var(--f-mono); color: var(--panel); }
+.checks li.done .bx { background: var(--ok); border-color: var(--ok); }
+.checks li.done .bx::before { content: "✓"; }
+.checks li small { display: block; color: var(--muted); font-size: 12.5px; }
+pre.cmd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; overflow-x: auto; margin: 6px 0; white-space: pre; }
+
+/* ---------- quiz ---------- */
+.quiz .q { padding: 12px; border-bottom: 1px solid var(--line); }
+.quiz .q:last-child { border-bottom: 0; }
+.quiz .q p { margin: 0 0 8px; font-weight: 600; }
+.opts { display: grid; gap: 6px; }
+.opt { text-align: left; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 6px; padding: 7px 10px; font: 14px var(--f-body); cursor: pointer; }
+.opt:hover { border-color: var(--accent); }
+.opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--panel)); }
+.opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--panel)); }
+.qfb { margin-top: 6px; font-size: 14px; color: var(--muted); min-height: 1.2em; }
+.qfb.ok { color: var(--ok); } .qfb.no { color: var(--bad); }
+.score { font: 600 14px var(--f-mono); }
+
+.pop { position: absolute; z-index: 20; width: min(380px, calc(100vw - 24px)); max-height: 72vh; overflow: auto; background: var(--panel); border: 1.5px solid var(--hl); border-radius: 10px; box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .5); padding: 10px 12px 12px; font-size: 13.5px; }
+.pop h4 { font-size: 1.3rem; margin: 2px 26px 4px 0; }
+.pop-role { font: 600 11.5px var(--f-mono); color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+.pop-x { position: absolute; top: 4px; right: 6px; border: 0; background: none; font: 600 22px/1 var(--f-body); color: var(--muted); cursor: pointer; padding: 4px 6px; }
+.pop-x:hover { color: var(--ink); }
+.pop p { margin: 6px 0 0; }
+.pop .what { color: var(--muted); }
+table.lv { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 2px; table-layout: fixed; }
+table.lv tr > :first-child { width: 56%; }
+table.lv th { text-align: left; font: 600 .78rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 2px 4px; border-bottom: 1px solid var(--line); }
+table.lv td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.lv td.v { font: 600 13px var(--f-mono); text-align: right; white-space: nowrap; color: var(--hi); font-variant-numeric: tabular-nums; }
+table.lv tr.sum td { color: var(--ink); font-weight: 600; }
+.then { margin-top: 8px; color: var(--ink); background: var(--panel-2); border-left: 3px solid var(--accent); padding: 6px 9px; border-radius: 0 6px 6px 0; font-size: 13.5px; }
+.then.bad { border-left-color: var(--bad); }
+@media (max-width: 640px) { .pop { position: fixed; left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; max-height: 55vh; } }
+footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 90ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .asm-on [data-asm].focus, .click-bubble.go, .spark.go { animation: none; }
+  [data-asm], [data-part], .blade { transition: none; }
+}
+</style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Усі матеріали</a>
+  <span class="sn-group"><span class="sn-mod">Модуль 1.3–1.4</span><a href="../pull-resistors/">Підтяжка входу</a><a href="../lab/">Стенд ESP32-S3</a></span>
+  <span class="sn-group"><span class="sn-mod">Модуль 1.5</span><a href="../scope-signals/">Теорія: осцилограф</a><a href="../bounce-lab/">ДЗ: брязкіт</a></span>
+  <span class="sn-group"><span class="sn-mod">Модуль 1.6</span><a href="../adc-light/">Теорія: АЦП</a><a href="../ldr-lab/">ДЗ: люксметр</a></span>
+  <span class="sn-group"><span class="sn-mod">Міні-проєкт 1</span><a href="../twilight-relay/" aria-current="page">Сутінковий перемикач</a></span>
+</nav>
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">Міні-проєкт блоку 1 · датчик + актуатор · YD-ESP32-S3</div>
+    <h1>Сутінковий <span>перемикач</span></h1>
+    <p>Фоторезистор вимірює світло. ESP32-S3 читає його через АЦП і за двома порогами вирішує, чи вже темно. Транзистор BC547B перетворює 3,3 В з GPIO на сигнал, зрозумілий 5-вольтовому модулю реле. Реле вмикає лампу. Посуньте «сонце» в панелі зверху. Точки на дротах показують струм: від «+» через деталі до «−» (землі). Кнопка «електрони» в панелі покаже рух самих електронів — він протилежний.</p>
+    <nav class="toc" aria-label="Розділи">
+      <a href="#task"><span>1</span>Завдання</a>
+      <a href="#bench"><span>2</span>Макетка</a>
+      <a href="#schem"><span>3</span>Схема</a>
+      <a href="#hyst"><span>4</span>Гістерезис і код</a>
+      <a href="#parts"><span>5</span>Деталі</a>
+      <a href="#calc"><span>6</span>Розрахунки</a>
+      <a href="#rules"><span>7</span>Як креслити</a>
+      <a href="#build"><span>8</span>Збирання</a>
+      <a href="#debug"><span>9</span>Відладчик</a>
+      <a href="#quiz"><span>10</span>Тест</a>
+    </nav>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Керування симуляцією">
+    <div class="grp">
+      <button class="btn primary" id="play" type="button" title="Пробіл">❚❚ Пауза</button>
+      <div class="light-ctl">
+        <span aria-hidden="true">🌙</span>
+        <input type="range" id="light" min="-1" max="4.5" step="0.01" value="2.2" aria-label="Освітленість">
+        <span aria-hidden="true">☀️</span>
+        <b id="luxOut">158 лк</b>
+      </div>
+      <span class="pill off" id="barState">реле OFF</span>
+    </div>
+    <div class="grp">
+      <span class="lbl-sm">Точки на дротах:</span>
+      <div class="seg" role="group" aria-label="Що показують точки" id="flowMode">
+        <button type="button" data-v="c" aria-pressed="true" title="Умовний струм: від «+» до «−», як стрілки на схемах">струм (+ → −)</button>
+        <button type="button" data-v="e" aria-pressed="false" title="Електрони рухаються навпаки: від «−» до «+»">електрони (− → +)</button>
+        <button type="button" data-v="off" aria-pressed="false">сховати</button>
+      </div>
+      <div class="seg" role="group" aria-label="Швидкість точок" id="flowSpeed">
+        <button type="button" data-v="0.4" aria-pressed="false">повільно</button>
+        <button type="button" data-v="1" aria-pressed="true">1×</button>
+        <button type="button" data-v="2" aria-pressed="false">2×</button>
+      </div>
+      <button class="btn" id="sound" type="button" aria-pressed="false" title="Звук клацання реле">🔈 клац</button>
+    </div>
+  </div>
+
+  <!-- 1. TASK -->
+  <section class="sec" id="task">
+    <div class="sec-head">
+      <h2><span class="n">01</span>Завдання</h2>
+      <p>Короткий переказ уроку 18 з LMS («Міні-проєкт: підключення сенсора і актуатора, відладчик»). Мета: прочитати аналоговий сигнал із подільника напруги (АЦП) і керувати зовнішнім навантаженням через транзисторний ключ (GPIO).</p>
+    </div>
+    <div class="panel">
+      <div class="task">
+        <div>
+          <span class="k">Схемотехніка</span>
+          <h4>Зібрати на макетці</h4>
+          <ol>
+            <li><b>Вхід.</b> Подільник R1 (LDR) + R2 (10 кОм) від шини +3,3 В. Середню точку підключити до <i>GPIO In</i> (АЦП).</li>
+            <li><b>Ключ 3,3 → 5 В.</b> <i>GPIO Out</i> через R3 (10 кОм) на базу BC547B (VT1). Колектор підтягнути до +5 В через R4 (10 кОм) і з'єднати з входом IN модуля реле.</li>
+            <li><b>Вихід.</b> На контакти реле (NO) повісити безпечне низьковольтне навантаження: світлодіод або LED-стрічку на 5/12 В.</li>
+          </ol>
+        </div>
+        <div>
+          <span class="k">Програма</span>
+          <h4>Три кроки в loop()</h4>
+          <ol>
+            <li>Прочитати АЦП з <i>GPIO In</i> (0…4095).</li>
+            <li>Порівняти з порогами (гістерезис): <code>ADC &lt; THRESHOLD_DARK</code> → HIGH на <i>GPIO Out</i> (реле вмикається); <code>ADC &gt; THRESHOLD_LIGHT</code> → LOW (вимикається).</li>
+            <li>Значення між порогами нічого не змінює. Це захищає реле від брязкоту.</li>
+          </ol>
+        </div>
+        <div>
+          <span class="k">Рішення на цій сторінці</span>
+          <h4>Що обрано і чому</h4>
+          <ol>
+            <li><b>GPIO In = GPIO4</b> (ADC1_CH3), як у модулі 1.6. ADC1 працює й з увімкненим Wi-Fi.</li>
+            <li><b>GPIO Out = GPIO2</b>. Він на нижньому ряду плати, поруч із 5-вольтовою зоною. Не strapping-пін, не зайнятий PSRAM чи USB.</li>
+            <li><b>Живлення:</b> ESP32 від ПК (USB), датчик від її піна 3V3. Реле й лампа від модуля живлення Type-C (5 В). Земля в них спільна.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="lesson-fig">
+        <div><b>Схема з уроку</b>DD1 ESP32-S3, R1 LDR, R2…R4 по 10 кОм, VT1 BC547B, U1 модуль реле. Вона перемальована нижче в розділі 3 з живими напругами.</div>
+        <div><b>Модуль реле U1</b>Усередині PNP-транзистор VT1.1, R1.2 1 кОм, червоний і зелений LED, реле RY1.1 з діодом. Вхід IN <i>активний LOW</i>.</div>
+        <div><b>Головна пастка</b>Пряме з'єднання GPIO (3,3 В) з IN 5-вольтового модуля не вимикає реле. Саме тому в схемі є BC547B. Перевірте це в розділі 2: «GPIO2 → IN напряму».</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. BENCH -->
+  <section class="sec" id="bench">
+    <div class="sec-head">
+      <h2><span class="n">02</span>Макетка</h2>
+      <p>Макетна плата 830 точок, модуль живлення Type-C на правому краю, модуль реле на дротах «мама–тато». Натисніть будь-яку деталь, провід або вивід (GPIO4, GPIO2, 3V3, 5V, IN): поруч з'явиться віконце з напругами на виводах, струмом і потужністю. Точки — умовний струм від «+» до «−»: він виходить з «+» модуля U2 чи піна 3V3, проходить деталі і повертається в «−» джерела. Швидкість точок ∝ log(струму).</p>
+    </div>
+    <div class="panel bench" id="benchPanel">
+      <div class="ph"><h3>Макетна плата</h3>
+        <div class="legend" id="flowLegend">
+          <span><i class="dot" style="background:var(--flow)"></i>умовний струм (+→−)</span>
+          <span><i style="border-color:#d93a2f"></i>+5 В</span><span><i style="border-color:#f08a1c"></i>+3,3 В</span><span><i style="border-color:#2b2f33"></i>GND</span>
+          <span><i style="border-color:#e5b80b"></i>АЦП</span><span><i style="border-color:#2f9e44"></i>GPIO2</span><span><i style="border-color:#8b5cd6"></i>IN</span><span><i style="border-color:#e6e6e6"></i>навантаження</span>
+        </div>
+        <button type="button" class="btn" id="asmBtn" aria-pressed="false">🔧 Збираємо крок за кроком</button>
+      </div>
+      <div class="svg-scroll" id="benchSvg"></div>
+      <div class="asm-bar" id="asmBar" hidden>
+        <span class="dots" id="asmDots"></span>
+        <p id="asmText" aria-live="polite"></p>
+        <button type="button" class="btn" id="asmPrev">← Назад</button>
+        <button type="button" class="btn primary" id="asmNext">Далі →</button>
+        <button type="button" class="btn" id="asmExit">Готово</button>
+      </div>
+      <div class="controls">
+        <div class="chips" role="group" aria-label="Готові умови освітлення">
+          <button type="button" class="chip-btn" data-preset="-1">🌙 Ніч · 0,1 лк</button>
+          <button type="button" class="chip-btn" data-preset="0.55">🌆 Сутінки · 3,5 лк</button>
+          <button type="button" class="chip-btn" data-preset="2.2">💡 Кімната · 160 лк</button>
+          <button type="button" class="chip-btn" data-preset="4.2">☀️ День · 16 000 лк</button>
+          <button type="button" class="chip-btn" data-ramp="dusk" aria-pressed="false" title="Світло плавно гасне з 8 до 2,5 лк за 45 с">▶ Повільний захід сонця</button>
+          <button type="button" class="chip-btn" data-ramp="dawn" aria-pressed="false" title="Світло плавно росте з 2,5 до 8 лк за 45 с">▶ Повільний світанок</button>
+        </div>
+        <div class="seg" role="group" aria-label="Живлення ESP32" id="espPower">
+          <button type="button" data-v="usb" aria-pressed="true" title="ESP32 живиться від ПК через USB-C">ESP32: USB від ПК</button>
+          <button type="button" data-v="u2" aria-pressed="false" title="ESP32 живиться від модуля U2: +5 В на пін 5V">ESP32: 5 В від U2 (пін 5V)</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">R<sub>LDR</sub></div><div class="v acc" id="stR">—</div></div>
+        <div class="stat"><div class="k">U GPIO4</div><div class="v hi" id="stU">—</div></div>
+        <div class="stat"><div class="k">АЦП</div><div class="v" id="stRaw">—</div></div>
+        <div class="stat"><div class="k">GPIO2</div><div class="v" id="stGpio">—</div></div>
+        <div class="stat"><div class="k">U на IN</div><div class="v" id="stIn">—</div></div>
+        <div class="stat"><div class="k">Котушка</div><div class="v" id="stCoil">—</div></div>
+        <div class="stat"><div class="k">Струм 5 В</div><div class="v el" id="stI5">—</div></div>
+        <div class="stat"><div class="k">Клацань</div><div class="v" id="stClicks">0</div></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="ph"><h3>Ланцюжок «причина → наслідок»</h3><span class="note">натисніть ланку, щоб підсвітити деталь</span></div>
+      <div class="chain" id="chain"></div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel">
+        <div class="ph"><h3>Що буде, якщо…</h3><span class="note">типові помилки, по одній або разом</span></div>
+        <div class="controls" style="border-top:0">
+          <div class="chips" role="group" aria-label="Експерименти з помилками" id="whatifs">
+            <button type="button" class="chip-btn whatif" data-wi="direct" aria-pressed="false">GPIO2 → IN напряму</button>
+            <button type="button" class="chip-btn whatif" data-wi="noGnd" aria-pressed="false">без спільної GND</button>
+            <button type="button" class="chip-btn whatif" data-wi="noHyst" aria-pressed="false">без гістерезису</button>
+            <button type="button" class="chip-btn whatif" data-wi="lamp" aria-pressed="false">лампа світить на LDR</button>
+            <button type="button" class="chip-btn whatif" data-wi="noDiode" aria-pressed="false">без діода D1.3</button>
+          </div>
+        </div>
+        <div class="wi-text" id="wiText" aria-live="polite"></div>
+      </div>
+      <div class="panel insp" id="insp">
+        <div class="ph"><h3>Деталь</h3><span class="note">клік по деталі на макетці або схемі</span></div>
+        <div class="pb" id="inspBody"></div>
+        <div class="part-list" id="partList" role="group" aria-label="Список деталей"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SCHEMATIC -->
+  <section class="sec" id="schem">
+    <div class="sec-head">
+      <h2><span class="n">03</span>Принципова схема</h2>
+      <p>Та сама схема, що в уроці, перемальована за правилами креслення: сигнал іде зліва направо, плюс угорі, земля внизу. Пунктир — межа модуля U1. Цифри — живі напруги з тієї самої моделі, що й макетка.</p>
+    </div>
+    <div class="panel schem">
+      <div class="ph"><h3>Схема електрична</h3>
+        <div class="legend"><span><i style="border-color:var(--n33)"></i>+3,3 В</span><span><i style="border-color:var(--n5)"></i>+5 В</span><span><i style="border-color:var(--ngnd)"></i>GND</span><span><i style="border-color:var(--nsig)"></i>АЦП</span><span><i style="border-color:var(--nin)"></i>IN</span></div>
+      </div>
+      <div class="svg-scroll" id="schemSvg"></div>
+      <div class="schem-legend legend" id="schemNote">
+        <span>Точка на перетині = з'єднання. Перетин без точки = дроти не з'єднані.</span>
+        <span>Символ ⏚ скрізь означає один і той самий провід GND.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. HYSTERESIS + CODE -->
+  <section class="sec" id="hyst">
+    <div class="sec-head">
+      <h2><span class="n">04</span>Гістерезис і код</h2>
+      <p>Два пороги замість одного. Поки число АЦП між ними, програма нічого не змінює. Запустіть «повільний захід сонця» з гістерезисом і без нього (розділ 2, «Що буде, якщо…»), щоб почути різницю.</p>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <div class="panel plot">
+          <div class="ph"><h3>АЦП за останні 30 с</h3>
+            <div class="legend"><span><i style="border-color:#ffd166"></i>АЦП</span><span><i style="border-color:#6aa8ff"></i>DARK</span><span><i style="border-color:#ff8a5c"></i>LIGHT</span><span><i style="border-color:#4ade80"></i>реле ON</span></div>
+          </div>
+          <canvas id="plot" aria-label="Графік значень АЦП, порогів і стану реле"></canvas>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Пороги</h3><span class="note" id="thrNote"></span></div>
+          <div class="controls" style="border-top:0">
+            <div class="ctl">
+              <label for="thrDark">THRESHOLD_DARK <b id="thrDarkOut">1000</b></label>
+              <input type="range" id="thrDark" min="100" max="3900" step="10" value="1000">
+              <span class="lbl-sm" id="thrDarkLux"></span>
+            </div>
+            <div class="ctl">
+              <label for="thrLight">THRESHOLD_LIGHT <b id="thrLightOut">1500</b></label>
+              <input type="range" id="thrLight" min="150" max="4000" step="10" value="1500">
+              <span class="lbl-sm" id="thrLightLux"></span>
+            </div>
+          </div>
+        </div>
+        <div class="panel loop">
+          <div class="ph"><h3>Петля гістерезису</h3><span class="note">як тригер Шмітта з модуля 1.4, тільки в коді</span></div>
+          <div id="loopSvg"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="ph"><h3>src/main.cpp</h3><span class="note">підсвічено гілку останнього виміру</span></div>
+          <div class="code" id="code"></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Serial · 115200</h3><span class="note">кожні 100 мс</span></div>
+          <div class="serial" id="serial" role="log" aria-live="off"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. PARTS FROM EARLIER LESSONS -->
+  <section class="sec" id="parts">
+    <div class="sec-head">
+      <h2><span class="n">05</span>Деталі, які ви вже знаєте</h2>
+      <p>Кожен вузол схеми вже траплявся в попередніх уроках. Тут коротко, що він робить саме в цьому проєкті. Кнопка «показати» підсвічує деталь на макетці та схемі.</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <!-- 6. CALCULATIONS -->
+  <section class="sec" id="calc">
+    <div class="sec-head">
+      <h2><span class="n">06</span>Розрахунки</h2>
+      <p>Числа рахуються з поточного стану симуляції. Змініть світло або увімкніть помилку, і таблиця оновиться.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ph"><h3>Струми й перевірки</h3><span class="note" id="calcState"></span></div>
+        <div class="tbl-wrap"><table class="tbl" id="calcTbl"></table></div>
+      </div>
+      <div class="panel prose">
+        <div class="ph"><h3>Формули</h3></div>
+        <div class="pb">
+          <p><b>Подільник</b> (LDR зверху, R2 знизу):</p>
+          <div class="formula">U_GPIO4 = 3,3 В · R2 / (R_LDR + R2)
+RAW     ≈ U_GPIO4 / 3,1 В · 4095      (ослаблення 11 дБ)</div>
+          <p><b>База BC547B.</b> Струм обмежує R3:</p>
+          <div class="formula">I_Б = (3,3 − 0,7) / 10 кОм ≈ 0,26 мА</div>
+          <p><b>Колектор</b> приймає два струми: з R4 і з бази PNP модуля через R1.2:</p>
+          <div class="formula">I_R4  = (5 − 0,09) / 10 кОм ≈ 0,49 мА
+I_Б,PNP = (5 − 0,75 − 0,09) / 1 кОм ≈ 4,2 мА
+I_К   ≈ 4,7 мА   →   β_прим = I_К / I_Б ≈ 18</div>
+          <p>BC547B має h<sub>FE</sub> 200…450, а для ключа треба лише ~18. Запас у 10+ разів: транзистор гарантовано в насиченні, U<sub>КЕ</sub> ≈ 0,1 В.</p>
+          <p><b>Чому не напряму:</b> PNP модуля відкритий, поки U<sub>IN</sub> &lt; 5 − 0,7 = 4,3 В. GPIO дає максимум 3,3 В:</p>
+          <div class="formula">U_ЕБ = 5 − 3,3 = 1,7 В > 0,7 В   →   PNP відкритий, реле НЕ вимкнеться
+I_Б,PNP = (5 − 0,75 − 3,3) / 1 кОм ≈ 0,95 мА  (тече В пін GPIO)</div>
+          <p><b>Котушка:</b> 5 В / 70 Ом ≈ 70 мА, 0,35 Вт. Це в 3,5 раза більше за рекомендовані ~20 мА на пін GPIO. Тому котушку живить транзистор модуля, а не ESP32.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. DRAWING RULES -->
+  <section class="sec" id="rules">
+    <div class="sec-head">
+      <h2><span class="n">07</span>Як креслити: схема, макетка, плата</h2>
+      <p>Правила, за якими намальовано обидва креслення вище. Ті самі правила потім переходять на друковану плату (PCB).</p>
+    </div>
+    <div class="panel">
+      <div class="rules">
+        <div>
+          <h4>Принципова схема</h4>
+          <ol>
+            <li><b>Сигнал зліва направо:</b> датчик → MCU → ключ → реле → навантаження. Схему читаєш, як речення.</li>
+            <li><b>Плюс угорі, земля внизу.</b> Струм на кресленні тече згори вниз.</li>
+            <li><b>Символи живлення</b> (+5V, +3.3V, ⏚) замість довгих шин. Менше дротів і жодних зайвих перетинів.</li>
+            <li><b>Точка на кожному Т-з'єднанні.</b> Хрестоподібних з'єднань уникаємо: перетин без точки означає «не з'єднано».</li>
+            <li><b>Позначення + номінал</b> біля кожної деталі: R3 10 кОм, VT1 BC547B. Нумерація всередині модуля з крапкою: R1.2, D1.3.</li>
+            <li><b>Межа модуля пунктиром</b>, на межі підписані його виводи: VCC, IN, GND, NO, COM, NC.</li>
+          </ol>
+        </div>
+        <div>
+          <h4>Макетка</h4>
+          <ol>
+            <li><b>Кольори дротів мають зміст:</b> <span class="sw" style="background:#d93a2f"></span>+5 В, <span class="sw" style="background:#f08a1c"></span>+3,3 В, <span class="sw" style="background:#2b2f33"></span>GND, <span class="sw" style="background:#e5b80b"></span>аналог, <span class="sw" style="background:#2f9e44"></span>керування, <span class="sw" style="background:#8b5cd6"></span>IN, <span class="sw" style="background:#eee"></span>навантаження. 3,3 і 5 В — <i>різні</i> кольори.</li>
+            <li><b>Дві зони:</b> угорі 3,3 В (датчик), унизу 5 В (ключ, реле, лампа). Шини не змішуються.</li>
+            <li><b>Деталі в порядку сигналу,</b> як на схемі: LDR → GPIO4, GPIO2 → R3 → VT1 → R4 → IN.</li>
+            <li><b>Дроти короткі, по сітці, з прямими кутами,</b> без перетинів і не над мікросхемами.</li>
+            <li><b>Аналоговий провід</b> (жовтий) короткий і подалі від котушки реле та її дротів.</li>
+            <li><b>Спільна земля</b> одним дротом з кожної плати на шину «−».</li>
+          </ol>
+        </div>
+        <div>
+          <h4>Коли переносите на плату</h4>
+          <ol>
+            <li><b>Діод D1.3 впритул до котушки:</b> петля сплеску має бути найкоротшою.</li>
+            <li><b>Ширина доріжок за струмом:</b> 0,25 мм вистачить для сигналів і 70 мА котушки. Доріжкам до контактів реле під кілька ампер потрібні міліметри або полігони.</li>
+            <li><b>Земля:</b> суцільний полігон. Повернення струму котушки не повинно йти під аналоговим входом. Землю датчика ведуть до GND мікроконтролера окремо («зірка»).</li>
+            <li><b>Конденсатори:</b> 100 нФ біля АЦП-входу та 10…100 мкФ на шині 5 В біля реле.</li>
+            <li><b>Зазор і проріз</b> між низьковольтною частиною та контактами реле, якщо там колись буде мережа. Для 230 В це міліметри повітря й проріз у платі. На макетці мережа заборонена.</li>
+            <li><b>Шовкографія:</b> «+», полярність LED і діода, назви роз'ємів, ключ 1-го піна.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. BUILD -->
+  <section class="sec" id="build">
+    <div class="sec-head">
+      <h2><span class="n">08</span>Збирання і перевірка</h2>
+      <p>Список деталей, таблиця з'єднань (клік по рядку підсвічує провід) і перевірки перед першим увімкненням.</p>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <div class="panel">
+          <div class="ph"><h3>Таблиця з'єднань</h3><span class="note">стовпці 1…63, ряди a…j</span></div>
+          <div class="tbl-wrap"><table class="tbl" id="netTbl"></table></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Якщо не працює</h3></div>
+          <div class="tbl-wrap"><table class="tbl" id="troubleTbl"></table></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="ph"><h3>Деталі (BOM)</h3></div>
+          <div class="tbl-wrap"><table class="tbl" id="bomTbl" style="min-width:420px"></table></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Перед першим увімкненням</h3><span class="note" id="checkProg">0 / 7</span></div>
+          <ul class="checks" id="checks"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. DEBUGGER -->
+  <section class="sec" id="debug">
+    <div class="sec-head">
+      <h2><span class="n">09</span>Відладчик</h2>
+      <p>У назві уроку є слово «відладчик». ESP32-S3 має вбудований USB-JTAG, тож окремий програматор не потрібен. Достатньо того самого USB-кабелю, через який іде Serial.</p>
+    </div>
+    <div class="grid2 even">
+      <div class="panel prose">
+        <div class="ph"><h3>Налаштування PlatformIO</h3></div>
+        <div class="pb">
+          <p>Додайте у <code>platformio.ini</code> проєкту:</p>
+          <pre class="cmd">debug_tool       = esp-builtin     ; вбудований USB-JTAG ESP32-S3
+debug_init_break = tbreak setup    ; зупинитися на початку setup()
+build_type       = debug           ; без оптимізацій — змінні видно</pre>
+          <p>Кабель — у порт, підписаний <b>USB</b> (нативний USB чипа, GPIO19/20), а не <b>COM</b> (міст USB-UART). Далі <kbd>F5</kbd> або <i>Run and Debug → PIO Debug</i>.</p>
+          <ol>
+            <li>Поставте точку зупинки на рядок <code>if (adc &lt; kThresholdDark)</code>.</li>
+            <li>У <i>Watch</i> додайте <code>adc</code> і <code>relayOn</code>.</li>
+            <li>Накрийте LDR долонею і натисніть <i>Continue</i>. Побачите, як <code>adc</code> падає нижче порогу.</li>
+            <li>Умовна точка зупинки (<i>Edit Breakpoint → Expression</i>): <code>adc &lt; 1000</code>. Програма зупиниться лише в момент «стемніло».</li>
+          </ol>
+        </div>
+      </div>
+      <div class="panel prose">
+        <div class="ph"><h3>Що варто знати</h3></div>
+        <div class="pb">
+          <div class="callout warn"><b>Точка зупинки зупиняє код, а не фізику.</b> Поки процесор стоїть, GPIO2 тримає останній рівень. Реле лишається, як було, лампа світить, LDR далі реагує на світло. Для реального пристрою (мотор, нагрівач) це важливо: зупинка в невдалий момент залишає навантаження ввімкненим.</div>
+          <p><b>Serial чи відладчик?</b> <code>Serial.printf</code> показує історію (як змінювалось <code>adc</code>), але сповільнює цикл і не дає зупинитися. Відладчик дає зупинку, перегляд будь-якої змінної й покрокове виконання, але без історії. Їх використовують разом.</p>
+          <p><b>Logpoint</b> (<i>Add Logpoint</i>) друкує вираз без зміни коду, наприклад <code>adc={adc}</code>. Це ніби <code>printf</code> без перекомпіляції.</p>
+          <p><b>Якщо порт зник:</b> після прошивки чип перезавантажується, і USB-пристрій з'являється заново. Зачекайте 2–3 с або натисніть RST.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. QUIZ -->
+  <section class="sec" id="quiz">
+    <div class="sec-head">
+      <h2><span class="n">10</span>Самоперевірка</h2>
+      <p>Після кожної відповіді буде пояснення та розділ, де про це йдеться. <span class="score" id="qzScore"></span> <button type="button" class="btn" id="qzRetry" hidden>Повторити помилки</button></p>
+    </div>
+    <div class="panel quiz" id="qz"></div>
+  </section>
+
+  <footer>
+    <p>Модель спрощена: LDR як у модулі 1.6 (≈15 кОм при 10 лк), BC547B з U<sub>БЕ</sub> 0,68 В і U<sub>КЕ нас</sub> 0,09 В, PNP модуля з β ≈ 150, котушка реле 70 Ом (спрацьовує від 3,75 В, відпускає нижче 0,5 В), шум АЦП ±12 одиниць. Справжні деталі мають розкид, тому пороги підбирайте на своїй макетці за Serial. Електрони в мідному дроті дрейфують зі швидкістю міліметри за секунду. Точки на анімації показують напрям і відносну силу струму, а не справжню швидкість.</p>
+    <p>Схема з уроку 18 курсу Embedded Development (Beetroot Academy). Опис модуля реле — з <a href="https://emb-hardware-lib-a9b74a.pages.beetroot.academy/components/relay-module/">бібліотеки компонентів курсу</a>.</p>
+  </footer>
+</div>
+<div class="pop" id="pop" role="dialog" aria-labelledby="popT" hidden>
+  <button class="pop-x" id="popX" type="button" aria-label="Закрити">×</button>
+  <div class="pop-role" id="popRole"></div>
+  <h4 id="popT"></h4>
+  <div id="popLive"></div>
+  <p class="what" id="popWhat"></p>
+</div>
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const num = (x, d) => x.toFixed(d).replace('.', ',').replace('-', '−');
+function rng(seed) {
+  let s = seed >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+const rand = rng(20261005);
+function fI(a) {
+  a = Math.abs(a);
+  if (a < 1e-7) return '0 мА';
+  if (a < 1e-4) return num(a * 1e6, a < 1e-5 ? 1 : 0) + ' мкА';
+  if (a < 1e-2) return num(a * 1e3, 2) + ' мА';
+  return num(a * 1e3, 1) + ' мА';
+}
+const fV = v => Number.isNaN(v) ? '? В (висить)' : num(v, v < 1 ? 3 : 2) + ' В';
+const fR = r => r >= 1e6 ? num(r / 1e6, 2) + ' МОм' : r >= 1e3 ? num(r / 1e3, r < 1e4 ? 2 : r < 1e5 ? 1 : 0) + ' кОм' : Math.round(r) + ' Ом';
+const fLux = l => l < 1 ? num(l, 2) : l < 10 ? num(l, 1) : l < 1000 ? String(Math.round(l)) : Math.round(l).toLocaleString('uk-UA');
+
+/* =====================================================================
+   Electrical model. Values: BC547B and module PNP in saturation, relay coil 70 Ω.
+   ===================================================================== */
+const E = {
+  V5: 5.0, V33: 3.3, R2: 10e3, R3: 10e3, R4: 10e3, R11: 1e3, R12: 1e3, R13: 1e3, R5: 220, RCOIL: 70,
+  VBE: 0.68, VCESAT: 0.09, VEB: 0.75, VECSAT: 0.15, BETA_P: 150,
+  VF_RED: 1.9, VF_GRN: 2.2, VF_LOAD: 3.0, PICKUP: 3.75, DROPOUT: 0.5,
+  LAMP_LUX: 6, LDR_TAU: 250, NOISE: 12, PERIOD: 100,
+  I_ESP: 0.06,                                          // ESP32-S3 at 240 MHz without Wi-Fi, from the 5V pin
+};
+// st = { lux, on: GPIO2 level, arm: armature before this solve, wi: what-if flags }
+function circuit(st) {
+  const wi = st.wi, gnd = !wi.noGnd;
+  const fromU2 = S.espPower === 'u2', espOn = !(fromU2 && !gnd);   // fed from U2 without GND → no supply at all
+  const rl = clamp(15000 * Math.pow(10 / st.lux, 0.7), 150, 5e6);
+  const iDiv = gnd && espOn ? E.V33 / (rl + E.R2) : 0;
+  const uAdc = !espOn ? 0 : gnd ? iDiv * E.R2 : E.V33;  // no ground → no current → node floats up to 3V3
+  const vg = st.on && espOn ? E.V33 : 0;
+  let ib = 0, ir4 = 0, ibp = 0, vin, vb, npn = false;
+  if (!wi.direct) {
+    ib = gnd && vg > E.VBE ? (vg - E.VBE) / E.R3 : 0;   // base current returns to ESP32 only through common GND
+    npn = ib > 0;
+    vb = npn ? E.VBE : gnd ? 0 : NaN;
+    vin = npn ? E.VCESAT : E.V5;                        // R4 pulls IN up to 5 V when VT1 is off
+    if (npn) { ir4 = (E.V5 - vin) / E.R4; ibp = (E.V5 - E.VEB - vin) / E.R12; }
+  } else {
+    vb = NaN;
+    vin = gnd ? vg : NaN;                               // GPIO drives IN directly: 0 or 3.3 V
+    ibp = gnd ? Math.max(0, (E.V5 - E.VEB - vg) / E.R12) : 0;
+  }
+  const iCoil = Math.min(E.BETA_P * ibp, (E.V5 - E.VECSAT) / E.RCOIL);
+  const vCoil = iCoil * E.RCOIL;
+  let arm = st.arm;                                     // relay's own hysteresis: pick-up / drop-out
+  if (!arm && vCoil >= E.PICKUP) arm = true;
+  else if (arm && vCoil < E.DROPOUT) arm = false;
+  const iGrn = Math.max(0, (vCoil - E.VF_GRN) / E.R13);
+  const iRed = (E.V5 - E.VF_RED) / E.R11;
+  const iLoad = arm ? (E.V5 - E.VF_LOAD) / E.R5 : 0;
+  const iRelGnd = iCoil + iGrn + iRed, iRelVcc = ibp + iRelGnd;
+  // ESP32 fed from U2: the on-board LDO passes its own consumption plus what leaves its pins (divider, base).
+  const iEsp = fromU2 && espOn ? E.I_ESP + iDiv + ib : 0;
+  const i5 = ir4 + iRelVcc + iLoad + iEsp;
+  const iGpio = wi.direct ? -ibp : ib;                  // + = out of the pin
+  return { lux: st.lux, rl, gnd, iDiv, uAdc, vg, ib, ir4, ibp, vin, vb, npn, pnp: ibp > 0, iCoil, vCoil, arm,
+    iGrn, iRed, iLoad, iRelGnd, iRelVcc, i5, iGpio, iEsp, espOn, direct: wi.direct, on: st.on };
+}
+
+const S = {
+  light: 2.2, kDark: 1000, kLight: 1500,
+  wi: { direct: false, noGnd: false, noHyst: false, lamp: false, noDiode: false },
+  playing: true, t: 0, next: 0,
+  relayOn: false, adc: 0, branch: 'start', arm: false,
+  clicks: 0, clickT: [], hist: [], fly: 0, lastCoil: 0, ramp: null, lampLux: 0,
+  flowMode: 'c', flowSpeed: 1, sound: false, sel: null, espPower: 'usb',
+};
+// Lamp light reaches the LDR with the LDR's own lag (tens to hundreds of ms).
+const luxAt = () => 10 ** S.light + (S.wi.lamp ? S.lampLux : 0);
+const kMid = () => (S.kDark + S.kLight) >> 1;
+let C = circuit({ lux: luxAt(), on: false, arm: false, wi: S.wi });
+
+function update() {
+  const c = circuit({ lux: luxAt(), on: S.relayOn, arm: S.arm, wi: S.wi });
+  if (c.arm !== S.arm) { S.arm = c.arm; S.clicks++; S.clickT.push(S.t); clickFx(c.arm); }
+  if (S.lastCoil > 0.01 && c.iCoil < 1e-6) {           // coil just switched off
+    if (S.wi.noDiode) sparkFx(); else S.fly = S.lastCoil;
+  }
+  S.lastCoil = c.iCoil;
+  C = c;
+}
+// One loop() pass that is due: analogRead → thresholds → digitalWrite.
+function sample() {
+  if (!C.espOn) {                                       // no supply: the firmware is not running, GPIO2 is not driven
+    S.relayOn = false; S.adc = 0; S.branch = 'dead';
+    S.hist.push({ t: S.t, raw: 0, on: false }); dirty.plot = dirty.loop = true;
+    return;
+  }
+  const raw = clamp(Math.round(C.uAdc / 3.1 * 4095 + (rand() * 2 - 1) * E.NOISE), 0, 4095);
+  const prev = S.relayOn;
+  S.adc = raw;
+  if (S.wi.noHyst) { S.relayOn = raw < kMid(); S.branch = 'single'; }
+  else if (raw < S.kDark) { S.relayOn = true; S.branch = 'dark'; }
+  else if (raw > S.kLight) { S.relayOn = false; S.branch = 'light'; }
+  else S.branch = 'mid';
+  S.hist.push({ t: S.t, raw, on: S.relayOn });
+  if (S.hist.length > 420) S.hist.splice(0, 100);
+  serialPush(raw, S.relayOn, S.relayOn !== prev);
+  codeHeat();
+  dirty.plot = dirty.loop = true;
+}
+function advance(ms) {
+  if (S.ramp) {
+    S.light = clamp(S.light + S.ramp.rate * ms / 1000, -1, 4.5);
+    if ((S.ramp.rate < 0 && S.light <= S.ramp.to) || (S.ramp.rate > 0 && S.light >= S.ramp.to)) { S.light = S.ramp.to; stopRamp(); }
+    syncLight();
+  }
+  S.lampLux += ((S.arm ? E.LAMP_LUX : 0) - S.lampLux) * (1 - Math.exp(-ms / E.LDR_TAU));
+  const end = S.t + ms;
+  while (S.next <= end) { S.t = S.next; update(); sample(); update(); S.next += E.PERIOD; }
+  S.t = end;
+  update();
+  if (S.fly > 0) { S.fly *= Math.exp(-ms / 450); if (S.fly < 2e-5) S.fly = 0; }
+  while (S.clickT.length && S.clickT[0] < S.t - 30000) S.clickT.shift();
+}
+
+/* =====================================================================
+   Breadboard. Geometry follows the Wokwi full breadboard (as in the module 1.6 page).
+   ===================================================================== */
+const P = 13.6, X0 = 34;
+const cx = r => +(X0 + (r - 1) * P).toFixed(2);
+const LY = { a: 250, b: 263.6, c: 277.2, d: 290.8, e: 304.4, f: 340, g: 353.6, h: 367.2, i: 380.8, j: 394.4 };
+const RY = { tn: 206, tp: 220, bp: 424, bn: 438 };
+const J1 = ['3V3.1', '3V3.2', 'RST', '4', '5', '6', '7', '15', '16', '17', '18', '8', '3', '46', '9', '10', '11', '12', '13', '14', '5V', 'GND.1'];
+const J3 = ['GND.2', 'TX', 'RX', '1', '2', '42', '41', '40', '39', '38', '37', '36', '35', '0', '45', '48', '47', '21', '20', '19', 'GND.3', 'GND.4'];
+const RM = { x: 495, y: 492, w: 280, h: 150, px: 510, vcc: 522, gnd: 535.6, in: 549.2, tx: 770, no: 527, com: 567, nc: 607 };
+const PM = { x: 736, y: 182, w: 200, h: 278, px: cx(57) };
+const WC = { red: '#d93a2f', orange: '#f08a1c', black: 'var(--w-black)', yellow: '#e5b80b', green: '#2f9e44', violet: '#8b5cd6', white: '#e9e9e9' };
+const pd = pts => 'M' + pts.map(p => p.map(v => +(+v).toFixed(1)).join(' ')).join(' L');
+
+// Wire table: one entry per jumper — drawn on the breadboard, listed in section 8, shown in the inspector.
+const NET = [
+  { id: 'W1', asm: 2, color: 'orange', net: '+3,3 В', flow: 'div', from: 'DD1 3V3 · J1, стовп. 22, ряд a', to: 'верхня шина +', note: 'Верхня пара шин тепер живиться від стабілізатора ESP32.', pts: [[cx(22), LY.a], [cx(22), RY.tp]] },
+  { id: 'W2', asm: 2, color: 'black', net: 'GND', flow: 'div', from: 'DD1 GND · J1, стовп. 1, ряд a', to: 'верхня шина −', note: 'Земля датчика повертається до ESP32.', pts: [[cx(1), LY.a], [cx(1), 213], [cx(3), 213], [cx(3), RY.tn]], gnd: 1 },
+  { id: 'W3', asm: 2, color: 'black', net: 'GND', flow: 'bnL', from: 'DD1 GND · J3, стовп. 1, ряд j', to: 'нижня шина −', note: 'Спільна земля з 5-вольтовою частиною. Без нього не відкриється VT1.', pts: [[cx(1), LY.j], [cx(1), 431], [cx(3), 431], [cx(3), RY.bn]], gnd: 1 },
+  { id: 'W4', asm: 3, color: 'orange', net: '+3,3 В', flow: 'div', from: 'верхня шина + · стовп. 25', to: '25a', note: 'Живлення верхнього кінця LDR.', pts: [[cx(25), RY.tp], [cx(25), LY.a]] },
+  { id: 'W5', asm: 3, color: 'black', net: 'GND', flow: 'div', from: '33a', to: 'верхня шина −', note: 'Нижній кінець R2 на землю.', pts: [[cx(33), LY.a], [cx(33), RY.tn]] },
+  { id: 'W6', asm: 4, color: 'yellow', net: 'АЦП', flow: null, from: 'DD1 GPIO4 · J1, стовп. 19, ряд a', to: '28a', note: 'Середня точка подільника. Струм тут майже нуль: вхід АЦП має великий опір. Провід короткий і далеко від реле.', pts: [[cx(19), LY.a], [cx(19), 184], [cx(19) + 12, 172], [cx(28) - 12, 172], [cx(28), 184], [cx(28), LY.a]] },
+  { id: 'W7', asm: 5, color: 'green', net: 'GPIO2', flow: 'ib', from: 'DD1 GPIO2 · J3, стовп. 18, ряд j', to: '26j', note: 'Керування: до R3 і бази VT1.', pts: [[cx(18), LY.j], [cx(18), 401], [cx(26), 401], [cx(26), LY.j]], key: 1 },
+  { id: 'W8', asm: 5, color: 'black', net: 'GND', flow: 'e', from: '30j', to: 'нижня шина −', note: 'Емітер VT1 на землю.', pts: [[cx(30), LY.j], [cx(30), RY.bn]], key: 1 },
+  { id: 'W9', asm: 6, color: 'red', net: '+5 В', flow: 'r4', from: '37j', to: 'нижня шина +', note: 'Верхній кінець R4 — саме на 5 В, не на 3,3 В.', pts: [[cx(37), LY.j], [cx(37), RY.bp]], key: 1 },
+  { id: 'W10', asm: 7, color: 'violet', net: 'IN', flow: 'inw', from: '32j', to: 'U1 IN', note: 'Колектор VT1 → вхід модуля. Провід «мама–тато».', pts: [[cx(32), LY.j], [cx(32), RM.in], [RM.px, RM.in]], key: 1 },
+  { id: 'W11', asm: 7, color: 'red', net: '+5 В', flow: 'vccw', from: 'нижня шина + · стовп. 34', to: 'U1 VCC', note: 'Живлення модуля реле. «Мама–тато».', pts: [[cx(34), RY.bp], [cx(34), RM.vcc], [RM.px, RM.vcc]] },
+  { id: 'W12', asm: 7, color: 'black', net: 'GND', flow: 'rgnd', from: 'нижня шина − · стовп. 33', to: 'U1 GND', note: 'Земля модуля реле. «Мама–тато».', pts: [[cx(33), RY.bn], [cx(33), RM.gnd], [RM.px, RM.gnd]] },
+  { id: 'W13', asm: 8, color: 'red', net: '+5 В', flow: 'load', from: 'нижня шина + · стовп. 46', to: 'U1 COM', note: 'Спільний контакт реле. Кінець дроту затискається гвинтом.', pts: [[cx(46), RY.bp], [cx(46), 466], [805, 466], [805, RM.com], [RM.tx, RM.com]] },
+  { id: 'W14', asm: 8, color: 'white', net: 'навантаження', flow: 'load', from: 'U1 NO', to: '42j', note: 'Комутований +5 В. Є, лише коли реле ввімкнене.', pts: [[RM.tx, RM.no], [790, RM.no], [790, 476], [cx(42), 476], [cx(42), LY.j]] },
+  { id: 'W16', asm: 2, color: 'red', net: '+5 В', flow: 'esp5', opt: 'u2', from: 'нижня шина + · стовп. 4', to: 'DD1 5V · J1, стовп. 2, ряд a', note: 'Лише в режимі «ESP32: 5 В від U2». Довгий дріт обходить макетку зліва, щоб не лежати над платою і не перетинати дроти GND. Стабілізатор плати робить з цих 5 В свої 3,3 В.', pts: [[cx(4), RY.bp], [cx(4), 458], [-8, 458], [-8, 180], [68, 180], [68, 236], [cx(2), 236], [cx(2), LY.a]] },
+  { id: 'W15', asm: 8, color: 'black', net: 'GND', flow: 'lgnd', from: '47j', to: 'нижня шина −', note: 'Катод LED1 на землю.', pts: [[cx(47), LY.j], [cx(47), RY.bn]] },
+];
+// Electron paths, drawn in the conventional direction (+ → −). Current per key: FI below.
+const BB_FLOWS = [
+  ['div', [[cx(22), LY.a], [cx(22), RY.tp], [cx(25), RY.tp], [cx(25), LY.a], [cx(25), LY.c], [cx(28), LY.c], [cx(28), LY.e], [cx(33), LY.e], [cx(33), LY.a], [cx(33), RY.tn], [cx(3), RY.tn], [cx(3), 213], [cx(1), 213], [cx(1), LY.a]]],
+  ['ib', [[cx(18), LY.j], [cx(18), 401], [cx(26), 401], [cx(26), LY.j], [cx(26), LY.f], [cx(31), LY.f], [cx(31), LY.h], [cx(30), LY.h - 2]]],
+  ['ce', [[cx(32), LY.h + 2], [cx(30), LY.h + 2]]],
+  ['e', [[cx(30), LY.h], [cx(30), LY.j], [cx(30), RY.bn]]],
+  ['bnL', [[cx(30), RY.bn], [cx(3), RY.bn], [cx(3), 431], [cx(1), 431], [cx(1), LY.j]]],
+  ['bnR1', [[cx(30), RY.bn], [cx(33), RY.bn]]],
+  ['rgnd', [[RM.px, RM.gnd], [cx(33), RM.gnd], [cx(33), RY.bn]]],
+  ['bnR2', [[cx(33), RY.bn], [cx(47), RY.bn]]],
+  ['lgnd', [[cx(47), LY.f], [cx(47), LY.j], [cx(47), RY.bn]]],
+  ['bnR3', [[cx(47), RY.bn], [PM.px, RY.bn]]],
+  ['bp1', [[PM.px, RY.bp], [cx(46), RY.bp]]],
+  ['load', [[cx(46), RY.bp], [cx(46), 466], [805, 466], [805, RM.com], [RM.tx, RM.com]]],
+  ['load', [[RM.tx, RM.no], [790, RM.no], [790, 476], [cx(42), 476], [cx(42), LY.j], [cx(42), LY.h], [cx(46), LY.h], [cx(46), LY.f], [cx(47), LY.f]]],
+  ['bp2', [[cx(46), RY.bp], [cx(37), RY.bp]]],
+  ['r4', [[cx(37), RY.bp], [cx(37), LY.j], [cx(37), LY.f], [cx(32), LY.f], [cx(32), LY.h]]],
+  ['bp3', [[cx(37), RY.bp], [cx(34), RY.bp]]],
+  ['vccw', [[cx(34), RY.bp], [cx(34), RM.vcc], [RM.px, RM.vcc]]],
+  ['bp4', [[cx(34), RY.bp], [cx(4), RY.bp]]],
+  ['esp5', [[cx(4), RY.bp], [cx(4), 458], [-8, 458], [-8, 180], [68, 180], [68, 236], [cx(2), 236], [cx(2), LY.a]]],
+  ['inw', [[RM.px, RM.in], [cx(32), RM.in], [cx(32), LY.j], [cx(32), LY.h]]],
+  ['direct', [[RM.px, RM.in], [cx(18), RM.in], [cx(18), LY.j]]],
+];
+const FI = {
+  div: () => C.iDiv, ib: () => C.ib, ce: () => C.ir4 + C.ibp * (C.direct ? 0 : 1),
+  e: () => C.direct ? 0 : C.ib + C.ir4 + C.ibp, bnL: () => C.ib - (C.direct ? C.ibp : 0) - C.iEsp, bnR1: () => C.ir4 + C.ibp + C.iEsp,
+  rgnd: () => C.iRelGnd, bnR2: () => C.ir4 + C.ibp + C.iEsp + C.iRelGnd, lgnd: () => C.iLoad, bnR3: () => C.i5, bp1: () => C.i5,
+  load: () => C.iLoad, bp2: () => C.i5 - C.iLoad, r4: () => C.ir4, bp3: () => C.iRelVcc + C.iEsp, vccw: () => C.iRelVcc, bp4: () => C.iEsp, esp5: () => C.iEsp,
+  inw: () => C.direct ? 0 : C.ibp, direct: () => C.direct ? C.ibp : 0,
+  vccbus: () => C.ibp + C.iCoil + C.iGrn, pb: () => C.ibp, pc: () => C.iCoil + C.iGrn, coil: () => C.iCoil,
+  coilfly: () => C.iCoil + S.fly, fly: () => S.fly, grn: () => C.iGrn, bus2: () => C.iCoil + C.iGrn, red: () => C.iRed,
+  bus3: () => C.iRelGnd, demo: () => 0.01,
+};
+
+function wireSVG(w) {
+  const d = pd(w.pts), a = w.pts[0], b = w.pts[w.pts.length - 1], col = WC[w.color];
+  return `<g data-part="${w.id}" data-asm="${w.asm}" id="g${w.id}"><path class="jw-o" d="${d}"/><path class="jw" d="${d}" stroke="${col}"/>` +
+    `<circle class="jend" cx="${a[0]}" cy="${a[1]}" r="2.6" fill="${col}"/><circle class="jend" cx="${b[0]}" cy="${b[1]}" r="2.6" fill="${col}"/></g>`;
+}
+const BANDS = { '10k': ['#7a4a1d', '#141414', '#f07a10', '#c9a23a'], '220': ['#c0392b', '#c0392b', '#7a4a1d', '#c9a23a'] };
+function resistorSVG(part, asm, c1, c2, y, code, label, ly) {
+  const x1 = cx(c1), x2 = cx(c2), m = (x1 + x2) / 2, bw = 40, b0 = m - bw / 2;
+  const bands = BANDS[code].map((c, i) => `<rect x="${(b0 + [7, 13, 19, 31][i]).toFixed(1)}" y="${y - 6.5}" width="${i === 3 ? 3 : 4}" height="13" fill="${c}"/>`).join('');
+  return `<g data-part="${part}" data-asm="${asm}"><path class="leg" d="M${x1} ${y} H${b0} M${b0 + bw} ${y} H${x2}"/>` +
+    `<rect class="res-body" x="${b0}" y="${y - 6.5}" width="${bw}" height="13" rx="5"/>${bands}<text class="part-t" x="${m}" y="${ly}">${label}</text></g>`;
+}
+function esp32SVG() {
+  const lab = n => n.replace(/\.\d$/, '');
+  const k1 = new Set(['3V3.1', '4', 'GND.1']), k3 = new Set(['2', 'GND.4']);
+  let pins = '';
+  J1.forEach((p, i) => { const x = cx(22 - i), k = k1.has(p); pins += `<rect${p === '5V' ? ' id="pin5v"' : ''} class="hdr-pin${k ? ' key' : ''}" x="${x - 3}" y="${LY.b - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.b + 12}"${k ? ' style="fill:var(--hi)"' : ''}>${lab(p)}</text>`; });
+  J3.forEach((p, i) => { const x = cx(22 - i), k = k3.has(p); pins += `<rect class="hdr-pin${k ? ' key' : ''}" x="${x - 3}" y="${LY.i - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.i - 7}"${k ? ' style="fill:var(--hi)"' : ''}>${lab(p)}</text>`; });
+  const hitJ1 = (col, id) => `<rect class="hit" data-part="${id}" x="${cx(col) - 6.5}" y="${LY.b - 7.5}" width="13" height="23" rx="2"/>`;
+  const hitJ3 = (col, id) => `<rect class="hit" data-part="${id}" x="${cx(col) - 6.5}" y="${LY.i - 15.5}" width="13" height="23" rx="2"/>`;
+  pins += hitJ1(19, 'P:GPIO4') + hitJ1(22, 'P:3V3') + hitJ1(2, 'P:5V') + hitJ3(18, 'P:GPIO2');
+  let zig = 'M296 286';
+  for (let k = 0; k < 7; k++) zig += ' h22 v5 h-22 v5';
+  return `<g data-part="DD1" data-asm="2">
+    <rect class="usb" x="12" y="284" width="20" height="24" rx="3"/><rect class="usb" x="12" y="336" width="20" height="24" rx="3"/>
+    <rect class="pcb" x="25" y="${LY.b - 8}" width="304" height="${LY.i - LY.b + 16}" rx="6"/>${pins}
+    <rect class="shield" x="150" y="281" width="142" height="82" rx="3"/>
+    <text class="shield-t" x="221" y="318">ESP32-S3</text><text class="shield-t" x="221" y="331" style="font-size:7px;font-weight:500">WROOM-1 · N16R8</text>
+    <path d="${zig}" fill="none" stroke="#c9a03a" stroke-width="1.6"/>
+    <rect x="52" y="292" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="311">BOOT</text>
+    <rect x="52" y="334" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="353">RST</text>
+    <text class="pcb-big" x="82" y="322">DD1</text><text class="pcb-big" x="82" y="336">YD-ESP32-S3</text>
+  </g>`;
+}
+function powerSVG() {
+  const { x, y, w, h, px } = PM;
+  const pin = (yy, sgn) => `<rect class="hdr-pin" x="${px - 3.5}" y="${yy - 3.5}" width="7" height="7"/><text class="pm-t" x="${px - 12}" y="${yy + 3}">${sgn}</text>`;
+  const hdr = (yy, cap, note) => [0, 1, 2].map(i => `<rect class="hdr-pin" x="${px - 9.6 + i * 13.6}" y="${yy - 3}" width="6" height="6"/>`).join('') +
+    (cap ? `<rect class="jumper" x="${px - 12.6}" y="${yy - 6}" width="25.6" height="12" rx="2"/>` : '') +
+    `<text class="pm-t" x="${px - 6.6}" y="${yy - 9}">5V</text><text class="pm-t" x="${px + 20.6}" y="${yy - 9}">3.3V</text>` +
+    `<text class="pm-t" x="${px + 7}" y="${yy + 16}" style="fill:#ffd0d6">${note}</text>`;
+  return `<g data-part="U2" data-asm="1">
+    <rect class="pm-pcb" x="${x}" y="${y}" width="${w}" height="${h}" rx="7"/>
+    ${pin(RY.tn, '−')}${pin(RY.tp, '+')}${pin(RY.bp, '+')}${pin(RY.bn, '−')}
+    ${hdr(254, false, 'знята: OFF')}${hdr(390, true, 'на 5V')}
+    <rect x="${x + 146}" y="${y + 40}" width="24" height="18" rx="2" fill="#e8e8e8" stroke="#666"/><circle cx="${x + 158}" cy="${y + 49}" r="5" fill="#333"/>
+    <text class="pm-t" x="${x + 158}" y="${y + 34}">ON/OFF</text>
+    <text class="pm-big" x="${x + 140}" y="${y + 104}">U2</text><text class="pm-t" x="${x + 140}" y="${y + 116}">MB102 · Type-C</text>
+    <rect x="${x + 98}" y="${y + 138}" width="30" height="8" fill="#aab2b9"/><rect x="${x + 96}" y="${y + 146}" width="34" height="22" rx="2" fill="#1d2228"/>
+    <text class="pm-t" x="${x + 113}" y="${y + 180}">AMS1117-3.3</text>
+    <circle cx="${x + 118}" cy="${y + 212}" r="9" fill="#2a2f35" stroke="#9aa3aa"/><circle cx="${x + 142}" cy="${y + 212}" r="9" fill="#2a2f35" stroke="#9aa3aa"/>
+    <circle cx="${x + 168}" cy="${y + 238}" r="4.5" fill="#3ddc6a"/><text class="pm-t" x="${x + 168}" y="${y + 252}">PWR</text>
+    <rect class="usb" x="${x + w - 12}" y="${y + 123}" width="26" height="34" rx="7"/><rect x="${x + w - 4}" y="${y + 131}" width="10" height="18" rx="4" fill="#3c4650"/>
+    <text class="pm-t" x="${x + w - 16}" y="${y + 143}" style="text-anchor:end">USB-C 5 В</text>
+  </g>`;
+}
+function relaySVG() {
+  const { x, y, w, h, px } = RM;
+  const pins = ['vcc', 'gnd', 'in'].map(k => `<rect class="hdr-pin" x="${px - 3.5}" y="${RM[k] - 3.5}" width="7" height="7"/><text class="relay-silk" x="${px + 10}" y="${RM[k] + 3}">${k.toUpperCase()}</text>`).join('');
+  const terms = [['no', 'NO'], ['com', 'COM'], ['nc', 'NC']].map(([k, t]) =>
+    `<rect class="term" x="708" y="${RM[k] - 20}" width="62" height="40"/><circle class="screw" cx="742" cy="${RM[k]}" r="10"/><path d="M735 ${RM[k] - 7} L749 ${RM[k] + 7}" stroke="#6c747b" stroke-width="2"/>` +
+    `<text class="relay-silk" x="711" y="${RM[k] + 3}" style="font-size:7px">${t}</text>`).join('');
+  return `<g data-part="U1" data-asm="7" id="relayMod">
+    <rect class="relay-pcb" x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/>
+    <rect x="${px - 6}" y="${RM.vcc - 7}" width="12" height="${RM.in - RM.vcc + 14}" rx="1.5" fill="#15191d"/>${pins}
+    <g data-part="D1.1"><circle id="rmRed" cx="517" cy="505" r="5.5" fill="#e53935" stroke="#7a1010"/><text class="relay-silk" x="527" y="508">PWR</text></g>
+    <g data-part="D1.2"><circle id="rmGrn" cx="517" cy="568" r="5.5" fill="#1d5a2a" stroke="#0c3316"/><text class="relay-silk" x="527" y="571">ON</text></g>
+    <g data-part="R1.1"><rect class="smd" x="548" y="510" width="11" height="5.5"/><rect class="hit" x="544" y="505" width="19" height="15"/></g>
+    <g data-part="R1.2"><rect class="smd" x="548" y="532" width="11" height="5.5"/><rect class="hit" x="544" y="527" width="19" height="15"/></g>
+    <g data-part="R1.3"><rect class="smd" x="548" y="590" width="11" height="5.5"/><rect class="hit" x="544" y="585" width="19" height="15"/></g>
+    <g data-part="VT1.1"><rect class="smd" x="549" y="555" width="9" height="7"/><path d="M551 555 v-2.5 M556 555 v-2.5 M553.5 562 v2.5" stroke="#aaa" stroke-width="1.2"/><rect class="hit" x="544" y="549" width="19" height="18"/></g>
+    <g data-part="D1.3"><rect class="smd" x="547" y="612" width="13" height="6"/><rect x="556" y="612" width="2.5" height="6" fill="#ccc"/><rect class="hit" x="543" y="607" width="21" height="16"/></g>
+    <rect class="hit" data-part="P:IN" x="${px - 7}" y="${RM.in - 7}" width="34" height="14" rx="2"/>
+    <g data-part="RY1.1">
+    <rect class="relay-body" x="578" y="503" width="112" height="124" rx="3"/>
+    <text class="relay-t" x="634" y="540">JQC-3FF-S-Z</text><text class="relay-t" x="634" y="553" style="font-size:9px">05VDC</text>
+    <text class="relay-t" x="634" y="567" style="font-weight:500">10A 250VAC</text><text class="relay-t" x="634" y="579" style="font-weight:500">10A 30VDC</text>
+    <g class="xray"><rect x="592" y="596" width="44" height="20" rx="2"/><path d="M598 596 v20 M604 596 v20 M610 596 v20 M616 596 v20 M622 596 v20 M628 596 v20"/>
+      <circle cx="680" cy="599" r="2"/><circle cx="680" cy="613" r="2"/><text x="670" y="594" style="font:600 6px var(--f-mono);fill:#e9f1ff;stroke:none">NC</text><text x="670" y="625" style="font:600 6px var(--f-mono);fill:#e9f1ff;stroke:none">NO</text></g>
+    <line id="rmBlade" class="blade" x1="650" y1="606" x2="679" y2="606"/><circle cx="650" cy="606" r="2.4" fill="#ffd36b"/>
+    </g>
+    ${terms}
+    <text class="relay-silk" x="${x + 6}" y="${y + h - 5}" style="font-size:6.5px">1 RELAY MODULE · LOW LEVEL TRIGGER</text>
+  </g>`;
+}
+function benchSVG() {
+  const sq = (x, y) => `M${(x - 1.7).toFixed(1)} ${(y - 1.7).toFixed(1)}h3.4v3.4h-3.4z`;
+  let holes = '';
+  for (let r = 1; r <= 63; r++) for (const L of 'abcdefghij') holes += sq(cx(r), LY[L]);
+  for (let r = 3; r <= 61; r++) if ((r - 3) % 6 !== 5) for (const y of Object.values(RY)) holes += sq(cx(r), y);
+  let nums = '';
+  for (let r = 1; r <= 52; r++) if (r === 1 || r % 5 === 0) nums += `<text class="bb-num" x="${cx(r)}" y="242">${r}</text><text class="bb-num" x="${cx(r)}" y="413">${r}</text>`;
+  const letters = 'abcdefghij'.split('').map(L => `<text class="bb-num" x="18" y="${LY[L] + 2.5}">${L}</text>`).join('');
+  const ldrX = (cx(25) + cx(28)) / 2, ldrY = LY.c;
+  const vt = cx(31), vy = LY.h;
+  const ledX = (cx(46) + cx(47)) / 2, ledY = LY.f;
+  const flows = BB_FLOWS.map(([k, pts]) => `<path class="flow" data-flow="${k}" d="${pd(pts)}"/>`).join('');
+  const direct = { id: 'WD', asm: 7, color: 'violet', pts: [[cx(18), LY.j], [cx(18), RM.in], [RM.px, RM.in]] };
+  const cut = (x, y) => `<path d="M${x - 6} ${y - 6} L${x + 6} ${y + 6} M${x + 6} ${y - 6} L${x - 6} ${y + 6}" stroke="var(--bad)" stroke-width="3" stroke-linecap="round"/>`;
+  return `<svg viewBox="-18 0 978 662" role="img" aria-labelledby="benchT">
+  <title id="benchT">Макетна плата: YD-ESP32-S3, фоторезистор з резистором 10 кОм, транзистор BC547B з резисторами, модуль живлення Type-C і модуль реле зі світлодіодом-навантаженням</title>
+  <defs>
+    <radialGradient id="gWarm"><stop offset="0" stop-color="#fffbe6" stop-opacity="1"/><stop offset=".3" stop-color="#ffe9a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffd84d" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gGreen"><stop offset="0" stop-color="#b6ffc8"/><stop offset=".35" stop-color="#3ddc6a" stop-opacity=".55"/><stop offset="1" stop-color="#3ddc6a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gRed"><stop offset="0" stop-color="#ffd0cc"/><stop offset=".35" stop-color="#ff4a3d" stop-opacity=".5"/><stop offset="1" stop-color="#ff4a3d" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g id="sky">
+    <rect id="skyRect" x="520" y="22" width="180" height="118" rx="8" fill="#8ecae6" stroke="var(--line)" stroke-width="2"/>
+    <circle id="skySun" cx="610" cy="80" r="15" fill="#ffd34d"/>
+    <path d="M610 22 V140 M520 81 H700" stroke="var(--line)" stroke-width="3"/>
+    <text class="cap-t" x="610" y="15" text-anchor="middle">за вікном</text>
+    <text id="skyT" class="cap-b" x="610" y="157" text-anchor="middle">—</text>
+  </g>
+  <text class="cap-t" id="ddCap"><tspan id="ddCap1" x="0" y="122">DD1 ← USB-C від ПК:</tspan><tspan id="ddCap2" x="0" y="137">живлення і Serial</tspan></text>
+  <text class="cap-t" x="${cx(41)}" y="186" text-anchor="middle">верхні шини: <tspan style="fill:var(--n33);font-weight:600">+3,3 В від DD1</tspan> · GND — зона датчика</text>
+  <rect class="bb-body" x="6" y="190" width="908" height="262" rx="8"/>
+  <rect class="bb-chan" x="6" y="317" width="908" height="10"/>
+  <line class="rail-n" x1="28" x2="900" y1="198" y2="198"/><line class="rail-p" x1="28" x2="900" y1="228" y2="228"/>
+  <line class="rail-p" x1="28" x2="900" y1="416" y2="416"/><line class="rail-n" x1="28" x2="900" y1="446" y2="446"/>
+  <text class="rail-t" x="10" y="${RY.tn + 4}" fill="var(--rail-n)">−</text><text class="rail-t" x="10" y="${RY.tp + 4}" fill="var(--rail-p)">+</text>
+  <text class="rail-t" x="10" y="${RY.bp + 4}" fill="var(--rail-p)">+</text><text class="rail-t" x="10" y="${RY.bn + 4}" fill="var(--rail-n)">−</text>
+  <path class="bb-holes" d="${holes}"/>${nums}${letters}
+  <text class="cap-t" x="${cx(21)}" y="466" text-anchor="middle">нижні шини: <tspan style="fill:var(--n5);font-weight:600">+5 В від U2</tspan> · GND — зона ключа, реле й лампи</text>
+  ${esp32SVG()}
+  ${powerSVG()}
+  <g data-part="R1" data-asm="3">
+    <path class="leg" d="M${cx(25)} ${ldrY} H${ldrX - 15} M${ldrX + 15} ${ldrY} H${cx(28)}"/>
+    <circle class="ldr-rim" cx="${ldrX}" cy="${ldrY}" r="15"/><circle id="ldrFace" cx="${ldrX}" cy="${ldrY}" r="12" fill="#d9cfb2"/>
+    <path class="ldr-track" d="M${ldrX - 8} ${ldrY - 6} h16 M${ldrX - 8} ${ldrY - 2} h16 M${ldrX - 8} ${ldrY + 2} h16 M${ldrX - 8} ${ldrY + 6} h16"/>
+    <text class="part-t" x="${ldrX}" y="${ldrY - 19}">R1 LDR</text>
+  </g>
+  ${resistorSVG('R2', 3, 28, 33, LY.e, '10k', 'R2 10к', LY.e - 10)}
+  ${resistorSVG('R3', 5, 26, 31, LY.f, '10k', 'R3 10к', LY.f - 11)}
+  <g data-part="VT1" data-asm="5">
+    <path class="to92" d="M${vt - 14} ${vy - 8} H${vt + 14} A14 14 0 0 1 ${vt - 14} ${vy - 8} Z"/>
+    <text class="to92-t" x="${vt}" y="${vy - 1}">BC547B</text>
+    <text class="part-s" x="${cx(30)}" y="${vy + 16}">E</text><text class="part-s" x="${vt}" y="${vy + 16}">B</text><text class="part-s" x="${cx(32)}" y="${vy + 16}">C</text>
+    <text class="part-t" x="${cx(34.6)}" y="${vy + 4}">VT1</text>
+  </g>
+  ${resistorSVG('R4', 6, 32, 37, LY.f, '10k', 'R4 10к', LY.f - 11)}
+  ${resistorSVG('R5', 8, 42, 46, LY.h, '220', 'R5 220', LY.h + 17)}
+  <g data-part="LED1" data-asm="8">
+    <circle cx="${ledX}" cy="${ledY}" r="9.5" fill="#f3f0e2" stroke="#8d8566" stroke-width="1.2"/>
+    <path d="M${ledX + 6.6} ${ledY - 7} v14" stroke="#8d8566" stroke-width="1.4"/>
+    <circle id="led1Core" cx="${ledX}" cy="${ledY}" r="6" fill="#fff4c2" opacity=".35"/>
+    <text class="part-s" x="${cx(46) - 6}" y="${ledY + 3}">+</text>
+    <text class="part-t" x="${ledX}" y="${ledY - 14}">LED1</text>
+  </g>
+  ${NET.map(wireSVG).join('')}
+  <g id="wDirect" hidden>${wireSVG(direct)}</g>
+  <g id="gndCut" hidden>${cut(cx(1), 232)}${cut(cx(1), 418)}<text class="part-t" x="${cx(6)}" y="236" style="fill:var(--bad)">GND знято</text></g>
+  ${relaySVG()}
+  <path id="lampArcB" d="M${ledX} ${ledY - 12} C ${ledX - 40} 250, 470 230, ${ldrX + 16} ${ldrY - 6}" fill="none" stroke="var(--hi)" stroke-width="2.4" stroke-dasharray="7 5" hidden/>
+  <rect id="darkOv" class="dark-ov" x="-18" y="0" width="978" height="662" opacity="0"/>
+  <g id="bbFlows">${flows}</g>
+  <circle id="glowLoad" class="glow" cx="${ledX}" cy="${ledY}" r="70" fill="url(#gWarm)" opacity="0"/>
+  <circle id="glowGrn" class="glow" cx="517" cy="568" r="22" fill="url(#gGreen)" opacity="0"/>
+  <circle id="glowRed" class="glow" cx="517" cy="505" r="20" fill="url(#gRed)" opacity="0"/>
+  <circle id="glowPm" class="glow" cx="${PM.x + 168}" cy="${PM.y + 238}" r="16" fill="url(#gGreen)" opacity="0"/>
+  <g data-asm="4" class="vlabel" transform="translate(${(cx(19) + cx(28)) / 2} 148)">
+    <rect x="-62" y="-17" width="124" height="31" rx="7"/><text id="vlabelT" y="-2">GPIO4 = —</text><text id="vlabelS" class="s" y="9">АЦП —</text>
+  </g>
+  <g data-asm="7" class="vlabel" transform="translate(370 522)">
+    <rect x="-76" y="-32" width="152" height="80" rx="7"/><text id="inLabelT" y="-17">IN = —</text><text id="inLabelS" class="s" y="-6">—</text>
+    <text class="cur h" x="-68" y="9">струм виводів U1 (+ → −):</text>
+    <text class="cur" id="u1cV" x="-68" y="21">—</text><text class="cur" id="u1cG" x="-68" y="32">—</text><text class="cur" id="u1cI" x="-68" y="43">—</text>
+  </g>
+  <text id="clickB" class="click-bubble" x="610" y="498" text-anchor="middle">клац!</text>
+  <path id="sparkB" class="spark" d="M553 548 l6 -14 l3 10 l9 -12 l-3 14 l10 -4 l-12 12 l7 3 l-15 2 z" fill="#ffd400" stroke="#ff3d00" stroke-width="1.5"/>
+  <text id="noDiodeB" class="part-t" x="634" y="${RM.y + RM.h + 13}" style="fill:var(--bad)" hidden>D1.3 вимкнений (дослід)</text>
+  <text class="cap-b" x="${RM.x + RM.w / 2}" y="${RM.y + RM.h + 16}" text-anchor="middle" id="u1Cap">U1 · модуль реле 5 В · IN активний LOW</text>
+  <text class="cap-b" x="${PM.x + PM.w / 2}" y="174" text-anchor="middle">U2 · модуль живлення · USB-C</text>
+</svg>`;
+}
+
+/* =====================================================================
+   Schematic: the lesson's drawing, redrawn by the rules in section 7.
+   ===================================================================== */
+function schemSVG() {
+  const W = (d, cls = '') => `<path class="w ${cls}" d="${d}"/>`;
+  const dot = (x, y) => `<circle class="dot" cx="${x}" cy="${y}" r="3.6"/>`;
+  const port = (x, y, lab, cls) => `${W(`M${x - 12} ${y} H${x + 12}`, cls)}<text class="tm" x="${x}" y="${y - 6}" text-anchor="middle" style="fill:var(--${cls === 'p5' ? 'n5' : 'n33'});font-weight:600">${lab}</text>`;
+  const gnd = (x, y) => `<path class="w g" d="M${x - 11} ${y} H${x + 11} M${x - 7} ${y + 5} H${x + 7} M${x - 3} ${y + 10} H${x + 3}"/>`;
+  const rv = (x, y1, y2) => `<rect class="rb" x="${x - 10}" y="${y1}" width="20" height="${y2 - y1}"/>`;
+  const rh = (x1, x2, y) => `<rect class="rb" x="${x1}" y="${y - 10}" width="${x2 - x1}" height="20"/>`;
+  const head = (tx, ty, ux, uy, L = 9, w = 4.2) => `<path class="tri" d="M${tx} ${ty} L${(tx - L * ux - w * uy).toFixed(1)} ${(ty - L * uy + w * ux).toFixed(1)} L${(tx - L * ux + w * uy).toFixed(1)} ${(ty - L * uy - w * ux).toFixed(1)} Z"/>`;
+  const rays = (x, y) => `<path class="arr" d="M${x} ${y} l12 -9 M${x + 4} ${y + 9} l12 -9"/>${head(x + 12, y - 9, .8, -.6, 5, 2.6)}${head(x + 16, y, .8, -.6, 5, 2.6)}`;
+  const led = (x, y, id) => `<path class="ledfill" id="${id}" d="M${x - 10} ${y} L${x + 10} ${y} L${x} ${y + 18} Z"/><path class="w" d="M${x - 10} ${y + 18} H${x + 10}"/>${rays(x + 12, y + 10)}`;
+  const badge = (id, x, y, w) => `<g class="badge" transform="translate(${x} ${y})"><rect x="${-w / 2}" y="-11" width="${w}" height="20" rx="5"/><text id="${id}" y="3">—</text></g>`;
+  const flows = [
+    ['div', 'M70 40 V300'], ['ib', 'M300 240 H436 L450 246'], ['ce', 'M466 175 V212 L446 226'], ['e', 'M446 252 L466 268 V330'],
+    ['r4', 'M466 40 V175'], ['inw', 'M580 175 H466'], ['direct', 'M580 175 H318 V240 H300'],
+    ['esp5', 'M200 64 V100'], ['vccbus', 'M540 62 V105 H726 V147 L700 162'], ['pb', 'M698 175 H580'], ['pc', 'M700 188 L726 203 V228'],
+    ['coil', 'M726 228 H772'], ['coilfly', 'M772 228 H822 V350 H772'], ['coil', 'M772 350 H726'], ['fly', 'M772 350 V228'],
+    ['grn', 'M726 228 V350'], ['bus2', 'M726 350 H630'], ['red', 'M630 210 V350'], ['bus3', 'M630 350 H580 H540 V362'],
+    ['load', 'M960 246 V278 H890 L859 295 L856 298 V320 H1050 V384'],
+  ].map(([k, d]) => `<path class="flow" data-flow="${k}" d="${d}"/>`).join('');
+  return `<svg viewBox="0 0 1120 432" role="img" aria-labelledby="schT">
+  <title id="schT">Принципова схема: подільник R1–R2 на GPIO4, GPIO2 через R3 на базу VT1, R4 до +5 В, модуль реле U1 з PNP VT1.1, котушкою RY1.1 і діодом D1.3, навантаження R5 і LED1 на контакті NO</title>
+  <path id="sLamp" class="arr" d="M1046 330 C 1000 6, 170 6, 84 70" stroke-dasharray="6 5" hidden/>
+  <g data-part="R1">
+    ${port(70, 40, '+3.3V', 'p3')}${W('M70 40 V80', 'p3')}
+    <circle class="pt" cx="70" cy="104" r="30" style="stroke-width:1.5"/>${rv(70, 80, 128)}
+    <path class="arr" id="ldrRays" d="M14 60 L40 80 M14 84 L40 104"/>${head(40, 80, .79, .61, 7, 3.4)}${head(40, 104, .79, .61, 7, 3.4)}
+    <text class="t" x="108" y="96">R1</text><text class="tm" x="108" y="110">LDR</text><text class="tv" id="sR1" x="108" y="126">—</text>
+  </g>
+  ${W('M70 128 V208', 'adc')}${W('M70 180 H170', 'adc')}${dot(70, 180)}
+  <g data-part="R2">${rv(70, 208, 268)}<text class="t" x="88" y="234">R2</text><text class="tm" x="88" y="248">10 кОм</text></g>
+  ${W('M70 268 V300', 'g')}${gnd(70, 300)}
+  ${badge('bAdc', 124, 166, 74)}
+  <g data-part="DD1">
+    <rect class="box" x="170" y="100" width="130" height="200" rx="4"/>
+    <text class="tb" x="235" y="136" text-anchor="middle">ESP32-S3</text><text class="tm" x="235" y="152" text-anchor="middle">YD-ESP32-S3</text>
+    <text class="tm" x="200" y="116" text-anchor="middle">5V</text><text class="tm" x="270" y="116" text-anchor="middle">3V3</text><text class="tm" x="235" y="168" text-anchor="middle">LDO 5 → 3,3 В</text><text class="tm" x="235" y="292" text-anchor="middle">GND</text>
+    <text class="ts" x="178" y="184">GPIO4</text><text class="tm" x="178" y="197">ADC1_CH3</text>
+    <text class="ts" x="292" y="244" text-anchor="end">GPIO2</text><text class="tm" x="292" y="257" text-anchor="end">OUT</text>
+    <rect class="hit" data-part="P:GPIO4" x="172" y="171" width="64" height="31" rx="3"/><rect class="hit" data-part="P:GPIO2" x="238" y="231" width="60" height="31" rx="3"/>
+    <rect class="hit" data-part="P:5V" x="188" y="104" width="24" height="17" rx="3"/><rect class="hit" data-part="P:3V3" x="256" y="104" width="28" height="17" rx="3"/>
+    <text class="t" x="300" y="94" text-anchor="end">DD1</text>
+  </g>
+  ${W('M270 100 V64', 'p3')}${port(270, 64, '+3.3V', 'p3')}
+  <g id="sEspUsb">${W('M200 100 V84')}<text class="tm" x="200" y="78" text-anchor="middle">USB ← ПК</text></g>
+  <g id="sEsp5" hidden>${W('M200 100 V64', 'p5')}${port(200, 64, '+5V', 'p5')}</g>
+  <g id="sDdGnd">${W('M235 300 V330', 'g')}${gnd(235, 330)}</g>
+  <g id="sGndCut" hidden><path class="xmark" d="M226 308 L244 322 M244 308 L226 322"/><text class="tm" x="250" y="352" style="fill:var(--bad)">GND ESP32 не з'єднана з GND макетки</text></g>
+  ${badge('bGpio', 330, 270, 58)}
+  <g id="sKey">
+    ${W('M300 240 H330')}
+    <g data-part="R3">${rh(330, 394, 240)}<text class="t" x="362" y="222" text-anchor="middle">R3 · 10 кОм</text></g>
+    ${W('M394 240 H436')}
+    <g data-part="VT1">
+      <circle class="pt" cx="452" cy="240" r="25" style="stroke-width:1.4"/>
+      <path class="w" d="M436 220 V260" style="stroke-width:3.2"/>${W('M436 230 L466 212')}${W('M436 250 L466 268')}${head(462.6, 266, .857, .514)}
+      <text class="t" x="486" y="236">VT1</text><text class="tm" x="486" y="250">BC547B</text>
+    </g>
+    ${W('M466 212 V175', 'in')}${W('M466 268 V330', 'g')}${gnd(466, 330)}
+    ${port(466, 40, '+5V', 'p5')}${W('M466 40 V72', 'p5')}
+    <g data-part="R4">${rv(466, 72, 132)}<text class="t" x="482" y="98">R4</text><text class="tm" x="482" y="112">10 кОм</text></g>
+    ${W('M466 132 V175', 'in')}${dot(466, 175)}
+    ${W('M466 175 H580', 'in')}
+  </g>
+  <path id="sDirect" class="w in dash" d="M300 240 H318 V175 H580" hidden/>
+  ${badge('bIn', 524, 160, 92)}
+  <rect class="mod" x="580" y="80" width="320" height="300" rx="10"/>
+  <g data-part="U1"><text class="t" x="582" y="72">U1 · модуль реле 5 В</text><text class="tm" x="898" y="72" text-anchor="end">вхід IN — активний LOW</text>
+    <text class="tm" x="585" y="99">VCC</text><text class="tm" x="585" y="169">IN</text><text class="tm" x="585" y="344">GND</text>
+    <rect class="hit" data-part="P:IN" x="581" y="158" width="22" height="16" rx="3"/></g>
+  ${port(540, 62, '+5V', 'p5')}${W('M540 62 V105 H580', 'p5')}${W('M580 105 H726', 'p5')}
+  ${W('M580 350 H540 V362', 'g')}${gnd(540, 362)}
+  <g data-part="R1.2">${W('M580 175 H606', 'in')}${rh(606, 662, 175)}<text class="ts" x="634" y="158" text-anchor="middle">R1.2 · 1 кОм</text></g>
+  ${W('M662 175 H694')}
+  <g data-part="VT1.1">
+    <circle class="pt" cx="712" cy="175" r="25" style="stroke-width:1.4"/>
+    <path class="w" d="M694 155 V195" style="stroke-width:3.2"/>${W('M694 165 L726 147', 'p5')}${head(699, 162.2, -.872, .49)}${W('M694 185 L726 203')}
+    <text class="ts" x="744" y="160">VT1.1</text><text class="tm" x="744" y="174">PNP</text>
+  </g>
+  ${W('M726 147 V105', 'p5')}${W('M726 203 V228')}${dot(726, 228)}${W('M726 228 H822')}${dot(772, 228)}
+  <g data-part="D1.3" id="sD13">${W('M772 228 V254')}<path class="w" d="M762 254 H782"/><path class="ledfill" d="M762 276 L782 276 L772 256 Z"/>${W('M772 276 V350', 'g')}<text class="ts" x="762" y="270" text-anchor="end">D1.3</text></g>
+  <path id="sNoDiode" class="xmark" d="M758 250 L786 282 M786 250 L758 282" hidden/>
+  <g data-part="RY1.1">
+    ${W('M822 228 V250')}<path class="w" d="M822 250 a7 7 0 0 1 0 14 a7 7 0 0 1 0 14 a7 7 0 0 1 0 14 a7 7 0 0 1 0 14"/>
+    <path class="w thin" d="M812 248 V308 M808 248 V308"/>${W('M822 306 V350', 'g')}
+    <text class="tm" x="834" y="250">+</text><text class="tm" x="834" y="314">−</text>
+    <text class="ts" x="830" y="340">RY1.1 · L</text><text class="tm" x="830" y="353">обмотка 70 Ом</text>
+    <circle class="pt" cx="856" cy="258" r="3"/><circle class="pt" cx="856" cy="298" r="3"/><circle class="pt" cx="890" cy="278" r="3"/>
+    <line id="sArm" class="arm" x1="890" y1="278" x2="859" y2="261"/>
+    <path id="sLink" class="mlink" d="M836 278 L874 270"/>
+  </g>
+  ${W('M856 258 V150 H900')}${W('M856 298 V320 H900')}${W('M890 278 H900')}
+  <g data-part="R1.3">${W('M726 228 V246')}${rv(726, 246, 290)}<text class="ts" x="712" y="262" text-anchor="end">R1.3</text><text class="tm" x="712" y="276" text-anchor="end">1 кОм</text></g>
+  ${W('M726 290 V300')}
+  <g data-part="D1.2">${led(726, 300, 'sLedG')}<text class="ts" x="712" y="312" text-anchor="end">D1.2</text><text class="tm" x="712" y="326" text-anchor="end">зелений</text></g>
+  ${W('M726 318 V350', 'g')}
+  <g data-part="R1.1">${W('M618 210 H642', 'p5')}<text class="tm" x="630" y="203" text-anchor="middle" style="fill:var(--n5);font-weight:600">VCC</text>
+    ${W('M630 210 V236', 'p5')}${rv(630, 236, 280)}<text class="ts" x="616" y="252" text-anchor="end">R1.1</text><text class="tm" x="616" y="266" text-anchor="end">1 кОм</text></g>
+  ${W('M630 280 V296')}
+  <g data-part="D1.1">${led(630, 296, 'sLedR')}<text class="ts" x="616" y="306" text-anchor="end">D1.1</text><text class="tm" x="616" y="320" text-anchor="end">червоний</text></g>
+  ${W('M630 314 V350', 'g')}
+  ${W('M580 350 H822', 'g')}${dot(630, 350)}${dot(726, 350)}${dot(772, 350)}
+  <text class="tm" x="904" y="144">NC</text><text class="tm" x="904" y="272">COM</text><text class="tm" x="904" y="314">NO</text>
+  ${W('M900 150 H916')}<circle class="pt" cx="920" cy="150" r="3.5"/><text class="tm" x="928" y="154">вільний</text>
+  ${W('M900 278 H960 V246', 'p5')}${port(960, 246, '+5V', 'p5')}
+  ${W('M900 320 H940')}
+  <g data-part="R5">${rh(940, 1000, 320)}<text class="t" x="970" y="303" text-anchor="middle">R5 · 220 Ом</text></g>
+  ${W('M1000 320 H1050 V336')}
+  <g data-part="LED1">${led(1050, 336, 'sLed1')}<text class="t" x="1078" y="346">LED1</text><text class="tm" x="1078" y="360">лампа</text></g>
+  ${W('M1050 354 V384', 'g')}${gnd(1050, 384)}
+  ${badge('bCoil', 740, 404, 128)}${badge('bLoad', 1050, 414, 90)}
+  <g id="sSpark" class="spark"><path d="M722 196 l7 -16 l3 11 l10 -13 l-3 15 l11 -4 l-13 13 l8 3 l-17 2 z" fill="#ffd400" stroke="#ff3d00" stroke-width="1.5"/><text class="t" x="748" y="200" style="fill:var(--bad)">сплеск!</text></g>
+  <g id="sFlows">${flows}</g>
+</svg>`;
+}
+
+/* =====================================================================
+   Parts: what the inspector says about each designator.
+   ===================================================================== */
+const COLOR_NAME = { red: 'червоний', orange: 'помаранчевий', black: 'чорний', yellow: 'жовтий', green: 'зелений', violet: 'фіолетовий', white: 'білий' };
+const INFO = {
+  R1: { name: 'R1 · фоторезистор (LDR)', role: 'датчик світла', from: 'Модуль 1.6 · АЦП і світло',
+    what: 'Опір падає, коли світла більше: у темряві сотні кілоом, у кімнаті кілька кілоом, на сонці сотні ом. Стоїть верхнім плечем подільника, між +3,3 В і середньою точкою. Полярності не має. Великий опір (темно) → GPIO2 = HIGH → реле ON. Малий (світло) → GPIO2 = LOW → реле OFF.',
+    live: () => `${fR(C.rl)} при ${fLux(C.lux)} лк · струм ${fI(C.iDiv)}` },
+  R2: { name: 'R2 · 10 кОм', role: 'нижнє плече подільника', from: 'Модуль 1.6 · подільник напруги',
+    what: 'Перетворює зміну опору LDR на зміну напруги. 10 кОм близькі до опору LDR у сутінках, тому саме біля порогів подільник найчутливіший. Смужки: коричнева, чорна, помаранчева, золота.',
+    live: () => `U на R2 = U GPIO4 = ${fV(C.uAdc)}` },
+  DD1: { name: 'DD1 · YD-ESP32-S3', role: 'мікроконтролер, логіка 3,3 В', from: 'Модулі 1.3–1.6',
+    what: 'Читає АЦП на GPIO4 (ADC1_CH3), порівнює з порогами і керує GPIO2. Живиться від ПК через USB або від U2 через пін 5V (перемикач над макеткою). Стабілізатор плати робить 3,3 В, і пін 3V3 віддає їх на верхню шину. Рекомендований максимум — близько 20 мА на пін, а тут потрібно 0,26 мА.',
+    live: () => !C.espOn ? 'без живлення: 5 В є, а землі немає' : `${S.espPower === 'u2' ? `живлення від U2: ${fI(C.iEsp)} · ` : 'живлення від USB · '}АЦП ${S.adc} · GPIO2 ${S.relayOn ? 'HIGH' : 'LOW'} · струм піна ${fI(C.iGpio)}${C.iGpio < -1e-7 ? ' — втікає В пін!' : ''}` },
+  R3: { name: 'R3 · 10 кОм', role: 'резистор бази', from: 'Модуль 1.2 · закон Ома',
+    what: 'Обмежує струм із GPIO2 у базу VT1. Перехід база–емітер поводиться як діод (≈0,7 В). Без резистора GPIO через цей діод фактично замкнувся б на землю.',
+    live: () => C.direct ? 'обійдений (дослід «GPIO2 → IN напряму»)' : `I_Б = (3,3 − 0,68) / 10 кОм = ${fI(C.ib)}` },
+  VT1: { name: 'VT1 · BC547B, NPN', role: 'транзисторний ключ, 3,3 → 5 В', from: 'Урок 5 · транзистори',
+    what: 'Коли GPIO2 = HIGH, малий струм бази відкриває шлях колектор–емітер, і IN притискається до землі. Корпус TO-92. Пласкою стороною до центру макетки ніжки стоять E-B-C у стовпцях 30-31-32. h<sub>FE</sub> 200…450, I<sub>К</sub> до 100 мА.',
+    live: () => C.direct ? 'обійдений (дослід)' : `${C.npn ? 'відкритий' : 'закритий'} · I_Б ${fI(C.ib)} · I_К ${fI(C.ir4 + C.ibp)}` },
+  R4: { name: 'R4 · 10 кОм до +5 В', role: 'підтягувальний резистор (pull-up)', from: 'Модуль 1.4 · підтяжка входу',
+    what: 'Поки VT1 закритий, тримає IN на 5 В, і модуль бачить «вимкнено». Це той самий pull-up, що й <code>INPUT_PULLUP</code>, тільки зовнішній і до 5 В. Верхній кінець має бути саме на +5 В: від 3,3 В реле не вимкнеться.',
+    live: () => C.direct ? 'обійдений (дослід)' : `I = ${fI(C.ir4)} · IN = ${fV(C.vin)}` },
+  U1: { name: 'U1 · модуль реле 5 В', role: 'актуатор, вхід активний LOW', from: 'Бібліотека компонентів курсу',
+    what: 'Виводи VCC, GND, IN і гвинтові клеми NO, COM, NC. Усередині: PNP VT1.1 з R1.2 1 кОм у базі, реле JQC-3FF-S-Z (або SRD-05VDC-SL-C) з котушкою 70 Ом, діод D1.3, червоний LED «живлення» і зелений «увімкнено». Перевірте напис на реле: має бути <b>05VDC</b>. Контакти до 10 А 250 VAC / 30 VDC, але в курсі тільки низька напруга. Порядок виводів на різних модулях різний — читайте підписи на платі.',
+    live: () => `котушка ${fI(C.iCoil)} · контакти ${C.arm ? 'COM–NO' : 'COM–NC'} · бере ${fI(C.iRelVcc)} з 5 В` },
+  U2: { name: 'U2 · модуль живлення макетки, Type-C', role: 'джерело 5 В', from: 'Урок 8 · макетна плата',
+    what: 'MB102-сумісна плата: вхід USB-C 5 В, стабілізатор AMS1117-3.3, кнопка, LED і дві перемички, по одній на кожну пару шин (5V / 3.3V / знята). Тут верхня знята, бо верхню шину живить DD1, а нижня стоїть на 5V. Віддає до 500–700 мА.',
+    live: () => `віддає ${fI(C.i5)} на нижню шину 5 В` },
+  R5: { name: 'R5 · 220 Ом', role: 'резистор навантаження', from: 'Модуль 1.2 · чи можна спалити LED',
+    what: 'Обмежує струм LED1 від 5 В: (5 − 3,0) / 220 ≈ 9 мА. Смужки: червона, червона, коричнева, золота.',
+    live: () => `I = ${fI(C.iLoad)}` },
+  LED1: { name: 'LED1 · «лампа»', role: 'навантаження на контакті NO', from: 'Модуль 1.2',
+    what: 'Замість справжньої лампи тут світлодіод. Довга ніжка (анод) у 46f, коротка (катод, з пласкою стороною) у 47f. LED-стрічку на 12 В підключають так само, але від окремого блока: + блока → COM, NO → + стрічки, − стрічки → − блока. З макеткою стрічка не з\'єднується.',
+    live: () => C.iLoad > 0 ? `світить · ${fI(C.iLoad)}` : 'не світить' },
+  'R1.2': { name: 'R1.2 · 1 кОм, усередині U1', role: 'резистор бази PNP', from: 'Схема модуля з уроку',
+    what: 'Між виводом IN і базою VT1.1. Коли IN притиснутий до землі, через нього тече ≈4,2 мА, і цей струм забирає колектор VT1.',
+    live: () => `I = ${fI(C.ibp)}` },
+  'VT1.1': { name: 'VT1.1 · PNP, усередині U1', role: 'ключ котушки з боку «+» (high-side)', from: 'Схема модуля з уроку',
+    what: 'Емітер на VCC = 5 В. Транзистор відкривається, коли база нижча за емітер на ≈0,7 В, тобто коли IN нижче ≈4,3 В. Звідси «активний LOW». І тому 3,3 В з GPIO для нього — теж LOW.',
+    live: () => `${C.pnp ? 'відкритий' : 'закритий'} · VCC − IN = ${Number.isNaN(C.vin) ? '?' : num(E.V5 - C.vin, 2) + ' В'}` },
+  'RY1.1': { name: 'RY1.1 · реле', role: 'котушка + перекидний контакт', from: 'Новий компонент',
+    what: 'Котушка — це індуктивність L: дріт, намотаний на залізне осердя. У сталому стані струм задає лише опір обмотки, 70 Ом: 5 В / 70 Ом ≈ 70 мА. А L проявляється в моменти вмикання й вимикання. L не стала: коли якір притягується, магнітний зазор зникає і L зростає. Котушка притягує якір. Реле спрацьовує від ≈3,75 В і відпускає нижче ≈0,5 В — це власний гістерезис реле. Контакти COM/NO/NC гальванічно відокремлені від котушки.',
+    live: () => `котушка ${fV(C.vCoil)}, ${fI(C.iCoil)} · якір ${C.arm ? 'притягнутий (COM–NO)' : 'відпущений (COM–NC)'}` },
+  'D1.3': { name: 'D1.3 · діод на котушці', role: 'захист від самоіндукції', from: 'Урок 5 · діоди',
+    what: 'Стоїть паралельно котушці, катодом до «+». У роботі закритий. Після вимкнення він замикає струм котушки на неї саму, і той згасає за мілісекунди. Без діода сплеск у сотні вольт б\'є по VT1.1.',
+    live: () => S.wi.noDiode ? 'вимкнений (дослід)' : S.fly > 0 ? `гасить струм ${fI(S.fly)} (сповільнено)` : 'закритий, чекає' },
+  'R1.1': { name: 'R1.1 · 1 кОм', role: 'резистор червоного LED', from: 'Модуль 1.2',
+    what: '(5 − 1,9) / 1 кОм ≈ 3 мА. Червоний LED горить, щойно на модуль подано живлення.', live: () => fI(C.iRed) },
+  'D1.1': { name: 'D1.1 · червоний LED', role: 'індикатор живлення', from: 'Модуль 1.2',
+    what: 'Світиться завжди, коли на VCC є 5 В. Не світиться — перевірте червоний і чорний дроти до U1.', live: () => fI(C.iRed) },
+  'R1.3': { name: 'R1.3 · 1 кОм', role: 'резистор зеленого LED', from: 'Модуль 1.2',
+    what: 'Іде від колектора PNP через зелений LED на землю, паралельно котушці.', live: () => fI(C.iGrn) },
+  'D1.2': { name: 'D1.2 · зелений LED', role: 'індикатор «котушка під струмом»', from: 'Модуль 1.2',
+    what: 'Світиться, коли VT1.1 подає напругу на котушку. Зелений світиться, а лампа ні — шукайте проблему на боці контактів (NO/COM).',
+    live: () => C.iGrn > 0 ? `світить · ${fI(C.iGrn)}` : 'не світить' },
+};
+function partInfo(id) {
+  if (INFO[id]) return INFO[id];
+  const w = NET.find(n => n.id === id);
+  if (!w) return null;
+  return { name: `${w.id} · провід «${w.net}»`, role: `${COLOR_NAME[w.color]} дріт`, what: `${w.from} → ${w.to}. ${w.note}`,
+    live: () => w.flow ? `струм ${fI(FI[w.flow]())}` : 'струм ≈ 0: вхід АЦП майже не споживає' };
+}
+Object.assign(INFO, {
+  'P:GPIO4': { name: 'GPIO4 · вхід АЦП', role: 'вивід DD1 · GPIO In · ADC1_CH3', from: 'Модуль 1.6',
+    what: 'Аналоговий вхід. Струму майже не бере, лише вимірює напругу середньої точки подільника. <code>analogRead()</code> перетворює її на число 0…4095: 0 В → 0, ≈3,1 В і вище → 4095.',
+    live: () => `${fV(C.uAdc)} → АЦП ${S.adc}` },
+  'P:GPIO2': { name: 'GPIO2 · цифровий вихід', role: 'вивід DD1 · GPIO Out', from: 'Модуль 1.4 і цей проєкт',
+    what: '<code>pinMode(kRelayPin, OUTPUT)</code>. Видає HIGH = 3,3 В або LOW = 0 В залежно від змінної <code>relayOn</code>. Великий опір LDR (темно) → HIGH. Малий опір (світло) → LOW. Між порогами пін тримає останній рівень.',
+    live: () => `${S.relayOn ? 'HIGH' : 'LOW'} · ${fV(C.vg)}` },
+  'P:3V3': { name: '3V3 · вихід стабілізатора плати', role: 'вивід DD1 · живлення', from: 'Модулі 1.3–1.6',
+    what: 'Тут виходять 3,3 В зі стабілізатора плати: тієї самої лінії, від якої живиться чип. Через W1 вони йдуть на верхню шину і далі до LDR. Сюди нічого не подають ззовні!',
+    live: () => fV(C.espOn ? E.V33 : 0) },
+  'P:5V': { name: '5V · вхід живлення плати', role: 'вивід DD1 · живлення', from: 'Цей проєкт',
+    what: 'Вхід стабілізатора плати. У режимі «ESP32: 5 В від U2» сюди приходить дріт W16 з нижньої шини +5 В. Від USB сюди 5 В не виходить: між ними діод (перемичка IN-OUT розімкнена).',
+    live: () => S.espPower === 'u2' ? `5 В від U2 · ${fI(C.iEsp)}` : 'не під\'єднано (живлення від USB)' },
+  'P:IN': { name: 'IN · вхід модуля реле', role: 'вивід U1 · активний LOW', from: 'Схема модуля з уроку',
+    what: 'Вихід транзисторного ключа (колектор VT1) і підтяжки R4. Нижче ≈4,3 В модуль вважає LOW і вмикає реле, біля 5 В — HIGH, реле вимкнене. Струм бази PNP ВИХОДИТЬ з цього виводу і тече в колектор VT1.',
+    live: () => Number.isNaN(C.vin) ? 'висить' : `${fV(C.vin)} → ${C.vin < 4.3 ? 'LOW, реле ON' : 'HIGH, реле OFF'}` },
+});
+const PART_LIST = ['R1', 'R2', 'DD1', 'P:GPIO4', 'P:GPIO2', 'R3', 'VT1', 'R4', 'P:IN', 'U1', 'U2', 'R5', 'LED1', 'R1.2', 'VT1.1', 'RY1.1', 'D1.3', 'D1.1', 'D1.2'];
+
+/* Node voltages (to GND) for the pin tables. null = not connected, NaN = floating. */
+function nodeV() {
+  return {
+    v33: C.espOn ? E.V33 : 0, adc: C.uAdc, g2: C.vg, b: C.vb, c: C.vin,
+    pB: C.pnp ? E.V5 - E.VEB : E.V5, coil: C.vCoil,
+    gA: C.iGrn > 0 ? E.VF_GRN : C.vCoil, rA: E.VF_RED,
+    no: C.arm ? E.V5 : 0, nc: C.arm ? null : E.V5, lA: C.iLoad > 0 ? E.VF_LOAD : 0,
+  };
+}
+const res2 = (a, b, I, la, lb) => ({ rows: [[la, a], [lb, b]], drop: a - b, I: [['струм', I]], P: Math.abs((a - b) * I) });
+const LIVE = {
+  R1: N => res2(N.v33, N.adc, C.iDiv, 'верх · +3,3 В', 'низ · GPIO4'),
+  R2: N => res2(N.adc, 0, C.iDiv, 'верх · GPIO4', 'низ · GND'),
+  R3: N => C.direct ? null : res2(N.g2, Number.isNaN(N.b) ? 0 : N.b, C.ib, 'від GPIO2', 'до бази VT1'),
+  R4: N => C.direct ? null : res2(E.V5, N.c, C.ir4, 'верх · +5 В', 'низ · IN, колектор VT1'),
+  R5: N => res2(N.no, N.lA, C.iLoad, 'від контакту NO', 'до анода LED1'),
+  'R1.1': N => res2(E.V5, N.rA, C.iRed, 'VCC', 'анод D1.1'),
+  'R1.2': N => res2(N.pB, N.c, C.ibp, 'база VT1.1', 'IN'),
+  'R1.3': N => res2(N.coil, N.gA, C.iGrn, 'колектор VT1.1', 'анод D1.2'),
+  VT1: N => C.direct ? null : { rows: [['база B', N.b], ['колектор C (= IN)', N.c], ['емітер E', 0]], I: [['база', C.ib], ['колектор', C.ir4 + C.ibp]], P: (Number.isNaN(N.c) ? 0 : N.c) * (C.ir4 + C.ibp) },
+  'VT1.1': N => ({ rows: [['емітер E (VCC)', E.V5], ['база B', N.pB], ['колектор C', N.coil]], I: [['база', C.ibp], ['колектор', C.iCoil + C.iGrn]], P: (E.V5 - N.coil) * (C.iCoil + C.iGrn) }),
+  'RY1.1': N => ({ rows: [['котушка +', N.coil], ['котушка −', 0], ['COM', E.V5], ['NO', N.no], ['NC', N.nc]], drop: N.coil, I: [['котушка', C.iCoil + S.fly]], P: N.coil * C.iCoil }),
+  'D1.3': N => ({ rows: [['катод · + котушки', N.coil], ['анод · GND', 0]], I: [['струм самоіндукції', S.fly]] }),
+  'D1.1': N => ({ rows: [['анод', N.rA], ['катод', 0]], drop: N.rA, I: [['струм', C.iRed]], P: N.rA * C.iRed }),
+  'D1.2': N => ({ rows: [['анод', N.gA], ['катод', 0]], drop: N.gA, I: [['струм', C.iGrn]], P: N.gA * C.iGrn }),
+  LED1: N => ({ rows: [['анод', N.lA], ['катод', 0]], drop: N.lA, I: [['струм', C.iLoad]], P: N.lA * C.iLoad }),
+  DD1: N => ({ rows: [['5V', S.espPower === 'u2' ? E.V5 : 'від USB'], ['3V3', N.v33], ['GPIO4', N.adc], ['GPIO2', N.g2], ['GND', 0]],
+    I: [[S.espPower === 'u2' ? 'бере з шини 5 В' : 'бере з USB', C.espOn ? E.I_ESP + C.iDiv + C.ib : 0], ['віддає з GPIO2', C.iGpio]] }),
+  U1: N => ({ rows: [['VCC', E.V5], ['IN', N.c], ['GND', 0], ['COM', E.V5], ['NO', N.no], ['NC', N.nc]], I: [['входить у VCC', C.iRelVcc], ['виходить з IN', C.ibp], ['через контакти', C.iLoad]] }),
+  U2: N => ({ rows: [['нижня шина +', E.V5], ['нижня шина −', 0], ['верхня шина +', 'від DD1 (перемичка знята)']], I: [['віддає з 5 В', C.i5]], P: E.V5 * C.i5 }),
+  'P:GPIO4': N => ({ rows: [['GPIO4', N.adc]], I: [['струм входу', 0]], extra: [['analogRead()', String(S.adc)]] }),
+  'P:GPIO2': N => ({ rows: [['GPIO2', N.g2]], I: [['струм', C.iGpio]], extra: [['рівень', S.relayOn ? 'HIGH' : 'LOW']] }),
+  'P:3V3': N => ({ rows: [['3V3', N.v33]], I: [['на верхню шину', C.iDiv]] }),
+  'P:5V': N => ({ rows: [['5V', S.espPower === 'u2' ? E.V5 : null]], I: [['бере', C.iEsp]] }),
+  'P:IN': N => ({ rows: [['IN', N.c]], I: [['виходить з IN', C.ibp]], extra: [['для модуля', Number.isNaN(N.c) ? '?' : N.c < 4.3 ? 'LOW → реле ON' : 'HIGH → реле OFF']] }),
+};
+const WIRE_V = { W1: 'v33', W2: 0, W3: 0, W4: 'v33', W5: 0, W6: 'adc', W7: 'g2', W8: 0, W9: 5, W10: 'c', W11: 5, W12: 0, W13: 5, W14: 'no', W15: 0, W16: 5 };
+const fVv = v => v === null || v === undefined ? 'не під\'єднано' : typeof v === 'string' ? v : Number.isNaN(v) ? 'висить' : Math.abs(v) < 1e-9 ? '0 В' : num(v, Math.abs(v) < 1 ? 3 : 2) + ' В';
+const fP = w => w < 1e-6 ? '0' : w < 1e-3 ? num(w * 1e6, 0) + ' мкВт' : w < 1 ? num(w * 1e3, w < 0.01 ? 2 : 1) + ' мВт' : num(w, 2) + ' Вт';
+// What the light does to GPIO2 right now — the answer to "what does GPIO2 output when the LDR resistance is high?"
+function thenHTML() {
+  if (!C.espOn) return '<div class="then bad">ESP32 без живлення: програма не працює, GPIO2 ніхто не керує, реле вимкнене.</div>';
+  const head = `R<sub>LDR</sub> = ${fR(C.rl)} → GPIO4 = ${fV(C.uAdc)} → АЦП ${S.adc}`;
+  const tail = C.arm !== S.relayOn ? ` <b style="color:var(--bad)">Але реле ${C.arm ? 'ON' : 'OFF'} — не так, як хоче програма (дослід).</b>` : '';
+  let t;
+  if (S.wi.noHyst) t = `${head} ${S.relayOn ? '&lt;' : '≥'} ${kMid()} → GPIO2 = <b>${S.relayOn ? 'HIGH, 3,3 В' : 'LOW, 0 В'}</b>.`;
+  else if (S.adc < S.kDark) t = `${head} &lt; DARK ${S.kDark}: <b>темно, опір великий</b> → GPIO2 = <b>HIGH, 3,3 В</b> → VT1 відкритий → IN ≈ 0,09 В → реле ON → лампа світить.`;
+  else if (S.adc > S.kLight) t = `${head} &gt; LIGHT ${S.kLight}: <b>світло, опір малий</b> → GPIO2 = <b>LOW, 0 В</b> → VT1 закритий → IN = 5 В → реле OFF.`;
+  else t = `${head} між порогами ${S.kDark}…${S.kLight} → програма нічого не змінює: GPIO2 лишається <b>${S.relayOn ? 'HIGH' : 'LOW'}</b>.`;
+  return `<div class="then${tail ? ' bad' : ''}">${t}${tail}</div>`;
+}
+const THEN_PARTS = new Set(['R1', 'R2', 'DD1', 'P:GPIO4', 'P:GPIO2', 'R3', 'VT1']);
+function liveHTML(id) {
+  const N = nodeV();
+  const w = NET.find(n => n.id === id);
+  if (w) {
+    const v = WIRE_V[id], volts = typeof v === 'string' ? N[v] : v;
+    return `<table class="lv"><tr><td>напруга на дроті</td><td class="v">${fVv(volts)}</td></tr><tr><td>струм</td><td class="v">${w.flow ? fI(FI[w.flow]()) : '≈ 0'}</td></tr></table>`;
+  }
+  const L = LIVE[id] && LIVE[id](N);
+  if (!L) return `<p class="lbl-sm">${partInfo(id).live()}</p>`;
+  let h = '<table class="lv"><tr><th>вивід</th><th style="text-align:right">напруга до GND</th></tr>' + L.rows.map(([k, v]) => `<tr><td>${k}</td><td class="v">${fVv(v)}</td></tr>`).join('');
+  if (L.drop !== undefined) h += `<tr class="sum"><td>напруга на деталі</td><td class="v">${fVv(L.drop)}</td></tr>`;
+  for (const [k, a] of L.I || []) h += `<tr><td>${k}</td><td class="v">${fI(a)}${a < -1e-7 ? ' (втікає)' : ''}</td></tr>`;
+  if (L.P !== undefined) h += `<tr><td>потужність</td><td class="v">${fP(L.P)}</td></tr>`;
+  for (const [k, v] of L.extra || []) h += `<tr><td>${k}</td><td class="v">${v}</td></tr>`;
+  return h + '</table>' + (THEN_PARTS.has(id) ? thenHTML() : '');
+}
+function openPop(id, x, y) {
+  const info = partInfo(id), pop = $('#pop');
+  if (!info) { closePop(); return; }
+  pop.dataset.id = id;
+  $('#popRole').innerHTML = info.role; $('#popT').innerHTML = info.name; $('#popWhat').innerHTML = info.what;
+  $('#popLive').innerHTML = liveHTML(id);
+  pop.hidden = false;
+  const w = pop.offsetWidth, h = pop.offsetHeight, de = document.documentElement;
+  let left = x + 14, top = y + 14;
+  if (left + w > scrollX + de.clientWidth - 8) left = Math.max(scrollX + 8, x - w - 14);
+  const minTop = scrollY + Math.max(8, $('.bar').getBoundingClientRect().bottom + 8);   // stay below the sticky bar
+  if (top + h > scrollY + innerHeight - 8) top = Math.max(minTop, y - h - 14);
+  top = Math.max(top, minTop);
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+}
+function closePop() { const pop = $('#pop'); if (!pop.hidden) { pop.hidden = true; pop.dataset.id = ''; } }
+function renderPop() {
+  const pop = $('#pop'); if (pop.hidden || !pop.dataset.id) return;
+  const html = liveHTML(pop.dataset.id), el = $('#popLive');
+  if (el.innerHTML !== html) el.innerHTML = html;
+}
+
+function selectPart(id) {
+  S.sel = id || null;
+  for (const host of ['#benchSvg', '#schemSvg']) {
+    const svg = $(host + ' svg');
+    let any = false;
+    $$('[data-part]', svg).forEach(el => { const on = !!id && el.dataset.part === id; el.classList.toggle('hl', on); any = any || on; });
+    svg.classList.toggle('has-hl', any);
+  }
+  $$('#partList button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sel === id)));
+  renderInspector(true);
+}
+function renderInspector(force) {
+  const box = $('#inspBody'), id = S.sel, info = id && partInfo(id);
+  if (!info) {
+    if (force || box.dataset.id !== '') { box.dataset.id = ''; box.innerHTML = '<p class="lbl-sm" style="margin:0">Натисніть деталь або провід на макетці чи схемі, або кнопку нижче. Те саме місце підсвітиться на обох кресленнях.</p>'; }
+    return;
+  }
+  if (force || box.dataset.id !== id) {
+    box.dataset.id = id;
+    box.innerHTML = `<span class="role">${info.role}</span><h4>${info.name}</h4><p style="margin:6px 0 0">${info.what}</p>` +
+      `<div id="inspLive"></div>${info.from ? `<dl><dt>звідки знаємо</dt><dd>${info.from}</dd></dl>` : ''}`;
+  }
+  const live = $('#inspLive'), html = liveHTML(id);
+  if (live.innerHTML !== html) live.innerHTML = html;
+}
+
+/* =====================================================================
+   Electron dots: one dashed path per branch, dash offset moves each frame.
+   ===================================================================== */
+const FL = [];
+function regFlows(root) { $$('[data-flow]', root).forEach(el => FL.push({ el, key: el.dataset.flow, off: 0, w: 0, vis: null, col: '' })); }
+function animateFlows(dt) {
+  const mode = S.flowMode, col = mode === 'e' ? 'var(--electron)' : 'var(--flow)';
+  for (const f of FL) {
+    const fn = FI[f.key], I = fn ? fn() : 0, a = Math.abs(I);
+    const vis = mode !== 'off' && a > 3e-7;
+    if (vis !== f.vis) { f.el.style.opacity = vis ? '' : '0'; f.vis = vis; }
+    if (!vis) continue;
+    const lg = Math.log10(a / 1e-6);
+    const w = Math.round(clamp(2.6 + 0.62 * lg, 2.6, 6.6) * 10) / 10;
+    if (w !== f.w) { f.el.style.strokeWidth = w; f.w = w; }
+    if (col !== f.col) { f.el.style.stroke = col; f.col = col; }
+    if (REDUCED || !dt) continue;
+    const v = clamp(24 + 25 * lg, 14, 150) * S.flowSpeed;
+    f.off = (f.off + (mode === 'e' ? 1 : -1) * Math.sign(I) * v * dt) % 13.1;
+    f.el.style.strokeDashoffset = f.off.toFixed(2);
+  }
+}
+
+/* =====================================================================
+   Live drawings
+   ===================================================================== */
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+function ramp(stops, x) {
+  if (x <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) if (x <= stops[i][0]) return mix(stops[i - 1][1], stops[i][1], (x - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]));
+  return stops[stops.length - 1][1];
+}
+const SKY = [[-1, '#0b1530'], [0.3, '#28295a'], [0.8, '#d9785c'], [1.4, '#f1c48a'], [2.1, '#a8d5ee'], [4.5, '#5fb0e6']];
+const set = (sel, attr, v) => { const e = $(sel); if (e && e.getAttribute(attr) !== String(v)) e.setAttribute(attr, v); };
+const txt = (sel, v) => { const e = $(sel); if (e && e.textContent !== v) e.textContent = v; };
+function renderBench() {
+  const L = S.light, amb = 10 ** L;
+  set('#darkOv', 'opacity', clamp((1.7 - L) / 3.4, 0, 0.58).toFixed(3));
+  set('#skyRect', 'fill', ramp(SKY, L));
+  const t = clamp((L + 1) / 5.5, 0, 1);
+  set('#skySun', 'cx', (538 + t * 144).toFixed(1)); set('#skySun', 'cy', (124 - t * 78).toFixed(1));
+  set('#skySun', 'fill', L < 0.6 ? '#e8edf5' : '#ffd34d');
+  txt('#skyT', `${fLux(amb)} лк${S.wi.lamp && S.lampLux > 0.05 ? ` + ${num(S.lampLux, 1)} лк від лампи` : ''}`);
+  set('#ldrFace', 'fill', ramp([[-1, '#7d735a'], [1, '#c9bd98'], [3, '#f6ecc8'], [4.5, '#fff8de']], L));
+  txt('#vlabelT', `GPIO4 = ${fV(C.uAdc)}`); txt('#vlabelS', `АЦП ${S.adc} · середня точка`);
+  txt('#inLabelT', `IN = ${Number.isNaN(C.vin) ? '?' : num(C.vin, 2) + ' В'}`);
+  txt('#inLabelS', Number.isNaN(C.vin) ? 'висить у повітрі' : C.vin < 4.3 ? 'для модуля LOW → ON' : 'HIGH → реле OFF');
+  txt('#u1cV', `VCC ──▶ ${fI(C.iRelVcc)} входить`);
+  txt('#u1cG', `GND ◀── ${fI(C.iRelGnd)} виходить`);
+  txt('#u1cI', `IN  ◀── ${fI(C.ibp)} виходить`);
+  set('#rmRed', 'fill', '#ff3b30'); set('#glowRed', 'opacity', 0.75); set('#glowPm', 'opacity', 0.75);
+  set('#rmGrn', 'fill', C.iGrn > 0 ? '#3ddc6a' : '#1d5a2a'); set('#glowGrn', 'opacity', C.iGrn > 0 ? 0.9 : 0);
+  set('#led1Core', 'opacity', C.iLoad > 0 ? 1 : 0.35); set('#glowLoad', 'opacity', C.iLoad > 0 ? 1 : 0);
+  set('#rmBlade', 'transform', `rotate(${C.arm ? 12 : -12} 650 606)`);
+}
+function renderSchem() {
+  txt('#sR1', fR(C.rl)); txt('#bAdc', fV(C.uAdc));
+  txt('#bGpio', S.relayOn ? 'HIGH' : 'LOW'); set('#bGpio', 'class', S.relayOn ? 'lvl-h' : 'lvl-l');
+  txt('#bIn', `IN ${Number.isNaN(C.vin) ? '?' : num(C.vin, 2) + ' В'}`);
+  txt('#bCoil', `котушка ${fI(C.iCoil)}`); txt('#bLoad', `LED1 ${fI(C.iLoad)}`);
+  set('#sArm', 'y2', C.arm ? 295 : 261); set('#sLink', 'd', `M836 278 L874.5 ${C.arm ? 286.5 : 269.5}`);
+  set('#sLedR', 'style', 'fill:#ff6b5e');
+  set('#sLedG', 'style', C.iGrn > 0 ? 'fill:#3ddc6a' : '');
+  set('#sLed1', 'style', C.iLoad > 0 ? 'fill:#ffe680' : '');
+  set('#ldrRays', 'opacity', clamp((S.light + 1.2) / 4, 0.15, 1).toFixed(2));
+}
+function renderStats() {
+  txt('#stR', fR(C.rl)); txt('#stU', fV(C.uAdc)); txt('#stRaw', String(S.adc));
+  const g = $('#stGpio'); txt('#stGpio', S.relayOn ? 'HIGH' : 'LOW'); g.className = 'v ' + (S.relayOn ? 'ok' : '');
+  txt('#stIn', Number.isNaN(C.vin) ? '?' : fV(C.vin));
+  const c = $('#stCoil'); txt('#stCoil', fI(C.iCoil)); c.className = 'v ' + (C.arm !== S.relayOn ? 'bad' : C.iCoil > 0 ? 'ok' : '');
+  txt('#stI5', fI(C.i5));
+  const recent = S.clickT.filter(t => t > S.t - 10000).length;
+  const k = $('#stClicks'); txt('#stClicks', `${S.clicks}${recent > 2 ? ` · ${recent}/10 с` : ''}`); k.className = 'v ' + (recent > 2 ? 'bad' : '');
+  const p = $('#barState'); const s = `реле ${C.arm ? 'ON' : 'OFF'} · АЦП ${S.adc}`;
+  if (p.textContent !== s) { p.textContent = s; p.className = 'pill ' + (C.arm ? 'on' : 'off'); }
+}
+
+/* cause → effect chain */
+const DEC = { dark: 'темно → ON', light: 'світло → OFF', mid: 'між порогами', start: '—', dead: 'ESP32 без живлення' };
+const CHAIN = [
+  { k: 'Світло', part: null, v: () => fLux(C.lux) + ' лк', s: () => C.lux > 1000 ? 'день' : C.lux > 50 ? 'кімната' : C.lux > 8 ? 'присмерк' : C.lux > 1 ? 'сутінки' : 'ніч' },
+  { k: 'R1 LDR', part: 'R1', v: () => fR(C.rl), s: () => 'опір' },
+  { k: 'GPIO4', part: 'R2', v: () => fV(C.uAdc), s: () => C.gnd ? 'середня точка' : 'немає землі!', st: () => C.gnd ? '' : 'bad' },
+  { k: 'АЦП', part: 'DD1', v: () => String(S.adc), s: () => S.wi.noHyst ? `поріг ${kMid()}` : `пороги ${S.kDark} / ${S.kLight}` },
+  { k: 'Рішення', part: 'DD1', v: () => S.branch === 'single' ? (S.relayOn ? `< ${kMid()} → ON` : `≥ ${kMid()} → OFF`) : DEC[S.branch], s: () => `relayOn = ${S.relayOn}`, st: () => S.branch === 'mid' ? 'warn' : '' },
+  { k: 'GPIO2', part: 'DD1', v: () => S.relayOn ? 'HIGH 3,3 В' : 'LOW 0 В', s: () => `${fI(C.iGpio)}${C.iGpio < -1e-7 ? ' у пін!' : ''}`, st: () => C.iGpio < -1e-7 ? 'bad' : S.relayOn ? 'on' : '' },
+  { k: 'VT1', part: 'VT1', v: () => C.direct ? 'обійдено' : C.npn ? 'відкритий' : 'закритий', s: () => `I_Б ${fI(C.ib)}`, st: () => C.direct || (!C.gnd && S.relayOn) ? 'bad' : C.npn ? 'on' : '' },
+  { k: 'IN', part: 'R4', v: () => Number.isNaN(C.vin) ? '?' : num(C.vin, 2) + ' В', s: () => Number.isNaN(C.vin) ? 'висить' : C.vin < 4.3 ? 'для модуля LOW' : 'HIGH', mm: 1 },
+  { k: 'PNP модуля', part: 'VT1.1', v: () => C.pnp ? 'відкритий' : 'закритий', s: () => `VCC − IN ${Number.isNaN(C.vin) ? '?' : num(E.V5 - C.vin, 2) + ' В'}`, mm: 1 },
+  { k: 'Котушка', part: 'RY1.1', v: () => fI(C.iCoil), s: () => C.iCoil > 0 ? fV(C.vCoil) : 'без струму', mm: 1 },
+  { k: 'Контакти', part: 'U1', v: () => C.arm ? 'COM–NO' : 'COM–NC', s: () => C.arm ? 'лампа під\'єднана' : 'лампа відключена', mm: 1 },
+  { k: 'Лампа', part: 'LED1', v: () => C.iLoad > 0 ? 'світить' : 'темна', s: () => fI(C.iLoad), mm: 1 },
+];
+function buildChain() {
+  $('#chain').innerHTML = CHAIN.map((c, i) => `<button type="button" class="lk" data-i="${i}"${c.part ? ` data-sel="${c.part}"` : ''}><span class="k">${c.k}</span><span class="v"></span><span class="s"></span></button>`).join('');
+  $('#chain').addEventListener('click', e => { const b = e.target.closest('[data-sel]'); if (b) selectPart(b.dataset.sel); });
+}
+function renderChain() {
+  const bad = C.arm !== S.relayOn;
+  $$('#chain .lk').forEach((el, i) => {
+    const c = CHAIN[i], v = c.v(), s = c.s();
+    const st = c.mm ? (bad ? 'bad' : C.arm ? 'on' : '') : c.st ? c.st() : '';
+    if (el.children[1].textContent !== v) el.children[1].textContent = v;
+    if (el.children[2].textContent !== s) el.children[2].textContent = s;
+    const cls = 'lk' + (st ? ' ' + st : '');
+    if (el.className !== cls) el.className = cls;
+  });
+}
+
+/* what-if */
+const WI_TEXT = {
+  direct: 'GPIO2 з\'єднано з IN без VT1 і R4. HIGH — це 3,3 В, а емітер PNP модуля сидить на 5 В. U<sub>ЕБ</sub> = 1,7 В > 0,7 В, тож PNP відкритий за <b>будь-якого</b> рівня GPIO, і реле не вимикається ніколи. Ще й ≈1 мА тече з 5-вольтової частини <b>в</b> пін ESP32. Висновок: модулю з PNP-входом на 5 В потрібне узгодження рівнів.',
+  noGnd: 'Дроти GND від ESP32 до шин зняті. Струму бази VT1 нема куди повернутися до ESP32, тож транзистор не відкривається. Подільник LDR теж залишився без землі. GPIO4 бачить 3,3 В, АЦП показує 4095, і програма вважає, що завжди світло. <b>Напруга має сенс лише відносно спільної точки</b>, тому земля в усіх плат одна. Якщо ESP32 живиться від U2 через пін 5V, без землі вона не вмикається взагалі.',
+  noHyst: 'Один поріг посередині. Біля нього шум АЦП (±12 одиниць) раз у раз перекидає рішення, і реле <b>клацає</b>. Запустіть «повільний захід сонця» і стежте за лічильником клацань та графіком у розділі 4. З гістерезисом на тому самому заході буде одне клацання.',
+  lamp: 'Лампа світить на фоторезистор (+6 лк, коли горить; LDR відгукується із затримкою ≈0,25 с). Стемніло → лампа вмикається → LDR бачить світло → програма вимикає лампу → знову темно… Якщо внесок лампи більший за проміжок між порогами, виникають <b>коливання</b>. Поставте світло на ≈2–3 лк. Лікування: розвести пороги ширше або, краще, сховати LDR від лампи.',
+  noDiode: 'Модуль без діода D1.3. Коли VT1.1 різко вимикає котушку, її магнітне поле не може зникнути миттєво. Котушка дає сплеск U = −L·di/dt <b>на сотні вольт</b>, і транзистор модуля може пробити. Вимкніть реле (додайте світла) і подивіться на іскру. На справжньому модулі діод є. Тут його вимкнено лише для досліду.',
+};
+function applyWhatIf() {
+  const w = S.wi, bench = $('#benchSvg svg');
+  NET.filter(n => n.key).forEach(n => $('#g' + n.id).classList.toggle('ghost-w', w.direct));
+  ['R3', 'VT1', 'R4'].forEach(p => $(`[data-part="${p}"]`, bench).classList.toggle('ghost-w', w.direct));
+  $('#wDirect').toggleAttribute('hidden', !w.direct);
+  NET.filter(n => n.gnd).forEach(n => { $('#g' + n.id).style.display = w.noGnd ? 'none' : ''; });
+  $('#gndCut').toggleAttribute('hidden', !w.noGnd);
+  $('#lampArcB').toggleAttribute('hidden', !w.lamp);
+  $('#noDiodeB').toggleAttribute('hidden', !w.noDiode); $('#u1Cap').style.display = w.noDiode ? 'none' : '';
+  $('#sKey').classList.toggle('ghost-w', w.direct); $('#sDirect').toggleAttribute('hidden', !w.direct);
+  $('#sGndCut').toggleAttribute('hidden', !w.noGnd); $('#sDdGnd').style.opacity = w.noGnd ? '.25' : '';
+  $('#sLamp').toggleAttribute('hidden', !w.lamp);
+  $('#sD13').classList.toggle('ghost-w', w.noDiode); $('#sNoDiode').toggleAttribute('hidden', !w.noDiode);
+  $$('#whatifs [data-wi]').forEach(b => b.setAttribute('aria-pressed', String(!!w[b.dataset.wi])));
+  const on = Object.keys(WI_TEXT).filter(k => w[k]);
+  $('#wiText').innerHTML = on.length ? on.map(k => `<p>${WI_TEXT[k]}</p>`).join('') :
+    '<p class="lbl-sm" style="margin:0">Увімкніть одну з помилок. Макетка, схема, ланцюжок і розрахунки покажуть, що зміниться. Червоні ланки в ланцюжку означають, що реле поводиться не так, як хоче програма.</p>';
+  buildCode();
+  dirty.plot = dirty.loop = true;
+}
+
+function applyPower() {
+  const u2 = S.espPower === 'u2';
+  $('#gW16').style.display = u2 ? '' : 'none';
+  $('#pin5v').classList.toggle('key', u2);
+  $('#ddCap1').textContent = u2 ? 'DD1 ← 5 В від U2 (пін 5V);' : 'DD1 ← USB-C від ПК:';
+  $('#ddCap2').textContent = u2 ? 'USB лише для прошивки і Serial' : 'живлення і Serial';
+  $('#sEsp5').toggleAttribute('hidden', !u2); $('#sEspUsb').toggleAttribute('hidden', u2);
+  $$('#espPower button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.espPower)));
+  update(); calcKey = '';
+}
+
+/* =====================================================================
+   Hysteresis: plot, loop, code, serial
+   ===================================================================== */
+const dirty = { plot: true, loop: true, serial: false, calc: true };
+function drawPlot() {
+  const cv = $('#plot'), w = cv.clientWidth, h = cv.clientHeight;
+  if (!w) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d'), cs = getComputedStyle(document.documentElement);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = cs.getPropertyValue('--scope').trim(); g.fillRect(0, 0, w, h);
+  const L = 46, R = w - 10, T = 10, B = h - 24, span = 30000, t1 = Math.max(S.t, span), t0 = t1 - span;
+  const X = t => L + (t - t0) / span * (R - L), Y = v => B - v / 4095 * (B - T);
+  g.font = '11px "JetBrains Mono", monospace'; g.textBaseline = 'middle';
+  g.strokeStyle = cs.getPropertyValue('--scope-grid').trim(); g.fillStyle = cs.getPropertyValue('--scope-text').trim(); g.lineWidth = 1;
+  for (const v of [0, 1024, 2048, 3072, 4095]) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(R, Y(v) + .5); g.stroke(); g.textAlign = 'right'; g.fillText(String(v), L - 6, Y(v)); }
+  g.textAlign = 'center';
+  for (let s = Math.ceil(t0 / 5000) * 5000; s <= t1; s += 5000) { g.beginPath(); g.moveTo(X(s) + .5, T); g.lineTo(X(s) + .5, B); g.stroke(); g.fillText(`${s / 1000} с`, X(s), B + 12); }
+  const H = S.hist.filter(p => p.t >= t0 - 100);
+  g.fillStyle = 'rgba(74, 222, 128, .10)';
+  for (let i = 0; i < H.length; i++) if (H[i].on) { const xa = X(H[i].t), xb = X(i + 1 < H.length ? H[i + 1].t : H[i].t + 100); g.fillRect(xa, T, xb - xa + .5, B - T); }
+  g.fillStyle = 'rgba(74, 222, 128, .85)';
+  for (let i = 0; i < H.length; i++) if (H[i].on) { const xa = X(H[i].t), xb = X(i + 1 < H.length ? H[i + 1].t : H[i].t + 100); g.fillRect(xa, B - 5, xb - xa + .5, 5); }
+  g.setLineDash([6, 4]); g.lineWidth = 1.4;
+  const hline = (v, c, lab) => { g.strokeStyle = c; g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(R, Y(v)); g.stroke(); g.fillStyle = c; g.textAlign = 'left'; g.fillText(lab, L + 6, Y(v) - 8); };
+  if (S.wi.noHyst) hline(kMid(), '#e2eaf0', `один поріг ${kMid()}`);
+  else {
+    g.fillStyle = 'rgba(255, 174, 43, .08)'; g.fillRect(L, Y(S.kLight), R - L, Y(S.kDark) - Y(S.kLight));
+    hline(S.kLight, '#ff8a5c', `LIGHT ${S.kLight}`); hline(S.kDark, '#6aa8ff', `DARK ${S.kDark}`);
+  }
+  g.setLineDash([]);
+  g.strokeStyle = '#ffd166'; g.lineWidth = 1.7; g.beginPath();
+  H.forEach((p, i) => { const x = X(p.t), y = Y(p.raw); if (i) g.lineTo(x, y); else g.moveTo(x, y); });
+  g.stroke();
+  g.fillStyle = '#ff8a5c';
+  for (const t of S.clickT) if (t >= t0) { const x = X(t); g.beginPath(); g.moveTo(x, T); g.lineTo(x - 4, T - 0.01 + 7); g.lineTo(x + 4, T + 7); g.closePath(); g.fill(); }
+}
+const LX = r => 46 + r / 4095 * 296;
+function loopSVG() {
+  const ticks = [0, 1000, 2000, 3000, 4095].map(v => `<line class="lp-ax" x1="${LX(v)}" y1="166" x2="${LX(v)}" y2="170"/><text class="lp-t" x="${LX(v)}" y="182" text-anchor="middle">${v}</text>`).join('');
+  return `<svg viewBox="0 0 360 194" role="img" aria-label="Петля гістерезису: стан реле залежно від числа АЦП">
+    <line class="lp-ax" x1="46" y1="166" x2="346" y2="166"/>${ticks}
+    <text class="lp-t" x="40" y="54" text-anchor="end">ON</text><text class="lp-t" x="40" y="144" text-anchor="end">OFF</text>
+    <text class="lp-t" x="48" y="22">← темніше</text><text class="lp-t" x="344" y="22" text-anchor="end">світліше →</text>
+    <rect id="lpBand" class="lp-band" y="34" height="124"/>
+    <path id="lpOn" class="lp-on"/><path id="lpOff" class="lp-off"/>
+    <path id="lpUp" class="lp-v" style="stroke:var(--ok)"/><path id="lpDown" class="lp-v" style="stroke:var(--muted)"/>
+    <path id="lpHeads" style="fill:var(--ink)"/>
+    <text id="lpDarkT" class="lp-t" y="160" text-anchor="middle" style="fill:#4d8fe8">DARK</text><text id="lpLightT" class="lp-t" y="160" text-anchor="middle" style="fill:#e8743f">LIGHT</text>
+    <circle id="lpDot" class="lp-dot" r="6"/>
+  </svg>`;
+}
+function renderLoop() {
+  const hy = !S.wi.noHyst, d = hy ? S.kDark : kMid(), l = hy ? S.kLight : kMid(), yOn = 50, yOff = 140;
+  set('#lpOn', 'd', `M${LX(0)} ${yOn} H${LX(l)}`); set('#lpOff', 'd', `M${LX(d)} ${yOff} H${LX(4095)}`);
+  set('#lpUp', 'd', `M${LX(d)} ${yOff} V${yOn + 8}`); set('#lpDown', 'd', `M${LX(l)} ${yOn} V${yOff - 8}`);
+  const a = (x, y, dx, dy) => `M${x} ${y} l${-4 * dy - 6 * dx} ${-6 * dy + 4 * dx} l${8 * dy} ${-8 * dx} Z`;
+  const mOff = (LX(d) + LX(4095)) / 2, mOn = (LX(0) + LX(l)) / 2;
+  set('#lpHeads', 'd', a(LX(d), yOn + 6, 0, -1) + a(LX(l), yOff - 6, 0, 1) + a(mOff, yOff, -1, 0) + a(mOn, yOn, 1, 0));
+  const band = $('#lpBand'); band.setAttribute('x', LX(d)); band.setAttribute('width', Math.max(0, LX(l) - LX(d))); band.style.display = hy ? '' : 'none';
+  set('#lpDarkT', 'x', LX(d) - (hy ? 14 : 0)); set('#lpLightT', 'x', LX(l) + (hy ? 16 : 0));
+  txt('#lpDarkT', hy ? 'DARK' : ''); txt('#lpLightT', hy ? 'LIGHT' : 'поріг');
+  set('#lpDot', 'cx', LX(S.adc).toFixed(1)); set('#lpDot', 'cy', S.relayOn ? yOn : yOff);
+}
+
+function codeLines() {
+  const pad = v => ' '.repeat(Math.max(1, 6 - String(v).length));
+  const L = [
+    ['', '// Сутінковий перемикач: LDR → АЦП → гістерезис → GPIO2 → BC547B → модуль реле.'],
+    ['', '#include <Arduino.h>'], ['', ''],
+    ['', 'constexpr uint8_t  kLdrPin   = 4;   // GPIO In:  ADC1_CH3, середня точка R1 (LDR) + R2'],
+    ['', 'constexpr uint8_t  kRelayPin = 2;   // GPIO Out: через R3 10 кОм на базу VT1'], ['', ''],
+    ['', '// LDR зверху (до 3V3): темніше → менша напруга → менше число АЦП.'],
+    ['', `constexpr uint16_t kThresholdDark  = ${S.kDark};${pad(S.kDark)}// нижче — темно: вмикаємо`],
+    ['', `constexpr uint16_t kThresholdLight = ${S.kLight};${pad(S.kLight)}// вище — світло: вимикаємо`],
+  ];
+  if (S.wi.noHyst) L.push(['', `constexpr uint16_t kThresholdMid   = (kThresholdDark + kThresholdLight) / 2;  // ${kMid()}`]);
+  L.push(
+    ['', 'constexpr uint32_t kPeriodMs       = 100;'], ['', ''],
+    ['', 'bool     relayOn    = false;'], ['', 'uint32_t lastReadAt = 0;'], ['', ''],
+    ['', 'void setup() {'],
+    ['', '  Serial.begin(115200);'],
+    ['', '  analogReadResolution(12);                    // 0…4095'],
+    ['', '  analogSetPinAttenuation(kLdrPin, ADC_11db);  // до ≈3,1 В'],
+    ['', '  pinMode(kRelayPin, OUTPUT);'],
+    ['', '  digitalWrite(kRelayPin, LOW);  // VT1 закритий → IN = 5 В → реле вимкнене'],
+    ['', '  lastReadAt = millis();'],
+    ['', '}'], ['', ''],
+    ['', 'void loop() {'],
+    ['guard', '  if (millis() - lastReadAt < kPeriodMs) return;'],
+    ['guard', '  lastReadAt += kPeriodMs;'], ['', ''],
+    ['', '  // 1. Зчитати АЦП'],
+    ['read', '  const uint16_t adc = analogRead(kLdrPin);'], ['', ''],
+  );
+  if (S.wi.noHyst) L.push(['', '  // 2. Один поріг, без гістерезису (дослід)'], ['single', '  relayOn = adc < kThresholdMid;']);
+  else L.push(
+    ['', '  // 2. Порівняти з порогами (гістерезис)'],
+    ['ifDark', '  if (adc < kThresholdDark) {'],
+    ['setOn', '    relayOn = true;                 // темно'],
+    ['elseLight', '  } else if (adc > kThresholdLight) {'],
+    ['setOff', '    relayOn = false;                // світло'],
+    ['mid', '  }                                 // між порогами — нічого не міняємо'],
+  );
+  L.push(
+    ['', ''],
+    ['', '  // 3. HIGH → VT1 відкритий → IN ≈ 0 В → реле вмикається'],
+    ['write', '  digitalWrite(kRelayPin, relayOn ? HIGH : LOW);'],
+    ['write', '  Serial.printf("adc=%4d relay=%s\\n", adc, relayOn ? "ON" : "OFF");'],
+    ['', '}'],
+  );
+  return L;
+}
+const escH = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function highlight(line) {
+  if (/^\s*#/.test(line)) return `<span class="t-p">${escH(line)}</span>`;
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|\b(constexpr|const|if|else|return|void|bool|true|false)\b|\b(uint32_t|uint16_t|uint8_t)\b|\b(\d+)\b|\b(HIGH|LOW|OUTPUT|ADC_11db|Serial)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line))) {
+    const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'k' : m[4] ? 't' : m[5] ? 'n' : 'm';
+    out += escH(line.slice(last, m.index)) + `<span class="t-${cls}">${escH(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + escH(line.slice(last));
+}
+const HEAT = {};
+function buildCode() {
+  const box = $('#code'), first = !box.children.length, keep = box.scrollTop;
+  box.innerHTML = codeLines().map(([id, t], i) => `<div class="ln"${id ? ` data-id="${id}"` : ''}><span class="no">${i + 1}</span><span>${highlight(t) || ' '}</span></div>`).join('');
+  const loopLn = $$('.ln', box).find(el => el.textContent.includes('void loop()'));
+  box.scrollTop = first && loopLn ? loopLn.getBoundingClientRect().top - box.getBoundingClientRect().top - 6 : keep;
+}
+const BRANCH_LINES = { dark: ['ifDark', 'setOn'], light: ['ifDark', 'elseLight', 'setOff'], mid: ['ifDark', 'elseLight', 'mid'], single: ['single'] };
+let curLines = [];
+function codeHeat() {
+  curLines = ['guard', 'read', ...(BRANCH_LINES[S.branch] || []), 'write'];
+  for (const id of curLines) HEAT[id] = 1;
+}
+function renderCodeHeat(dt) {
+  const k = Math.exp(-dt / 0.35);
+  for (const id in HEAT) HEAT[id] *= k;
+  $$('#code .ln[data-id]').forEach(el => {
+    const id = el.dataset.id, h = (HEAT[id] || 0).toFixed(2);
+    if (el.style.getPropertyValue('--heat') !== h) el.style.setProperty('--heat', h);
+    const cur = curLines.includes(id) && id !== 'guard' && id !== 'read' && id !== 'write';
+    if (el.classList.contains('is-cur') !== cur) el.classList.toggle('is-cur', cur);
+  });
+}
+const SER = [];
+function serialPush(raw, on, chg) {
+  const ms = Math.round(S.t), mm = String(Math.floor(ms / 60000)).padStart(2, '0'), ss = String(Math.floor(ms / 1000) % 60).padStart(2, '0'), mmm = String(ms % 1000).padStart(3, '0');
+  SER.push(`<span class="${chg ? 'chg' : on ? 'on' : ''}">${mm}:${ss}.${mmm} > adc=${String(raw).padStart(4)} relay=${on ? 'ON' : 'OFF'}${chg ? '   ← змінилось' : ''}</span>`);
+  if (SER.length > 90) SER.splice(0, 30);
+  dirty.serial = true;
+}
+function renderSerial() {
+  const el = $('#serial'), atEnd = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+  el.innerHTML = SER.join('\n');
+  if (atEnd) el.scrollTop = el.scrollHeight;
+  dirty.serial = false;
+}
+
+/* =====================================================================
+   Calculations table: both GPIO2 levels with the current light and what-ifs.
+   ===================================================================== */
+const CALC = [
+  ['Струм подільника R1–R2', c => fI(c.iDiv)],
+  ['Струм піна GPIO2', c => fI(c.iGpio) + (c.iGpio < -1e-7 ? ' у пін!' : ''), c => c.iGpio < -1e-7 ? 'bad' : 'ok'],
+  ['Струм бази VT1 (R3)', c => c.direct ? '—' : fI(c.ib)],
+  ['Струм через R4', c => c.direct ? '—' : fI(c.ir4)],
+  ['Струм бази PNP (R1.2)', c => fI(c.ibp)],
+  ['Струм колектора VT1', c => c.direct ? '—' : fI(c.ir4 + c.ibp), c => !c.direct && c.npn ? 'ok' : ''],
+  ['β примусове = I_К / I_Б', c => !c.direct && c.ib > 0 ? `${num((c.ir4 + c.ibp) / c.ib, 0)} ≪ 200` : '—', c => !c.direct && c.ib > 0 ? 'ok' : ''],
+  ['Напруга на IN', c => Number.isNaN(c.vin) ? '?' : fV(c.vin)],
+  ['Струм котушки', c => fI(c.iCoil)],
+  ['Потужність котушки', c => c.iCoil > 0 ? num(c.iCoil * c.vCoil, 2) + ' Вт' : '0'],
+  ['D1.2 зелений / D1.1 червоний', c => `${fI(c.iGrn)} / ${fI(c.iRed)}`],
+  ['LED1 (навантаження)', c => fI(c.iLoad)],
+  ['ESP32 з шини 5 В (пін 5V)', c => S.espPower === 'u2' ? fI(c.iEsp) : 'від USB'],
+  ['Разом з шини 5 В', c => fI(c.i5), c => c.i5 < 0.5 ? 'ok' : 'bad'],
+  ['Реле', c => c.arm ? 'ON' : 'OFF', c => c.arm === c.on ? 'ok' : 'bad'],
+];
+let calcKey = '';
+function renderCalc() {
+  const lux = 10 ** S.light;
+  const lo = circuit({ lux, on: false, arm: false, wi: S.wi }), hi = circuit({ lux, on: true, arm: false, wi: S.wi });
+  const cur = S.relayOn ? 1 : 0;
+  const rows = CALC.map(([name, f, ck]) => {
+    const cell = (c, i) => { const k = ck ? ck(c) : ''; return `<td class="m${k ? ' ' + k : ''}${i === cur ? ' cur' : ''}">${f(c)}</td>`; };
+    return `<tr><td>${name}</td>${cell(lo, 0)}${cell(hi, 1)}</tr>`;
+  }).join('');
+  const html = `<thead><tr><th>Величина</th><th${cur === 0 ? ' class="cur"' : ''}>GPIO2 = LOW</th><th${cur === 1 ? ' class="cur"' : ''}>GPIO2 = HIGH</th></tr></thead><tbody>${rows}</tbody>`;
+  if (html !== calcKey) { $('#calcTbl').innerHTML = html; calcKey = html; }
+  txt('#calcState', `світло ${fLux(lux)} лк · зараз GPIO2 = ${S.relayOn ? 'HIGH' : 'LOW'}`);
+}
+
+/* =====================================================================
+   Section 5: parts from earlier lessons (cards with small live diagrams)
+   ===================================================================== */
+const gS = (x, y) => `<path class="m-w g" d="M${x - 10} ${y} H${x + 10} M${x - 6} ${y + 5} H${x + 6} M${x - 2} ${y + 10} H${x + 2}"/>`;
+const pS = (x, y, lab, cls) => `<path class="m-w ${cls}" d="M${x - 11} ${y} H${x + 11} M${x} ${y} V${y + 12}"/><text class="m-s" x="${x + 15}" y="${y + 4}">${lab}</text>`;
+const uxP = v => 20 + v / 5 * 260;
+const CARDS = [
+  { from: 'Модуль 1.6 · АЦП і світло', title: 'Подільник напруги з LDR', show: ['R1', 'R2'],
+    svg: `<svg viewBox="0 0 300 152" role="img" aria-label="Подільник: LDR зверху, R2 знизу, середня точка на GPIO4">
+      ${pS(60, 14, '+3,3 В', 'p3')}<rect class="m-r" x="50" y="26" width="20" height="40"/>
+      <path class="m-a" d="M18 28 L42 42 M18 46 L42 60"/><text class="m-t" x="80" y="42">R1 LDR</text><text class="m-v" id="mR" x="80" y="57">—</text>
+      <path class="m-w" d="M60 66 V92 M60 79 H184"/><circle class="m-dot" cx="60" cy="79" r="3"/>
+      <rect class="m-r" x="184" y="69" width="64" height="20" rx="3"/><text class="m-t" x="216" y="83" text-anchor="middle">GPIO4</text>
+      <text class="m-v" id="mU" x="124" y="72" text-anchor="middle">—</text><text class="m-s" id="mRaw" x="216" y="104" text-anchor="middle">АЦП —</text>
+      <rect class="m-r" x="50" y="92" width="20" height="36"/><text class="m-t" x="80" y="108">R2</text><text class="m-s" x="80" y="121">10 кОм</text>
+      <path class="m-w g" d="M60 128 V136"/>${gS(60, 136)}
+      <path class="flow" data-flow="div" d="M60 14 V136"/></svg>`,
+    body: `<p>АЦП вимірює напругу, а не опір. Тому LDR стоїть послідовно з постійним R2, і середня точка отримує частку від 3,3 В:</p>
+      <div class="formula">U = 3,3 В · R2 / (R_LDR + R2)</div>
+      <p><b>LDR зверху:</b> світліше → R<sub>LDR</sub> менший → напруга вища → число АЦП більше. Тому «темно» в коді — це <code>adc &lt; kThresholdDark</code>.</p>
+      <p id="mThr" class="lbl-sm"></p>
+      <p class="lbl-sm">У бібліотеці компонентів курсу формула для LDR <i>знизу</i>, і там напрям протилежний. Перевіряйте, як зібрано у вас.</p>` },
+  { from: 'Модуль 1.4 · підтяжка входу', title: 'Підтягувальний резистор R4', show: ['R4', 'VT1'],
+    svg: `<svg viewBox="0 0 300 156" role="img" aria-label="Порівняння: кнопка з INPUT_PULLUP і транзистор з R4">
+      <text class="m-s" x="70" y="10" text-anchor="middle">модуль 1.4: кнопка</text>
+      ${pS(70, 22, '+3,3 В', 'p3')}<rect class="m-r" x="62" y="34" width="16" height="30" stroke-dasharray="3 2"/><text class="m-s" x="84" y="50">pull-up</text><text class="m-s" x="84" y="61">у чипі</text>
+      <path class="m-w" d="M70 64 V96 M70 80 H108"/><circle class="m-dot" cx="70" cy="80" r="3"/><text class="m-t" x="111" y="84">GPIO</text>
+      <circle class="m-dot" cx="70" cy="98" r="2.5"/><path class="m-w" d="M70 98 L86 110"/><circle class="m-dot" cx="70" cy="118" r="2.5"/><path class="m-w" d="M70 118 V128"/>${gS(70, 128)}<text class="m-s" x="90" y="118">кнопка</text>
+      <text class="m-s" x="222" y="10" text-anchor="middle">тут: транзистор</text>
+      ${pS(204, 22, '+5 В', 'p5')}<rect class="m-r" x="196" y="34" width="16" height="30"/><text class="m-t" x="218" y="52">R4</text>
+      <path class="m-w" d="M204 64 V92 M204 80 H246"/><circle class="m-dot" cx="204" cy="80" r="3"/><text class="m-t" x="250" y="84">IN</text><text class="m-v" id="mPu" x="250" y="99">—</text>
+      <path class="m-w" d="M204 92 L192 100 M192 95 V121" style="stroke-width:2.4"/><path class="m-w" d="M192 116 L204 124 V128"/>${gS(204, 128)}
+      <path class="m-w" d="M150 108 H192"/><text class="m-s" x="150" y="122">з GPIO2</text>
+      <path class="flow" data-flow="r4" d="M204 22 V92 L194 100"/></svg>`,
+    body: `<p>У модулі 1.4 кнопка замикала вхід на землю, а <code>INPUT_PULLUP</code> підтягував його до 3,3 В. Тут те саме, тільки «кнопку» натискає GPIO2 через VT1, а підтяжка — зовнішній R4 до 5 В.</p>
+      <ul><li>VT1 закритий → R4 тягне IN до 5 В → логічна 1 → реле OFF.</li><li>VT1 відкритий → IN ≈ 0,1 В → логічний 0 → реле ON.</li></ul>
+      <p>Такий вихід називають <b>відкритим колектором</b>. Транзистор уміє лише притягнути лінію до землі, а «верх» дає резистор. Тому рівень HIGH визначає напруга, до якої під'єднано R4, а не GPIO.</p>` },
+  { from: 'Урок 5 · транзистори', title: 'Транзистор як ключ: BC547B', show: ['VT1', 'R3'],
+    svg: `<svg viewBox="0 0 300 152" role="img" aria-label="NPN-ключ: струм бази і колектора; цоколівка BC547B">
+      <text class="m-s" x="16" y="72">GPIO2</text><path class="m-w" d="M16 80 H52"/><rect class="m-r" x="52" y="73" width="34" height="14"/><text class="m-s" x="69" y="68" text-anchor="middle">R3</text><path class="m-w" d="M86 80 H112"/>
+      <circle cx="128" cy="80" r="21" fill="none" stroke="var(--ink)" stroke-width="1.2"/>
+      <path class="m-w" d="M112 63 V97" style="stroke-width:2.6"/><path class="m-w" d="M112 72 L138 57 V18"/><path class="m-w" d="M112 88 L138 103 V132"/>
+      <path class="tri" d="M135 101 L126 99.6 L130 93 Z" style="fill:var(--ink)"/>${gS(138, 132)}
+      <text class="m-s" x="146" y="24">до R4 і IN</text>
+      <text class="m-v" id="mIb" x="16" y="104">I_Б —</text><text class="m-v" id="mIc" x="146" y="44">I_К —</text>
+      <path class="flow" data-flow="ib" d="M16 80 H112 L124 86"/><path class="flow" data-flow="ce" d="M138 18 V57 L122 66"/><path class="flow" data-flow="e" d="M122 94 L138 103 V132"/>
+      <path d="M220 34 H272 V70 H220 Z" fill="#23282d"/><path d="M220 34 Q246 22 272 34" fill="#23282d"/>
+      <text x="246" y="56" text-anchor="middle" style="font:600 8px var(--f-mono);fill:#c9d1d7">BC547B</text>
+      <path d="M230 70 V108 M246 70 V108 M262 70 V108" stroke="#9aa3aa" stroke-width="2.4"/>
+      <text class="m-t" x="230" y="122" text-anchor="middle">C</text><text class="m-t" x="246" y="122" text-anchor="middle">B</text><text class="m-t" x="262" y="122" text-anchor="middle">E</text>
+      <text class="m-s" x="246" y="140" text-anchor="middle">пласка сторона до вас</text></svg>`,
+    body: `<p>Малий струм бази (≈0,26 мА) відкриває шлях колектор–емітер для більшого струму (≈4,7 мА). R3 обмежує струм бази. Без нього перехід база–емітер (≈0,7 В) закоротив би GPIO.</p>
+      <p><b>Насичення.</b> Щоб ключ був увімкнений повністю, струм бази дають із запасом. Примусове β = I<sub>К</sub> / I<sub>Б</sub> ≈ 18, а в BC547B h<sub>FE</sub> 200…450. Тоді U<sub>КЕ</sub> ≈ 0,1 В, і транзистор майже не гріється.</p>
+      <p><b>Цоколівка.</b> Якщо дивитися на пласку сторону, ніжками вниз: C-B-E. У 2N2222 в корпусі TO-92 навпаки, E-B-C. Його треба повернути.</p>` },
+  { from: 'Новий вузол', title: 'Узгодження рівнів 3,3 → 5 В', show: ['VT1', 'R4', 'U1'],
+    svg: '',
+    body: `<p>Сигнал перевертається двічі: VT1 інвертує GPIO2, а PNP модуля інвертує IN. Тому <b>HIGH на GPIO2 = реле ON</b>, як і вимагає умова.</p>
+      <div class="tbl-wrap"><table class="tbl" style="min-width:0;font-size:13px" id="truth">
+        <thead><tr><th>GPIO2</th><th>VT1</th><th>IN</th><th>PNP</th><th>реле</th></tr></thead>
+        <tbody>
+          <tr data-row="lo"><td class="m">LOW 0 В</td><td>закритий</td><td class="m">5 В (R4)</td><td>закритий</td><td class="ok">OFF</td></tr>
+          <tr data-row="hi"><td class="m">HIGH 3,3 В</td><td>відкритий</td><td class="m">0,09 В</td><td>відкритий</td><td class="ok">ON</td></tr>
+          <tr data-row="dlo"><td class="m">напряму, LOW</td><td>—</td><td class="m">0 В</td><td>відкритий</td><td class="ok">ON</td></tr>
+          <tr data-row="dhi"><td class="m">напряму, HIGH</td><td>—</td><td class="m">3,3 В</td><td>відкритий</td><td class="bad">ON ✗</td></tr>
+        </tbody></table></div>
+      <p class="lbl-sm">Підсвічено рядок, що відповідає стану зараз. Останній рядок — головна пастка цього проєкту.</p>` },
+  { from: 'Схема модуля з уроку', title: 'PNP усередині модуля: «активний LOW»', show: ['VT1.1', 'R1.2'],
+    svg: `<svg viewBox="0 0 300 112" role="img" aria-label="Шкала напруги на IN: PNP відкритий нижче 4,3 В">
+      <text class="m-s" x="150" y="14" text-anchor="middle">напруга на IN, вольти</text>
+      <rect x="20" y="40" width="${uxP(4.3) - 20}" height="18" fill="color-mix(in srgb, var(--ok) 26%, transparent)"/>
+      <rect x="${uxP(4.3)}" y="40" width="${280 - uxP(4.3)}" height="18" fill="color-mix(in srgb, var(--muted) 22%, transparent)"/>
+      <text class="m-s" x="${uxP(2.15)}" y="53" text-anchor="middle" style="fill:var(--ink)">PNP відкритий → реле ON</text>
+      <text class="m-s" x="${(uxP(4.3) + 280) / 2}" y="53" text-anchor="middle" style="fill:var(--ink)">OFF</text>
+      <path class="m-w" d="M20 58 H280"/>${[0, 1, 2, 3, 4, 5].map(v => `<path class="m-w" d="M${uxP(v)} 58 v4"/><text class="m-s" x="${uxP(v)}" y="72" text-anchor="middle">${v}</text>`).join('')}
+      <path class="m-a" d="M${uxP(0.09)} 76 V86 M${uxP(3.3)} 76 V86 M${uxP(5)} 76 V86 M${uxP(4.3)} 36 V62"/>
+      <text class="m-s" x="${uxP(0.09)}" y="98">VT1: 0,09</text><text class="m-s" x="${uxP(3.3)}" y="98" text-anchor="middle">GPIO HIGH: 3,3</text><text class="m-s" x="${uxP(5)}" y="98" text-anchor="end">R4: 5</text>
+      <text class="m-s" x="${uxP(4.3)}" y="32" text-anchor="middle">4,3</text>
+      <path id="mInMark" d="M0 0 l-6 -10 h12 z" fill="var(--hi)" transform="translate(${uxP(5)} 39)"/></svg>`,
+    body: `<p>Емітер PNP VT1.1 під'єднано до VCC = 5 В, а база через R1.2 1 кОм виходить на IN. PNP відкривається, коли база нижча за емітер приблизно на 0,7 В, тобто коли U<sub>IN</sub> &lt; 4,3 В.</p>
+      <p>Тому модуль розрізняє лише два стани: близько 5 В (вимкнено) і все нижче 4,3 В (увімкнено). <b>3,3 В з GPIO для нього — LOW.</b> Трикутник на шкалі показує IN зараз.</p>` },
+  { from: 'Новий компонент', title: 'Реле: котушка і контакти', show: ['RY1.1', 'U1'],
+    svg: `<svg viewBox="0 0 300 150" role="img" aria-label="Будова реле: котушка, якір, контакти NC і NO">
+      <rect x="40" y="88" width="80" height="40" rx="4" fill="#b87333" opacity=".9"/>
+      <path d="M50 88 v40 M60 88 v40 M70 88 v40 M80 88 v40 M90 88 v40 M100 88 v40 M110 88 v40" stroke="#7a4a1d" stroke-width="1.2"/>
+      <rect x="66" y="76" width="28" height="12" fill="#8a96a0"/>
+      <g id="mField" opacity="0"><path d="M58 86 C 50 66, 110 66, 102 86" fill="none" stroke="var(--electron)" stroke-width="1.4" stroke-dasharray="4 3"/><path d="M48 86 C 36 56, 124 56, 112 86" fill="none" stroke="var(--electron)" stroke-width="1.2" stroke-dasharray="4 3"/></g>
+      <g id="mArm" transform="rotate(-6 30 66)"><path d="M30 66 H200" stroke="#8a96a0" stroke-width="6" stroke-linecap="round"/><circle cx="200" cy="66" r="5" fill="#d4a93a"/></g>
+      <circle cx="30" cy="66" r="4.5" fill="var(--ink)"/><text class="m-t" x="8" y="56">COM</text>
+      <path class="m-w" d="M150 62 l0 -6 l7 -3 l-14 -6 l14 -6 l-7 -3 v-8"/><text class="m-s" x="160" y="30">пружина</text>
+      <circle cx="207" cy="48" r="5" fill="#d4a93a"/><path class="m-w" d="M212 48 H246"/><text class="m-t" x="252" y="52">NC</text>
+      <circle cx="207" cy="84" r="5" fill="#d4a93a"/><path class="m-w" d="M212 84 H246"/><text class="m-t" x="252" y="88">NO</text>
+      <text class="m-s" x="80" y="144" text-anchor="middle">котушка</text><text class="m-v" id="mCoil" x="132" y="116">—</text>
+      <path class="flow" data-flow="coil" d="M40 108 H120"/></svg>`,
+    body: `<p>Струм ≈70 мА через котушку RY1.1 створює магнітне поле. Воно притягує якір, і COM перемикається з NC на NO. Контакти механічно відокремлені від котушки. Тому навантаження може мати зовсім інше живлення: стрічку на 12 В, мотор.</p>
+      <ul><li><b>NO</b> (normally open) розімкнений, поки реле вимкнене. Лампу ставимо сюди: без живлення вона не світить.</li>
+        <li><b>NC</b> (normally closed) замкнений з COM у спокої.</li>
+        <li>Котушка — індуктивність L на залізному осерді, тому на схемі її малюють витками. 70 Ом — це лише опір дроту обмотки. Він задає сталий струм. L змінюється: з притягнутим якорем зазор менший, і L більша.</li>
+        <li>Реле має власний гістерезис: спрацьовує від ≈3,75 В на котушці, відпускає нижче ≈0,5 В.</li>
+        <li>Ресурс — близько 100 тис. перемикань під навантаженням. Клацання щосекунди з'їсть його за кілька днів.</li></ul>` },
+  { from: 'Урок 5 · діоди', title: 'Діод на котушці: D1.3', show: ['D1.3', 'RY1.1'],
+    svg: `<svg viewBox="0 0 300 152" role="img" aria-label="Котушка з діодом: після вимкнення струм котушки йде через діод">
+      ${pS(40, 12, '+5 В', 'p5')}<circle class="m-dot" cx="40" cy="26" r="2.5"/><path id="mSw" class="m-w" d="M40 26 L54 44"/><circle class="m-dot" cx="40" cy="50" r="2.5"/><text class="m-s" x="58" y="38">VT1.1</text>
+      <path class="m-w" d="M40 50 V62 H200 M120 62 V72 M200 62 V78"/>
+      <path class="m-w" d="M120 72 a5.5 5.5 0 0 1 0 11 a5.5 5.5 0 0 1 0 11 a5.5 5.5 0 0 1 0 11 a5.5 5.5 0 0 1 0 11"/><path class="m-w" d="M112 70 V118 M109 70 V118" style="stroke-width:1.2"/><text class="m-s" x="104" y="98" text-anchor="end">котушка L</text>
+      <path class="m-w" d="M190 78 H210"/><path class="m-r" d="M190 100 L210 100 L200 80 Z"/><path class="m-w" d="M200 100 V128 H120 M120 116 V128 H80 V132"/>${gS(80, 132)}
+      <text class="m-s" x="216" y="94">D1.3</text><text class="m-v" id="mFly" x="150" y="148" text-anchor="middle">—</text>
+      <path id="mNoD" d="M188 76 L212 104 M212 76 L188 104" stroke="var(--bad)" stroke-width="3" stroke-linecap="round" opacity="0"/>
+      <path class="flow" data-flow="coil" d="M40 12 V62 H120 V128 H80 V132"/><path class="flow" data-flow="fly" d="M120 62 V128 H200 V62 H120"/></svg>`,
+    body: `<p>Котушка — це індуктивність: вона опирається різкій зміні струму. Коли VT1.1 закривається, струм ≈70 мА не може зникнути миттєво. Без діода котушка підняла б напругу на колекторі до сотень вольт (U = −L·di/dt) і пробила б транзистор.</p>
+      <p>Діод увімкнено «навпаки», катодом до «+». У роботі він закритий, а після вимкнення замикає струм котушки сам на себе, і той згасає за мілісекунди. Анімація сповільнена в сотні разів. Вимкніть реле (додайте світла) і подивіться на петлю.</p>` },
+  { from: 'Модуль 1.2 · чи можна спалити LED', title: 'Світлодіоди та їхні резистори', show: ['D1.1', 'D1.2', 'LED1'],
+    svg: '',
+    body: `<p>Кожному світлодіоду потрібен резистор, що обмежує струм: R = (U − U<sub>LED</sub>) / I, тобто I = (U − U<sub>LED</sub>) / R.</p>
+      <div class="tbl-wrap"><table class="tbl" style="min-width:0;font-size:13px">
+        <thead><tr><th>LED</th><th>розрахунок</th><th>струм</th><th>навіщо</th></tr></thead>
+        <tbody><tr><td>D1.1 червоний</td><td class="m">(5 − 1,9) / 1 кОм</td><td class="m">3,1 мА</td><td>є живлення</td></tr>
+          <tr><td>D1.2 зелений</td><td class="m">(4,85 − 2,2) / 1 кОм</td><td class="m">2,7 мА</td><td>котушка під струмом</td></tr>
+          <tr><td>LED1 білий</td><td class="m">(5 − 3,0) / 220 Ом</td><td class="m">9,1 мА</td><td>навантаження</td></tr></tbody></table></div>
+      <p>Зелений LED стоїть паралельно котушці, тож світиться, коли струм іде в котушку. Якщо зелений світиться, а лампа ні, шукайте проблему на боці контактів.</p>` },
+  { from: 'Урок 8 · макетна плата', title: 'Живлення і спільна земля', show: ['U2', 'DD1'],
+    svg: `<svg viewBox="0 0 300 150" role="img" aria-label="Два джерела живлення і спільна земля">
+      <rect class="m-r" x="4" y="12" width="62" height="30" rx="4"/><text class="m-t" x="35" y="31" text-anchor="middle">ПК · USB</text><path class="m-w" d="M66 27 H92"/>
+      <rect class="m-r" x="92" y="6" width="98" height="42" rx="4"/><text class="m-t" x="141" y="23" text-anchor="middle">DD1 ESP32-S3</text><text class="m-s" x="141" y="38" text-anchor="middle">стабілізатор 3V3</text>
+      <path class="m-w p3" d="M190 27 H208"/><rect class="m-r" x="208" y="12" width="88" height="30" rx="4"/><text class="m-s" x="252" y="25" text-anchor="middle" style="fill:var(--n33)">шина 3,3 В</text><text class="m-s" x="252" y="37" text-anchor="middle">LDR, R2</text>
+      <rect class="m-r" x="4" y="102" width="62" height="30" rx="4"/><text class="m-t" x="35" y="121" text-anchor="middle">USB-C 5 В</text><path class="m-w" d="M66 117 H92"/>
+      <rect class="m-r" x="92" y="96" width="98" height="42" rx="4"/><text class="m-t" x="141" y="113" text-anchor="middle">U2</text><text class="m-s" x="141" y="128" text-anchor="middle">верх OFF · низ 5V</text>
+      <path class="m-w p5" d="M190 117 H208"/><rect class="m-r" x="208" y="102" width="88" height="30" rx="4"/><text class="m-s" x="252" y="115" text-anchor="middle" style="fill:var(--n5)">шина 5 В</text><text class="m-s" x="252" y="127" text-anchor="middle">VT1, U1, LED1</text>
+      <path class="m-w g" d="M100 72 H290 M141 48 V72 M141 96 V72 M252 42 V72 M252 102 V72" style="stroke-width:2.4"/>
+      <text class="m-s" x="96" y="76" text-anchor="end" style="fill:var(--ink);font-weight:600">спільна GND</text></svg>`,
+    body: `<p>Джерел живлення два. ESP32 живиться від ПК через USB і віддає 3,3 В на верхню шину. Модуль U2 бере 5 В з USB-C і живить нижню шину: VT1, R4, реле, лампу.</p>
+      <ul><li><b>Перемички U2:</b> верхня знята (OFF), нижня на 5V. Верхня шина з'єднана з піном 3V3 плати (дріт W1). Тому верхня перемичка на 5V подасть <b>5 В прямо в пін 3V3, і ESP32 згорить</b> (максимум 3,6 В). На 3.3V вона з'єднає два стабілізатори, поки підключений USB.</li>
+        <li><b>Живити ESP32 від U2</b> можна через пін <b>5V</b> (2a): дріт з нижньої шини +5 В в обхід макетки зліва. На YD-ESP32-S3 між USB і піном 5V стоїть діод (перемичка IN-OUT не запаяна), тож USB для прошивки можна лишити. Перемикач «ESP32: 5 В від U2» над макеткою показує цей дріт (W16). Ніколи: 5 В на пін 3V3 або 3,3 В на пін 5V.</li>
+        <li><b>Датчик від 3V3 плати.</b> На GPIO4 не буде напруги, коли ESP32 вимкнена, і два стабілізатори 3,3 В не «сперечаються» на одній шині.</li>
+        <li><b>Не з'єднуйте 5 В модуля з піном 5V плати</b>, поки вона підключена до ПК: вийдуть два джерела 5 В на одному проводі.</li>
+        <li><b>Земля одна на всіх.</b> Напруга має сенс лише відносно спільного нуля, і кожен струм повертається до свого джерела.</li></ul>` },
+  { from: 'Урок 4 · напруга, струм, опір', title: 'Електрони чи «умовний струм»?', show: [],
+    svg: `<svg viewBox="0 0 300 92" role="img" aria-label="Напрям руху електронів і умовного струму в дроті">
+      <text class="m-s" x="150" y="14" text-anchor="middle">електрони e⁻: від «−» до «+» →</text>
+      <text class="m-t" x="8" y="42" style="font-size:16px">−</text><text class="m-t" x="282" y="42" style="font-size:16px">+</text>
+      <rect x="24" y="28" width="252" height="18" rx="9" fill="#c8794a" opacity=".85"/>
+      <path class="flow" data-flow="demo" d="M270 37 H30"/>
+      <path class="m-w" d="M206 66 H100"/><path class="tri" d="M94 66 L103 61.5 L103 70.5 Z" style="fill:var(--ink)"/>
+      <text class="m-s" x="150" y="84" text-anchor="middle">← умовний струм I: від «+» до «−»</text></svg>`,
+    body: `<p>Історично домовилися, що струм тече від «+» до «−». Усі стрілки на схемах (діод, емітер транзистора) показують саме цей <b>умовний струм</b>. Електрони заряджені негативно і рухаються навпаки: від «−» до «+». Перемикач над сторінкою міняє напрям точок.</p>
+      <p>Електрони в міді дрейфують дуже повільно. При 70 мА у дроті перемички — близько 0,02 мм/с, тобто ≈6 см за годину. Лампа вмикається миттєво тому, що вздовж дроту майже зі швидкістю світла біжить електричне поле, і рушають усі електрони одразу. Тому тут швидкість точок ∝ log(струму): мікроампери подільника повзуть, 70 мА котушки мчать.</p>` },
+];
+function buildCards() {
+  $('#cards').innerHTML = CARDS.map(c => `<article class="card"><div class="ch"><span class="from">${c.from}</span><h3>${c.title}</h3></div>
+    <div class="mini">${c.svg}</div><div class="cb">${c.body}</div>
+    <div class="cf">${c.show.length ? '<span class="lbl-sm">показати:</span>' + c.show.map(p => `<button type="button" class="chip-btn mono" data-show="${p}">${p}</button>`).join('') : '<span class="lbl-sm">Напрям точок перемикається в панелі вгорі.</span>'}</div></article>`).join('');
+  $('#cards').addEventListener('click', e => {
+    const b = e.target.closest('[data-show]'); if (!b) return;
+    selectPart(b.dataset.show);
+    const inBench = $(`#benchSvg [data-part="${CSS.escape(b.dataset.show)}"]`);
+    (inBench ? $('#bench') : $('#schem')).scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+  });
+}
+function renderCards() {
+  txt('#mR', fR(C.rl)); txt('#mU', fV(C.uAdc)); txt('#mRaw', `АЦП ${S.adc}`);
+  txt('#mPu', Number.isNaN(C.vin) ? '?' : fV(C.vin));
+  txt('#mIb', `I_Б ${fI(C.ib)}`); txt('#mIc', `I_К ${fI(C.ir4 + C.ibp)}`);
+  txt('#mCoil', fI(C.iCoil));
+  set('#mArm', 'transform', `rotate(${C.arm ? 6 : -6} 30 66)`); set('#mField', 'opacity', C.iCoil > 0 ? 1 : 0);
+  set('#mSw', 'd', C.pnp ? 'M40 26 L40 50' : 'M40 26 L54 44');
+  set('#mNoD', 'opacity', S.wi.noDiode ? 1 : 0);
+  txt('#mFly', S.wi.noDiode ? 'без діода: сплеск на сотні вольт' : S.fly > 0 ? `діод гасить ${fI(S.fly)}` : C.iCoil > 0 ? 'котушка під струмом, діод закритий' : 'струму немає');
+  const v = Number.isNaN(C.vin) ? 5 : clamp(C.vin, 0, 5);
+  set('#mInMark', 'transform', `translate(${uxP(v).toFixed(1)} 39)`);
+  const row = C.direct ? (S.relayOn ? 'dhi' : 'dlo') : (S.relayOn ? 'hi' : 'lo');
+  $$('#truth tbody tr').forEach(tr => { const on = tr.dataset.row === row; if (tr.classList.contains('cur-row') !== on) { tr.classList.toggle('cur-row', on); tr.querySelectorAll('td').forEach(td => td.classList.toggle('cur', on)); } });
+  const toLux = raw => { const u = raw / 4095 * 3.1, r = E.R2 * (E.V33 / u - 1); return { r, lux: 10 * Math.pow(15000 / r, 1 / 0.7) }; };
+  const d = toLux(S.kDark), l = toLux(S.kLight);
+  txt('#mThr', `Пороги зараз: DARK ${S.kDark} ≈ ${fLux(d.lux)} лк (R_LDR ≈ ${fR(d.r)}), LIGHT ${S.kLight} ≈ ${fLux(l.lux)} лк (R_LDR ≈ ${fR(l.r)}).`);
+  txt('#thrDarkLux', `≈ ${fLux(d.lux)} лк · R_LDR ≈ ${fR(d.r)}`); txt('#thrLightLux', `≈ ${fLux(l.lux)} лк · R_LDR ≈ ${fR(l.r)}`);
+  txt('#thrNote', S.wi.noHyst ? `без гістерезису: один поріг ${kMid()}` : `проміжок ${S.kLight - S.kDark} одиниць`);
+}
+
+/* =====================================================================
+   Section 8: tables
+   ===================================================================== */
+const PLACE = [
+  ['U2', 'Модуль живлення', 'правий край, штирі в усі чотири шини', 'перемичка: верх знята, низ 5V'],
+  ['DD1', 'YD-ESP32-S3', 'стовпці 1–22, піни в рядах b та i', 'вільні лише ряди a та j'],
+  ['R1', 'LDR', '25c', '28c'], ['R2', '10 кОм', '28e', '33e'], ['R3', '10 кОм', '26f', '31f'],
+  ['VT1', 'BC547B', 'E 30h · B 31h · C 32h', 'пласка сторона до центру'],
+  ['R4', '10 кОм', '32f', '37f'], ['R5', '220 Ом', '42h', '46h'], ['LED1', 'світлодіод', 'анод 46f', 'катод 47f'],
+  ['U1', 'Модуль реле', 'під макеткою, на дротах', 'VCC / GND / IN — роз\'єми «мама»'],
+];
+function buildTables() {
+  const sw = c => `<span class="sw" style="background:${c === 'black' ? '#2b2f33' : WC[c]}"></span>`;
+  $('#netTbl').innerHTML = `<thead><tr><th></th><th>Деталь / провід</th><th>Звідки</th><th>Куди</th><th>Примітка</th></tr></thead><tbody>` +
+    PLACE.map(([id, n, a, b]) => `<tr class="row-link" data-sel="${id}"><td class="m">${id}</td><td>${n}</td><td class="m">${a}</td><td class="m">${b}</td><td></td></tr>`).join('') +
+    NET.map(w => `<tr class="row-link" data-sel="${w.id}"><td class="m">${w.id}</td><td>${sw(w.color)}${w.net}</td><td>${w.from}</td><td>${w.to}</td><td>${w.note}</td></tr>`).join('') + '</tbody>';
+  $('#netTbl').addEventListener('click', e => {
+    const tr = e.target.closest('[data-sel]'); if (!tr) return;
+    selectPart(tr.dataset.sel); $('#bench').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+  });
+  const BOM = [
+    ['DD1', 'Плата YD-ESP32-S3 N16R8', '1', 'кабель USB-C до ПК'],
+    ['U2', 'Модуль живлення макетки, USB-C (MB102-сумісний)', '1', '+ зарядка USB 5 В або другий порт ПК'],
+    ['U1', 'Модуль реле, 1 канал, 5 В, «low level trigger»', '1', 'на реле має бути напис 05VDC'],
+    ['R1', 'Фоторезистор GL5528 / GL5516', '1', ''],
+    ['R2–R4', 'Резистор 10 кОм, 0,25 Вт', '3', 'коричневий-чорний-помаранчевий'],
+    ['R5', 'Резистор 220 Ом', '1', 'червоний-червоний-коричневий'],
+    ['VT1', 'Транзистор BC547B (NPN, TO-92)', '1', '2N2222 теж підійде, але цоколівка E-B-C'],
+    ['LED1', 'Світлодіод 5 мм', '1', 'довга ніжка — анод'],
+    ['—', 'Макетна плата, 830 точок', '1', ''],
+    ['—', 'Дроти «тато–тато»', '≈12', ''],
+    ['—', 'Дроти «мама–тато»', '3', 'до гребінки U1'],
+  ];
+  $('#bomTbl').innerHTML = `<thead><tr><th>Поз.</th><th>Деталь</th><th>К-сть</th><th>Примітка</th></tr></thead><tbody>` +
+    BOM.map(r => `<tr><td class="m">${r[0]}</td><td>${r[1]}</td><td class="m">${r[2]}</td><td>${r[3]}</td></tr>`).join('') + '</tbody>';
+  const TROUBLE = [
+    ['Реле не вимикається ніколи', 'GPIO під\'єднано напряму до IN, або R4 іде на 3,3 В замість 5 В', 'VT1 + R4 до +5 В, як на схемі'],
+    ['Реле мовчить, зелений LED не світиться', 'немає спільної GND (W3, W12), VT1 повернутий, на нижній шині немає 5 В', 'продзвонити землю, перевірити цоколівку, перемичку U2'],
+    ['Червоний LED модуля не світиться', 'немає 5 В на VCC (W11) або GND (W12)', 'виміряти 5 В між VCC і GND модуля'],
+    ['Зелений світиться, лампа ні', 'навантаження на NC замість NO, COM не затиснутий, LED1 навпаки', 'переставити на NO, підтягнути гвинти, перевернути LED'],
+    ['Реле клацає без зупинки', 'один поріг або вузький проміжок, лампа світить на LDR', 'розвести пороги, усереднити АЦП, сховати LDR'],
+    ['АЦП завжди 4095', 'R2 без землі (W5, W2)', 'перевірити дроти землі верхньої шини'],
+    ['АЦП близько 0', 'LDR не отримує 3,3 В (W4, W1)', 'перевірити стовпці 22 і 25'],
+    ['ESP32 перезавантажується, коли клацає реле', 'просідання живлення і завади від котушки', 'реле від U2 (як тут), 100 мкФ на шину 5 В, короткі дроти GND'],
+  ];
+  $('#troubleTbl').innerHTML = `<thead><tr><th>Симптом</th><th>Ймовірна причина</th><th>Що зробити</th></tr></thead><tbody>` +
+    TROUBLE.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('') + '</tbody>';
+  const CHECKS = [
+    ['USB-кабелі від\'єднані.', 'Збирати й переставляти дроти — тільки без живлення.'],
+    ['Перемички U2: верхня знята, нижня на 5V.', 'Верхня шина з\'єднана з піном 3V3 плати (W1): перемичка на 5V спалить ESP32.'],
+    ['Мультиметр, режим продзвонки: між «+» і «−» кожної пари шин КЗ немає.', 'Пищить — шукайте дріт або ніжку, що замикає шини.'],
+    ['VT1 пласкою стороною до центру: E 30h, B 31h, C 32h.', 'Переплутані E і C — реле не ввімкнеться.'],
+    ['R4 (W9) іде на нижню «+», тобто на 5 В.', 'На 3,3 В реле не вимкнеться.'],
+    ['Увімкнути U2: на нижній шині 4,8…5,2 В. Червоний LED модуля світиться.', 'Верхня шина: 0 В, якщо ESP32 живиться від ПК і ще не підключена; ≈3,3 В, якщо від U2 через пін 5V.'],
+    ['Підключити ESP32 до ПК: на верхній шині ≈3,3 В. Тепер прошивка і Serial.', 'pio run -t upload && pio device monitor'],
+  ];
+  $('#checks').innerHTML = CHECKS.map(([a, b]) => `<li tabindex="0" role="checkbox" aria-checked="false"><span class="bx"></span><div>${a}<small>${b}</small></div></li>`).join('');
+  const prog = () => txt('#checkProg', `${$$('#checks li.done').length} / ${CHECKS.length}`);
+  const tog = li => { li.classList.toggle('done'); li.setAttribute('aria-checked', String(li.classList.contains('done'))); prog(); };
+  $('#checks').addEventListener('click', e => { const li = e.target.closest('li'); if (li) tog(li); });
+  $('#checks').addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && e.target.matches('li')) { e.preventDefault(); tog(e.target); } });
+  prog();
+}
+
+/* =====================================================================
+   Assembly mode
+   ===================================================================== */
+const ASM = [
+  '<b>U2, модуль живлення.</b> Вставте його на правий край макетки, щоб «+» потрапили в червоні шини. Верхню перемичку зніміть (OFF): верхню шину живитиме пін 3V3 плати, і 5V там спалить ESP32. Нижню поставте на 5V. USB-C поки не підключайте.',
+  '<b>DD1, YD-ESP32-S3.</b> Встановіть у стовпці 1–22, піни в рядах b та i. Вільними лишаються ряди a та j. Чорні: GND (J1, стовп. 1) → верхня «−», GND (J3, стовп. 1) → нижня «−». Помаранчевий: 3V3 (J1, стовп. 22) → верхня «+». Тепер верхні шини — це 3,3 В від плати. Живлення від U2 замість USB: довгий червоний з нижньої «+» (стовп. 4) у 2a (пін 5V). Проведіть його в обхід макетки зліва, не над платою.',
+  '<b>Подільник.</b> Помаранчевий з верхньої «+» у 25a. LDR між 25c і 28c. R2 10 кОм між 28e і 33e. Чорний з 33a на верхню «−».',
+  '<b>Жовтий, GPIO4.</b> З J1, стовп. 19, ряд a, у 28a, до середньої точки. Аналоговий провід — короткий і подалі від реле.',
+  '<b>Ключ.</b> BC547B у 30h–31h–32h пласкою стороною до центру (E-B-C). R3 10 кОм між 26f і 31f. Зелений з GPIO2 (J3, стовп. 18, ряд j) у 26j. Чорний з 30j на нижню «−».',
+  '<b>Підтяжка.</b> R4 10 кОм між 32f і 37f. Червоний з 37j на нижню «+», тобто на 5 В. Не на 3,3 В!',
+  '<b>Модуль реле U1</b>, дроти «мама–тато»: червоний з нижньої «+» (стовп. 34) на VCC, чорний з нижньої «−» (стовп. 33) на GND, фіолетовий з 32j на IN.',
+  '<b>Навантаження.</b> Червоний з нижньої «+» (стовп. 46) під гвинт COM. Білий з NO у 42j. R5 220 Ом між 42h і 46h. LED1: довга ніжка в 46f, коротка в 47f. Чорний з 47j на нижню «−».',
+  '<b>Перевірка перед живленням</b> — у розділі 8. Спершу продзвонка шин, потім U2 (5 В на нижній шині), і лише тоді USB до ESP32.',
+];
+let asmStep = 0;
+function asmSet(k) {
+  asmStep = k;
+  const svg = $('#benchSvg svg');
+  svg.classList.toggle('asm-on', k > 0);
+  $$('[data-asm]', svg).forEach(el => { const n = +el.dataset.asm; el.classList.toggle('ghost', k > 0 && n > k); el.classList.toggle('focus', k > 0 && n === k && k < ASM.length); });
+  $('#asmBar').hidden = k === 0;
+  $('#asmBtn').setAttribute('aria-pressed', String(k > 0));
+  if (!k) return;
+  $('#asmText').innerHTML = `Крок ${k} / ${ASM.length}. ${ASM[k - 1]}`;
+  $('#asmDots').innerHTML = ASM.map((_, i) => `<i class="${i < k ? 'on' : ''}"></i>`).join('');
+  $('#asmPrev').disabled = k === 1; $('#asmNext').disabled = k === ASM.length;
+}
+
+/* =====================================================================
+   Quiz
+   ===================================================================== */
+function buildQuiz() {
+  const Q = [
+    ['Чому GPIO ESP32 не можна під\'єднати напряму до IN цього модуля?', ['GPIO дасть замало струму для котушки', 'PNP модуля відкритий, поки IN нижче ≈4,3 В, тож 3,3 В його не закриють', 'IN розрахований на 12 В'], 1, 'Емітер PNP на 5 В. При IN = 3,3 В U_ЕБ = 1,7 В > 0,7 В, транзистор відкритий, реле не вимкнеться (розділи 05, 06).'],
+    ['GPIO2 = HIGH. Яка напруга на IN модуля?', ['≈ 0,1 В', '3,3 В', '5 В'], 0, 'VT1 відкривається і притискає колектор до землі (U_КЕ нас ≈ 0,09 В). IN = LOW → реле ON (розділ 03).'],
+    ['Навіщо R4 10 кОм від колектора до +5 В?', ['Обмежує струм котушки', 'Тримає IN на 5 В, коли VT1 закритий, щоб реле надійно вимикалось', 'Захищає LDR'], 1, 'Це підтягувальний резистор, як INPUT_PULLUP з модуля 1.4, тільки до 5 В. VT1 працює як «кнопка до землі» (розділ 05).'],
+    ['R4 випадково під\'єднали до +3,3 В. Що буде?', ['Нічого, працюватиме', 'Реле не вимикатиметься: 3,3 В на IN для PNP — це LOW', 'Згорить ESP32'], 1, 'Та сама пастка, що й без транзистора: U_ЕБ = 1,7 В. Верхній кінець R4 має бути на напрузі VCC модуля (розділ 08).'],
+    ['Світла стало більше. Що з числом АЦП (LDR зверху, до 3V3)?', ['Росте', 'Падає', 'Не змінюється'], 0, 'Опір LDR падає, середня точка підтягується до 3,3 В. Тому «темно» — це мале число (розділ 05).'],
+    ['АЦП = 1200, пороги 1000 і 1500, реле зараз ON. Що зробить програма?', ['Вимкне реле', 'Нічого не змінить', 'Увімкне ще раз'], 1, 'Між порогами стан не змінюється — це і є гістерезис (розділ 04).'],
+    ['Навіщо діод паралельно котушці реле?', ['Щоб реле світилося', 'Щоб погасити сплеск самоіндукції при вимкненні і вберегти транзистор', 'Щоб пришвидшити вмикання'], 1, 'Струм котушки не може зникнути миттєво. Діод дає йому коротку петлю, інакше сплеск у сотні вольт пробиває транзистор (розділ 05).'],
+    ['Струм бази VT1 виходить з піна GPIO2. Яким шляхом він повертається?', ['Через модуль живлення U2', 'Назад до ESP32 через спільну землю', 'Зникає в транзисторі'], 1, 'Струм повертається до свого джерела. Без дроту GND від ESP32 до нижньої шини йому нема куди йти, і VT1 не відкриється (розділ 02, «без спільної GND»).'],
+    ['Скільки струму GPIO2 віддає в базу VT1?', ['≈ 0,26 мА', '≈ 20 мА', '≈ 70 мА'], 0, '(3,3 − 0,7) / 10 кОм ≈ 0,26 мА. Котушці потрібно ≈70 мА, тож без транзисторів не обійтися (розділ 06).'],
+    ['Як рухаються електрони в дроті?', ['Від «+» до «−», зі швидкістю світла', 'Від «−» до «+», повільно: частки міліметра за секунду', 'Лише в момент увімкнення'], 1, 'Умовний струм на схемах тече від «+» до «−», а електрони навпаки. Дрейфують вони повільно, а швидко поширюється поле (розділ 05).'],
+  ];
+  const box = $('#qz'), retry = $('#qzRetry');
+  box.innerHTML = Q.map(([q, opts], i) => `<div class="q" data-i="${i}"><p>${i + 1}. ${q}</p><div class="opts">${opts.map((o, j) => `<button type="button" class="opt" data-j="${j}">${o}</button>`).join('')}</div><div class="qfb" aria-live="polite"></div></div>`).join('');
+  const score = () => {
+    const qs = $$('#qz .q'), done = qs.filter(q => q.dataset.done), right = done.filter(q => q.dataset.ok === '1').length;
+    $('#qzScore').textContent = `${right} / ${done.length} правильно з ${Q.length}` + (done.length === Q.length ? (right === Q.length ? ' · Чудово!' : right >= 7 ? ' · Добре!' : ' · Перечитайте розділи з помилками') : '');
+    retry.hidden = !done.some(q => q.dataset.ok === '0');
+  };
+  box.addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if (!b) return;
+    const q = b.closest('.q'); if (q.dataset.done) return;
+    const [, , ok, why] = Q[+q.dataset.i], j = +b.dataset.j;
+    q.dataset.done = '1'; q.dataset.ok = j === ok ? '1' : '0';
+    q.querySelectorAll('.opt').forEach((o, k) => { if (k === ok) o.classList.add('right'); else if (k === j) o.classList.add('wrong'); });
+    const fb = q.querySelector('.qfb'); fb.className = 'qfb ' + (j === ok ? 'ok' : 'no'); fb.textContent = (j === ok ? 'Так. ' : 'Ні. ') + why;
+    score();
+  });
+  retry.addEventListener('click', () => {
+    let first = null;
+    $$('#qz .q').forEach(q => {
+      if (q.dataset.ok !== '0') return;
+      delete q.dataset.done; delete q.dataset.ok;
+      q.querySelectorAll('.opt').forEach(o => o.classList.remove('right', 'wrong'));
+      const fb = q.querySelector('.qfb'); fb.textContent = ''; fb.className = 'qfb'; first = first || q;
+    });
+    score();
+    if (first) { first.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' }); first.querySelector('.opt').focus({ preventScroll: true }); }
+  });
+  score();
+}
+
+/* =====================================================================
+   Effects, controls, main loop
+   ===================================================================== */
+let AC = null;
+function playClick(on) {
+  if (!S.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const n = Math.floor(AC.sampleRate * 0.03), buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
+    const tau = AC.sampleRate * (on ? 0.004 : 0.0028);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / tau);
+    const src = AC.createBufferSource(), g = AC.createGain();
+    g.gain.value = on ? 0.45 : 0.3; src.buffer = buf; src.connect(g).connect(AC.destination); src.start();
+  } catch (e) { /* audio unavailable */ }
+}
+const restart = el => { if (!el) return; el.classList.remove('go'); void el.getBoundingClientRect(); el.classList.add('go'); };
+function clickFx(on) {
+  const b = $('#clickB');
+  if (b) { b.textContent = on ? 'клац! COM–NO' : 'клац! COM–NC'; restart(b); }
+  playClick(on);
+}
+function sparkFx() { restart($('#sparkB')); restart($('#sSpark')); }
+
+function syncLight() {
+  const r = $('#light'); if (+r.value !== +S.light.toFixed(2)) r.value = S.light;
+  txt('#luxOut', `${fLux(10 ** S.light)} лк`);
+}
+function stopRamp() {
+  S.ramp = null;
+  $$('[data-ramp]').forEach(b => { b.setAttribute('aria-pressed', 'false'); b.textContent = b.dataset.label; });
+}
+function startRamp(kind) {
+  const was = S.ramp && S.ramp.kind;
+  stopRamp();
+  if (was === kind) return;
+  if (kind === 'dusk') { S.light = 0.9; S.ramp = { kind, rate: -0.5 / 45, to: 0.4 }; }
+  else { S.light = 0.4; S.ramp = { kind, rate: 0.5 / 45, to: 0.9 }; }
+  const b = $(`[data-ramp="${kind}"]`); b.setAttribute('aria-pressed', 'true'); b.textContent = '■ Зупинити';
+  if (!S.playing) togglePlay();
+  syncLight();
+}
+function togglePlay() {
+  S.playing = !S.playing;
+  $('#play').textContent = S.playing ? '❚❚ Пауза' : '▶ Пуск';
+}
+function setThresholds(dark, light, moved) {
+  dark = clamp(Math.round(dark / 10) * 10, 100, 3900); light = clamp(Math.round(light / 10) * 10, 150, 4000);
+  if (light - dark < 20) { if (moved === 'dark') light = Math.min(4000, dark + 20); else dark = Math.max(100, light - 20); }
+  S.kDark = dark; S.kLight = light;
+  $('#thrDark').value = dark; $('#thrLight').value = light;
+  txt('#thrDarkOut', String(dark)); txt('#thrLightOut', String(light));
+  buildCode(); dirty.plot = dirty.loop = true;
+}
+function initControls() {
+  $('#play').addEventListener('click', togglePlay);
+  $('#light').addEventListener('input', e => { stopRamp(); S.light = +e.target.value; syncLight(); });
+  $$('[data-preset]').forEach(b => b.addEventListener('click', () => { stopRamp(); S.light = +b.dataset.preset; syncLight(); }));
+  $$('[data-ramp]').forEach(b => { b.dataset.label = b.textContent; b.addEventListener('click', () => startRamp(b.dataset.ramp)); });
+  $('#flowMode').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.flowMode = b.dataset.v;
+    $$('#flowMode button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    const lg = $('#flowLegend span');
+    lg.innerHTML = S.flowMode === 'c' ? '<i class="dot" style="background:var(--flow)"></i>умовний струм (+→−)' : '<i class="dot" style="background:var(--electron)"></i>електрони (−→+)';
+    lg.style.display = S.flowMode === 'off' ? 'none' : '';
+  });
+  $('#flowSpeed').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.flowSpeed = +b.dataset.v; $$('#flowSpeed button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  $('#sound').addEventListener('click', e => {
+    S.sound = !S.sound; e.currentTarget.setAttribute('aria-pressed', String(S.sound)); e.currentTarget.textContent = (S.sound ? '🔊' : '🔈') + ' клац';
+    if (S.sound) playClick(true);
+  });
+  $('#thrDark').addEventListener('input', e => setThresholds(+e.target.value, S.kLight, 'dark'));
+  $('#thrLight').addEventListener('input', e => setThresholds(S.kDark, +e.target.value, 'light'));
+  $('#espPower').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.espPower = b.dataset.v; applyPower();
+  });
+  $('#whatifs').addEventListener('click', e => {
+    const b = e.target.closest('[data-wi]'); if (!b) return;
+    S.wi[b.dataset.wi] = !S.wi[b.dataset.wi];
+    applyWhatIf(); update();
+  });
+  for (const host of ['#benchSvg', '#schemSvg']) {
+    $(host).addEventListener('click', e => {
+      if (asmStep) return;
+      const p = e.target.closest('[data-part]');
+      const id = p ? (p.dataset.part === S.sel && !$('#pop').hidden ? null : p.dataset.part) : null;
+      selectPart(id);
+      if (id) openPop(id, e.clientX + scrollX, e.clientY + scrollY); else closePop();
+    });
+  }
+  $('#partList').innerHTML = PART_LIST.map(id => `<button type="button" data-sel="${id}" aria-pressed="false">${id.replace('P:', 'пін ')}</button>`).join('');
+  $('#partList').addEventListener('click', e => {
+    const b = e.target.closest('[data-sel]'); if (!b) return;
+    const id = b.dataset.sel === S.sel ? null : b.dataset.sel;
+    selectPart(id);
+    if (id) { const r = b.getBoundingClientRect(); openPop(id, r.left + scrollX, r.bottom + scrollY); } else closePop();
+  });
+  $('#popX').addEventListener('click', () => { closePop(); selectPart(null); });
+  document.addEventListener('click', e => { if (!e.target.closest('#pop, #benchSvg, #schemSvg, #partList')) closePop(); });
+  $('#asmBtn').addEventListener('click', () => { selectPart(null); closePop(); asmSet(asmStep ? 0 : 1); });
+  $('#asmPrev').addEventListener('click', () => asmSet(Math.max(1, asmStep - 1)));
+  $('#asmNext').addEventListener('click', () => asmSet(Math.min(ASM.length, asmStep + 1)));
+  $('#asmExit').addEventListener('click', () => asmSet(0));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closePop(); return; }
+    if (e.target.closest('input, button, textarea, select, [role="checkbox"]')) return;
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  });
+  if ('ResizeObserver' in window) new ResizeObserver(() => { dirty.plot = true; }).observe($('#plot'));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { dirty.plot = true; });
+}
+
+let lastNow = performance.now(), uiAcc = 1;
+function frame(now) {
+  const dt = Math.min(0.1, Math.max(0, (now - lastNow) / 1000));
+  lastNow = now;
+  if (S.playing) advance(dt * 1000);
+  animateFlows(S.playing ? dt : 0);
+  renderBench(); renderSchem();
+  uiAcc += dt;
+  if (uiAcc > 0.12) { uiAcc = 0; renderStats(); renderChain(); renderInspector(false); renderPop(); renderCalc(); renderCards(); }
+  if (dirty.serial) renderSerial();
+  if (dirty.plot) { drawPlot(); dirty.plot = false; }
+  if (dirty.loop) { renderLoop(); dirty.loop = false; }
+  renderCodeHeat(dt);
+  requestAnimationFrame(frame);
+}
+
+$('#benchSvg').innerHTML = benchSVG();
+$('#schemSvg').innerHTML = schemSVG();
+$('#loopSvg').innerHTML = loopSVG();
+buildCards(); buildChain(); buildTables(); buildQuiz(); buildCode(); initControls();
+regFlows($('#benchSvg')); regFlows($('#schemSvg')); regFlows($('#cards'));
+applyWhatIf(); applyPower(); syncLight(); setThresholds(S.kDark, S.kLight); selectPart(null);
+update();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
