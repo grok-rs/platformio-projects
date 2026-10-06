@@ -10,6 +10,7 @@ with the PlatformIO extension.
 | [`esp32-s3-two-buttons`](esp32-s3-two-buttons/) | ESP32-S3-DevKitC-1 (N16R8) | Module 1.4: two LEDs, an external button (`INPUT_PULLUP`) and the on-board BOOT button (`INPUT`) select a sticky blink mode — synchronous 200 ms or alternating 1000 ms | [Wokwi](https://wokwi.com/projects/476609614353588225) |
 | [`esp32-s3-button-bounce`](esp32-s3-button-bounce/) | ESP32-S3-DevKitC-1 (N16R8) | Module 1.5: contact bounce on GPIO16 — the homework's `FALLING` counter and a lab firmware that timestamps every edge in a `CHANGE` ISR (ring buffer, per-press report, ISR marker on GPIO17); `tools/vcd_bounce.py` builds the same report from a logic-analyzer VCD | VS Code / `wokwi-cli` (bouncing button + logic analyzer) |
 | [`esp32-s3-ldr-adc`](esp32-s3-ldr-adc/) | ESP32-S3-DevKitC-1 (N16R8) | Module 1.6: photoresistor + 10 kΩ divider on GPIO4 (ADC1); every 100 ms prints `analogRead()` RAW, the voltage computed from it (`RAW / 4095 · 3100 mV`), calibrated `analogReadMilliVolts()` and the relative error | VS Code / `wokwi-cli` (custom LDR-divider chip) |
+| [`esp32-s3-twilight-relay`](esp32-s3-twilight-relay/) | ESP32-S3-DevKitC-1 (N16R8) | Mini-project 1 (lesson 18): twilight switch — LDR + 10 kΩ divider on GPIO4, two ADC thresholds with hysteresis, GPIO2 → BC547B level shifter (10 kΩ pull-up to 5 V) → active-LOW 5 V relay module → LED load; built-in USB-JTAG debugging configured | [Study page](https://grok-rs.github.io/platformio-projects/twilight-relay/) (no Wokwi: it has no transistors) |
 
 ## Interactive study pages
 
