@@ -1,0 +1,252 @@
+# Real bench recording, 2026-10-17 11:39:50–11:41:00: YD-ESP32-S3, tactile button 6x6 on GPIO21 (INPUT_PULLUP),
+# firmware esp32-s3-bounce-test (lab, first version: event type = level after 50 ms of quiet; no GLITCH/MISSED tags yet).
+# Each line prefix is the host time when the chunk arrived over USB CDC.
+11:39:50 ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4202157e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+[    85][I][esp32-hal-psram.c:96] psramInit(): PSRAM enabled
+
+=== ESP32-S3: button bounce test ===
+Button GPIO21, interrupt CHANGE, event ends after 50 ms of quiet
+Press the button: one line per press and per release.
+11:40:04 PRESS   #1   edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #1   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:04 PRESS   #2   edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #2   edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #3   edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #3   edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #4   edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #4   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:05 PRESS   #5   edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #5   edges=2   bounce=   131 us  shortest=131 us
+        gaps us: 131
+PRESS   #6   edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #6   edges=2   bounce=   102 us  shortest=102 us
+        gaps us: 102
+11:40:05 PRESS   #7   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:06 RELEASE #7   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:06 PRESS   #8   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:07 RELEASE #8   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:08 PRESS   #9   edges=1   bounce=     0 us  (clean, no bounce)
+11:40:08 RELEASE #9   edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #10  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #10  edges=4   bounce=   972 us  shortest=8 us
+        gaps us: 386 8 578
+11:40:09 PRESS   #11  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #11  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #12  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #12  edges=3   bounce=    24 us  shortest=12 us
+        gaps us: 12 12
+PRESS   #13  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #13  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:09 PRESS   #14  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #14  edges=2   bounce=    82 us  shortest=82 us
+        gaps us: 82
+PRESS   #15  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #16  edges=3   bounce=    12 us  shortest=5 us
+        gaps us: 5 7
+RELEASE #15  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #17  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:10 RELEASE #16  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #18  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:11 RELEASE #17  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #19  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:11 RELEASE #18  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:12 PRESS   #20  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #19  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:12 PRESS   #21  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #20  edges=4   bounce=    19 us  shortest=3 us
+        gaps us: 10 3 6
+PRESS   #22  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #21  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:13 PRESS   #23  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #22  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #24  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #23  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #25  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #24  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #26  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:13 RELEASE #25  edges=4   bounce= 51685 us  shortest=21 us
+        gaps us: 3487 21 48177
+11:40:14 PRESS   #27  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #26  edges=3   bounce=  1805 us  shortest=61 us
+        gaps us: 61 1744
+PRESS   #28  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #29  edges=3   bounce=   189 us  shortest=48 us
+        gaps us: 48 141
+RELEASE #27  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #30  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #28  edges=6   bounce=  3557 us  shortest=5 us
+        gaps us: 5 283 872 1382 1015
+11:40:14 PRESS   #31  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #29  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #32  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:15 RELEASE #30  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #33  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #31  edges=2   bounce=   182 us  shortest=182 us
+        gaps us: 182
+11:40:15 PRESS   #34  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #32  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #35  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:16 RELEASE #33  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #36  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:17 RELEASE #34  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #37  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:18 RELEASE #35  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:18 PRESS   #38  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #36  edges=2   bounce=   184 us  shortest=184 us
+        gaps us: 184
+PRESS   #39  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #37  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #40  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #38  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:19 PRESS   #41  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:19 RELEASE #39  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #42  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:20 RELEASE #40  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:20 PRESS   #43  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:21 RELEASE #41  edges=5   bounce=   229 us  shortest=6 us
+        gaps us: 134 44 6 45
+PRESS   #44  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:22 RELEASE #42  edges=4   bounce=   557 us  shortest=38 us
+        gaps us: 38 348 171
+PRESS   #45  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:22 RELEASE #43  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:23 PRESS   #46  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:23 RELEASE #44  edges=3   bounce=   364 us  shortest=15 us
+        gaps us: 15 349
+PRESS   #47  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #45  edges=4   bounce=    72 us  shortest=7 us
+        gaps us: 26 7 39
+PRESS   #48  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:24 RELEASE #46  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #49  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #47  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #50  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #51  edges=2   bounce= 27871 us  shortest=27871 us
+        gaps us: 27871
+11:40:24 RELEASE #48  edges=3   bounce=   154 us  shortest=3 us
+        gaps us: 3 151
+PRESS   #52  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:25 PRESS   #53  edges=9   bounce=  1578 us  shortest=3 us
+        gaps us: 3 607 9 420 59 343 116 21
+RELEASE #49  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:25 PRESS   #54  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #55  edges=5   bounce=   596 us  shortest=43 us
+        gaps us: 132 163 43 258
+11:40:26 RELEASE #50  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #56  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:26 RELEASE #51  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #57  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #52  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:27 PRESS   #58  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #53  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #59  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #54  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #60  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:27 RELEASE #55  edges=2   bounce=    85 us  shortest=85 us
+        gaps us: 85
+PRESS   #61  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:28 PRESS   #62  edges=2   bounce=   102 us  shortest=102 us
+        gaps us: 102
+RELEASE #56  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #63  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:28 RELEASE #57  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:29 PRESS   #64  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:29 RELEASE #58  edges=5   bounce=   580 us  shortest=33 us
+        gaps us: 311 165 33 71
+PRESS   #65  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #59  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #66  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:30 RELEASE #60  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #67  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:30 RELEASE #61  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #68  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:31 RELEASE #62  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:31 PRESS   #69  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:32 PRESS   #70  edges=2   bounce=    61 us  shortest=61 us
+        gaps us: 61
+RELEASE #63  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:33 PRESS   #71  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:33 RELEASE #64  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:34 PRESS   #72  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:35 RELEASE #65  edges=6   bounce=   596 us  shortest=5 us
+        gaps us: 5 225 93 20 253
+PRESS   #73  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:35 RELEASE #66  edges=4   bounce=   780 us  shortest=163 us
+        gaps us: 328 289 163
+11:40:36 PRESS   #74  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:36 PRESS   #75  edges=5   bounce=   402 us  shortest=3 us
+        gaps us: 11 210 178 3
+RELEASE #67  edges=3   bounce=   118 us  shortest=4 us
+        gaps us: 4 114
+11:40:37 PRESS   #76  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:38 RELEASE #68  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:38 PRESS   #77  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:39 RELEASE #69  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:40 PRESS   #78  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #70  edges=2   bounce=  1267 us  shortest=1267 us
+        gaps us: 1267
+11:40:41 PRESS   #79  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:41 RELEASE #71  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:42 PRESS   #80  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #72  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:43 PRESS   #81  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:44 RELEASE #73  edges=8   bounce=  1949 us  shortest=20 us
+        gaps us: 20 709 30 438 306 258 188
+11:40:44 PRESS   #82  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:45 RELEASE #74  edges=2   bounce=    69 us  shortest=69 us
+        gaps us: 69
+11:40:45 PRESS   #83  edges=2   bounce=    10 us  shortest=10 us
+        gaps us: 10
+11:40:46 RELEASE #75  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:46 PRESS   #84  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #76  edges=3   bounce=   114 us  shortest=55 us
+        gaps us: 55 59
+11:40:47 PRESS   #85  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:47 RELEASE #77  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:48 PRESS   #86  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:48 RELEASE #78  edges=6   bounce=   440 us  shortest=33 us
+        gaps us: 125 60 107 33 115
+11:40:49 PRESS   #87  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:49 RELEASE #79  edges=3   bounce=   129 us  shortest=39 us
+        gaps us: 39 90
+11:40:50 PRESS   #88  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:50 RELEASE #80  edges=1   bounce=     0 us  (clean, no bounce)
+PRESS   #89  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:51 RELEASE #81  edges=2   bounce=    44 us  shortest=44 us
+        gaps us: 44
+11:40:51 PRESS   #90  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:52 RELEASE #82  edges=3   bounce=   181 us  shortest=4 us
+        gaps us: 177 4
+11:40:52 PRESS   #91  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:53 RELEASE #83  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:53 PRESS   #92  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:54 RELEASE #84  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:54 PRESS   #93  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #85  edges=2   bounce=    82 us  shortest=82 us
+        gaps us: 82
+11:40:55 PRESS   #94  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:55 RELEASE #86  edges=3   bounce=    44 us  shortest=4 us
+        gaps us: 4 40
+11:40:56 PRESS   #95  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:56 RELEASE #87  edges=2   bounce=   242 us  shortest=242 us
+        gaps us: 242
+11:40:57 PRESS   #96  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #88  edges=2   bounce=   574 us  shortest=574 us
+        gaps us: 574
+11:40:57 PRESS   #97  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:58 RELEASE #89  edges=1   bounce=     0 us  (clean, no bounce)
+11:40:59 PRESS   #98  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #90  edges=2   bounce=   627 us  shortest=627 us
+        gaps us: 627
+11:40:59 PRESS   #99  edges=1   bounce=     0 us  (clean, no bounce)
+RELEASE #91  edges=2   bounce=   100 us  shortest=100 us
+        gaps us: 100
