@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="760" viewBox="0 0 1320 760">
+<rect width="1320" height="760" fill="#ffffff"/>
+<text x="40" y="48" font-size="21" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Принципова схема: світлодіод на ШІМ (GPIO15) і логічний аналізатор</text>
+<rect x="40" y="80" width="340" height="420" rx="14" fill="#eef2f7" stroke="#334" stroke-width="2.5"/>
+<text x="60" y="116" font-size="20" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">ESP32-S3</text>
+<text x="60" y="138" font-size="16" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">YD-ESP32-S3</text>
+<rect x="374" y="234" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="394" y="230" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO15</text>
+<line x1="386" y1="240" x2="416" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="374" y="454" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="394" y="450" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<line x1="386" y1="460" x2="416" y2="460" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="52" y="150" width="316" height="170" rx="8" fill="none" stroke="#7b8794" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="60" y="312" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">усередині чипа: LEDC, канал 0</text>
+<text x="70" y="186" font-size="14" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans Mono, monospace">ledcSetup(0, 5000, 8)</text>
+<text x="70" y="208" font-size="14" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans Mono, monospace">ledcAttachPin(15, 0)</text>
+<text x="70" y="230" font-size="14" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans Mono, monospace">ledcWrite(0, 64)</text>
+<polyline points="240,280 240,258 252,258 252,280 288,280 288,258 300,258 300,280 336,280" fill="none" stroke="#00897b" stroke-width="2" stroke-linejoin="round"/>
+<line x1="336" y1="280" x2="374" y2="240" stroke="#7b8794" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="416" y1="240" x2="500" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="500" y="229" width="80" height="22" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="540" y="222" font-size="15" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R1  220 Ω</text>
+<line x1="580" y1="240" x2="640" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="640" y1="240" x2="650" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<polygon points="650,224 650,256 682,240" fill="#e53935" stroke="#222" stroke-width="2"/>
+<line x1="682" y1="224" x2="682" y2="256" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="682" y1="240" x2="700" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="664" y1="220" x2="674" y2="208" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="674" y1="220" x2="684" y2="208" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+<text x="670" y="276" font-size="15" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">D1</text>
+<line x1="700" y1="240" x2="820" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="820" y1="240" x2="820" y2="460" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="416" y1="460" x2="820" y2="460" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="820" cy="460" r="4.5" fill="#222"/>
+<line x1="820" y1="510" x2="820" y2="522" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="804" y1="522" x2="836" y2="522" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="810" y1="528" x2="830" y2="528" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="816" y1="534" x2="824" y2="534" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="820" y1="460" x2="820" y2="510" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<text x="806" y="350.0" font-size="15" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<rect x="940" y="110" width="330" height="400" rx="14" fill="#eceff1" stroke="#263238" stroke-width="2.5"/>
+<text x="964" y="320" font-size="19" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Логічний аналізатор</text>
+<text x="964" y="342" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">24 MHz, 8 каналів (fx2lafw)</text>
+<text x="964" y="380" font-size="14" text-anchor="start" font-weight="bold" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">USB → ПК, PulseView</text>
+<text x="964" y="402" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">входи 0…5 В, 3.3 В — OK</text>
+<rect x="934" y="144" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="956" y="155" font-size="15" text-anchor="start" font-weight="bold" fill="#00897b" font-family="DejaVu Sans, Arial, sans-serif">CH1</text>
+<text x="1010" y="155" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">D0 — ШІМ</text>
+<rect x="934" y="454" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="956" y="465" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<circle cx="450" cy="240" r="4.5" fill="#00897b"/>
+<polyline points="450,240 450,150 934,150" fill="none" stroke="#00897b" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="820" y1="460" x2="934" y2="460" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="442" y="142" font-size="13" text-anchor="start" font-weight="bold" fill="#00897b" font-family="DejaVu Sans, Arial, sans-serif">щуп CH1</text>
+<text x="40" y="580" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">ШІМ на світлодіоді</text>
+<text x="40" y="606" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO15 перемикається 5000 разів/с: 50 мкс HIGH, 150 мкс LOW.</text>
+<text x="40" y="628" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Око усереднює — LED світить на ~25 % (64 з 256 кроків).</text>
+<text x="40" y="650" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">У момент HIGH: I ≈ (3.3 − 2.0) / 220 ≈ 6 мА, середній ≈ 1.5 мА.</text>
+<text x="40" y="672" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Довга ніжка LED (+) — до резистора, коротка (−) — на GND.</text>
+<text x="680" y="580" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Логічний аналізатор лише «слухає»</text>
+<text x="680" y="606" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">CH1 бачить прямокутний сигнал: період 200 мкс, HIGH 50 мкс.</text>
+<text x="680" y="628" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND аналізатора — обов'язково до GND плати.</text>
+<text x="680" y="672" font-size="14" text-anchor="start" font-weight="bold" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">PulseView: fx2lafw, ≥ 1 МГц, тригер на CH1 ↑ (rising).</text>
+<text x="680" y="694" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">Наведіть курсор на імпульс — PulseView покаже частоту й duty.</text>
+</svg>
