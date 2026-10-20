@@ -13,7 +13,7 @@ ESP32-S3 кожні 100 мс вимірює напругу в його сере�
 Плата — **YD-ESP32-S3** (VCC-GND Studio, клон ESP32-S3-DevKitC-1, N16R8).
 
 ```bash
-cd esp32-s3-ldr-adc
+cd esp32-s3-ldr-adc/cpp
 pio run -t upload          # зібрати та прошити
 pio device monitor         # 115200: таблиця вимірів кожні 100 мс, підсумок раз на 10 с
 ```
@@ -24,8 +24,8 @@ pio device monitor         # 115200: таблиця вимірів кожні 10
 |----|----|
 | [**АЦП і світло**](https://grok-rs.github.io/platformio-projects/adc-light/) | теорія модуля 1.6 простими словами: аналог і цифра, квантування, подільник з LDR, які піни можна, ослаблення, шум, тест |
 | [**Люксметр на ESP32-S3**](https://grok-rs.github.io/platformio-projects/ldr-lab/) | ця прошивка в анімації: макетка з платою, схема, як АЦП шукає число, код і блок-схема крок за кроком, Serial, графік, звідки похибка |
-| VS Code | розширення *Wokwi Simulator*, `pio run`, далі F1 → *Wokwi: Start Simulator*. Клікніть на чип *LDR divider* — з'явиться повзунок світла |
-| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/light-levels.yaml --timeout 20000` (токен — у `../.envrc`) |
+| VS Code | розширення *Wokwi Simulator*, `pio run` у `cpp/`, далі F1 → *Wokwi: Start Simulator*. Клікніть на чип *LDR divider* — з'явиться повзунок світла |
+| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/light-levels.yaml --timeout 20000` (токен — у `../.envrc`) |
 
 У Wokwi немає «голого» фоторезистора. Його модуль *photoresistor sensor* зібраний навпаки
 (LDR до GND, живлення 5 В): там у темряві напруга *зростає*, а при 3.3 В вихід доходить до 5 В.
@@ -118,7 +118,7 @@ loop:   минуло ≥ 100 мс?  ── ні ──────────�
 
 ## 6. Код
 
-Уся програма — [`src/main.cpp`](src/main.cpp). Що в ній варто помітити:
+Уся програма — [`cpp/src/main.cpp`](cpp/src/main.cpp). Що в ній варто помітити:
 
 - **Неблокуючий таймер.** `if (now - lastSampleAt >= 100) lastSampleAt += 100;`, як у модулі 1.4.
   Беззнакова різниця працює й після переповнення `millis()`. `+=` замість `= now` не дає кроку
@@ -196,12 +196,45 @@ U_calc = RAW / 4095 * 3100 mV; error = (U_calc - U_meas) / U_meas * 100 %
 6. Чому для датчиків з Wi-Fi беремо ADC1, а не ADC2?
 7. Що зміниться, якщо поміняти місцями LDR і 10 кОм?
 
+## Rust-версія
+
+Та сама прошивка на Rust лежить у [`rust/`](rust/): `no_std`, [esp-hal](https://docs.espressif.com/projects/rust/esp-hal/)
+та [Embassy](https://embassy.dev). Таблиця й підсумок у Serial — байт у байт як у C++, тому сценарій
+`light-levels.yaml` перевіряє обидві прошивки.
+
+```bash
+source ~/export-esp.sh                # тулчейн Xtensa від espup (один раз на термінал)
+cd esp32-s3-ldr-adc/rust
+cargo run --release                   # зібрати, прошити, відкрити монітор (espflash)
+cargo +stable host-test -p ldr-adc    # тести формули, рядка таблиці, шкали й підсумку на ПК
+```
+
+Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
+`wokwi-cli rust --scenario ../wokwi/scenarios/light-levels.yaml --timeout 20000`.
+
+| | C++ (`cpp/src/main.cpp`) | Rust (`rust/src/`) |
+|---|---|---|
+| RAW | `analogRead(4)` | `adc.read_blocking(&mut ldr)`, пін з `AdcCalBasic` (лише «нуль» АЦП з eFuse) |
+| U_meas | `analogReadMilliVolts(4)` | друге перетворення + `AdcCalCurve::new_cal(_11dB).adc_val(raw)` — та сама крива з eFuse |
+| Вибір АЦП | GPIO4 — просто число | тип `GPIO4` знає, що він канал ADC1: пін ADC2 з `ADC1` не скомпілюється |
+| Похибка при U_meas = 0 | прапорець `hasError` + `errorPct` | `error_pct: Option<f32>` — прочитати «неіснуючу» похибку неможливо |
+| Рядок таблиці | `printf` у буфери `char bar[17]`, `char err[12]` | `impl Display for Row` / `LightBar` — пише прямо у вихід, без буферів |
+| Період 100 мс | `lastSampleAt += kSamplePeriodMs` | `Ticker::every(100 ms)` — так само без «повзання» |
+| Тести | лише Wokwi | `cargo +stable host-test` (логіка) + той самий сценарій Wokwi |
+
 ## Структура
 
 ```
-platformio.ini        плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
-src/main.cpp          уся програма
-diagram.json          схема Wokwi (макетка), wokwi.toml — прошивка з .pio/build і чип LDR
+cpp/
+  platformio.ini      плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
+  src/main.cpp        уся програма
+  wokwi.toml          прошивка з .pio/build і чип LDR (diagram.json — посилання на ../diagram.json)
+rust/
+  Cargo.toml          пакет ldr-adc робочого простору (версії залежностей — у ../../Cargo.toml)
+  src/lib.rs          логіка без заліза: формула, Sample, Stats, рядок таблиці + тести
+  src/main.rs         прошивка: ADC1 з калібруванням, Ticker 100 мс, підсумок раз на 10 с
+  wokwi.toml          прошивка з ../../target/… і той самий чип LDR
+diagram.json          схема Wokwi (макетка), спільна для обох версій
 wokwi/
   gen_diagram.py      генератор diagram.json;  breadboard.py — геометрія макетки та плати
   chip/               чип «LDR + 10 кОм» для Wokwi: .c, .chip.json і зібраний .chip.wasm

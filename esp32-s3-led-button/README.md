@@ -4,13 +4,13 @@
 
 Плата — **YD-ESP32-S3** (VCC-GND Studio, клон ESP32-S3-DevKitC-1, N16R8).
 
-| Крок | Середовище | Файл | Що робить |
+| Крок | Середовище / бінарник | Файл (C++ · Rust) | Що робить |
 |------|------------|------|-----------|
-| 1 | `hold`   | [`src/hold.cpp`](src/hold.cpp)     | LED світить, **поки** кнопку тримають |
-| 2 | `toggle` (за замовчуванням) | [`src/toggle.cpp`](src/toggle.cpp) | кожне **натискання** перемикає LED: увімк. ↔ вимк. (з антибрязкотом) |
+| 1 | `hold`   | [`cpp/src/hold.cpp`](cpp/src/hold.cpp) · [`rust/src/bin/hold.rs`](rust/src/bin/hold.rs) | LED світить, **поки** кнопку тримають |
+| 2 | `toggle` (за замовчуванням) | [`cpp/src/toggle.cpp`](cpp/src/toggle.cpp) · [`rust/src/bin/toggle.rs`](rust/src/bin/toggle.rs) | кожне **натискання** перемикає LED: увімк. ↔ вимк. (з антибрязкотом) |
 
 ```bash
-cd esp32-s3-led-button
+cd esp32-s3-led-button/cpp
 pio run -e hold -t upload && pio device monitor     # крок 1
 pio run -e toggle -t upload && pio device monitor   # крок 2 (або просто pio run -t upload)
 ```
@@ -19,10 +19,10 @@ pio run -e toggle -t upload && pio device monitor   # крок 2 (або про�
 
 | Де | Як |
 |----|----|
-| VS Code | розширення *Wokwi Simulator*, `pio run`, далі F1 → *Wokwi: Start Simulator*; клавіша `1` = кнопка |
-| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/toggle.yaml --timeout 10000` (токен — у `../.envrc`) |
+| VS Code | розширення *Wokwi Simulator*, відкрити теку `cpp/`, `pio run`, далі F1 → *Wokwi: Start Simulator*; клавіша `1` = кнопка |
+| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000` (токен — у `../.envrc`) |
 
-`wokwi.toml` вказує на прошивку `toggle`; щоб симулювати крок 1 — `pio run -e hold` і замінити
+`cpp/wokwi.toml` вказує на прошивку `toggle`; щоб симулювати крок 1 — `pio run -e hold` і замінити
 `toggle` на `hold` у шляхах. `diagram.json` — та сама макетка, що й у
 [`esp32-s3-two-buttons`](../esp32-s3-two-buttons/), без другого LED і BOOT.
 
@@ -133,7 +133,7 @@ return stableLevel == LOW;             // true лише на натисканн�
 1. `hold`: LED світить, поки тримаєте кнопку; у моніторі `Button pressed` / `Button released`.
 2. `toggle`: натиснули й відпустили — LED увімкнувся й лишився; ще раз — вимкнувся.
    У моніторі `Press #1 -> LED ON`, `Press #2 -> LED OFF`… Номер має рости рівно на 1 за натискання.
-3. Експеримент: у `toggle.cpp` поставте `kDebounceMs = 0` і натискайте — номери «стрибають» на 2–3,
+3. Експеримент: у `toggle.cpp` (або `DEBOUNCE` у `toggle.rs`) поставте `kDebounceMs = 0` і натискайте — номери «стрибають» на 2–3,
    а LED іноді не перемикається. Це і є брязкіт. Його можна побачити й логічним аналізатором
    на GPIO21 (див. [`esp32-s3-button-bounce`](../esp32-s3-button-bounce/)).
 
@@ -155,14 +155,48 @@ return stableLevel == LOW;             // true лише на натисканн�
 4. Що таке брязкіт контактів і чому він заважає кроку 2, але не кроку 1?
 5. Чому `millis() - lastChange` залишається коректним після переповнення `millis()`?
 
+## Rust-версія
+
+Той самий урок на Rust — тека [`rust/`](rust/): **esp-hal** (HAL від Espressif) і **Embassy**
+(async/await), без Arduino і без ESP-IDF. Вивід у Serial і поведінка — ті самі, тож і автотест Wokwi
+той самий. Встановлення тулчейну й загальні правила — у [кореневому README](../README.md#rust).
+
+```bash
+source ~/export-esp.sh                       # тулчейн Xtensa від espup, раз на термінал
+cd esp32-s3-led-button/rust
+cargo run --release --bin hold               # крок 1: зібрати, прошити, відкрити монітор
+cargo run --release                          # крок 2 (toggle — бінарник за замовчуванням)
+cargo +stable host-test -p led-button        # тести антибрязкоту на ПК, без плати
+```
+
+Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
+`wokwi-cli rust --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000`.
+
+| | C++ (Arduino) | Rust (esp-hal + Embassy) |
+|---|---|---|
+| Два кроки | два середовища `hold` / `toggle`, `build_src_filter` | два бінарники `src/bin/hold.rs` / `toggle.rs` |
+| Виводи | `pinMode(15, OUTPUT)`, номер — просто число | `Output::new(peripherals.GPIO15, …)`: пін переміщується в драйвер, вдруге його не взяти |
+| `pressed ? HIGH : LOW` | тернарний оператор | `led.set_level(pressed.into())` — `Level: From<bool>` |
+| Антибрязкіт | глобальні `stableLevel`, `lastReading`, `lastChange` + функція | структура `Debouncer` у `src/lib.rs`, тести на ПК |
+| Час | `millis()` (`uint32_t`, переповнення через 49 діб) | `Instant` / `Duration` (64 біти, одиниці в типі) |
+| Пауза 1 мс | `delay(1)` блокує ядро | `Ticker` / `Timer::after_millis(1).await` — ядро вільне |
+
 ## Структура
 
 ```
-platformio.ini        плата YD-ESP32-S3 N16R8; середовища hold і toggle
-src/hold.cpp          крок 1: LED = стан кнопки
-src/toggle.cpp        крок 2: натискання перемикає LED, антибрязкіт 30 мс
-diagram.json          схема Wokwi (макетка), wokwi.toml — прошивка toggle з .pio/build
-wokwi/scenarios/      автотест wokwi-cli
+cpp/
+  platformio.ini      плата YD-ESP32-S3 N16R8; середовища hold і toggle
+  src/hold.cpp        крок 1: LED = стан кнопки
+  src/toggle.cpp      крок 2: натискання перемикає LED, антибрязкіт 30 мс
+  wokwi.toml          прошивка toggle з .pio/build для Wokwi (diagram.json — посилання на ../diagram.json)
+rust/
+  Cargo.toml          пакет led-button у робочому просторі Cargo (корінь репозиторію)
+  src/lib.rs          Debouncer — антибрязкіт без заліза, з тестами
+  src/bin/hold.rs     крок 1
+  src/bin/toggle.rs   крок 2
+  wokwi.toml          прошивка toggle з ../../target для Wokwi
+diagram.json          схема Wokwi (макетка), спільна для обох версій
+wokwi/scenarios/      автотест wokwi-cli (той самий для C++ і Rust)
 docs/
   schematic.png/svg   принципова схема з логічним аналізатором
   breadboard.png/svg  розкладка на макетній платі з аналізатором

@@ -4,11 +4,16 @@
 Обов'язкова частина — два GPIO; додатково реалізовано складніші патерни, третій світлодіод,
 зміну швидкості та режим, у якому обидва світлодіоди керуються **одним** GPIO.
 
+Та сама прошивка є у двох варіантах: [`cpp/`](cpp/) — C++ / Arduino / PlatformIO і [`rust/`](rust/) —
+Rust / esp-hal / Embassy (див. [Rust-версія](#rust-версія)). Поведінка й текст у Serial однакові,
+тож обидві проходять ті самі сценарії Wokwi.
+
 ![Принципова схема](docs/schematic.png)
 
 ## Швидкий старт
 
 ```bash
+cd cpp
 pio run -t upload          # режим двох GPIO (за замовчуванням)
 pio device monitor         # 115200; плата скидається при підключенні, банер видно завжди
 ```
@@ -23,8 +28,8 @@ pio device monitor         # 115200; плата скидається при пі
 | Де | Два GPIO | Один GPIO |
 |----|----------|-----------|
 | Wokwi у браузері | [**відкрити**](https://wokwi.com/projects/476610317583371265) | [**відкрити**](https://wokwi.com/projects/476610461509906433) |
-| VS Code (*Wokwi Simulator*) | `pio run`, F1 → *Wokwi: Start Simulator* | `pio run -e esp32-s3-single-gpio`, F1 → *Wokwi: Select Config File* → `wokwi/single-gpio/wokwi.toml` |
-| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/blink-controls.yaml --timeout 20000` | `wokwi-cli wokwi/single-gpio --scenario self-test.yaml --timeout 10000` |
+| VS Code (*Wokwi Simulator*) | тека `cpp/`: `pio run`, F1 → *Wokwi: Start Simulator* | `pio run -e esp32-s3-single-gpio`, F1 → *Wokwi: Select Config File* → `wokwi/single-gpio/wokwi.toml` |
+| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/blink-controls.yaml --timeout 20000` | `wokwi-cli wokwi/single-gpio --scenario self-test.yaml --timeout 10000` |
 | [Інтерактивний стенд](https://grok-rs.github.io/platformio-projects/lab/) | [вкладка «Миготіння LED»](https://grok-rs.github.io/platformio-projects/lab/#led-blink) | [вкладка «Один GPIO»](https://grok-rs.github.io/platformio-projects/lab/#single-gpio) |
 
 У Wokwi: BOOT — кнопка на самій платі (клавіша `B`), команди `1/2/3/0/p/v` — у Serial-моніторі.
@@ -33,7 +38,8 @@ pio device monitor         # 115200; плата скидається при пі
 Літери рядів у Wokwi дзеркальні (`a` зверху). Сценарії перевіряють справжню прошивку: самотест, патерн,
 коротке й довге натискання BOOT, команди Serial і що аноди світлодіодів отримують рівень через макетку.
 Для онлайн-версії «Один GPIO» прапорець `SINGLE_GPIO_MODE` визначено на початку `main.cpp`, бо
-онлайн-збірка не читає `platformio.ini`.
+онлайн-збірка не читає `platformio.ini`. Команди `wokwi-cli` виконуються з теки проєкту; шлях до сценарію —
+відносно теки, переданої першим аргументом.
 
 ## Монтаж
 
@@ -81,25 +87,29 @@ pio device monitor         # 115200; плата скидається при пі
 ## Структура коду
 
 ```
-include/
-  config.hpp                 усі піни та часові константи
-  frame.hpp                  Led (один світлодіод) та Frame (набір увімкнених LED)
-  pattern.hpp                Pattern + доступ до таблиць патернів і швидкостей
-  span.hpp                   мінімальний std::span для незмінних масивів
-  led_driver.hpp             інтерфейс LedDriver — єдиний шар, що знає про схему
-  gpio_led_driver.hpp        реалізація: окремий вивід на кожен LED
-  shared_pin_led_driver.hpp  реалізація: обидва LED на одному виводі (HIGH/LOW/Hi-Z)
-  blink_player.hpp           неблокуючий програвач патернів (без delay())
-  button.hpp                 кнопка з антидребезгом, коротке/довге натискання
-  serial_console.hpp         команди та стан через Serial-монітор
-src/
-  main.cpp                   збирання компонентів, setup()/loop()
-  patterns.cpp               таблиці кадрів і пресети швидкості
-diagram.json, wokwi.toml     симуляція Wokwi (два GPIO); прошивка — з .pio/build
+diagram.json                 схема Wokwi (два GPIO) — спільна для cpp/ і rust/
+cpp/
+  platformio.ini             два середовища: esp32-s3-devkitc-1, esp32-s3-single-gpio
+  wokwi.toml, diagram.json   симуляція (diagram.json — посилання на ../diagram.json); прошивка — з .pio/build
+  include/
+    config.hpp               усі піни та часові константи
+    frame.hpp                Led (один світлодіод) та Frame (набір увімкнених LED)
+    pattern.hpp              Pattern + доступ до таблиць патернів і швидкостей
+    span.hpp                 мінімальний std::span для незмінних масивів
+    led_driver.hpp           інтерфейс LedDriver — єдиний шар, що знає про схему
+    gpio_led_driver.hpp      реалізація: окремий вивід на кожен LED
+    shared_pin_led_driver.hpp  реалізація: обидва LED на одному виводі (HIGH/LOW/Hi-Z)
+    blink_player.hpp         неблокуючий програвач патернів (без delay())
+    button.hpp               кнопка з антидребезгом, коротке/довге натискання
+    serial_console.hpp       команди та стан через Serial-монітор
+  src/
+    main.cpp                 збирання компонентів, setup()/loop()
+    patterns.cpp             таблиці кадрів і пресети швидкості
+rust/                        див. «Rust-версія»
 wokwi/
   gen_diagram.py             генератор обох diagram.json;  breadboard.py — геометрія макетки та плати
   scenarios/                 автотести wokwi-cli (два GPIO)
-  single-gpio/               diagram.json, wokwi.toml і автотест для середовища esp32-s3-single-gpio
+  single-gpio/               diagram.json, wokwi.toml (C++) і автотест для режиму одного GPIO
 docs/
   *.png, *.svg               схема та розкладки на макетці
   tools/                     генератори діаграм (python3 + headless Chrome): tools/render.sh;
@@ -108,3 +118,62 @@ docs/
 
 Вибір схеми підключення — єдине місце з умовною компіляцією (`SINGLE_GPIO_MODE` у `main.cpp`);
 решта коду працює з абстрактним `LedDriver` і не знає, скільки виводів задіяно.
+
+## Rust-версія
+
+Тека [`rust/`](rust/) — та сама програма на Rust: [esp-hal](https://github.com/esp-rs/esp-hal) (офіційний HAL
+Espressif, без ESP-IDF і без Arduino), [Embassy](https://embassy.dev) (async/await замість `loop()` з `millis()`),
+`esp-println` замість `Serial`. Це пакет `led-blink` у спільному Cargo-workspace репозиторію
+(загальні налаштування — у [README в корені](../README.md#rust)).
+
+```bash
+source ~/export-esp.sh                          # тулчейн Xtensa від espup (один раз на термінал)
+cd rust
+cargo run --release                             # два GPIO: зібрати, прошити, відкрити монітор
+cargo run --release --features single-gpio      # один GPIO (аналог -e esp32-s3-single-gpio)
+cargo +stable host-test -p led-blink            # модульні тести логіки — на ПК, без плати
+```
+
+| Wokwi | Два GPIO | Один GPIO |
+|-------|----------|-----------|
+| VS Code | тека `rust/`: `cargo build --release`, F1 → *Wokwi: Start Simulator* | `cargo build --release --features single-gpio`, F1 → *Wokwi: Select Config File* → `rust/single-gpio/wokwi.toml` |
+| CLI | `wokwi-cli rust --scenario ../wokwi/scenarios/blink-controls.yaml --timeout 20000` | `wokwi-cli rust/single-gpio --scenario ../../wokwi/single-gpio/self-test.yaml --timeout 10000` |
+
+Обидва варіанти збираються в той самий файл `target/…/release/led-blink`, тож у симуляторі
+працює той, що зібраний останнім.
+
+```
+rust/
+  Cargo.toml                 пакет led-blink; feature single-gpio
+  wokwi.toml, diagram.json   симуляція (diagram.json — посилання на ../diagram.json)
+  single-gpio/               wokwi.toml для режиму одного GPIO
+  src/
+    lib.rs                   логіка без заліза (no_std) — збирається й тестується на ПК
+      frame.rs               Frame — бітові прапорці (крейт bitflags)
+      pattern.rs             таблиці патернів і швидкостей + перевірки під час компіляції
+      driver.rs              трейт LedDriver
+      player.rs              BlinkPlayer<D: LedDriver> + тести з драйвером-шпигуном
+      button.rs              антибрязкіт, коротке/довге натискання + тести
+      command.rs             Command: клавіша Serial / подія кнопки → дія
+      shared_pin.rs          який стан виводу потрібен для кадру (режим одного GPIO)
+    main.rs                  залізо: ініціалізація, задачі Embassy, головний цикл
+    gpio_led_driver.rs       реалізація LedDriver: окремий вивід на кожен LED
+    shared_pin_led_driver.rs реалізація LedDriver: обидва LED на одному виводі (Flex: HIGH/LOW/Hi-Z)
+```
+
+### C++ ↔ Rust
+
+| Що | C++ (Arduino) | Rust (esp-hal + Embassy) |
+|----|---------------|--------------------------|
+| Головний цикл | `loop()` крутиться без пауз, кожен компонент сам питає `millis()` | `select(COMMANDS.receive(), ticker.next()).await` — процесор спить до команди або тіку 1 мс |
+| Кнопка й Serial | опитуються в тому самому `loop()` | окремі задачі `button_task` і `console_task`; Serial-клавіші приходять за перериванням USB |
+| Зв'язок між частинами | `SerialConsole` тримає посилання `BlinkPlayer&` і змінює його | задачі надсилають `Command` у `Channel`; програвачем володіє лише головний цикл |
+| Абстракція драйвера | `virtual`-інтерфейс `LedDriver`, виклики через vtable | трейт `LedDriver`, `BlinkPlayer<D>` — мономорфізація, жодних віртуальних викликів |
+| Опис схеми | `describe(Print&)` | `impl Display` → `println!("{driver}")` |
+| `begin()` | треба не забути викликати | немає: виводи налаштовує конструктор, неналаштований драйвер створити неможливо |
+| Час | `uint32_t millis()`, переповнення через 49 діб (беззнакова різниця рятує) | `Instant`/`Duration` на 64 бітах: одиниці в типі, переповнення практично немає |
+| Кадр | клас `Frame` над `uint8_t` + `operator|` | `bitflags!` — те саме з крейту, `const` і з `Debug` |
+| Таблиці | `static_assert` лише для індексу | `const _: () = { … }` перевіряє й вміст: патерн без кадрів не скомпілюється |
+| `delay()` у самотесті | блокує все | `Timer::after(step).await` — інші задачі працюють |
+| Один пін на два LED | `pinMode()` на ходу | `Flex` — вивід, що перемикається вихід ↔ Hi-Z; власник лише драйвер |
+| Тести | лише Wokwi | `cargo +stable host-test` (логіка на ПК) **і** ті самі сценарії Wokwi |

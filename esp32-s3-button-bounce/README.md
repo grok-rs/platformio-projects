@@ -11,15 +11,17 @@
 
 | Середовище (`-e`) | Файл                    | Що робить |
 |-------------------|-------------------------|-----------|
-| `homework-base`   | `src/homework_base.cpp` | код з умови без змін: переривання `FALLING`, друкує `Button Pressed! Count: N` |
-| `bounce-lab` (типове) | `src/main.cpp`      | переривання `CHANGE`: кожен фронт із часом у мкс, звіт на кожне натискання/відпускання, підсумок на 10 натискань, маркер ISR на GPIO17 |
+| `homework-base`   | `cpp/src/homework_base.cpp` | код з умови без змін: переривання `FALLING`, друкує `Button Pressed! Count: N` |
+| `bounce-lab` (типове) | `cpp/src/main.cpp`      | переривання `CHANGE`: кожен фронт із часом у мкс, звіт на кожне натискання/відпускання, підсумок на 10 натискань, маркер ISR на GPIO17 |
 
 ```bash
-cd esp32-s3-button-bounce
+cd esp32-s3-button-bounce/cpp
 pio run -e homework-base -t upload && pio device monitor   # код з умови
 pio run -t upload && pio device monitor                     # лабораторна прошивка; s = підсумок, r = скинути
-python3 tools/vcd_bounce.py capture.vcd --button D0 --isr D1   # звіт із запису аналізатора
+cd .. && python3 tools/vcd_bounce.py capture.vcd --button D0 --isr D1   # звіт із запису аналізатора
 ```
+
+Ті самі дві прошивки на Rust — у [`rust/`](rust/), див. [розділ «Rust-версія»](#rust-версія).
 
 ### Інтерактивні сторінки та симуляція
 
@@ -27,8 +29,8 @@ python3 tools/vcd_bounce.py capture.vcd --button D0 --isr D1   # звіт із �
 |----|----|
 | [**Осцилограф і кнопка**](https://grok-rs.github.io/platformio-projects/scope-signals/) | теорія модуля 1.5: віртуальний осцилограф і генератор, шкали, тригер, фронти, період і заповнення, брязкіт, логічний аналізатор, конспекти відео, питання для обговорення |
 | [**Лабораторія брязкоту**](https://grok-rs.github.io/platformio-projects/bounce-lab/) | це домашнє завдання в анімації: справжній запис Wokwi у переглядачі аналізатора, що бачить переривання, обидві прошивки, таблиця на 10 натискань, стратегії debounce |
-| VS Code | розширення *Wokwi Simulator*, `pio run`, далі F1 → *Wokwi: Start Simulator*. Клавіша `1` = кнопка. Після зупинки симуляції аналізатор зберігає VCD |
-| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/ten-presses.yaml --timeout 40000 --vcd-file bounce.vcd` (токен — у `../.envrc`) |
+| VS Code | розширення *Wokwi Simulator*, `pio run` у `cpp/` (або `cargo build --release` у `rust/`), далі в цій теці F1 → *Wokwi: Start Simulator*. Клавіша `1` = кнопка. Після зупинки симуляції аналізатор зберігає VCD |
+| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/ten-presses.yaml --timeout 40000 --vcd-file bounce.vcd` (Rust: `wokwi-cli rust …`) (токен — у `../.envrc`) |
 
 Кнопка у Wokwi брязкотить так само, як справжня: атрибут `bounce` за замовчуванням увімкнений.
 Аналізатор у `diagram.json` має канали `BUTTON` (D0 → GPIO16) і `ISR` (D1 → GPIO17).
@@ -39,7 +41,8 @@ python3 tools/vcd_bounce.py capture.vcd --button D0 --isr D1   # звіт із �
 
 - `ten-presses.yaml` — 10 натискань лабораторної прошивки: звіт на кожну подію, підсумок, команда `s`;
 - `homework-base.yaml` — код з умови: одне натискання збільшує лічильник на десятки, і **відпускання теж**
-  (`wokwi-cli . --elf .pio/build/homework-base/firmware.elf --scenario wokwi/scenarios/homework-base.yaml`).
+  (`wokwi-cli cpp --elf .pio/build/homework-base/firmware.elf --scenario ../wokwi/scenarios/homework-base.yaml`;
+  Rust: `wokwi-cli rust --elf ../../target/xtensa-esp32s3-none-elf/release/homework-base --scenario ../wokwi/scenarios/homework-base.yaml`).
 
 ---
 
@@ -165,17 +168,59 @@ VCD можна відкрити в PulseView або GTKWave.
 | Аналізатор показує шум або «рівень посередині»  | немає спільного GND аналізатора і плати                          |
 | Лічильник росте сам, без натискань              | вхід «висить»: немає `INPUT_PULLUP`, провід не в тому ряду        |
 | Жодної реакції                                  | кнопка підключена ніжками, що з'єднані постійно, — взяти діагональні |
-| `WARNING: … edges dropped`                      | брязкіт довший, ніж вміщує буфер (512 фронтів): збільшити `kRingSize` |
+| `WARNING: … edges dropped`                      | брязкіт довший, ніж вміщує буфер (512 фронтів): збільшити `kRingSize` (Rust: `RING_SIZE`) |
 | На аналізаторі брязкоту не видно                | занизька частота дискретизації або занадто велика шкала часу       |
+
+## Rust-версія
+
+[`rust/`](rust/) — ті самі дві прошивки на Rust ([esp-hal](https://docs.espressif.com/projects/rust/) + Embassy).
+Текст у Serial Monitor той самий, тож ті самі сценарії `wokwi/scenarios/` перевіряють обидві мови.
+Тулчейн і загальні правила робочого простору — у [кореневому README](../README.md).
+
+```bash
+source ~/export-esp.sh                         # раз на термінал: тулчейн Xtensa від espup
+cd esp32-s3-button-bounce/rust
+cargo run --release                            # bin `bounce-lab`; s = підсумок, r = скинути, h = довідка
+cargo run --release --bin homework-base        # код з умови: FALLING-лічильник
+cargo +stable host-test -p button-bounce       # тести аналізу (src/lib.rs) на ПК, без плати
+```
+
+Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
+`wokwi-cli rust --scenario ../wokwi/scenarios/ten-presses.yaml --timeout 40000`.
+
+Групування фронтів у події, статистика й формат таблиці — у `src/lib.rs` (`Analyzer`): він не знає
+про GPIO і друкує в будь-який `core::fmt::Write` — на платі це Serial, у тестах на ПК — `String`.
+`src/bin/bounce-lab.rs` лише налаштовує виводи, переривання й консоль.
+
+| C++ (`cpp/src/main.cpp`) | Rust (`rust/src/bin/bounce-lab.rs`) | Чому так |
+|---|---|---|
+| `Edge gRing[512]` + `volatile gHead`, `gTail` | `heapless::spsc::Queue<Edge, 513>`: `Producer` у ISR, `Consumer` у main | та сама lock-free черга, але «пише лише ISR, читає лише main» гарантує тип, а не домовленість |
+| `volatile uint32_t gDropped` | `static DROPPED: AtomicU32` | атомік — неподільне `+1` без `volatile` і без `unsafe` |
+| `noInterrupts(); gTail = gHead; …` (reset) | `while ring.dequeue().is_some() {}` | споживач черги — лише main, критична секція не потрібна |
+| `void IRAM_ATTR onButtonEdge()` | `#[handler] #[ram] fn on_button_edge()` | `#[ram]` — код у внутрішній RAM, як `IRAM_ATTR` |
+| `REG_WRITE(GPIO_OUT_W1TS_REG, …)`, `REG_READ(GPIO_IN_REG)` | `marker.set_high()`, `button.is_high()` у `critical_section::Mutex` | ті самі записи в регістри, але без сирих адрес і `static_assert(pin < 32)` |
+| `esp_timer_get_time()` | `esp_hal::time::Instant::now()` | 64-бітні мкс; обрізаємо до `u32`, як у C++, і віднімаємо через `wrapping_sub` |
+| `bool gInEvent` + `Event gEvent` | `Option<Event>` | «поза подією» і «дані події» не можуть розійтися |
+| `minGapUs = UINT32_MAX` | `Option<u32>` | «проміжків ще не було» — окреме значення, а не магічне число |
+| `Serial.available()` / `Serial.read()` у `loop()` | `select(serial_rx.read(..), Timer::after_millis(1))` | задача спить до байта з USB або до наступної перевірки тиші |
+| `volatile uint32_t button_counter; button_counter++` (homework) | `static BUTTON_COUNTER: AtomicU32`, `fetch_add` | `volatile` не робить `++` неподільним |
 
 ## Структура
 
 ```
-platformio.ini            два середовища: bounce-lab (типове) і homework-base
-src/main.cpp              лабораторна прошивка (CHANGE, кільцевий буфер, звіт)
-src/homework_base.cpp     код з умови завдання
+cpp/
+  platformio.ini          два середовища: bounce-lab (типове) і homework-base
+  src/main.cpp            лабораторна прошивка (CHANGE, кільцевий буфер, звіт)
+  src/homework_base.cpp   код з умови завдання
+  wokwi.toml              симуляція C++-прошивки (diagram.json — посилання на спільну схему)
+rust/
+  Cargo.toml              пакет button-bounce: bins `bounce-lab` (типовий) і `homework-base`
+  src/lib.rs              групування фронтів, статистика, формат звіту + тести на ПК
+  src/bin/bounce-lab.rs   ISR на обидва фронти → heapless::spsc → Analyzer; s/r/h з USB-Serial-JTAG
+  src/bin/homework-base.rs  код з умови: FALLING, AtomicU32
+  wokwi.toml              симуляція Rust-прошивки
 tools/vcd_bounce.py       звіт про брязкіт із VCD (Wokwi або PulseView), без залежностей
-diagram.json, wokwi.toml  схема Wokwi з логічним аналізатором; wokwi/gen_diagram.py — генератор
+diagram.json              схема Wokwi з логічним аналізатором (спільна); wokwi/gen_diagram.py — генератор
 wokwi/scenarios/          автотести wokwi-cli
 docs/                     принципова схема; запис 10 натискань із Wokwi: VCD, Serial і звіт аналізатора
 ```

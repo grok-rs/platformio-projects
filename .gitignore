@@ -12,3 +12,6 @@ __pycache__/
 
 # Wokwi logic-analyzer recordings
 *.vcd
+
+# Cargo build output (Rust workspace)
+/target/

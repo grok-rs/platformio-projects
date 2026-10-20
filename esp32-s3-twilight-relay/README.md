@@ -6,14 +6,14 @@
 
 | АЦП (GPIO4)               | Рішення                 | GPIO2          | Реле |
 |---------------------------|-------------------------|----------------|------|
-| `< 1000` (темно)          | `relayOn = true`        | HIGH, 3,3 В    | ON   |
-| `> 1500` (світло)         | `relayOn = false`       | LOW, 0 В       | OFF  |
-| `1000…1500`               | нічого не змінюємо      | як було        | як було |
+| `< 500` (темно)           | `relayOn = true`        | HIGH, 3,3 В    | ON   |
+| `> 600` (світло)          | `relayOn = false`       | LOW, 0 В       | OFF  |
+| `500…600`                 | нічого не змінюємо      | як було        | як було |
 
 Плата — **YD-ESP32-S3** (VCC-GND Studio, клон ESP32-S3-DevKitC-1, N16R8).
 
 ```bash
-cd esp32-s3-twilight-relay
+cd esp32-s3-twilight-relay/cpp
 pio run -t upload          # зібрати та прошити
 pio device monitor         # 115200: рядок «adc=… relay=…» кожні 100 мс
 ```
@@ -132,7 +132,7 @@ VT1 узгоджує рівні. Сигнал інвертується двіч�
 
 ## 5. Код
 
-`src/main.cpp` робить три кроки кожні 100 мс:
+`cpp/src/main.cpp` робить три кроки кожні 100 мс:
 
 1. `analogRead(4)` — число 0…4095 (12 біт, ослаблення 11 дБ, ≈0…3,1 В).
 2. Пороги з гістерезисом: `< kThresholdDark` → `relayOn = true`, `> kThresholdLight` → `false`,
@@ -140,18 +140,22 @@ VT1 узгоджує рівні. Сигнал інвертується двіч�
 3. `digitalWrite(2, relayOn)` і рядок у Serial.
 
 ```
-00:12:01.100 -> adc=3581 relay=OFF        кімната, ~160 лк
-00:12:05.300 -> adc= 772 relay=ON         накрили долонею / сутінки
-00:12:05.400 -> adc=1231 relay=ON         між порогами: стан не змінюється
+18:24:01.100 -> adc= 692 relay=OFF        кімната
+18:24:05.300 -> adc= 351 relay=ON         LDR накрили долонею
+18:24:06.900 -> adc= 588 relay=ON         між порогами (руку прибирають): стан не змінюється
+18:24:07.000 -> adc= 689 relay=OFF        знову світло
 ```
 
 **Пороги** підбирайте на своїй макетці: стежте за `adc` у Serial у потрібних сутінках.
+У `cpp/src/main.cpp` (і `rust/src/main.rs`) вони вже відкалібровані за записом із реальної макетки: кімната ≈ 690,
+LDR під долонею ≈ 350, тож `kThresholdDark = 500`, `kThresholdLight = 600`. На інтерактивній
+сторінці лишилися 1000 / 1500: там модель фоторезистора, а не ваш LDR і ваша кімната.
 Проміжок між `kThresholdDark` і `kThresholdLight` має бути більшим за шум АЦП (±10…20) і за те,
 наскільки лампа підсвічує LDR. Інакше реле клацатиме. Найкраще — сховати LDR від лампи.
 
 ## 6. Відладчик
 
-ESP32-S3 має вбудований USB-JTAG, окремий програматор не потрібен. У `platformio.ini` вже є
+ESP32-S3 має вбудований USB-JTAG, окремий програматор не потрібен. У `cpp/platformio.ini` вже є
 `debug_tool = esp-builtin` і `debug_init_break = tbreak setup`. Далі **F5** / *Run and Debug →
 PIO Debug*, кабель — у роз'єм **USB**. Для змінних без оптимізацій додайте `build_type = debug`.
 
@@ -172,11 +176,36 @@ PIO Debug*, кабель — у роз'єм **USB**. Для змінних бе�
 | `adc` близько 0                          | LDR не отримує 3,3 В                                  |
 | ESP32 перезавантажується, коли клацає реле | просідання живлення: реле від U2, 100 мкФ на шину 5 В |
 
+## Rust-версія
+
+Тека [`rust/`](rust/) — той самий перемикач на **esp-hal** + **Embassy**; рядок у Serial такий самий
+(`adc= 692 relay=OFF`). Встановлення тулчейну — у [кореневому README](../README.md#rust).
+
+```bash
+source ~/export-esp.sh                     # тулчейн Xtensa від espup, раз на термінал
+cd esp32-s3-twilight-relay/rust
+cargo run --release                        # зібрати, прошити, відкрити монітор
+cargo +stable host-test -p twilight-relay  # тести гістерезису на ПК, без плати
+```
+
+| | C++ (Arduino) | Rust (esp-hal + Embassy) |
+|---|---|---|
+| АЦП | `analogReadResolution(12)`, `analogSetPinAttenuation(4, ADC_11db)`, `analogRead(4)` | `AdcConfig::enable_pin_with_cal::<_, AdcCalBasic<ADC1>>(GPIO4, _11dB)`, `adc.read_blocking(&mut ldr)`; GPIO з ADC2 не збереться |
+| Гістерезис | глобальний `relayOn` + `if / else if` у `loop()` | `Hysteresis` у `src/lib.rs`: пороги перевіряються під час компіляції (`dark < light`), тести на ПК |
+| Період 100 мс | `if (millis() - lastReadAt < kPeriodMs) return; lastReadAt += kPeriodMs;` | `Ticker::every(100 мс)` — так само без «повзання», а ядро між тіками спить |
+| Реле | `digitalWrite(2, relayOn ? HIGH : LOW)` | `relay.set_level(relay_on.into())` |
+| Відладчик | `debug_tool = esp-builtin`, F5 | `probe-rs` через той самий вбудований USB-JTAG; символи вже в ELF (`debug = 2` у release) |
+
 ## Структура
 
 ```
 esp32-s3-twilight-relay/
-├── platformio.ini     плата N16R8, USB CDC, вбудований відладчик
-├── src/main.cpp       АЦП → гістерезис → GPIO2 (той самий код, що на інтерактивній сторінці)
+├── cpp/
+│   ├── platformio.ini плата N16R8, USB CDC, вбудований відладчик
+│   └── src/main.cpp   АЦП → гістерезис → GPIO2 (код як на сторінці, пороги відкалібровані)
+├── rust/
+│   ├── Cargo.toml     пакет twilight-relay у робочому просторі Cargo (корінь репозиторію)
+│   ├── src/lib.rs     Hysteresis — рішення без заліза, з тестами
+│   └── src/main.rs    АЦП → Hysteresis → GPIO2, Ticker 100 мс
 └── README.md
 ```

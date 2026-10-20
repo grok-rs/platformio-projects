@@ -3,5 +3,5 @@
 #   VS Code: F1 -> "Wokwi: Select Config File" -> this file;  CLI: wokwi-cli wokwi/single-gpio
 [wokwi]
 version  = 1
-firmware = '../../.pio/build/esp32-s3-single-gpio/firmware.bin'
-elf      = '../../.pio/build/esp32-s3-single-gpio/firmware.elf'
+firmware = '../../cpp/.pio/build/esp32-s3-single-gpio/firmware.bin'
+elf      = '../../cpp/.pio/build/esp32-s3-single-gpio/firmware.elf'

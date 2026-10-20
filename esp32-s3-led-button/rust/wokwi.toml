@@ -1,0 +1,8 @@
+# Wokwi simulation of the Rust firmware `toggle`.
+# Build first with `cargo build --release`, then F1 -> "Wokwi: Start Simulator" in this folder,
+# or from the project folder: wokwi-cli rust --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000
+# Step 1 instead: change `toggle` to `hold` in both paths below.
+[wokwi]
+version  = 1
+firmware = '../../target/xtensa-esp32s3-none-elf/release/toggle'
+elf      = '../../target/xtensa-esp32s3-none-elf/release/toggle'

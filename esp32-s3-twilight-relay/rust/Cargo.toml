@@ -1,0 +1,33 @@
+[package]
+name        = "twilight-relay"
+description = "Сутінковий перемикач: LDR -> АЦП -> гістерезис -> GPIO2 -> BC547B -> модуль реле"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+publish.workspace      = true
+
+[[bin]]
+name  = "twilight-relay"
+path  = "src/main.rs"
+test  = false
+bench = false
+
+[lib]
+test  = true
+bench = false
+
+# Логіка (src/lib.rs, гістерезис) — без заліза, тому тестується на ПК. Залежностей не має.
+[dependencies]
+
+# Прошивка (src/main.rs) — лише для ESP32-S3.
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+esp-hal.workspace                = true
+esp-rtos.workspace               = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace          = true
+esp-println.workspace            = true
+embassy-executor.workspace       = true
+embassy-time.workspace           = true
+
+[lints]
+workspace = true

@@ -14,7 +14,7 @@
 кнопки нічого не змінює.
 
 ```bash
-cd esp32-s3-two-buttons
+cd esp32-s3-two-buttons/cpp
 pio run -t upload          # зібрати та прошити
 pio device monitor         # 115200: банер і повідомлення «Mode -> …» при кожній зміні режиму
 ```
@@ -24,8 +24,8 @@ pio device monitor         # 115200: банер і повідомлення «Mo
 | Де | Як |
 |----|----|
 | [**Wokwi у браузері**](https://wokwi.com/projects/476609614353588225) | нічого не встановлювати: зелена кнопка ▶, клавіша `1` = S1, `2` = BOOT |
-| VS Code | розширення *Wokwi Simulator*, `pio run`, далі F1 → *Wokwi: Start Simulator* (`wokwi.toml` + `diagram.json`) |
-| CLI / автотест | `wokwi-cli . --scenario wokwi/scenarios/mode-switch.yaml --timeout 20000` (токен — у `../.envrc`) |
+| VS Code | розширення *Wokwi Simulator*, `pio run` у `cpp/`, далі F1 → *Wokwi: Start Simulator* (`cpp/wokwi.toml` + `diagram.json`) |
+| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/mode-switch.yaml --timeout 20000` (токен — у `../.envrc`) |
 | [**Інтерактивний стенд**](https://grok-rs.github.io/platformio-projects/lab/#two-buttons) | модель цієї програми з підсвіткою рядків коду, змінними, логічним аналізатором і експериментами (`delay()`, вхід без підтяжки) |
 | [**Підтяжка входу**](https://grok-rs.github.io/platformio-projects/pull-resistors/) | теорія модуля 1.4 в анімаціях: pull-up/pull-down, R·C і частота, тригер Шмітта, брязкіт |
 
@@ -185,7 +185,7 @@ loop():                            ← повторюється нескінче
 
 ## 6. Код
 
-Весь код — у [`src/main.cpp`](src/main.cpp). Уся конфігурація зібрана в трьох таблицях,
+Весь код — у [`cpp/src/main.cpp`](cpp/src/main.cpp). Уся конфігурація зібрана в трьох таблицях,
 а логіка лише проходить по них циклами. Щоб додати світлодіод, режим чи кнопку, досить
 дописати рядок у таблицю — функції змінювати не треба (принцип відкритості/закритості).
 
@@ -294,12 +294,47 @@ void updateLeds() {
 5. Розрахуйте струм світлодіода з резистором 220 Ω при U_LED = 2.0 В.
 6. Чому GPIO0 не можна тримати натиснутим під час увімкнення плати?
 
+## Rust-версія
+
+Та сама прошивка на Rust лежить у [`rust/`](rust/): `no_std`, [esp-hal](https://docs.espressif.com/projects/rust/esp-hal/)
+та async/await від [Embassy](https://embassy.dev). Банер і повідомлення в Serial — байт у байт як у C++,
+тому сценарій `mode-switch.yaml` перевіряє обидві прошивки.
+
+```bash
+source ~/export-esp.sh                    # тулчейн Xtensa від espup (один раз на термінал)
+cd esp32-s3-two-buttons/rust
+cargo run --release                       # зібрати, прошити, відкрити монітор (espflash)
+cargo +stable host-test -p two-buttons    # тести логіки режимів на ПК, без плати
+```
+
+Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
+`wokwi-cli rust --scenario ../wokwi/scenarios/mode-switch.yaml --timeout 20000`.
+
+| | C++ (`cpp/src/main.cpp`) | Rust (`rust/src/`) |
+|---|---|---|
+| Режими | таблиця `kPatterns[]` + вказівник на функцію `isOn` + `enum PatternId` + `static_assert` | `enum Mode { Sync, Alternate }`, назва/крок/`is_on` — методи з вичерпним `match` |
+| Стан | глобальні `mode`, `step`, `stepStarted` | `Blinker<2>` (кількість LED — параметр типу), локальні змінні `main` |
+| Кнопки | `loop()` опитує `digitalRead()` кожну 1 мс | `select_array` чекає `wait_for_falling_edge()` усіх кнопок разом із `Timer::at(наступний крок)`; між подіями процесор спить |
+| Пріоритет кнопок | порядок у `kButtons[]` | порядок у масиві `buttons` (`select_array` перевіряє по черзі) |
+| Виводи | номери `uint8_t`, `pinMode()` | `peripherals.GPIO15` — власний тип; переміщується в `Output`, другий раз його не взяти |
+| Тести | лише Wokwi | `cargo +stable host-test` (логіка) + той самий сценарій Wokwi |
+
+Відмінність у поведінці: Rust-версія реагує на **фронт** натискання, тож кнопка, затиснута ще до старту,
+режим не змінить (у C++ — змінить на першому ж проході `loop()`).
+
 ## Структура
 
 ```
-platformio.ini        плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
-src/main.cpp          уся програма
-diagram.json          схема Wokwi (макетка), wokwi.toml — прошивка з .pio/build для симулятора
+cpp/
+  platformio.ini      плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
+  src/main.cpp        уся програма
+  wokwi.toml          прошивка з .pio/build для симулятора (diagram.json — посилання на ../diagram.json)
+rust/
+  Cargo.toml          пакет two-buttons робочого простору (версії залежностей — у ../../Cargo.toml)
+  src/lib.rs          логіка без заліза: enum Mode, Blinker + тести
+  src/main.rs         прошивка: GPIO, async-очікування кнопок і таймера
+  wokwi.toml          прошивка з ../../target/… для симулятора
+diagram.json          схема Wokwi (макетка), спільна для обох версій
 wokwi/
   gen_diagram.py      генератор diagram.json;  breadboard.py — геометрія макетки та плати
   scenarios/          автотести wokwi-cli

@@ -1,0 +1,43 @@
+[package]
+name        = "led-button"
+description = "Світлодіод і кнопка: hold — LED повторює кнопку, toggle — натискання перемикає LED"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+publish.workspace      = true
+default-run = "toggle"
+
+# Два кроки уроку — два бінарники (аналог середовищ `hold` і `toggle` у platformio.ini):
+#   cargo run --release --bin hold
+#   cargo run --release              (toggle)
+[[bin]]
+name  = "hold"
+path  = "src/bin/hold.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "toggle"
+path  = "src/bin/toggle.rs"
+test  = false
+bench = false
+
+[lib]
+test  = true
+bench = false
+
+# Логіка (src/lib.rs) — без заліза, тому збирається й тестується на ПК.
+[dependencies]
+embassy-time.workspace = true
+
+# Прошивка (src/bin/*.rs) — лише для ESP32-S3.
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+esp-hal.workspace                = true
+esp-rtos.workspace               = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace          = true
+esp-println.workspace            = true
+embassy-executor.workspace       = true
+
+[lints]
+workspace = true

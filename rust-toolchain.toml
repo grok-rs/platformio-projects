@@ -1,0 +1,4 @@
+# ESP32-S3 — ядро Xtensa: потрібен тулчейн `esp` від espup (`espup install --targets esp32s3`),
+# у звичайному rustup Xtensa немає. Тести логіки на ПК — стабільним тулчейном: `cargo +stable host-test`.
+[toolchain]
+channel = "esp"

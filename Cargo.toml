@@ -1,0 +1,57 @@
+# Робочий простір Cargo: Rust-версії прошивок, по одній у теці `<проєкт>/rust`.
+# Спільні тут: версії залежностей, лінти, профілі збирання й одна тека `target/`
+# (esp-hal компілюється один раз для всіх проєктів).
+[workspace]
+resolver = "3"
+members  = ["esp32-s3-*/rust"]
+
+[workspace.package]
+version      = "0.1.0"
+edition      = "2024"
+rust-version = "1.95"
+publish      = false
+
+[workspace.dependencies]
+# --- Залежності прошивки (лише для Xtensa) ---------------------------------------
+# HAL: GPIO, таймери, UART, USB-Serial-JTAG, ADC, LEDC. `unstable` відкриває ADC, LEDC і Io.
+esp-hal                = { version = "~1.2.2", features = ["esp32s3", "unstable"] }
+# Планувальник і драйвер часу для Embassy (async/await на мікроконтролері).
+esp-rtos               = { version = "0.4.0", features = ["embassy", "esp32s3"] }
+# Опис застосунку, без якого другий завантажувач ESP-IDF не запустить прошивку.
+esp-bootloader-esp-idf = { version = "0.6.0", features = ["esp32s3"] }
+# Обробник panic: друкує повідомлення й backtrace у монітор.
+esp-backtrace          = { version = "0.20.0", features = ["esp32s3", "panic-handler", "println"] }
+# println! у USB-Serial-JTAG — той самий порт, що й `Serial` в Arduino з ARDUINO_USB_MODE=1.
+esp-println            = { version = "0.18.0", default-features = false, features = ["esp32s3", "jtag-serial", "critical-section"] }
+embassy-executor       = "0.10.0"
+embassy-futures        = "0.1.2"
+embassy-sync           = "0.8.0"
+critical-section       = "1.2.0"
+embedded-hal           = "1.0.0"
+embedded-io-async      = "0.7.0"
+static_cell            = "2.1.1"
+
+# --- Залежності логіки (збираються і для ПК, тому тестуються без плати) ---------------
+embassy-time           = "0.5.0"
+heapless               = "0.9.3"
+bitflags               = "2.13"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+# esp-hal: mem::forget драйвера з DMA-буфером — це use-after-free.
+mem_forget         = "deny"
+large_stack_frames = "warn"
+undocumented_unsafe_blocks = "warn"
+
+[profile.dev]
+# Без оптимізацій прошивка завелика й заповільна; `s` — за розміром, але з налагодженням.
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug         = 2       # символи лише в ELF, на плату не потрапляють — backtrace і GDB читабельні
+lto           = "fat"
+opt-level     = "s"

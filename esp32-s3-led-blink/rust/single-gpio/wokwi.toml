@@ -1,0 +1,7 @@
+# Wokwi simulation of the Rust firmware, feature `single-gpio` (both LEDs on GPIO7, HIGH / LOW / Hi-Z).
+#   cargo build --release --features single-gpio
+#   wokwi-cli rust/single-gpio --scenario ../../wokwi/single-gpio/self-test.yaml --timeout 10000   (from the project folder)
+[wokwi]
+version  = 1
+firmware = '../../../target/xtensa-esp32s3-none-elf/release/led-blink'
+elf      = '../../../target/xtensa-esp32s3-none-elf/release/led-blink'

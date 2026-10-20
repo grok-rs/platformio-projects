@@ -1,5 +1,6 @@
 # Автотест для wokwi-cli: кнопки перемикають режим, а режим «липкий».
-#   wokwi-cli . --scenario wokwi/scenarios/mode-switch.yaml --timeout 20000
+#   wokwi-cli cpp --scenario ../wokwi/scenarios/mode-switch.yaml --timeout 20000   (C++)
+#   wokwi-cli rust --scenario ../wokwi/scenarios/mode-switch.yaml --timeout 20000  (Rust)
 # Час у сценарії — симульований, тому перевірки рівнів на виводах детерміновані.
 name: 'Mode switching: S1 -> mode 1, BOOT -> mode 2'
 version: 1

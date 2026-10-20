@@ -8,10 +8,12 @@
 само, як у [`esp32-s3-led-button`](../esp32-s3-led-button/) (світлодіод тут не потрібен, але й не заважає).
 
 ```bash
-cd esp32-s3-bounce-test
+cd esp32-s3-bounce-test/cpp
 pio run -e lab      -t upload && pio device monitor   # звіт на кожну подію + маркери для аналізатора
 pio run -e homework -t upload && pio device monitor   # код з умови ДЗ модуля 1.5 (FALLING), пін 16 → 21
 ```
+
+Та сама прошивка на Rust — у [`rust/`](rust/), див. [розділ 6](#6-rust-версія).
 
 Конспект з анімаціями й справжніми даними цього стенду (190 подій, `docs/bench-11-40.serial.txt`):
 **[Брязкіт на стенді](https://grok-rs.github.io/platformio-projects/bounce-bench/)** (локально: `python3 -m http.server -d ../docs` → `/bounce-bench/`).
@@ -112,13 +114,52 @@ PRESS   #2   edges=3   bounce=    96 us  shortest=31 us
 3. Яке мінімальне значення антибрязкоту безпечне для **вашої** кнопки? Додайте запас ×3–5.
 4. Спробуйте іншу кнопку або два шматки дроту замість кнопки — брязкіт буде набагато довшим.
 
+## 6. Rust-версія
+
+[`rust/`](rust/) — та сама прошивка на Rust ([esp-hal](https://docs.espressif.com/projects/rust/) + Embassy),
+з тим самим текстом у Serial Monitor і тими самими сигналами BOUNCE/LABEL. Тулчейн і загальні
+правила робочого простору — у [кореневому README](../README.md).
+
+```bash
+source ~/export-esp.sh                       # раз на термінал: тулчейн Xtensa від espup
+cd esp32-s3-bounce-test/rust
+cargo run --release                          # bin `lab`: зібрати, прошити, монітор
+cargo run --release --bin homework           # код з умови ДЗ (FALLING), пін 21
+cargo +stable host-test -p bounce-test       # тести аналізу (src/lib.rs) на ПК, без плати
+```
+
+Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator* (`rust/wokwi.toml`).
+
+Логіку відокремлено від заліза: `src/lib.rs` (журнал фронтів `EdgeLog`, класифікація
+PRESS/RELEASE/GLITCH, перевірка парності, формат рядків звіту) не знає про GPIO і перевіряється
+модульними тестами на ПК, а `src/bin/lab.rs` лише налаштовує виводи, переривання й UART.
+
+| C++ (`cpp/src/main.cpp`) | Rust (`rust/src/bin/lab.rs`) | Чому так |
+|---|---|---|
+| `volatile uint32_t gEdgeTimes[]`, `gEdgeCount`, `gLastEdgeUs` | `static SHARED: Mutex<RefCell<Option<Shared>>>` з `EdgeLog` | до даних ISR не дістатися без критичної секції — перевіряє компілятор |
+| `noInterrupts(); … копіювання … interrupts();` | `critical_section::with(\|cs\| mem::take(&mut s.log))` | секцію неможливо «забути закрити»: вона закінчується разом із замиканням |
+| `volatile uint32_t button_counter; button_counter++` (homework) | `static BUTTON_COUNTER: AtomicU32`, `fetch_add(1, Relaxed)` | `volatile` не робить `++` неподільним, атомік — робить |
+| `void IRAM_ATTR onButtonEdge()` | `#[handler] #[ram] fn on_button_edge()` | `#[ram]` — код у внутрішній RAM, як `IRAM_ATTR` |
+| `attachInterrupt(pin, isr, CHANGE)` | `io.set_interrupt_handler(..)` + `button.listen(Event::AnyEdge)` | один обробник на всі GPIO; прапорець скидає сам обробник (`clear_interrupt()`) |
+| `micros()` | `esp_hal::time::Instant::now()` → мкс, обрізані до `u32` | `wrapping_sub` — та сама беззнакова різниця, що й у C++ |
+| `Serial1.begin(115200, SERIAL_8N1, -1, 41)` | `UartTx::new(UART1, …).with_tx(GPIO41)` | лише передавач — RX-піна в типі немає взагалі |
+| `Serial.printf("%-7s #%-3lu …")` | `impl Display for Report`, `{:<7} #{:<3}` | формат перевіряють тести на ПК |
+
 ## Структура
 
 ```
-platformio.ini        плата YD-ESP32-S3 N16R8
-src/homework.cpp      код з умови ДЗ (лічильник FALLING), BUTTON_IN = 21
-src/main.cpp          ISR CHANGE → час кожного фронту → звіт; маркер BOUNCE (GPIO40), підписи LABEL (GPIO41)
-diagram.json          схема Wokwi (кнопка + аналізатор: BUTTON, BOUNCE, LABEL); wokwi.toml
+cpp/
+  platformio.ini      плата YD-ESP32-S3 N16R8
+  src/homework.cpp    код з умови ДЗ (лічильник FALLING), BUTTON_IN = 21
+  src/main.cpp        ISR CHANGE → час кожного фронту → звіт; маркер BOUNCE (GPIO40), підписи LABEL (GPIO41)
+  wokwi.toml          симуляція C++-прошивки (diagram.json — посилання на спільну схему)
+rust/
+  Cargo.toml          пакет bounce-test: bins `lab` (типовий) і `homework`
+  src/lib.rs          аналіз подій без заліза + тести на ПК
+  src/bin/lab.rs      ISR на обидва фронти → EdgeLog → звіт; BOUNCE (GPIO40), LABEL (UART1 TX, GPIO41)
+  src/bin/homework.rs код з умови ДЗ: FALLING, AtomicU32
+  wokwi.toml          симуляція Rust-прошивки
+diagram.json          схема Wokwi (кнопка + аналізатор: BUTTON, BOUNCE, LABEL), спільна для обох мов
 docs/
   bench-11-40.serial.txt  справжній запис 190 подій з уроку (вивід прошивки lab)
   schematic.png/svg   принципова схема з логічним аналізатором

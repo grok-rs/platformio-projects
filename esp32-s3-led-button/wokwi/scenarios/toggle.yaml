@@ -1,5 +1,6 @@
 # Автотест для wokwi-cli (прошивка toggle): кожне натискання перемикає LED.
-#   pio run -e toggle && wokwi-cli . --scenario wokwi/scenarios/toggle.yaml --timeout 10000
+#   C++:  (cd cpp && pio run -e toggle) && wokwi-cli cpp --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000
+#   Rust: cargo build --release && wokwi-cli rust --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000
 # Час у сценарії — симульований, тому перевірки рівнів на виводах детерміновані.
 name: 'Toggle: press -> ON, press -> OFF'
 version: 1

@@ -5,8 +5,10 @@ constexpr uint8_t  kLdrPin   = 4;   // GPIO In:  ADC1_CH3, середня точ
 constexpr uint8_t  kRelayPin = 2;   // GPIO Out: через R3 10 кОм на базу VT1
 
 // LDR зверху (до 3V3): темніше → менша напруга → менше число АЦП.
-constexpr uint16_t kThresholdDark  = 1000;  // нижче — темно: вмикаємо
-constexpr uint16_t kThresholdLight = 1500;  // вище — світло: вимикаємо
+// Пороги відкалібровані на моїй макетці за Serial: кімната ≈ 690, LDR під долонею ≈ 350.
+// Проміжок 100 більший за шум АЦП (±20) і тінь від руки (≈ 600), тож реле не клацає.
+constexpr uint16_t kThresholdDark  = 500;   // нижче — темно: вмикаємо
+constexpr uint16_t kThresholdLight = 600;   // вище — світло: вимикаємо
 constexpr uint32_t kPeriodMs       = 100;
 
 bool     relayOn    = false;

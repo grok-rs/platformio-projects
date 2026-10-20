@@ -1,0 +1,44 @@
+[package]
+name        = "bounce-test"
+description = "Брязкіт кнопки на GPIO21: переривання CHANGE проти логічного аналізатора"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+publish.workspace      = true
+default-run = "lab"
+
+# Звіт на кожну подію + маркер BOUNCE (GPIO40) + підписи LABEL (GPIO41):  cargo run --release
+[[bin]]
+name  = "lab"
+path  = "src/bin/lab.rs"
+test  = false
+bench = false
+
+# Код з умови ДЗ модуля 1.5 (лічильник FALLING), лише пін 16 → 21:  cargo run --release --bin homework
+[[bin]]
+name  = "homework"
+path  = "src/bin/homework.rs"
+test  = false
+bench = false
+
+[lib]
+test  = true
+bench = false
+
+# Логіка (src/lib.rs) — без заліза, тому збирається й тестується на ПК.
+[dependencies]
+heapless.workspace = true
+
+# Прошивка (src/bin/*.rs) — лише для ESP32-S3.
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+esp-hal.workspace                = true
+esp-rtos.workspace               = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace          = true
+esp-println.workspace            = true
+embassy-executor.workspace       = true
+embassy-time.workspace           = true
+critical-section.workspace       = true
+
+[lints]
+workspace = true

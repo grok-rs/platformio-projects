@@ -1,13 +1,13 @@
 # ESP32-S3: яскравість світлодіода через ШІМ (PWM)
 
 Урок за викладачем (проєкт `Blink_Correct`): світлодіод на GPIO15 світить не на повну, а на ~25 %
-яскравості. Код у [`src/main.cpp`](src/main.cpp) повторює код з уроку рядок у рядок — щоб можна було
+яскравості. Код у [`cpp/src/main.cpp`](cpp/src/main.cpp) повторює код з уроку рядок у рядок — щоб можна було
 набирати разом із викладачем.
 
 Плата — **YD-ESP32-S3** (VCC-GND Studio, клон ESP32-S3-DevKitC-1, N16R8).
 
 ```bash
-cd esp32-s3-led-pwm
+cd esp32-s3-led-pwm/cpp
 pio run -t upload
 ```
 
@@ -75,12 +75,42 @@ duty 100 % (ledcWrite 255)   ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 2. Що зміниться, якщо поставити частоту 5 Гц? Чому LED почне мигати?
 3. Напишіть `loop()`, що плавно збільшує яскравість від 0 до 255 і назад (крок 1, `delay(5)`).
 
+## Rust-версія
+
+Тека [`rust/`](rust/) — те саме на **esp-hal** + **Embassy**. Встановлення тулчейну — у
+[кореневому README](../README.md#rust).
+
+```bash
+source ~/export-esp.sh                 # тулчейн Xtensa від espup, раз на термінал
+cd esp32-s3-led-pwm/rust
+cargo run --release                    # зібрати, прошити, відкрити монітор
+```
+
+Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*. Логіки без заліза
+тут немає, тож і `src/lib.rs` з тестами теж.
+
+| Arduino (core 2.x) | esp-hal | Що робить |
+|---|---|---|
+| `ledcSetup(0, 5000, 8)` | `ledc.timer::<LowSpeed>(Timer0).configure(Config { duty: Duty8Bit, frequency: Rate::from_khz(5), … })` | таймер: частота й розрядність; помилка — `Result`, а не мовчазний 0 |
+| `ledcAttachPin(15, 0)` | `ledc.channel(Channel0, peripherals.GPIO15).configure(…)` | канал на пін; пін переміщується в канал |
+| `ledcWrite(0, 128)` | `channel0.set_duty_cycle(128)` | трейт `SetDutyCycle` з **embedded-hal** — однаковий для будь-якого мікроконтролера |
+| порожній `loop()` | `loop { Timer::after_secs(1).await }` | процесор спить, сигнал генерує LEDC |
+
+> **Увага:** у `cpp/src/main.cpp` зараз `ledcWrite(ledChannel, 128)` — це **50 %**, хоча коментар у
+> тому рядку й таблиці вище говорять про 64 / 25 %. Rust-версія повторює код (`DUTY = 128`).
+
 ## Структура
 
 ```
-platformio.ini   плата YD-ESP32-S3 N16R8, Arduino core 2.0.x
-src/main.cpp     код з уроку: ledcSetup → ledcAttachPin → ledcWrite
-diagram.json     схема Wokwi (LED + логічний аналізатор), wokwi.toml — прошивка з .pio/build
+cpp/
+  platformio.ini   плата YD-ESP32-S3 N16R8, Arduino core 2.0.x
+  src/main.cpp     код з уроку: ledcSetup → ledcAttachPin → ledcWrite
+  wokwi.toml       прошивка з .pio/build для Wokwi (diagram.json — посилання на ../diagram.json)
+rust/
+  Cargo.toml       пакет led-pwm у робочому просторі Cargo (корінь репозиторію)
+  src/main.rs      LEDC: таймер → канал → set_duty_cycle
+  wokwi.toml       прошивка з ../../target для Wokwi
+diagram.json     схема Wokwi (LED + логічний аналізатор), спільна для обох версій
 docs/
   schematic.png/svg   принципова схема з LEDC і логічним аналізатором
   breadboard.png/svg  розкладка на макетній платі з аналізатором

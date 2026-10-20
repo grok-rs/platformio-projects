@@ -8,4 +8,4 @@ elf      = '.pio/build/esp32-s3-devkitc-1/firmware.elf'
 # LDR + 10 kΩ divider as a custom chip (see wokwi/chip/ldr-divider.chip.c).
 [[chip]]
 name   = 'ldr-divider'
-binary = 'wokwi/chip/ldr-divider.chip.wasm'
+binary = '../wokwi/chip/ldr-divider.chip.wasm'
