@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 
+#include <cinttypes>
+
 #include "blinker.h"
 #include "button.h"
 #include "config.h"
@@ -29,12 +31,12 @@ class ModesApp {
 
     Serial.println();
     Serial.println("=== ESP32-S3: LED modes, superloop + ISR ===");
-    Serial.printf("LED GPIO%u, blink %lu ms\n", Config::Led::kPin,
-                  static_cast<unsigned long>(Config::Led::kBlinkIntervalMs));
-    Serial.printf("Button GPIO%u (FALLING), debounce %lu ms\n", Config::Button::kPin,
-                  static_cast<unsigned long>(Config::Button::kDebounceMs));
-    Serial.printf("Loop stats every %lu iterations\n",
-                  static_cast<unsigned long>(Config::Profiler::kWindowIterations));
+    Serial.printf("LED GPIO%u, blink %" PRIu32 " ms\n", Config::Led::kPin,
+                  Config::Led::kBlinkIntervalMs);
+    Serial.printf("Button GPIO%u (FALLING), debounce %" PRIu32 " ms\n", Config::Button::kPin,
+                  Config::Button::kDebounceMs);
+    Serial.printf("Loop stats every %" PRIu32 " iterations\n",
+                  Config::Profiler::kWindowIterations);
 
     enterMode(LedMode::Blink, millis());
     Serial.printf("Mode: %s\n", modeName(mode_));
@@ -56,8 +58,7 @@ class ModesApp {
 
     ++pressCount_;
     enterMode(nextMode(mode_), nowMs);
-    Serial.printf("Press #%lu -> mode %s\n", static_cast<unsigned long>(pressCount_),
-                  modeName(mode_));
+    tryPrintf("Press #%" PRIu32 " -> mode %s\n", pressCount_, modeName(mode_));
   }
 
   void enterMode(LedMode mode, uint32_t nowMs) {
@@ -83,17 +84,13 @@ class ModesApp {
     lastPassCycles_          = nowCycles;
     if (!full) return;
 
-    Serial.printf("Loop x%lu: avg %llu ns, min %llu ns, max %llu ns\n",
-                  static_cast<unsigned long>(stats_.count()), ns(stats_.average()),
-                  ns(stats_.min()), ns(stats_.max()));
+    tryPrintf("Loop x%" PRIu32 ": avg %" PRIu64 " ns, min %" PRIu64 " ns, max %" PRIu64 " ns\n",
+              stats_.count(), ns(stats_.average()), ns(stats_.min()), ns(stats_.max()));
     stats_.reset();
-    lastPassCycles_ = ESP.getCycleCount();  // сам звіт (Serial) не рахувати в наступне вікно
+    lastPassCycles_ = ESP.getCycleCount();  // сам звіт не рахувати в наступне вікно
   }
 
-  // Такти → наносекунди, у типі, якого чекає %llu.
-  static unsigned long long ns(uint32_t cycles) {
-    return cyclesToNs(cycles, ESP.getCpuFreqMHz());
-  }
+  static uint64_t ns(uint32_t cycles) { return cyclesToNs(cycles, ESP.getCpuFreqMHz()); }
 
   Led           led_{Config::Led::kPin};
   Button        button_{Config::Button::kPin};

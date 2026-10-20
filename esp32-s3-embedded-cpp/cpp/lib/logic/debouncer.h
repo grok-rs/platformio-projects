@@ -15,7 +15,7 @@ class EdgeDebouncer {
 
   // edge — прапорець ISR був піднятий з попереднього виклику.
   // Повертає true рівно один раз на пачку фронтів: через quietMs після останнього з них.
-  bool settled(bool edge, uint32_t nowMs) {
+  [[nodiscard]] bool settled(bool edge, uint32_t nowMs) {
     if (edge) {
       pending_    = true;
       lastEdgeMs_ = nowMs;  // контакт ще брязкотить — почати відлік тиші заново

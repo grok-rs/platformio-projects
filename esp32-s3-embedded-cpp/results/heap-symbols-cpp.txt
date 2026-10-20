@@ -1,4 +1,16 @@
 # Зовнішні символи, яких потребує наш код (xtensa-esp32s3-elf-nm -C -u). Жодного malloc / new / free.
+== libd54/board/button.cpp.o
+         U attachInterruptArg
+         U pinMode
+         U vPortExitCritical
+         U xPortEnterCriticalTimeout
+== libd54/board/console.cpp.o
+         U Serial
+         U __stack_chk_fail
+         U __stack_chk_guard
+         U vsnprintf
+         U HWCDC::availableForWrite()
+         U HWCDC::write(unsigned char const*, unsigned int)
 == src/modes.cpp.o
          U digitalRead
          U digitalWrite
@@ -8,6 +20,7 @@
          U pinMode
          U Serial
          U __udivdi3
+         U tryPrintf(char const*, ...)
          U HWCDC::begin(unsigned long)
          U Print::printf(char const*, ...)
          U Print::println(char const*)
@@ -15,6 +28,3 @@
          U Button::init()
          U Button::takeEdge()
          U HWCDC::operator bool() const
-== libd54/board/button.cpp.o
-         U attachInterruptArg
-         U pinMode

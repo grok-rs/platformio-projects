@@ -14,7 +14,7 @@ class LoopStats {
 
   // Додати тривалість однієї ітерації (у будь-яких одиницях — тут такти CPU).
   // Повертає true, коли вікно заповнене: прочитати результати й викликати reset().
-  bool add(uint32_t duration) {
+  [[nodiscard]] bool add(uint32_t duration) {
     sum_ += duration;
     if (duration < min_) min_ = duration;
     if (duration > max_) max_ = duration;

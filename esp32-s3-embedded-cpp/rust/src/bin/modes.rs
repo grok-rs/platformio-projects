@@ -12,17 +12,22 @@
 
 use embedded_cpp::{
     Blinker, EdgeDebouncer, LedMode, LedState, LoopStats, config, cycles_to_ns,
-    hw::{Button, Led, cycles, millis},
+    hw::{Button, Led, cycles, millis, print_line},
 };
 use esp_backtrace as _;
-use esp_hal::{clock::CpuClock, main};
+use esp_hal::{
+    clock::{self, CpuClock},
+    main,
+};
 use esp_println::println;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
 #[main]
 fn main() -> ! {
-    let peripherals = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::_240MHz));
+    let peripherals = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
+    // Частоту для перерахунку тактів у нс беремо з HAL, а не дублюємо константою (C++: getCpuFreqMHz()).
+    let cpu_mhz = clock::cpu_clock().as_mhz();
     let mut led = Led::new(peripherals.GPIO15); // config::led::PIN
     let button = Button::new(peripherals.GPIO21, peripherals.IO_MUX); // config::button::PIN
 
@@ -45,7 +50,7 @@ fn main() -> ! {
     let mut press_count: u32 = 0;
 
     blinker.restart(millis());
-    println!("Mode: {}", mode.name());
+    print_line(format_args!("Mode: {mode}"));
     let mut last_pass_cycles = cycles();
 
     // Одна ітерація = один прохід. Нічого не чекає: кожен крок перевіряє «чи пора?» і йде далі.
@@ -60,7 +65,7 @@ fn main() -> ! {
             if mode == LedMode::Blink {
                 blinker.restart(now_ms); // почати блимання з «увімкнено»
             }
-            println!("Press #{press_count} -> mode {}", mode.name());
+            print_line(format_args!("Press #{press_count} -> mode {mode}"));
         }
 
         // LED.
@@ -75,14 +80,14 @@ fn main() -> ! {
         let full = stats.add(now_cycles.wrapping_sub(last_pass_cycles));
         last_pass_cycles = now_cycles;
         if full {
-            let ns = |c| cycles_to_ns(c, config::CPU_MHZ);
-            println!(
+            let ns = |c| cycles_to_ns(c, cpu_mhz);
+            print_line(format_args!(
                 "Loop x{}: avg {} ns, min {} ns, max {} ns",
                 stats.count(),
                 ns(stats.average()),
                 ns(stats.min()),
                 ns(stats.max())
-            );
+            ));
             stats.reset();
             last_pass_cycles = cycles(); // сам звіт (Serial) не рахувати в наступне вікно
         }

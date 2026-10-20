@@ -3,6 +3,7 @@
 
 use core::{
     cell::RefCell,
+    fmt::{self, Write as _},
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -37,16 +38,23 @@ impl<'d> Led<'d> {
     /// Писати в GPIO лише тоді, коли стан справді змінюється.
     pub fn set(&mut self, state: LedState) {
         if state != self.state {
-            self.pin.set_level(match state {
-                LedState::On => Level::High,
-                LedState::Off => Level::Low,
-            });
+            self.pin.set_level(state.into());
             self.state = state;
         }
     }
 
     pub const fn state(&self) -> LedState {
         self.state
+    }
+}
+
+/// `LedState` → рівень виводу; завдяки цьому `Led::set` пише просто `state.into()`.
+impl From<LedState> for Level {
+    fn from(state: LedState) -> Self {
+        match state {
+            LedState::On => Self::High,
+            LedState::Off => Self::Low,
+        }
     }
 }
 
@@ -98,6 +106,8 @@ impl Button {
     }
 
     /// Чи був фронт з попереднього виклику; прапорець скидається.
+    /// `#[must_use]`: проігнорувати результат — означає загубити фронт.
+    #[must_use]
     pub fn take_edge(&self) -> bool {
         EDGE.swap(false, Ordering::Acquire)
     }
@@ -105,6 +115,24 @@ impl Button {
     pub fn is_pressed(&self) -> bool {
         critical_section::with(|cs| BUTTON.borrow_ref(cs).as_ref().is_some_and(Input::is_low))
     }
+}
+
+/// Найдовший рядок, разом із `\n` (як `kMaxLineLength` у C++ `tryPrintf`).
+const MAX_LINE_LENGTH: usize = 64;
+
+/// Надрукувати рядок одним записом; повертає `false`, якщо рядок задовгий і пропущений.
+///
+/// `println!` з esp-println віддає кожен шматок формату («Mode: », «BLINK», «\n») окремим
+/// USB-пакетом і на кожному чекає хоста, а якщо не дочекався — пропускає шматок. Тут рядок
+/// форматується в `heapless::String` на стеку (без купи) і йде одним пакетом. Ще один бонус:
+/// ніщо не надрукується наполовину.
+pub fn print_line(args: fmt::Arguments<'_>) -> bool {
+    let mut line = heapless::String::<MAX_LINE_LENGTH>::new();
+    if writeln!(line, "{args}").is_err() {
+        return false;
+    }
+    esp_println::Printer::write_bytes(line.as_bytes());
+    true
 }
 
 /// Мілісекунди від старту, обрізані до 32 біт, — як `millis()` в Arduino (переповнення

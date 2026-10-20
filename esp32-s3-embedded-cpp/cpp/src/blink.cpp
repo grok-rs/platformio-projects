@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 
+#include <cinttypes>
+
 #include "blinker.h"
 #include "config.h"
 #include "console.h"
@@ -24,8 +26,8 @@ class BlinkApp {
 
     Serial.println();
     Serial.println("=== ESP32-S3: non-blocking blink ===");
-    Serial.printf("LED GPIO%u, interval %lu ms\n", Config::Led::kPin,
-                  static_cast<unsigned long>(Config::Led::kBlinkIntervalMs));
+    Serial.printf("LED GPIO%u, interval %" PRIu32 " ms\n", Config::Led::kPin,
+                  Config::Led::kBlinkIntervalMs);
 
     blinker_.restart(millis());
     led_.set(blinker_.state());

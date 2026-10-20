@@ -1,4 +1,4 @@
-press #1: 145 edges, bounce 2202.0 us, LED already at the new level
-press #2: 29 edges, bounce 2499.0 us, LED changed 29.50 ms after the last edge
-press #3: 185 edges, bounce 2028.8 us, LED changed 30.00 ms after the last edge
+press #1: 71 edges, bounce 2006.0 us, LED already at the new level
+press #2: 103 edges, bounce 2365.7 us, LED changed 29.65 ms after the last edge
+press #3: 167 edges, bounce 2039.8 us, LED changed 29.98 ms after the last edge
 saved docs/modes-timeline.png

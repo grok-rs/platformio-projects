@@ -36,6 +36,7 @@ esp-bootloader-esp-idf.workspace = true
 esp-backtrace.workspace          = true
 esp-println.workspace            = true
 critical-section.workspace       = true
+heapless.workspace               = true
 
 [lints]
 workspace = true

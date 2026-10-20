@@ -19,7 +19,8 @@ class Button {
   void init();
 
   // Повертає, чи був фронт з попереднього виклику, і скидає прапорець.
-  bool takeEdge();
+  // [[nodiscard]]: проігнорувати результат — означає загубити фронт.
+  [[nodiscard]] bool takeEdge();
 
   bool isPressed() const { return digitalRead(pin_) == LOW; }
 
@@ -30,4 +31,5 @@ class Button {
   // Пише ISR, читає loop(). volatile забороняє компілятору тримати значення в регістрі
   // («прапорець уже прочитано — він false») і викидати «зайві» читання з циклу.
   volatile bool edge_ = false;
+  portMUX_TYPE  mux_  = portMUX_INITIALIZER_UNLOCKED;  // для критичної секції в takeEdge()
 };

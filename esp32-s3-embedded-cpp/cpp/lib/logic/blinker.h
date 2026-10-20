@@ -18,7 +18,7 @@ class Blinker {
   }
 
   // Один прохід superloop: повертає стан, який LED має мати зараз. Ніколи не чекає.
-  LedState update(uint32_t nowMs) {
+  [[nodiscard]] LedState update(uint32_t nowMs) {
     // Беззнакова різниця коректна й після переповнення millis() (кожні ~49.7 доби).
     if (nowMs - lastToggleMs_ >= intervalMs_) {
       // += interval, а не = now: перемикання лишаються на сітці 0, 500, 1000… мс і не

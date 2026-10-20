@@ -8,6 +8,8 @@
 
 #![cfg_attr(not(test), no_std)]
 
+use core::fmt;
+
 #[cfg(target_arch = "xtensa")]
 pub mod hw;
 
@@ -31,9 +33,6 @@ pub mod config {
     pub mod profiler {
         pub const WINDOW_ITERATIONS: u32 = 1000; // звіт про superloop кожні N ітерацій
     }
-
-    /// Частота CPU, яку задає `CpuClock::_240MHz` у прошивці; потрібна, щоб перевести такти в нс.
-    pub const CPU_MHZ: u32 = 240;
 
     // Помилки конфігурації ловить компілятор, а не плата (C++: static_assert).
     const MAX_GPIO: u8 = 48; // ESP32-S3: GPIO0…GPIO48
@@ -79,13 +78,16 @@ impl LedMode {
             Self::SteadyOff => Self::Blink,
         }
     }
+}
 
-    pub const fn name(self) -> &'static str {
-        match self {
+/// `println!("Mode: {mode}")` — так у Rust тип «вміє себе друкувати» (C++: `modeName()`).
+impl fmt::Display for LedMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
             Self::Blink => "BLINK",
             Self::SteadyOn => "STEADY_ON",
             Self::SteadyOff => "STEADY_OFF",
-        }
+        })
     }
 }
 
@@ -110,6 +112,7 @@ impl Blinker {
     }
 
     /// Один прохід superloop: повертає стан, який LED має мати зараз. Ніколи не чекає.
+    #[must_use]
     pub fn update(&mut self, now_ms: u32) -> LedState {
         // `wrapping_sub` — та сама беззнакова різниця, що в C++, коректна й після переповнення
         // лічильника мілісекунд. Звичайне `-` у debug-збірці на переповненні панікує.
@@ -149,6 +152,7 @@ impl EdgeDebouncer {
 
     /// `edge` — прапорець ISR був піднятий з попереднього виклику.
     /// Повертає `true` рівно один раз на пачку фронтів: через `quiet_ms` після останнього.
+    #[must_use]
     pub fn settled(&mut self, edge: bool, now_ms: u32) -> bool {
         if edge {
             self.pending = true;
@@ -181,6 +185,7 @@ impl LoopStats {
 
     /// Додати тривалість однієї ітерації (тут — такти CPU).
     /// Повертає `true`, коли вікно заповнене: прочитати результати й викликати `reset()`.
+    #[must_use]
     pub fn add(&mut self, duration: u32) -> bool {
         self.sum += u64::from(duration);
         self.min = self.min.min(duration);
@@ -225,7 +230,7 @@ mod tests {
         assert_eq!(LedMode::Blink.next(), LedMode::SteadyOn);
         assert_eq!(LedMode::SteadyOn.next(), LedMode::SteadyOff);
         assert_eq!(LedMode::SteadyOff.next(), LedMode::Blink);
-        assert_eq!(LedMode::SteadyOff.name(), "STEADY_OFF");
+        assert_eq!(LedMode::SteadyOff.to_string(), "STEADY_OFF");
     }
 
     #[test]
@@ -310,7 +315,7 @@ mod tests {
     fn stats_sum_does_not_overflow_32_bits() {
         let mut s = LoopStats::new(1000);
         for _ in 0..999 {
-            s.add(10_000_000); // 999 × 10⁷ ≫ 2³²
+            assert!(!s.add(10_000_000)); // 999 × 10⁷ ≫ 2³²
         }
         assert!(s.add(10_000_000));
         assert_eq!(s.average(), 10_000_000);
