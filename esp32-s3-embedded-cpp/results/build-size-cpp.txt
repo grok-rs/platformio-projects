@@ -1,0 +1,6 @@
+Processing modes (platform: espressif32@^7.1.0; board: esp32-s3-devkitc-1; framework: arduino)
+RAM:   [=         ]   6.0% (used 19516 bytes from 327680 bytes)
+Flash: [          ]   4.1% (used 267861 bytes from 6553600 bytes)
+Processing blink (platform: espressif32@^7.1.0; board: esp32-s3-devkitc-1; framework: arduino)
+RAM:   [=         ]   5.8% (used 18868 bytes from 327680 bytes)
+Flash: [          ]   4.0% (used 265021 bytes from 6553600 bytes)

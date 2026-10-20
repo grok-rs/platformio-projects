@@ -1,0 +1,20 @@
+# Зовнішні символи, яких потребує наш код (xtensa-esp32s3-elf-nm -C -u). Жодного malloc / new / free.
+== src/modes.cpp.o
+         U digitalRead
+         U digitalWrite
+         U __divdi3
+         U getCpuFrequencyMhz
+         U millis
+         U pinMode
+         U Serial
+         U __udivdi3
+         U HWCDC::begin(unsigned long)
+         U Print::printf(char const*, ...)
+         U Print::println(char const*)
+         U Print::println()
+         U Button::init()
+         U Button::takeEdge()
+         U HWCDC::operator bool() const
+== libd54/board/button.cpp.o
+         U attachInterruptArg
+         U pinMode

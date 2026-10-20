@@ -1,0 +1,25 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 1 tests
+
+Processing test_logic in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+test/test_logic/test_main.cpp:116: test_modes_cycle_blink_on_off	[PASSED]
+test/test_logic/test_main.cpp:117: test_blinker_toggles_every_interval	[PASSED]
+test/test_logic/test_main.cpp:118: test_blinker_keeps_grid_despite_late_polls	[PASSED]
+test/test_logic/test_main.cpp:119: test_blinker_resyncs_after_stall_instead_of_bursting	[PASSED]
+test/test_logic/test_main.cpp:120: test_blinker_survives_millis_wraparound	[PASSED]
+test/test_logic/test_main.cpp:121: test_debouncer_reports_once_after_quiet	[PASSED]
+test/test_logic/test_main.cpp:122: test_debouncer_restarts_on_every_bounce	[PASSED]
+test/test_logic/test_main.cpp:123: test_debouncer_idle_without_edges	[PASSED]
+test/test_logic/test_main.cpp:124: test_stats_window_min_max_average	[PASSED]
+test/test_logic/test_main.cpp:125: test_stats_sum_does_not_overflow_32_bits	[PASSED]
+test/test_logic/test_main.cpp:126: test_cycles_convert_to_nanoseconds	[PASSED]
+----------------- native:test_logic [PASSED] Took 0.42 seconds -----------------
+
+=================================== SUMMARY ===================================
+Environment    Test        Status    Duration
+-------------  ----------  --------  ------------
+native         test_logic  PASSED    00:00:00.425
+================= 11 test cases: 11 succeeded in 00:00:00.425 =================

@@ -28,6 +28,7 @@ esp32-s3-<project>/
 | [`esp32-s3-button-bounce`](esp32-s3-button-bounce/) | [C++](esp32-s3-button-bounce/cpp/) · [Rust](esp32-s3-button-bounce/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 1.5: contact bounce on GPIO16 — the homework's `FALLING` counter and a lab firmware that timestamps every edge in a `CHANGE` ISR (ring buffer, per-press report, ISR marker on GPIO17); `tools/vcd_bounce.py` builds the same report from a logic-analyzer VCD | VS Code / `wokwi-cli` (bouncing button + logic analyzer) |
 | [`esp32-s3-ldr-adc`](esp32-s3-ldr-adc/) | [C++](esp32-s3-ldr-adc/cpp/) · [Rust](esp32-s3-ldr-adc/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 1.6: photoresistor + 10 kΩ divider on GPIO4 (ADC1); every 100 ms prints `analogRead()` RAW, the voltage computed from it (`RAW / 4095 · 3100 mV`), calibrated `analogReadMilliVolts()` and the relative error | VS Code / `wokwi-cli` (custom LDR-divider chip) |
 | [`esp32-s3-twilight-relay`](esp32-s3-twilight-relay/) | [C++](esp32-s3-twilight-relay/cpp/) · [Rust](esp32-s3-twilight-relay/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Mini-project 1 (lesson 18): twilight switch — LDR + 10 kΩ divider on GPIO4, two ADC thresholds with hysteresis, GPIO2 → BC547B level shifter (10 kΩ pull-up to 5 V) → active-LOW 5 V relay module → LED load; built-in USB-JTAG debugging configured | [Study page](https://grok-rs.github.io/platformio-projects/twilight-relay/) (no Wokwi: it has no transistors) |
+| [`esp32-s3-embedded-cpp`](esp32-s3-embedded-cpp/) | [C++](esp32-s3-embedded-cpp/cpp/) · [Rust](esp32-s3-embedded-cpp/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.1 homework, Embedded C++: the classic Blink rewritten without `delay()` (`enum class LedState`, `class Led` with `init()`/`set()`, a `static constexpr` config struct, no globals, no heap); superloop iteration timing every 1000 passes via the CPU cycle counter; a button on a `FALLING` interrupt (`volatile` flag, debounce in `loop()`) cycles Blink → On → Off; logic unit-tested on the PC with `pio test -e native`; same LED/button bench as `esp32-s3-led-button` | VS Code / `wokwi-cli` |
 
 ## Interactive study pages
 
@@ -102,7 +103,7 @@ source ~/export-esp.sh                # every new terminal (or add it to your sh
 | Build | `pio run [-e env]` | `cargo build --release [--bin name] [--features …]` |
 | Flash + monitor | `pio run -t upload && pio device monitor` | `cargo run --release [--bin name]` (runner: `espflash flash --monitor`) |
 | Variants | `[env:…]` in `platformio.ini` | `src/bin/<name>.rs` bins, or Cargo features |
-| Unit tests | — | `cargo +stable host-test -p <package>` (logic only, runs on the PC) |
+| Unit tests | `pio test -e native` (where a project has it) | `cargo +stable host-test -p <package>` (logic only, runs on the PC) |
 | Lint | — | `cargo clippy --release -p <package>` |
 | Wokwi | `wokwi-cli cpp --scenario ../wokwi/scenarios/….yaml` | `wokwi-cli rust --scenario ../wokwi/scenarios/….yaml` |
 

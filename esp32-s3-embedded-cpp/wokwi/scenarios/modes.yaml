@@ -1,0 +1,53 @@
+# Автотест для wokwi-cli (прошивка modes): BLINK → STEADY_ON → STEADY_OFF → BLINK.
+#   C++:  (cd cpp && pio run -e modes) && wokwi-cli cpp --scenario ../wokwi/scenarios/modes.yaml --timeout 20000
+#   Rust: cargo build --release && wokwi-cli rust --scenario ../wokwi/scenarios/modes.yaml --timeout 20000
+# Час у сценарії — симульований. Рівні LED перевіряються посередині півперіодів (±250 мс),
+# тож затримка між рядком у Serial і кроком сценарію на результат не впливає.
+name: 'Modes: blink -> on -> off -> blink'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'Mode: BLINK'
+  # --- BLINK: увімкнено 500 мс, вимкнено 500 мс --------------------------------
+  - delay: 250ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  # Звіт про superloop теж є.
+  - wait-serial: 'Loop x1000: avg'
+
+  # --- Натискання 1: постійно увімкнено (і після відпускання) -------------------
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - wait-serial: 'Press #1 -> mode STEADY_ON'
+  - delay: 100ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 600ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - delay: 600ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - expect-pin: { part-id: led1, pin: 'A', value: 1 }
+
+  # --- Натискання 2: постійно вимкнено ------------------------------------------
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - wait-serial: 'Press #2 -> mode STEADY_OFF'
+  - delay: 100ms
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  - delay: 600ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - delay: 600ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+
+  # --- Натискання 3: знову блимання, починаючи з «увімкнено» ----------------------
+  - set-control: { part-id: btnS1, control: pressed, value: 1 }
+  - wait-serial: 'Press #3 -> mode BLINK'
+  - delay: 250ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - set-control: { part-id: btnS1, control: pressed, value: 0 }
+  # Брязкіт відпускання (спадаючі фронти) натисканням не вважається.
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }

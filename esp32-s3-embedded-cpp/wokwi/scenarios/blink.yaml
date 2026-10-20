@@ -1,0 +1,19 @@
+# Автотест для wokwi-cli (прошивка blink): LED перемикається кожні 500 мс без delay().
+# --elf — шлях відносно поточної теки (проєкту), а не теки cpp/ чи rust/.
+#   C++:  (cd cpp && pio run -e blink) && wokwi-cli cpp --elf cpp/.pio/build/blink/firmware.elf --scenario ../wokwi/scenarios/blink.yaml --timeout 10000
+#   Rust: cargo build --release --bin blink && wokwi-cli rust --elf ../target/xtensa-esp32s3-none-elf/release/blink --scenario ../wokwi/scenarios/blink.yaml --timeout 10000
+name: 'Blink: 500 ms on, 500 ms off'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'interval 500 ms'
+  - delay: 250ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 1 }
+  - delay: 500ms
+  - expect-pin: { part-id: esp, pin: '15', value: 0 }
+  - expect-pin: { part-id: led1, pin: 'A', value: 0 }

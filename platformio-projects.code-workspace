@@ -8,6 +8,7 @@
     { "path": "esp32-s3-button-bounce/cpp", "name": "button-bounce (C++)" },
     { "path": "esp32-s3-ldr-adc/cpp", "name": "ldr-adc (C++)" },
     { "path": "esp32-s3-twilight-relay/cpp", "name": "twilight-relay (C++)" },
+    { "path": "esp32-s3-embedded-cpp/cpp", "name": "embedded-cpp (C++)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {

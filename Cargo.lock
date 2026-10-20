@@ -558,6 +558,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-cpp"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "esp-backtrace",
+ "esp-bootloader-esp-idf",
+ "esp-hal",
+ "esp-println",
+]
+
+[[package]]
 name = "embedded-hal"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

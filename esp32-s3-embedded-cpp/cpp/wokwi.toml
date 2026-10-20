@@ -1,0 +1,7 @@
+# Wokwi simulation (VS Code extension "Wokwi Simulator" or wokwi-cli).
+# Firmware comes from PlatformIO: build first with `pio run`, then F1 -> "Wokwi: Start Simulator".
+# To simulate tasks 1–2 instead, build `pio run -e blink` and change `modes` to `blink` below.
+[wokwi]
+version  = 1
+firmware = '.pio/build/modes/firmware.bin'
+elf      = '.pio/build/modes/firmware.elf'
