@@ -1,0 +1,1111 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Знайди помилку</title>
+<meta name="description" content="Галерея з 18 класичних помилок на макетці, у схемі й у коді ESP32-S3: знайдіть баг на малюнку, потім подивіться виправлення і як знайти таке мультиметром чи аналізатором.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* «Знайди помилку»: page widgets only; every colour comes from study.css tokens. */
+
+/* ---------- scoreboard */
+.score { margin: 18px 0 0; }
+.score .pb { display: grid; gap: 12px; }
+.score-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; }
+.score-big { font: 700 40px/1 var(--f-display); color: var(--ink); }
+.score-big small { font: 600 20px var(--f-display); color: var(--muted); }
+.score-k { font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.score-v { font: 600 17px var(--f-mono); color: var(--ink); }
+.rank { font: 700 20px var(--f-display); color: var(--accent); }
+.rank-next { font-size: 14px; color: var(--muted); }
+.cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 5px; }
+.cell {
+  height: 32px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+  font: 600 13px var(--f-mono); cursor: pointer; padding: 0; display: grid; place-items: center;
+}
+.cell:hover { border-color: var(--accent); }
+.cell[data-st="first"] { background: var(--ok); border-color: var(--ok); color: var(--panel); }
+.cell[data-st="found"] { background: color-mix(in srgb, var(--ok) 30%, var(--panel)); border-color: var(--ok); color: var(--ink); }
+.cell[data-st="shown"] { background: repeating-linear-gradient(135deg, var(--panel-2) 0 4px, color-mix(in srgb, var(--muted) 25%, var(--panel-2)) 4px 8px); color: var(--ink); }
+.cell[data-hidden="1"] { opacity: .35; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend-row i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+.legend-row .l-first { background: var(--ok); border-color: var(--ok); }
+.legend-row .l-found { background: color-mix(in srgb, var(--ok) 30%, var(--panel)); border-color: var(--ok); }
+.legend-row .l-shown { background: repeating-linear-gradient(135deg, var(--panel-2) 0 3px, color-mix(in srgb, var(--muted) 30%, var(--panel-2)) 3px 6px); }
+
+/* ---------- how to play */
+.steps3 { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+.steps3 li { margin: 0; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.steps3 b { display: block; font: 700 18px var(--f-display); margin-bottom: 2px; }
+.steps3 .k { font: 700 13px var(--f-mono); color: var(--accent); letter-spacing: .08em; }
+.pts { font-family: var(--f-mono); font-size: 14px; }
+
+/* ---------- filters */
+.filters { display: grid; gap: 10px; margin: 6px 0 14px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.frow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.frow > .k { font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 92px; }
+.fchip {
+  min-height: 36px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--ink); font: 500 14px var(--f-body); cursor: pointer;
+}
+.fchip:hover { border-color: var(--accent); }
+.fchip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.fbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.fcount { font: 600 14px var(--f-mono); color: var(--muted); }
+
+/* ---------- bug card */
+.bugs { display: grid; gap: 18px; }
+.bug { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; scroll-margin-top: 70px; }
+.bug[data-state="found"] { border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+.bug-h { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px 10px; border-bottom: 1px dashed var(--line); }
+.bug-no { flex: none; font: 700 15px var(--f-mono); color: var(--accent); border: 1.5px solid currentColor; border-radius: 6px; padding: 2px 7px; margin-top: 3px; }
+.bug-h h3 { margin: 0 0 6px; font-size: 1.45rem; }
+.bug-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.bug-meta .chip { min-height: 28px; padding: 2px 10px; font-size: 13px; }
+.stars { font-family: var(--f-mono); letter-spacing: .05em; color: var(--hi-ink); }
+.bug-b { display: grid; gap: 14px; padding: 14px; }
+@media (min-width: 900px) { .bug-b { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; } }
+.bug-pic { min-width: 0; }
+.bug-pic svg.pic { display: block; width: 100%; height: auto; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; touch-action: manipulation; }
+.bug-side { min-width: 0; display: grid; gap: 10px; align-content: start; }
+.symptom { margin: 0; }
+.symptom b { font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: block; }
+.task { margin: 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--panel)); border-radius: 0 6px 6px 0; font-weight: 500; }
+.bug .fb { margin: 0; min-height: 0; }
+.bug .fb:not(:empty) { padding: 8px 12px; border-radius: 6px; background: var(--panel-2); color: var(--ink); }
+.bug .fb.no { border-left: 3px solid var(--bad); }
+.bug .fb.ok { border-left: 3px solid var(--ok); }
+.bug .fb .k { font-weight: 600; }
+.bug-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.hint-box { margin: 0; padding: 8px 12px; border: 1px dashed var(--hi-ink); border-radius: 6px; font-size: 15px; }
+.hint-box b { color: var(--hi-ink); }
+
+/* hotspots on pictures */
+.spot { fill: transparent; stroke: transparent; stroke-width: 2; cursor: pointer; rx: 6; }
+.spot:hover, .spot:focus-visible { stroke: var(--accent); stroke-dasharray: 5 4; fill: color-mix(in srgb, var(--accent) 8%, transparent); outline: none; }
+.bug.hinted .spot { stroke: var(--hi-ink); stroke-dasharray: 5 4; }
+.spot.miss { stroke: var(--bad) !important; stroke-dasharray: none !important; fill: color-mix(in srgb, var(--bad) 10%, transparent); }
+.spot.hit { stroke: var(--ok) !important; stroke-width: 3; stroke-dasharray: none !important; fill: color-mix(in srgb, var(--ok) 12%, transparent); }
+.bug[data-state="found"] .spot, .bug[data-state="shown"] .spot { cursor: default; }
+.mark-t { font: 700 14px var(--f-mono); fill: var(--ok); paint-order: stroke; stroke: var(--panel-2); stroke-width: 4px; }
+.fixpart { display: none; }
+.bug.fixed .fixpart { display: inline; }
+.bug.fixed .bugpart { display: none; }
+.fix-w { stroke: var(--ok); stroke-dasharray: 7 4; }
+.fix-t { fill: var(--ok); font: 600 14px var(--f-body); }
+.pic-t { fill: var(--muted); font: 500 13px var(--f-body); paint-order: stroke; stroke: var(--panel-2); stroke-width: 4px; stroke-linejoin: round; }
+.pic-tb { fill: var(--ink); font: 600 14px var(--f-body); }
+.box { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.boxlbl { fill: var(--ink); font: 600 14px var(--f-body); }
+.bb-board-stub { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+
+/* code bugs */
+.code { list-style: none; counter-reset: ln; margin: 0; padding: 8px 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+.code li { margin: 0; counter-increment: ln; }
+.code .cl {
+  display: flex; width: 100%; min-width: max-content; min-height: 30px; align-items: center; gap: 12px; padding: 1px 12px 1px 0;
+  border: 0; border-left: 3px solid transparent; background: transparent; color: var(--ink); text-align: left; cursor: pointer;
+  font: 400 14px/1.5 var(--f-mono); white-space: pre;
+}
+.code .cl::before { content: counter(ln); width: 2.4em; flex: none; text-align: right; color: var(--muted); font-size: 13px; }
+.code .cl:hover, .code .cl:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); border-left-color: var(--accent); outline: none; }
+.code .cl.miss { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, transparent); }
+.code .cl.hit { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.bug.hinted .code .cl.cand { border-left-color: var(--hi-ink); }
+.bug[data-state="found"] .code .cl, .bug[data-state="shown"] .code .cl { cursor: default; }
+.code .c { color: var(--muted); }
+.code .kw { color: var(--accent); }
+.code .fixline { display: none; padding: 2px 12px 2px 3.1em; font: 400 14px/1.5 var(--f-mono); white-space: pre; color: var(--ok); }
+.bug.fixed .code .fixline { display: block; }
+.bug.fixed .code .cl.hit .tx { text-decoration: line-through; opacity: .55; }
+.code-file { font: 600 13px var(--f-mono); color: var(--muted); margin: 0 0 4px; }
+
+/* reveal */
+.reveal { display: grid; gap: 10px; padding: 12px 14px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.reveal h4 { margin: 0; font: 600 13px var(--f-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.reveal p, .reveal ul { margin: 0; }
+.reveal .r-bug h4 { color: var(--bad); }
+.reveal .r-fix h4 { color: var(--ok); }
+.reveal .r-find h4 { color: var(--hl); }
+.tool { display: inline-block; font: 600 13px var(--f-mono); padding: 1px 8px; border-radius: 4px; border: 1px solid var(--hl); color: var(--hl); margin: 0 0 4px; }
+.stamp {
+  position: absolute; top: 10px; right: 12px; transform: rotate(-8deg); pointer-events: none;
+  font: 700 15px var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border: 2px solid currentColor; border-radius: 4px; opacity: .85;
+}
+.bug[data-state="found"] .stamp { color: var(--ok); }
+.bug[data-state="shown"] .stamp { color: var(--muted); }
+.bug[data-state="open"] .stamp { display: none; }
+@media (max-width: 520px) { .stamp { top: auto; bottom: 10px; } .bug:not([data-state="open"]) .bug-b { padding-bottom: 46px; } }
+/* «Показати виправлення»: the «тут» marks belong to the buggy drawing. */
+.bug.fixed .marks { display: none; }
+.bug.fixed .spot.hit { stroke: transparent !important; fill: transparent; }
+/* Misconception codes are for the teacher. */
+html:not(.teacher) .bug-meta .chip.teach { display: none; }
+.bug-pic .bb-lbl { font-size: 12px; }
+.bug-h h3:focus { outline: none; }
+.bug-h h3 { padding-right: 0; }
+@media (min-width: 521px) { .bug:not([data-state="open"]) .bug-h { padding-right: 130px; } }
+
+/* method + add */
+ol.method { list-style: none; counter-reset: m; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+ol.method > li { counter-increment: m; position: relative; margin: 0; padding: 10px 12px 10px 50px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+ol.method > li::before {
+  content: counter(m); position: absolute; left: 10px; top: 10px; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font: 700 14px var(--f-mono); background: var(--accent); color: var(--accent-ink);
+}
+ol.method b { display: block; }
+.tpl { white-space: pre-wrap; font: 14px/1.5 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 10px 0; }
+.halving { display: block; width: 100%; max-width: 560px; height: auto; margin: 8px auto 0; }
+.fig-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.empty-msg { padding: 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); }
+@media (prefers-reduced-motion: no-preference) {
+  .bug.flash { animation: bugflash 1.2s ease-out 1; }
+  @keyframes bugflash { 0% { box-shadow: 0 0 0 4px var(--accent); } 100% { box-shadow: var(--shadow); } }
+}
+</style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="bugs">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" data-toc="Зміст сторінки">
+
+  <header id="top">
+    <p class="eyebrow">Довідка · тренажер уважності</p>
+    <h1>Знайди помилку: <span>18 справ про непрацюючі схеми</span></h1>
+    <p class="lead">Кожна картка — справжня поломка новачка: макетка, схема або скетч. Спершу знайдіть баг самі, потім дивіться виправлення і як ловити таке мультиметром.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><span class="chip"><span class="k">≈</span> 3 хв на справу</span></li>
+      <li><a class="chip" href="../schematics/">Спершу: Як читати схеми</a></li>
+      <li><a class="chip" href="#add">Принести свою помилку</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#gallery">До справ →</a>
+      <button type="button" class="btn" id="rand-top">Випадкова справа</button>
+    </div>
+
+    <div class="score panel" id="score" aria-live="polite">
+      <div class="ph"><h3>Ваш рахунок</h3><span class="small">зберігається лише у вашому браузері</span></div>
+      <div class="pb">
+        <div class="score-top">
+          <div><span class="score-big" id="sc-found">0</span><small class="score-big"> / <span id="sc-total">18</span></small><div class="score-k">знайдено</div></div>
+          <div><div class="score-v" id="sc-first">0</div><div class="score-k">з першої спроби</div></div>
+          <div><div class="score-v" id="sc-pts">0</div><div class="score-k">балів</div></div>
+          <div><div class="rank" id="sc-rank">Стажер</div><div class="rank-next" id="sc-next"></div></div>
+        </div>
+        <div class="cells" id="cells" role="group" aria-label="Усі справи: натисніть, щоб перейти"></div>
+        <div class="legend-row"><span><i class="l-first"></i>з першої спроби</span><span><i class="l-found"></i>знайдено</span><span><i class="l-shown"></i>підглянуто</span><span><i></i>ще відкрита</span></div>
+        <div><button type="button" class="btn sm ghost" id="sc-reset">Почати заново</button></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Як грати</h2>
+    <p>Програміст звик, що помилку показує компілятор. У залізі компілятора немає: схема «компілюється» завжди, а ламається мовчки. Тому дебаг тут — це навичка <b>бачити</b> помилку на макетці й <b>доводити</b> її вимірюванням. Її тренують так само, як читання коду: на багатьох коротких прикладах.</p>
+    <ol class="steps3">
+      <li><span class="k">КРОК 1</span><b>Прочитайте симптом</b>Що спостерігав студент: LED не світить, плата не стартує, Serial мовчить.</li>
+      <li><span class="k">КРОК 2</span><b>Клацніть місце</b>На малюнку — деталь чи дріт, у коді — рядок. Промах підсвітить усі підозрілі місця.</li>
+      <li><span class="k">КРОК 3</span><b>Розберіть відповідь</b>Що не так, як виправити і чим це довести: продзвонкою, вольтметром, аналізатором.</li>
+    </ol>
+    <p class="pts">Бали: з першої спроби — 3, з другої — 2, далі — 1, «Здаюся» — 0.</p>
+    <div class="note tip">Не поспішайте клацати. Спершу скажіть собі, <b>чому</b> симптом саме такий: «LED не світить» — це розрив кола чи діод навпаки? Гіпотеза перед кліком — це і є навичка налагодження.</div>
+  </section>
+
+  <section class="hs" id="gallery">
+    <h2><span class="n">02</span> Справи</h2>
+    <div class="filters wide" id="filters" role="region" aria-label="Фільтри">
+      <div class="frow" data-f="lesson" role="group" aria-label="Урок"><span class="k">Урок</span></div>
+      <div class="frow" data-f="kind" role="group" aria-label="Тип"><span class="k">Тип</span></div>
+      <div class="frow" data-f="diff" role="group" aria-label="Складність"><span class="k">Складність</span></div>
+      <div class="fbar">
+        <button type="button" class="fchip" id="f-open" aria-pressed="false">Лише невирішені</button>
+        <span class="fcount" id="f-count" aria-live="polite"></span>
+        <button type="button" class="btn sm" id="rand">Випадкова невирішена</button>
+      </div>
+    </div>
+    <div class="note warn wide">Справи №1, 5, 9, 14 і 15 псують деталі. Шукайте їх на малюнку, а на справжній платі не відтворюйте.</div>
+    <div class="bugs wide" id="bugs"></div>
+    <noscript><p class="empty-msg">Галерея інтерактивна й потребує JavaScript. Без нього можна переглянути <a href="#method">порядок пошуку</a> і <a href="#add">як додати свою помилку</a>.</p></noscript>
+  </section>
+
+  <section class="hs" id="method">
+    <h2><span class="n">03</span> Порядок пошуку: від живлення до коду</h2>
+    <p>У галереї ви шукали помилку на малюнку. На справжньому столі малюнка немає, тож потрібен порядок, який не дає перестрибувати. Ідіть від простого й найчастішого до рідкісного:</p>
+    <ol class="method">
+      <li><b>Живлення є?</b>Вольтметр між 3V3 і GND плати, потім між шинами макетки — на обох половинах, якщо шина довга. Чорний щуп завжди в COM<sup class="cite" data-fact="ut136-jacks"></sup>.</li>
+      <li><b>Земля спільна?</b>Без живлення продзвоніть GND плати з GND кожного модуля й зовнішнього блока. Тиша замість писку — ось і помилка<sup class="cite" data-fact="ut136-continuity"></sup>.</li>
+      <li><b>З’єднання там, де на схемі?</b>Без живлення продзвоніть кожен вузол схеми: дріт → смужка → ніжка. Так ловляться «сусідній стовпчик», «деталь в одній смужці» й повернута кнопка.</li>
+      <li><b>Рівні на виводах ті, що ви чекаєте?</b>З живленням: вольтметр на пін. HIGH на виході — не менше ≈2,6&nbsp;В<sup class="cite" data-fact="s3-voh"></sup>; на вході «невизначене» — між ≈0,8 і ≈2,5&nbsp;В<sup class="cite" data-fact="s3-vil"></sup><sup class="cite" data-fact="s3-vih"></sup>.</li>
+      <li><b>Код робить те, що ви думаєте?</b>Номер піна, <code>pinMode</code>, підтяжка, що виконується в ISR. Додайте <code>Serial.println</code> у <code>loop()</code> і логічний аналізатор на пін.</li>
+      <li><b>Досі не видно? Діліть навпіл.</b>Виміряйте посередині кола: якщо там правильно — помилка далі, якщо ні — ближче. Кожен замір відкидає половину підозрюваних.</li>
+    </ol>
+    <div class="fig-x"><svg class="halving" viewBox="0 0 360 186" role="img" aria-label="Пошук навпіл: коло з шести вузлів від GPIO до GND. Замір 1 у вузлі 3 показує 3,3 вольта, отже помилка правіше. Замір 2 у вузлі 4 теж 3,3 вольта, помилка ще правіше. Замір 3 у вузлі 5 показує 0 вольт, отже розрив між вузлами 4 і 5.">
+      <defs><marker id="arr-h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--hl)"/></marker></defs>
+      <path class="sch-w net-sig" d="M20 96H340"/>
+      <g font-family="var(--f-mono)" font-size="13" text-anchor="middle">
+        <circle cx="20" cy="96" r="6" fill="var(--nsig)"/><text x="24" y="122" fill="var(--muted)">GPIO</text>
+        <circle cx="84" cy="96" r="6" fill="var(--nsig)"/><text x="84" y="122" fill="var(--muted)">2</text>
+        <circle cx="148" cy="96" r="6" fill="var(--nsig)"/><text x="148" y="122" fill="var(--muted)">3</text>
+        <circle cx="212" cy="96" r="6" fill="var(--nsig)"/><text x="212" y="122" fill="var(--muted)">4</text>
+        <circle cx="276" cy="96" r="6" fill="var(--panel)" stroke="var(--bad)" stroke-width="2"/><text x="276" y="122" fill="var(--muted)">5</text>
+        <circle cx="340" cy="96" r="6" fill="var(--ngnd)"/><text x="336" y="122" fill="var(--muted)">GND</text>
+      </g>
+      <path d="M244 86l-8 20M252 86l-8 20" stroke="var(--bad)" stroke-width="3"/>
+      <g font-family="var(--f-body)" font-size="14" font-weight="600" fill="var(--hl)">
+        <path d="M148 46V84" stroke="var(--hl)" stroke-width="2" marker-end="url(#arr-h)"/>
+        <text x="148" y="18" text-anchor="middle">① вузол 3: 3,3 В</text>
+        <text x="148" y="36" text-anchor="middle">→ помилка правіше</text>
+        <path d="M276 46V84" stroke="var(--hl)" stroke-width="2" marker-end="url(#arr-h)"/>
+        <text x="354" y="18" text-anchor="end">③ вузол 5: 0 В</text>
+        <text x="354" y="36" text-anchor="end">→ розрив між 4 і 5</text>
+        <path d="M212 150V130" stroke="var(--hl)" stroke-width="2" marker-end="url(#arr-h)"/>
+        <text x="212" y="166" text-anchor="middle">② вузол 4: 3,3 В</text>
+        <text x="212" y="183" text-anchor="middle">→ ще правіше</text>
+      </g>
+    </svg></div>
+    <div class="note warn">Перепаюйте й переставляйте дроти лише з вимкненим USB. Випадковий дріт між 3V3 і GND під напругою — ще одна класична «справа», яку краще не відтворювати.</div>
+  </section>
+
+  <section class="hs" id="add">
+    <h2><span class="n">04</span> Музей помилок: додайте свою</h2>
+    <p>Найкращі справи — справжні. Кожна помилка, яку ви знайшли за вечір, заощадить вечір комусь іншому. Найцікавіші потраплять у цю галерею з вашим ім’ям чи ніком.</p>
+    <ol>
+      <li>Сфотографуйте макетку <b>до</b> виправлення (згори, щоб було видно стовпчики) і, якщо є, намалюйте схему.</li>
+      <li>Заповніть шаблон нижче: симптом, що ви очікували, що виміряли, причина, виправлення.</li>
+      <li>Опублікуйте в GitHub Discussions, категорія <b>«Музей помилок»</b>, з фото. Поки категорію не ввімкнули — у Slack <b>#show-and-tell</b>; Reporter команди перенесе пост.</li>
+      <li>Позначте урок і, якщо можете, як ви знайшли помилку: прилад і що він показав.</li>
+    </ol>
+    <pre class="tpl" id="tpl">Музей помилок · урок 1.4
+Симптом: що бачили (LED не світить / плата не стартує / …)
+Очікував: …
+Виміряв: прилад, режим, між якими точками, що показав
+Причина: …
+Виправлення: …
+Як знайти швидше наступного разу: …
+Фото до / після: (прикріпіть)</pre>
+    <div class="btn-row"><button type="button" class="btn" id="tpl-copy">Скопіювати шаблон</button>
+      <a class="btn ghost" href="https://github.com/grok-rs/platformio-projects/discussions" rel="noopener">GitHub Discussions ↗</a></div>
+    <p class="small muted">Приватність: не публікуйте на фото паролі Wi‑Fi, токени чи особисті дані. Нік замість імені — нормально.</p>
+  </section>
+
+  <section class="hs" id="incall">
+    <h2><span class="n">05</span> На занятті</h2>
+    <p>Викладач може вивести одну справу на екран. Усі одночасно пишуть у чат Zoom назву місця чи номер рядка й натискають Enter за командою — так ніхто не підглядає за іншими. Потім обговорюємо, хто що вибрав і чому.</p>
+    <div class="tnote">
+      <p><b>Блок «Знайди помилку», 46–55 хв.</b> Відкрийте справу за номером: <code>bugs/#bug-3</code> — це справа №3. Клік по клітинці табло чи «Випадкова справа» теж ставить посилання на справу в адресний рядок — його можна скопіювати в чат. Порядок: 30&nbsp;с мовчки → «водоспад» у чаті → 1 студент пояснює вибір → клік на екрані → розбір «як знайти мультиметром».</p>
+      <p>Добра пара «схоже, але різне»: №3 і №4 (LED навпаки чи в одній смужці). Після неї питайте: «Яким одним заміром ви б їх розрізнили?»</p>
+      <p>Коди помилкових уявлень на картках (M6, E1…) видно лише в режимі викладача; вони з таблиці на сторінці «Для викладача».</p>
+    </div>
+  </section>
+
+  <section class="hs" id="more">
+    <h2><span class="n">06</span> Матеріали</h2>
+    <h3>Уроки, з яких ці справи</h3>
+    <ul class="chips">
+      <li><a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a></li>
+      <li><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a></li>
+      <li><a class="chip" href="../lessons/1-4/">1.4 GPIO</a></li>
+      <li><a class="chip" href="../lessons/1-6/">1.6 АЦП</a></li>
+      <li><a class="chip" href="../lessons/2-1/">2.1 Embedded C++</a></li>
+      <li><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></li>
+      <li><a class="chip" href="../lessons/2-4/">2.4 Переривання</a></li>
+    </ul>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../pull-resistors/">Підтяжка входу</a></li>
+      <li><a class="chip deep" href="../power-loads/">Потужне навантаження</a></li>
+      <li><a class="chip deep" href="../bounce-lab/">Що бачить ISR</a></li>
+      <li><a class="chip deep" href="../schematics/">Як читати схеми</a></li>
+    </ul>
+    <h3>З LMS (потрібен вхід) і відео</h3>
+    <ul>
+      <li>Урок 1.1: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7jaooa0813bkp58q3f">текст уроку</a> · відео <a href="https://www.youtube.com/watch?v=n54SHip59v0">1</a>, <a href="https://www.youtube.com/watch?v=aBO4wDQxjtU">2</a>, <a href="https://www.youtube.com/watch?v=4DrZjoeiPtU">3</a> — дивіться, як вмикають амперметр (справи №1–2).</li>
+      <li>Урок 1.2: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7maooe0813cjt0dvmg">текст уроку</a> · відео <a href="https://www.youtube.com/watch?v=OEkw3F7RZ3w">1</a>, <a href="https://www.youtube.com/watch?v=Q2i6rvkCVKM">2</a>, <a href="https://www.youtube.com/watch?v=w9NQyhpKA2g">3</a>, <a href="https://www.youtube.com/watch?v=xGifaK0BZfo">4</a> — полярність LED і резистор (№3–6).</li>
+      <li>Урок 1.4: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7saoom0813w0rub8ku">текст уроку</a> · відео <a href="https://www.youtube.com/watch?v=NEEoDz9JBFs">1</a>, <a href="https://www.youtube.com/watch?v=HGct75UXhlA">2</a> — піни, кнопка, підтяжка (№7–11).</li>
+      <li>Урок 1.5: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7waooq0813vm0foazb">текст уроку</a> · відео <a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0">1</a>, <a href="https://www.youtube.com/watch?v=bOVcHbEco70">2</a>, <a href="https://www.youtube.com/watch?v=cTEL89ot52Q">3</a>, <a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c">4</a> — логічний аналізатор як інструмент пошуку.</li>
+      <li>Урок 1.6: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s80aoou0813h3dh1mxd">текст уроку</a> · <a href="https://www.youtube.com/watch?v=OfSyZzIJacc">відео</a> — АЦП (№12).</li>
+      <li>Урок 2.2: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s8naope0813skhui09r">текст уроку</a> · відео <a href="https://www.youtube.com/watch?v=LkerXyGtKfs">1</a>, <a href="https://www.youtube.com/watch?v=-I7G45-XZg0">2</a>, <a href="https://www.youtube.com/watch?v=kAupN59Ia9w">3</a>, <a href="https://www.youtube.com/watch?v=qzeU6bs6BPc">4</a> — транзисторний ключ і реле (№13–15).</li>
+      <li>Урок 2.4: <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s8vaopm0813a135cfo6">текст уроку</a> · <a href="https://www.youtube.com/watch?v=zxs598fFxN8">відео</a> — переривання (№16–18). Увага: у «правильному» прикладі ISR в LMS є <code>analogRead</code> — так робити не можна<sup class="cite" data-fact="lms-err-2-4-analogread-isr"></sup>.</li>
+    </ul>
+    <h3>Що виправлено порівняно з LMS</h3>
+    <ul>
+      <li>Урок 2.4: <code>analogRead()</code> у прикладі «доброго» ISR — читаємо АЦП у <code>loop()</code>, а в ISR лише ставимо прапорець<sup class="cite" data-fact="idf-adc-not-in-isr"></sup>.</li>
+      <li>Уроки 1.4, 2.4: на ESP32-S3 flash займає GPIO26–32, а не GPIO6–11; GPIO13/14 на N16R8 — звичайні піни<sup class="cite" data-fact="lms-err-2-4-flash-pins"></sup><sup class="cite" data-fact="lms-err-1-4-gpio13-14-psram"></sup>.</li>
+    </ul>
+    <div id="sources"><h3>Джерела</h3></div>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <section class="hs" id="talk">
+    <h2><span class="n">07</span> Обговорення</h2>
+  </section>
+</main>
+
+<script>
+/* Bug data + card markup. This classic inline script runs while the page is parsed, i.e. BEFORE the deferred
+   study.js boots, so the .cite elements inside the cards are numbered by Study.cites() like static ones.
+   Interaction and breadboard drawing wait for study:ready (second script). */
+(() => {
+  'use strict';
+  const c = (id) => `<sup class="cite" data-fact="${id}"></sup>`;
+  // schematic string helpers (sprite symbols are inlined by schem.js)
+  const U = (id, x, y, rot = 0, cls = '') => `<use class="sch-sym ${cls}" href="#${id}" x="${x}" y="${y}"${rot ? ` transform="rotate(${rot} ${x} ${y})"` : ''}/>`;
+  const W = (d, cls = '') => `<path class="sch-w ${cls}" d="${d}"/>`;
+  const T = (x, y, t, cls = 'sch-ref', a = 'start') => `<text class="${cls}" x="${x}" y="${y}" text-anchor="${a}">${t}</text>`;
+  const DOT = (x, y, cls = '') => U('dot', x, y, 0, cls);
+  // MCU box with pins on the right: pin stub outer end at x + w + 20.
+  const mcu = (x, y, w, h, title, pins, cls = '') => `<g class="${cls}"><rect class="box" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>` +
+    T(x, y - 8, title) + pins.map((p) => U('mcu-pin', x + w + 20, p.y, 180, p.cls || '') +
+      `<text class="sch-pin ${p.cls || ''} ${p.tcls || ''}" x="${x + w - 9}" y="${p.y + 5}" text-anchor="end">${p.t}</text>`).join('') + '</g>';
+  // Module box with pins on the left: stub outer end at x − 20.
+  const mod = (x, y, w, h, title, pins) => `<rect class="box" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>` +
+    title.map((t, i) => T(x + w / 2 + 18, y + h / 2 - (title.length - 1) * 9 + i * 18 + 5, t, 'boxlbl', 'middle')).join('') +
+    pins.map((p) => U('mcu-pin', x - 20, p.y, 0, p.cls || '') + `<text class="sch-pin" x="${x + 10}" y="${p.y + 5}">${p.t}</text>`).join('');
+
+  /* ------------------------------------------------------------------ the 18 cases
+     kind: bb (drawn on study:ready by draw()), sch (svg string), code (lines), opts (svg + options).
+     spots: {x,y,w,h,label,ok,why}; lines: [text, ok?, why?]; why = feedback for a wrong pick. */
+  const B = [];
+
+  B.push({ id: 'ammeter-par', lessons: ['1-1'], kind: 'sch', diff: 1, mc: 'M10',
+    title: 'Увімкнули амперметр — і LED спалахнув і згас',
+    symptom: 'Хотіли виміряти струм через LED. Підключили мультиметр у режимі mA — світлодіод на мить спалахнув дуже яскраво, а тепер не світить, і мультиметр показує 0.',
+    task: 'Клацніть деталь, підключену неправильно.',
+    hint: 'Амперметр має майже нульовий опір. Що станеться з деталлю, до якої він підключений паралельно?',
+    view: '0 0 290 180',
+    sch: W('M40 60V40H100', 'net-3v3') + U('res', 100, 40) + T(130, 28, 'R1', 'sch-ref', 'middle') + T(130, 66, '220&nbsp;Ом', 'sch-val', 'middle') +
+      `<g class="bugpart">${W('M160 40H250V60', 'net-sig')}${W('M90 40V95H100')}${U('meter-a', 100, 95)}${W('M160 95H170V40')}${DOT(90, 40)}${DOT(170, 40)}${T(130, 128, 'PA1 (mA)', 'sch-ref', 'middle')}</g>` +
+      `<g class="fixpart">${W('M160 40H175', 'net-sig')}${U('meter-a', 175, 40)}${W('M235 40H250V60', 'net-sig')}${T(205, 22, 'PA1 у розриві', 'fix-t', 'middle')}</g>` +
+      U('led', 250, 60, 90) + T(236, 100, 'LED1', 'sch-ref', 'end') + W('M250 120V150H40V120', 'net-gnd') +
+      U('vsrc', 40, 60, 90) + T(54, 96, '3,3&nbsp;В', 'sch-val'),
+    spots: [
+      { x: 96, y: 70, w: 70, h: 64, label: 'Амперметр PA1', ok: true },
+      { x: 98, y: 26, w: 64, h: 26, label: 'Резистор R1', why: 'R1 на своєму місці: 220&nbsp;Ом обмежують струм. Подивіться, що ввімкнено <b>поруч</b> із ним.' },
+      { x: 234, y: 56, w: 32, h: 68, label: 'Світлодіод LED1', why: 'LED1 повернутий правильно: анод угорі, до плюса. Він постраждав, але не він причина.' },
+      { x: 22, y: 54, w: 36, h: 72, label: 'Джерело 3,3 В', why: 'Джерело звичайне: 3,3&nbsp;В, як від плати.' },
+    ],
+    bug: `Амперметр підключено <b>паралельно</b> R1. Опір амперметра майже нульовий, тож він закоротив резистор: струму через LED уже ніщо не обмежувало. LED на мить отримав струм, набагато більший за свої 30&nbsp;мА максимуму${c('led-red-3mm-abs-max')}, і згорів — а згорілий LED розриває коло, тому амперметр і показує 0. Ще гірше, якщо так «паралельно» поставити амперметр просто на джерело: тоді вигорить запобіжник на гнізді mA (0,5&nbsp;А)${c('ut136-fuse-ma')}.`,
+    fix: `Амперметр вмикають <b>послідовно</b>, у розрив кола: вийміть ніжку з макетки й замкніть розрив через прилад. Червоний щуп у гнізді VΩmA, чорний у COM${c('ut136-jacks')}. Натисніть «Показати виправлення».`,
+    find: `Замініть LED і перевірте сам прилад на відомому колі: 3,3&nbsp;В через резистор 1&nbsp;кОм у режимі mA має дати ≈3,3&nbsp;мА. Показує 0 — згорів запобіжник mA. Продзвонка у гніздах VΩmA–COM його не перевіряє: вона йде повз запобіжник.`, tool: 'Мультиметр · mA' });
+
+  B.push({ id: 'ohm-powered', lessons: ['1-1'], kind: 'opts', diff: 1, mc: 'M10',
+    title: 'Омметр показує «220» то «1,3 к», то «OL»',
+    symptom: 'Плата ввімкнена, коло працює. Студент перевіряє R1 омметром прямо на макетці — щоразу різні числа.',
+    task: 'Чому показ «гуляє»? Оберіть причину.',
+    hint: 'Як омметр взагалі вимірює опір? Що він подає в коло?',
+    view: '0 0 290 170',
+    sch: W('M40 60V40H100', 'net-3v3') + U('res', 100, 40) + T(130, 28, 'R1 220&nbsp;Ом', 'sch-ref', 'middle') + W('M160 40H230V60', 'net-sig') +
+      U('led', 230, 60, 90) + W('M230 120V145H40V120', 'net-gnd') + U('vsrc', 40, 60, 90) + T(54, 96, '3,3&nbsp;В', 'sch-val') +
+      W('M100 40V95H110') + W('M160 40V95H150') + `<circle cx="130" cy="95" r="18" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>` +
+      T(130, 101, 'Ω', 'pic-tb', 'middle') + DOT(100, 40) + DOT(160, 40) + T(76, 130, 'живлення ввімкнене', 'pic-t'),
+    opts: [
+      ['R1 пошкоджений: опір «плаває», бо резистор перегрівся.', false, 'Резистор тут ні до чого: на вимкненому колі він покаже стабільні 220&nbsp;Ом.'],
+      ['Омметр міряє своїм струмом, а напруга плати й обхідні шляхи спотворюють вимір.', true],
+      ['Обрано замалий діапазон: прилад не встигає перемикати межі.', false, 'UT136C+ сам вибирає діапазон. Справа не в діапазоні.'],
+      ['Щупи стоять не в тих гніздах: червоний треба в гніздо 10A.', false, 'Для Ω гнізда ті самі, що й для вольтів: VΩmA і COM. Тут щось інше.'],
+    ],
+    bug: `Опір міряють лише на <b>знеструмленій</b> деталі. Омметр подає свій струм і ділить на нього виміряну напругу; напруга з плати додається до виміру, а паралельні кола (LED, джерело) дають струму обхідні шляхи.`,
+    fix: `Вимкніть USB і вийміть з макетки хоча б одну ніжку R1. Тоді показ буде стабільний. Пам’ятайте: замкнені щупи самі показують 0,1–0,2&nbsp;Ом${c('ut136-ohm-notes')}.`,
+    find: `Правило «Ω — тільки без живлення» — частина порядку пошуку (розділ 03): спершу продзвонка без живлення, потім вольтметр з живленням.`, tool: 'Мультиметр · Ω' });
+
+  B.push({ id: 'led-rev', lessons: ['1-2'], kind: 'bb', diff: 1, mc: 'M5',
+    title: 'Код виконує digitalWrite(13, HIGH), а LED темний',
+    symptom: 'Скетч Blink з резистором 220&nbsp;Ом. Serial друкує «ON/OFF», а світлодіод не світиться ні в якому стані.',
+    task: 'Клацніть, де на макетці помилка.',
+    hint: 'Подивіться на ніжки світлодіода: яка з них довша і куди вона веде?',
+    view: '0 0 306 226',
+    spots: [
+      { x: 98, y: 72, w: 28, h: 22, label: 'Дріт GPIO13 у стовпчик 3', why: 'Дріт від GPIO13 у стовпчику 3 разом з лівою ніжкою R1 — так і треба.' },
+      { x: 132, y: 86, w: 38, h: 22, label: 'Резистор R1', why: 'R1 на 220&nbsp;Ом з’єднує стовпчики 3 і 8. Тут усе гаразд.' },
+      { x: 164, y: 32, w: 30, h: 50, label: 'Світлодіод LED1', ok: true },
+      { x: 178, y: 104, w: 16, h: 96, label: 'Дріт зі стовпчика 9 на шину мінус', why: 'Цей дріт веде стовпчик 9 на GND — потрібне з’єднання.' },
+    ],
+    bug: `LED1 стоїть <b>навпаки</b>: довга зігнута ніжка (анод) у стовпчику 9, тобто на GND, а коротка (катод) — зі сторони резистора. Діод у зворотному напрямку струму не пропускає. 3,3&nbsp;В йому не шкодять: зворотну напругу до 5&nbsp;В такі LED витримують${c('led-reverse-voltage')}.`,
+    fix: `Розверніть LED: довга ніжка — до резистора (стовпчик 8), коротка — у стовпчик 9 до GND.`,
+    find: `Вольтметр на ніжках LED покаже майже всі 3,3&nbsp;В: струму немає, а напруга є! На резисторі 0&nbsp;В, а вся напруга лягла на «закритий» діод. Або вийміть LED і перевірте в режимі діода: червоний щуп на анод — LED ледь засвітиться${c('ut136-diode-mode-leds')}, навпаки — «OL».`, tool: 'Мультиметр · V і діод' });
+
+  B.push({ id: 'same-strip', lessons: ['1-2'], kind: 'bb', diff: 2, mc: 'M8',
+    title: 'Усе зібрано за схемою, а LED не світить',
+    symptom: 'Схема та сама: GPIO13 → 220&nbsp;Ом → LED → GND. Студент уважно перевірив кольори смужок резистора й полярність LED. Темно.',
+    task: 'Клацніть місце помилки.',
+    hint: 'П’ять отворів одного стовпчика (a–e) з’єднані між собою. Які ніжки опинилися в одному стовпчику?',
+    view: '0 0 306 226',
+    spots: [
+      { x: 98, y: 72, w: 28, h: 22, label: 'Дріт GPIO13 у стовпчик 3', why: 'Дріт від GPIO13 приходить у стовпчик 3 — до лівої ніжки R1. Правильно.' },
+      { x: 132, y: 86, w: 38, h: 22, label: 'Резистор R1', why: 'R1 з’єднує стовпчики 3 і 8 — так і задумано.' },
+      { x: 164, y: 30, w: 28, h: 52, label: 'Світлодіод LED1', ok: true },
+      { x: 178, y: 104, w: 16, h: 96, label: 'Дріт зі стовпчика 9 на шину мінус', why: 'Стовпчик 9 з’єднано з GND. А що ще є в стовпчику 9?' },
+    ],
+    bug: `Обидві ніжки LED1 — у <b>тому самому стовпчику 8</b>. Смужка з п’яти отворів з’єднує їх накоротко, тож світлодіод «закорочений»${c('breadboard-strips')}. А стовпчик 9 з дротом на GND узагалі ні з чим не з’єднаний: коло розірване.`,
+    fix: `Поставте LED упоперек стовпчиків: анод у стовпчик 8, катод у стовпчик 9.`,
+    find: `Без живлення продзвоніть ніжки LED між собою: мультиметр пискне — значить, вони в одній смужці${c('ut136-continuity')}. З живленням вольтметр на LED покаже 0&nbsp;В.`, tool: 'Мультиметр · продзвонка' });
+
+  B.push({ id: 'no-res', lessons: ['1-2'], kind: 'bb', diff: 1, mc: 'E4',
+    title: 'LED сліпучо яскравий — а згодом згас назавжди',
+    symptom: 'Студент вирішив, що резистор — «для слабаків». LED світив дуже яскраво, а згодом перестав світити.',
+    task: 'Клацніть, де бракує деталі.',
+    hint: 'Що в цьому колі обмежує струм?',
+    view: '0 0 306 226',
+    spots: [
+      { x: 146, y: 72, w: 30, h: 24, label: 'Дріт GPIO13 у стовпчик 8', ok: true },
+      { x: 164, y: 32, w: 30, h: 50, label: 'Світлодіод LED1', ok: true },
+      { x: 178, y: 104, w: 16, h: 96, label: 'Дріт зі стовпчика 9 на шину мінус', why: 'Шлях на GND потрібен: без нього кола немає.' },
+      { x: 2, y: 40, w: 66, h: 124, label: 'Плата ESP32-S3', why: 'Плата не винна — вона робить, що їй сказали: видає HIGH.' },
+    ],
+    bug: `Між виводом і світлодіодом <b>немає резистора</b>. Тоді струм задає не ваш розрахунок, а випадковість: внутрішній опір виводу й сам LED. «≈20&nbsp;мА» у даташиті${c('s3-gpio-drive-default')} — це межа, яку <b>ви</b> маєте не перевищувати, а не обмежувач, що сам тримає струм. Без резистора струм може вийти за неї, а заразом і за 30&nbsp;мА максимуму LED${c('led-red-3mm-abs-max')}. Обидва працюють поза паспортом і з часом можуть вийти з ладу.`,
+    fix: `Поставте резистор послідовно: дріт від GPIO13 у стовпчик 3, R1 220&nbsp;Ом зі стовпчика 3 у стовпчик 8. Для червоного LED це (3,3 − 1,9)&nbsp;В / 220&nbsp;Ом ≈ 6,4&nbsp;мА${c('led-red-3mm-vf')}.`,
+    find: `Амперметр послідовно з LED покаже струм, набагато більший за розрахункові ≈6&nbsp;мА. Простіше: вольтметр на виводі під навантаженням — помітно менше за 3,3&nbsp;В означає, що вивід перевантажений.`, tool: 'Мультиметр · mA і V' });
+
+  B.push({ id: 'split-rail', lessons: ['1-2'], kind: 'bb', diff: 2, mc: '',
+    title: 'Ліворуч на макетці все працює, праворуч — ні',
+    symptom: 'Довга макетка. Живлення подано на шини зліва. Те саме коло, перенесене на праву половину, не світить.',
+    task: 'Клацніть місце, де губиться живлення.',
+    hint: 'Подивіться на червону й синю лінії вздовж шин: вони суцільні?',
+    view: '0 0 346 226',
+    spots: [
+      { x: 186, y: 4, w: 30, h: 32, label: 'Середина шин живлення', ok: true },
+      { x: 44, y: 8, w: 52, h: 40, label: 'Дроти живлення зліва', why: 'Живлення подано правильно: 3V3 на плюс, GND на мінус.' },
+      { x: 238, y: 56, w: 38, h: 22, label: 'Резистор R1', why: 'R1 на місці, як і в робочому колі ліворуч.' },
+      { x: 268, y: 62, w: 30, h: 40, label: 'Світлодіод LED1', why: 'LED повернутий правильно: довга ніжка до резистора.' },
+    ],
+    bug: `На багатьох довгих макетках шини живлення <b>розірвані посередині</b> — це видно з розриву червоної й синьої лінії. Права половина шин ні з чим не з’єднана${c('breadboard-strips')}.`,
+    fix: `Перекиньте дві короткі перемички через розрив: плюс із плюсом, мінус із мінусом. Або подавайте живлення в ту половину, де коло.`,
+    find: `Вольтметр: чорний щуп на мінус лівої половини, червоний — на плюс правої. 0&nbsp;В замість 3,3&nbsp;В. Без живлення продзвонка між половинами однієї шини мовчить.`, tool: 'Мультиметр · V' });
+
+  B.push({ id: 'btn-rot', lessons: ['1-4'], kind: 'bb', diff: 2, mc: 'M8',
+    title: 'Кнопка «натиснута» завжди, навіть коли її не чіпають',
+    symptom: 'INPUT_PULLUP на GPIO4, кнопка до GND. digitalRead(4) весь час повертає 0 (LOW), натискання нічого не змінює.',
+    task: 'Клацніть місце помилки.',
+    hint: 'У тактової кнопки чотири ніжки, з’єднані попарно всередині. Пунктир на кнопці показує, які пари з’єднані завжди.',
+    view: '0 0 306 226',
+    spots: [
+      { x: 136, y: 88, w: 50, h: 46, label: 'Кнопка SW1', ok: true },
+      { x: 118, y: 66, w: 32, h: 22, label: 'Дріт GPIO4 у стовпчик 5', why: 'Дріт у стовпчику 5 — до лівої ніжки кнопки. Нормально.' },
+      { x: 168, y: 20, w: 18, h: 52, label: 'Дріт зі стовпчика 8 на шину мінус', why: 'Друга сторона кнопки має йти на GND — так і є.' },
+      { x: 2, y: 40, w: 66, h: 124, label: 'Плата ESP32-S3', why: 'Плата і INPUT_PULLUP тут ні до чого.' },
+    ],
+    bug: `Кнопку <b>повернуто на 90°</b>. Тепер постійно з’єднана пара ніжок (пунктир) зв’язує стовпчики 5 і 8, тобто GPIO4 і GND — навіть без натискання. Вхід завжди LOW.`,
+    fix: `Поверніть кнопку так, щоб постійно з’єднані пари йшли <b>вздовж</b> стовпчиків через канавку, а натискання з’єднувало стовпчик 5 зі стовпчиком 8.`,
+    find: `Без живлення продзвоніть стовпчики 5 і 8: пищить без натискання — кнопка повернута. Правильна кнопка пищить лише з натиснутою кнопкою${c('ut136-continuity')}.`, tool: 'Мультиметр · продзвонка' });
+
+  B.push({ id: 'float-in', lessons: ['1-4'], kind: 'code', diff: 1, mc: 'E1',
+    title: 'Кнопку ніхто не чіпає, а Serial пише 0, 1, 1, 0…',
+    symptom: 'Кнопка між GPIO4 і GND, жодного резистора. Значення скачуть самі собою, а якщо піднести руку до дроту — скачуть ще дужче.',
+    task: 'Клацніть рядок з помилкою.',
+    hint: 'Що тримає вхід у HIGH, коли кнопку відпущено?',
+    file: 'button.ino',
+    lines: [
+      ['<span class="kw">const int</span> BTN = 4;   <span class="c">// кнопка → GND</span>', false, 'GPIO4 — звичайний вільний пін. Номер тут ні до чого.'],
+      [''],
+      ['<span class="kw">void</span> setup() {'],
+      ['  Serial.begin(115200);', false, 'Serial налаштовано нормально — він і показує проблему.'],
+      ['  pinMode(BTN, INPUT);', true],
+      ['}'],
+      [''],
+      ['<span class="kw">void</span> loop() {'],
+      ['  Serial.println(digitalRead(BTN));', false, 'Читання правильне — проблема в тому, що саме воно читає.'],
+      ['  delay(200);', false, 'delay тут нешкідливий: просто друкуємо 5 разів на секунду.'],
+      ['}'],
+    ],
+    fixAfter: 4, fixLine: '  pinMode(BTN, INPUT_PULLUP);   // ≈45 кОм до 3V3',
+    bug: `<code>INPUT</code> вимикає підтяжки (підтягувальні резистори всередині чипа), а після скидання більшість GPIO і так без підтяжки${c('s3-reset-pull-state')}. Поки кнопку відпущено, вхід ні з чим не з’єднаний — «плаває» і ловить наводки. Вхід розпізнає LOW лише нижче ≈0,83&nbsp;В, HIGH — вище ≈2,48&nbsp;В${c('s3-vil')}${c('s3-vih')}; між ними — лотерея.`,
+    fix: `<code>pinMode(BTN, INPUT_PULLUP)</code> вмикає внутрішню підтяжку ≈45&nbsp;кОм до 3V3${c('s3-pullup')}: відпущено — HIGH, натиснуто — LOW.`,
+    find: `Логічний аналізатор чи Serial Plotter покажуть безладне перемикання без натискань. Вольтметр на піні показує «щось посередині» і реагує на руку. Глибше: <a href="../pull-resistors/">підтяжка входу</a>.`, tool: 'Аналізатор · Serial Plotter' });
+
+  B.push({ id: '5v-in', lessons: ['1-4'], kind: 'sch', diff: 2, mc: 'E3',
+    title: 'Датчик працює, але плата почала дивно глючити',
+    symptom: 'Модуль датчика живиться від 5&nbsp;В, його вихід OUT заведено на GPIO4. Покази правильні — кілька днів. Потім пін почав «залипати».',
+    task: 'Клацніть небезпечне з’єднання.',
+    hint: 'Якщо модуль живиться від 5&nbsp;В, яку напругу він видає на виході в стані HIGH?',
+    view: '0 0 330 200',
+    sch: mcu(10, 40, 70, 130, 'U1 · ESP32-S3', [{ y: 80, t: 'GPIO4', cls: 'net-sig' }, { y: 140, t: 'GND', cls: 'net-gnd' }]) +
+      mod(220, 40, 96, 130, ['Датчик', '5&nbsp;В'], [{ y: 60, t: 'VCC' }, { y: 100, t: 'OUT' }, { y: 140, t: 'GND' }]) +
+      W('M200 60H180', 'net-5v') + U('vcc', 180, 60, 0, 'net-5v') + T(180, 38, '+5V', 'sch-pin', 'middle') +
+      `<g class="bugpart">${W('M100 80H170V100H200', 'net-sig')}</g>` +
+      `<g class="fixpart">${W('M100 80H140V100', 'net-sig')}${U('res', 140, 100)}${T(170, 90, 'R1 10к', 'fix-t', 'middle')}${DOT(140, 100, 'net-sig')}${U('res', 140, 100, 90)}${U('gnd', 140, 160)}${T(146, 140, 'R2 20к', 'fix-t')}${T(104, 74, '≈3,3&nbsp;В', 'fix-t')}</g>` +
+      W('M100 140H115V150', 'net-gnd') + U('gnd', 115, 150, 0, 'net-gnd') + W('M200 140H190V150', 'net-gnd') + U('gnd', 190, 150, 0, 'net-gnd'),
+    spots: [
+      { x: 100, y: 70, w: 100, h: 40, label: 'Дріт OUT → GPIO4', ok: true },
+      { x: 170, y: 22, w: 44, h: 50, label: 'Живлення модуля +5V', why: 'Модулю справді потрібні 5&nbsp;В — само по собі це не помилка. Що він після цього видає?' },
+      { x: 100, y: 128, w: 110, h: 46, label: 'Земля GND', why: 'Земля спільна — це правильно і обов’язково.' },
+      { x: 220, y: 40, w: 96, h: 130, label: 'Модуль датчика', why: 'Модуль справний і робить свою роботу.' },
+    ],
+    bug: `Модуль з живленням 5&nbsp;В видає на OUT до 5&nbsp;В, а GPIO ESP32-S3 витримують не більше ≈3,6&nbsp;В (VDD + 0,3&nbsp;В): вони <b>не 5-вольтові</b>${c('s3-not-5v-tolerant')}. Це поза межами даташита: надлишок тече через захисні діоди виводу, і надійність піна вже ніхто не гарантує, а потужний вихід може його спалити.`,
+    fix: `Подільник: R1 10&nbsp;кОм від OUT, R2 20&nbsp;кОм на GND, середня точка — на GPIO4. 5&nbsp;В × 20 / (10 + 20) ≈ 3,3&nbsp;В — це вище порогу HIGH ≈2,48&nbsp;В${c('s3-vih')}. Або живіть модуль від 3,3&nbsp;В, якщо він це підтримує.`,
+    find: `<b>До</b> того як з’єднати з платою: вольтметр між OUT і GND модуля в стані HIGH. Більше 3,6&nbsp;В — на GPIO не можна.`, tool: 'Мультиметр · V' });
+
+  B.push({ id: 'strap45', lessons: ['1-4'], kind: 'sch', diff: 3, mc: '',
+    title: 'Додали кнопку — плата перестала запускатися',
+    symptom: 'Кнопка з підтяжкою 10&nbsp;кОм до 3V3 на GPIO45. Після цього плата не стартує: Serial мовчить, скетч не працює. Вийняли дріт з GPIO45 — і все ожило.',
+    task: 'Клацніть причину.',
+    hint: 'Деякі піни читаються в момент скидання й вирішують, як запускатися чипу. Котрі це на ESP32-S3?',
+    view: '0 0 300 200',
+    sch: mcu(10, 40, 70, 130, 'U1 · ESP32-S3', [{ y: 100, t: 'GPIO45', cls: 'net-sig', tcls: 'bugpart' }]) +
+      `<text class="sch-pin net-sig fixpart" x="71" y="105" text-anchor="end">GPIO4</text>` +
+      W('M100 100H170', 'net-sig') + DOT(150, 100, 'net-sig') +
+      `<g class="bugpart">${U('vcc', 150, 40, 0, 'net-3v3')}${T(150, 18, '3V3', 'sch-pin', 'middle')}${U('res', 150, 40, 90)}${T(142, 66, 'R1', 'sch-ref', 'end')}${T(142, 84, '10&nbsp;кОм', 'sch-val', 'end')}</g>` +
+      `<g class="fixpart">${T(160, 50, 'R1 не потрібен:', 'fix-t', 'middle')}${T(160, 68, 'INPUT_PULLUP', 'fix-t', 'middle')}</g>` +
+      U('btn', 170, 100) + T(200, 76, 'SW1', 'sch-ref', 'middle') + W('M230 100H250V120', 'net-gnd') + U('gnd', 250, 120, 0, 'net-gnd'),
+    spots: [
+      { x: 30, y: 86, w: 72, h: 28, label: 'Пін GPIO45', ok: true },
+      { x: 92, y: 16, w: 76, h: 76, label: 'Підтяжка R1 10 кОм до 3V3', ok: true },
+      { x: 168, y: 82, w: 64, h: 30, label: 'Кнопка SW1', why: 'Кнопка звичайна, на GND — так і треба.' },
+      { x: 234, y: 96, w: 32, h: 50, label: 'Земля', why: 'Земля тут правильна.' },
+    ],
+    bug: `GPIO45 — <b>strapping-пін</b>: його рівень зчитується в момент скидання${c('s3-strapping-pins')}. Зовнішня підтяжка до 3V3 дає там 1, а 1 на GPIO45 перемикає живлення flash і PSRAM на 1,8&nbsp;В — і модуль з пам’яттю на 3,3&nbsp;В не запускається${c('s3-strap-gpio45')}.`,
+    fix: `Перенесіть кнопку на вільний пін, наприклад GPIO4, і приберіть зовнішній резистор: <code>pinMode(4, INPUT_PULLUP)</code>. Не вішайте кнопки, LED і підтяжки на GPIO0, 3, 45, 46.`,
+    find: `Вольтметр на GPIO45 після ввімкнення: без зовнішнього резистора там ≈0&nbsp;В (внутрішня підтяжка донизу), а з ним — явно вище нуля, бо 10&nbsp;кОм сильніші за внутрішню підтяжку. Перед вибором піна дивіться розпіновку: strapping, flash (GPIO26–32)${c('s3-flash-pins')}, PSRAM.`, tool: 'Мультиметр · V + даташит' });
+
+  B.push({ id: 'psram-pin', lessons: ['1-4'], kind: 'code', diff: 2, mc: '',
+    title: 'LED на GPIO35 не світить, а плата іноді перезавантажується',
+    symptom: 'Плата YD-ESP32-S3 N16R8. На платі є контакт «35», LED з резистором туди підключено правильно. Код — звичайний Blink.',
+    task: 'Клацніть рядок з помилкою.',
+    hint: 'Цифра «35» є на платі. Але чи вільний цей пін саме на модулі з R8 (Octal PSRAM — 8 МБ додаткової пам’яті, підключеної через 8 ліній)?',
+    file: 'blink.ino',
+    lines: [
+      ['<span class="kw">const int</span> LED = 35;', true],
+      [''],
+      ['<span class="kw">void</span> setup() {'],
+      ['  pinMode(LED, OUTPUT);', false, 'pinMode з OUTPUT для LED — правильно. Питання, який саме пін.'],
+      ['}'],
+      ['<span class="kw">void</span> loop() {'],
+      ['  digitalWrite(LED, HIGH);', false, 'Звичайний Blink, тут усе гаразд.'],
+      ['  delay(500);', false, 'delay у loop() — нормально для Blink.'],
+      ['  digitalWrite(LED, LOW);', false, 'Тут усе гаразд.'],
+      ['  delay(500);'],
+      ['}'],
+    ],
+    fixAfter: 0, fixLine: 'const int LED = 4;    // вільний пін, не 35–37',
+    bug: `На модулях з Octal PSRAM (N16R8) виводи IO35, IO36, IO37 зайняті пам’яттю${c('wroom-octal-psram-pins')}. Керуючи GPIO35, скетч заважає PSRAM — звідси збої.`,
+    fix: `Візьміть вільний пін, наприклад GPIO4. На N16R8 не чіпайте GPIO26–32 (flash)${c('s3-flash-pins')} і GPIO35–37 (PSRAM). А от GPIO13/14 — звичайні, хоч LMS і пише інакше${c('wroom-gpio13-14-free')}.`,
+    find: `Мультиметром не знайти — це питання даташита. Звіряйте кожен пін з таблицею модуля до того, як паяти.`, tool: 'Даташит модуля' });
+
+  B.push({ id: 'adc2-wifi', lessons: ['1-6'], kind: 'code', diff: 2, mc: '',
+    title: 'Додали Wi‑Fi — люксметр показує нулі',
+    symptom: 'Фоторезистор у подільнику на GPIO14. Без Wi‑Fi показ змінювався від світла. Додали WiFi.begin() — тепер analogRead() часто повертає 65535 (або дивні великі числа), а решта показів стрибає.',
+    task: 'Клацніть рядок, який треба змінити.',
+    hint: 'У ESP32-S3 два блоки АЦП. Один з них ділить апаратуру з радіо.',
+    file: 'luxmeter.ino',
+    lines: [
+      ['<span class="kw">#include</span> &lt;WiFi.h&gt;'],
+      ['<span class="kw">const int</span> LDR = 14;   <span class="c">// подільник з LDR</span>', true],
+      [''],
+      ['<span class="kw">void</span> setup() {'],
+      ['  Serial.begin(115200);'],
+      ['  WiFi.begin(<span class="c">"lab"</span>, <span class="c">"********"</span>);', false, 'Так, саме Wi‑Fi конфліктує — але відмовлятися від нього не треба. Що інше в скетчі можна змінити?'],
+      ['}'],
+      ['<span class="kw">void</span> loop() {'],
+      ['  <span class="kw">int</span> raw = analogRead(LDR);', false, 'analogRead — правильний виклик. Питання в тому, з якого піна.'],
+      ['  Serial.println(raw);'],
+      ['  delay(500);'],
+      ['}'],
+    ],
+    fixAfter: 1, fixLine: 'const int LDR = 4;    // ADC1_CH3: працює разом з Wi‑Fi',
+    bug: `GPIO14 — це канал ADC2 (ADC2 = GPIO11–20)${c('s3-adc2-pins')}. ADC2 не можна використовувати разом з Wi‑Fi${c('s3-adc2-wifi')}. Коли радіо зайняло ADC2, читання не вдається, і в ядрі 2.0.17 analogRead() повертає 65535, а в лог (ESP_ERR_INVALID_STATE) пише «ADC2 not initialized yet»${c('core-adc2-wifi-returns-0')}.`,
+    fix: `Перенесіть датчик на ADC1: GPIO1–GPIO10${c('s3-adc1-pins')}, наприклад GPIO4.`,
+    find: `Увімкніть Core Debug Level = Error (у PlatformIO: <code>build_flags = -DCORE_DEBUG_LEVEL=1</code>) — у Serial з’явиться пояснення від ядра. Мультиметр на піні тим часом покаже нормальну напругу подільника: залізо в порядку, винне читання.`, tool: 'Serial · лог ядра' });
+
+  B.push({ id: 'no-gnd', lessons: ['2-2'], kind: 'sch', diff: 2, mc: 'M6',
+    title: 'Реле клацає як хоче або не клацає взагалі',
+    symptom: 'Модуль реле живиться від окремого блока 5&nbsp;В (MB-102), сигнал IN — від GPIO5. Плата живиться від USB ноутбука. Реле реагує випадково.',
+    task: 'Клацніть, де розірване коло.',
+    hint: 'Струм сигналу IN має повернутися до плати. Яким шляхом?',
+    view: '0 0 390 205',
+    sch: mcu(10, 40, 70, 130, 'U1 · ESP32-S3 (USB)', [{ y: 70, t: 'GPIO5', cls: 'net-sig' }, { y: 140, t: 'GND', cls: 'net-gnd' }]) +
+      mod(200, 50, 100, 100, ['K1', 'реле', '5&nbsp;В'], [{ y: 70, t: 'IN' }, { y: 100, t: 'VCC' }, { y: 130, t: 'GND' }]) +
+      W('M100 70H180', 'net-sig') + U('vsrc', 335, 70, 90) + T(356, 96, 'G1', 'sch-ref') + T(356, 114, '5&nbsp;В', 'sch-val') +
+      W('M335 70V30H165V100H180', 'net-5v') + W('M335 130V180H165V130H180', 'net-gnd') +
+      `<g class="fixpart">${W('M100 140H140V180H165', 'fix-w sch-w')}${DOT(165, 180)}${T(104, 196, 'спільний GND', 'fix-t')}</g>`,
+    spots: [
+      { x: 80, y: 126, w: 64, h: 30, label: 'Вивід GND плати', ok: true },
+      { x: 100, y: 58, w: 78, h: 24, label: 'Сигнал GPIO5 → IN', why: 'Сигнальний дріт на місці. Але для сигналу потрібен ще й зворотний шлях.' },
+      { x: 316, y: 60, w: 64, h: 80, label: 'Блок живлення G1', why: '5&nbsp;В від окремого блока для реле — правильне рішення.' },
+      { x: 200, y: 50, w: 100, h: 100, label: 'Модуль реле K1', why: 'Модуль справний.' },
+    ],
+    bug: `Земля плати <b>ні з чим не з’єднана</b>. «HIGH на GPIO5» — це 3,3&nbsp;В відносно GND плати, а модуль міряє IN відносно своєї GND. Без спільної землі ці два «нулі» живуть окремо, і рівень IN для модуля невизначений.`,
+    fix: `З’єднайте GND плати з мінусом блока живлення й GND модуля. Окреме живлення для навантаження — добре, окрема земля — ні.`,
+    find: `Без живлення: продзвонка між GND плати і GND модуля мовчить. З живленням: вольтметр, чорний щуп на GND <b>модуля</b> (мінус блока G1), червоний на IN — показ «пливе» замість чітких 0 і 3,3&nbsp;В. Відносно GND плати IN виглядатиме бездоганно: це той самий GPIO5.`, tool: 'Мультиметр · продзвонка і V' });
+
+  B.push({ id: 'relay-flyback', lessons: ['2-2'], kind: 'sch', diff: 2, mc: '',
+    title: 'Реле на транзисторі працювало тиждень, а потім транзистор помер',
+    symptom: 'GPIO5 → 1&nbsp;кОм → база NPN, котушка реле між +5V і колектором. Спершу все клацало, а тепер транзистор не вмикається (або пробитий накоротко).',
+    task: 'Клацніть, де бракує деталі.',
+    hint: 'Котушка — це індуктивність. Що вона робить, коли струм через неї раптово обривають?',
+    view: '0 0 300 220',
+    sch: mcu(10, 110, 70, 80, 'U1', [{ y: 150, t: 'GPIO5', cls: 'net-sig' }]) +
+      W('M100 150H110', 'net-sig') + U('res', 110, 150) + T(140, 138, 'R1', 'sch-ref', 'middle') + T(140, 176, '1&nbsp;кОм', 'sch-val', 'middle') +
+      U('npn', 170, 150) + T(200, 172, 'Q1', 'sch-ref') + W('M200 180V192', 'net-gnd') + U('gnd', 200, 192, 0, 'net-gnd') +
+      W('M200 120V110') + U('relay-coil', 200, 50, 90) + T(186, 84, 'K1', 'sch-ref', 'end') +
+      W('M200 30V50', 'net-5v') + U('vcc', 200, 30, 0, 'net-5v') + T(200, 10, '+5V', 'sch-pin', 'middle') +
+      `<g class="fixpart">${W('M200 40H245V50', 'fix-w')}${W('M200 115H245V110', 'fix-w')}${U('diode', 245, 110, 270, 'fix-w')}${DOT(200, 40)}${DOT(200, 115)}${T(252, 84, 'D1', 'fix-t')}</g>`,
+    spots: [
+      { x: 184, y: 46, w: 32, h: 68, label: 'Котушка реле K1', ok: true },
+      { x: 218, y: 40, w: 50, h: 80, label: 'Місце поруч з котушкою', ok: true },
+      { x: 108, y: 136, w: 62, h: 28, label: 'Резистор бази R1', why: 'R1 обмежує струм бази — він потрібен і стоїть правильно.' },
+      { x: 166, y: 124, w: 50, h: 54, label: 'Транзистор Q1', why: 'Транзистор — жертва, а не причина. Що його вбило?' },
+    ],
+    bug: `Паралельно котушці <b>немає зворотного (flyback) діода</b>. Коли транзистор вимикається, котушка намагається підтримати струм і дає на колекторі викид напруги, який з часом пробиває транзистор${c('relay-flyback-diode')}. Котушка SRD-05 бере ≈71&nbsp;мА${c('relay-srd05-coil-sl')} — це сама по собі нормальна робота для ключа.`,
+    fix: `Діод (наприклад 1N4148 чи 1N400x) паралельно котушці: катод (смужка) — до +5V, анод — до колектора. Він дає струму котушки замкнутися на себе.`,
+    find: `Мультиметр цього <b>не побачить</b>: викид триває мікросекунди. Потрібен осцилограф на колекторі Q1 у момент вимкнення. Логічний аналізатор теж не допоможе: він показує лише 0 і 1. Глибше: <a href="../power-loads/">потужне навантаження</a>.`, tool: 'Осцилограф' });
+
+  B.push({ id: 'motor-gpio', lessons: ['2-2'], kind: 'sch', diff: 1, mc: 'E4',
+    title: 'Моторчик лише сіпається, а плата перезавантажується',
+    symptom: 'Маленький моторчик напряму між GPIO5 і GND. digitalWrite(5, HIGH) — мотор ледь сіпнувся, плата перезавантажилась.',
+    task: 'Клацніть помилку.',
+    hint: 'Скільки струму може дати вивід GPIO? А скільки треба мотору, щоб рушити?',
+    view: '0 0 260 180',
+    sch: mcu(10, 40, 70, 120, 'U1 · ESP32-S3', [{ y: 70, t: 'GPIO5', cls: 'net-sig' }, { y: 140, t: 'GND', cls: 'net-gnd' }]) +
+      W('M100 70H170V80', 'net-sig') + U('motor', 170, 80, 90) + T(194, 114, 'M1', 'sch-ref') + W('M170 140V150', 'net-gnd') + U('gnd', 170, 150, 0, 'net-gnd') +
+      W('M100 140H115V150', 'net-gnd') + U('gnd', 115, 150, 0, 'net-gnd'),
+    spots: [
+      { x: 150, y: 74, w: 42, h: 72, label: 'Мотор M1', ok: true },
+      { x: 100, y: 58, w: 74, h: 24, label: 'Дріт GPIO5 → мотор', ok: true },
+      { x: 100, y: 128, w: 30, h: 44, label: 'Земля плати', why: 'Земля спільна — це правильно.' },
+      { x: 10, y: 40, w: 70, h: 120, label: 'Плата', why: 'Плата не винна: від неї вимагають неможливого.' },
+    ],
+    bug: `Вивід GPIO — це <b>сигнал, а не джерело живлення</b>. За замовчуванням він дає ≈20&nbsp;мА${c('s3-gpio-drive-default')}, на максимальному налаштуванні ≈40&nbsp;мА${c('s3-gpio-drive-levels')}. Мотору для пуску потрібно в рази більше, а ще він дає викиди напруги, як котушка реле.`,
+    fix: `Транзисторний ключ (або логічний MOSFET), окреме живлення мотора, спільна земля і діод паралельно мотору. GPIO лише керує ключем. Це завдання уроку 2.2.`,
+    find: `Вольтметр на GPIO5 при HIGH з мотором: напруга провалюється далеко нижче мінімальних ≈2,64&nbsp;В для HIGH${c('s3-voh')}. Це ознака перевантаженого виводу.`, tool: 'Мультиметр · V' });
+
+  B.push({ id: 'serial-isr', lessons: ['2-4'], kind: 'code', diff: 2, mc: '',
+    title: 'Лічильник натискань іноді вішає плату',
+    symptom: 'Здебільшого кожне натискання друкується. Але інколи, особливо при швидких натисканнях, плата зависає чи перезавантажується, і відтворити це стабільно не вдається.',
+    task: 'Клацніть рядок, якому не місце в обробнику переривання.',
+    hint: 'Що з цього може чекати — на буфер, на USB, на інший потік?',
+    file: 'presses.ino',
+    lines: [
+      ['<span class="kw">volatile</span> uint32_t presses = 0;', false, 'volatile тут саме те, що треба.'],
+      [''],
+      ['<span class="kw">void</span> IRAM_ATTR onPress() {', false, 'IRAM_ATTR для ISR — рекомендовано, тут усе гаразд.'],
+      ['  presses++;', false, 'Інкремент 32-бітної змінної в ISR — нормально; читатимемо її в loop().'],
+      ['  Serial.printf(<span class="c">"натиснуто %u\\n"</span>, presses);', true],
+      ['}'],
+      [''],
+      ['<span class="kw">void</span> setup() {'],
+      ['  Serial.begin(115200);'],
+      ['  pinMode(4, INPUT_PULLUP);'],
+      ['  attachInterrupt(4, onPress, FALLING);', false, 'З підтяжкою вгору натискання — спад. FALLING правильно.'],
+      ['}'],
+      ['<span class="kw">void</span> loop() { }'],
+    ],
+    fixAfter: 4, fixLine: '  // друк — у loop(): if (presses != shown) { shown = presses; Serial.println(shown); }',
+    bug: `Serial на цій платі — USB CDC (вбудований USB-порт). Його <code>write()</code> бере семафор (замок, який по черзі дають задачам) і може чекати на вільний буфер${c('core-serial-hwcdc-lock')}. Обробник переривання чекати не може: такі виклики там заборонені, а довгий ISR ще й ловить сторожовий таймер (watchdog) переривань — 300&nbsp;мс${c('core-int-wdt')}.`,
+    fix: `ISR лише рахує (або ставить прапорець). Друкуйте в <code>loop()</code>: порівнюйте <code>presses</code> з останнім надрукованим значенням.`,
+    find: `Після перезавантаження подивіться перший рядок у Serial Monitor: ядро друкує причину скидання (наприклад, panic або watchdog). Логічний аналізатор на піні кнопки покаже, що збій збігається з серією фронтів брязкоту. Глибше: <a href="../bounce-lab/">що бачить ISR</a>.`, tool: 'Serial · причина скидання' });
+
+  B.push({ id: 'delay-isr', lessons: ['2-4'], kind: 'code', diff: 1, mc: 'E6',
+    title: '«Аварійна кнопка» перезавантажує плату з першого натискання',
+    symptom: 'Ідея: натиснули — LED світить пів секунди. На ділі плата перезавантажується одразу після натискання.',
+    task: 'Клацніть рядок з помилкою.',
+    hint: 'Обробник переривання має закінчитися за мікросекунди. Що тут триває вічність?',
+    file: 'panic.ino',
+    lines: [
+      ['<span class="kw">const int</span> LED = 5, BTN = 4;'],
+      [''],
+      ['<span class="kw">void</span> IRAM_ATTR onPress() {', false, 'Оголошення ISR правильне.'],
+      ['  digitalWrite(LED, HIGH);', false, 'Записати пін в ISR — допустимо, це швидко.'],
+      ['  delay(500);', true],
+      ['  digitalWrite(LED, LOW);', false, 'Цей рядок нешкідливий. Подивіться вище.'],
+      ['}'],
+      [''],
+      ['<span class="kw">void</span> setup() {'],
+      ['  pinMode(LED, OUTPUT);'],
+      ['  pinMode(BTN, INPUT_PULLUP);'],
+      ['  attachInterrupt(BTN, onPress, FALLING);'],
+      ['}'],
+      ['<span class="kw">void</span> loop() { }'],
+    ],
+    fixAfter: 4, fixLine: '  // ISR: alarmAt = millis(); прапорець → у loop() вимкнути LED через 500 мс',
+    bug: `<code>delay()</code> в Arduino-ESP32 — це <code>vTaskDelay()</code> з FreeRTOS: «приспати задачу» (задача — окрема програма, яку планувальник по черзі запускає; <code>loop()</code> — одна з них). В ISR задачі немає, тож викликати його звідти не можна${c('core-delay-not-in-isr')}. Навіть «чесне» очікування 500&nbsp;мс в ISR перевищило б ліміт сторожового таймера переривань 300&nbsp;мс${c('core-int-wdt')}.`,
+    fix: `В ISR — лише <code>digitalWrite(LED, HIGH)</code> і прапорець/час. Вимикайте LED у <code>loop()</code>, коли <code>millis() − start ≥ 500</code>.`,
+    find: `Serial Monitor після скидання покаже причину від ядра. Правило-фільтр для рев’ю коду: шукайте в ISR усе, що чекає — <code>delay</code>, <code>Serial</code>, <code>analogRead</code>${c('idf-adc-not-in-isr')}.`, tool: 'Serial · причина скидання' });
+
+  B.push({ id: 'no-volatile', lessons: ['2-4', '2-1'], kind: 'code', diff: 3, mc: 'E7',
+    title: 'Кнопку натискають, а loop() так і чекає вічно',
+    symptom: 'ISR ставить прапорець, loop() чекає на нього в циклі. Без оптимізації (прапорець компілятора -O0) працює, з оптимізацією, як у звичайній збірці, — «Є!» не друкується ніколи.',
+    task: 'Клацніть рядок з помилкою.',
+    hint: 'Компілятор не знає, що функцію onPress викликає залізо. Що він може «оптимізувати» в циклі while?',
+    file: 'wait.ino',
+    lines: [
+      ['<span class="kw">bool</span> pressed = <span class="kw">false</span>;', true],
+      [''],
+      ['<span class="kw">void</span> IRAM_ATTR onPress() { pressed = <span class="kw">true</span>; }', false, 'ISR коротка і правильна: лише ставить прапорець.'],
+      [''],
+      ['<span class="kw">void</span> setup() {'],
+      ['  Serial.begin(115200);'],
+      ['  pinMode(4, INPUT_PULLUP);'],
+      ['  attachInterrupt(4, onPress, FALLING);'],
+      ['}'],
+      ['<span class="kw">void</span> loop() {'],
+      ['  <span class="kw">while</span> (!pressed) { }   <span class="c">// чекаємо</span>', false, 'Тут симптом, а не причина: цикл читає прапорець… чи вже ні?'],
+      ['  pressed = <span class="kw">false</span>;'],
+      ['  Serial.println(<span class="c">"Є!"</span>);'],
+      ['}'],
+    ],
+    fixAfter: 0, fixLine: 'volatile bool pressed = false;   // читати з пам’яті щоразу',
+    bug: `Без <code>volatile</code> компілятор бачить: усередині <code>while</code> ніхто не змінює <code>pressed</code>, тож можна прочитати її один раз і крутитися вічно. Зміну з ISR цикл не помітить. <code>volatile</code> робить кожне читання «видимою дією», яку не можна викинути${c('cpp-volatile-side-effect')}.`,
+    fix: `<code>volatile bool pressed = false;</code> Але volatile <b>не</b> робить доступ атомарним: для лічильників і структур, спільних з ISR, ще потрібна критична секція${c('idf-critical-section')}.`,
+    find: `Подивіться асемблер (<code>pio run -v</code>, <code>xtensa-esp32s3-elf-objdump -d</code>): у циклі немає читання з пам’яті — лише перехід сам на себе. Простіший тест: з <code>volatile</code> працює, без — ні.`, tool: 'Дизасемблер' });
+
+  /* ------------------------------------------------------------------ meta */
+  const LESSONS = { '1-1': '1.1', '1-2': '1.2', '1-4': '1.4', '1-5': '1.5', '1-6': '1.6', '2-1': '2.1', '2-2': '2.2', '2-4': '2.4' };
+  const KINDS = { bb: 'Макетка', sch: 'Схема', code: 'Код', opts: 'Схема' };
+  const KIND_F = { bb: 'bb', sch: 'sch', opts: 'sch', code: 'code' };
+  const DIFF = ['', 'легко', 'середньо', 'підступно'];
+  B.forEach((b, i) => { b.n = i + 1; b.kf = KIND_F[b.kind]; });
+  window.BUGS = { list: B, LESSONS, KINDS, DIFF };
+
+  /* ------------------------------------------------------------------ markup */
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const pad = (n) => String(n).padStart(2, '0');
+  const host = document.getElementById('bugs');
+  host.innerHTML = B.map((b) => {
+    const lessonChips = b.lessons.map((l) => `<a class="chip" href="../lessons/${l}/">Урок ${LESSONS[l]}</a>`).join('');
+    let pic = '';
+    if (b.kind === 'code') {
+      const lines = b.lines.map((ln, i) => {
+        const txt = ln[0] || ' ';
+        const fix = b.fixAfter === i ? `<div class="fixline">${esc(b.fixLine)}</div>` : '';
+        return `<li><button type="button" class="cl${ln[1] !== undefined ? ' cand' : ''}" data-i="${i}"><span class="tx">${txt}</span></button>${fix}</li>`;
+      }).join('');
+      pic = `<p class="code-file">${b.file}</p><ol class="code" aria-label="Код: клацніть рядок">${lines}</ol>`;
+    } else {
+      // Invisible hit areas: at least 24 viewBox units each way so thin wires are tappable on phones.
+      (b.spots || []).forEach((s) => { if (s.w < 24) { s.x -= (24 - s.w) / 2; s.w = 24; } if (s.h < 24) { s.y -= (24 - s.h) / 2; s.h = 24; } });
+      const spots = (b.spots || []).map((s, i) => `<rect class="spot" data-i="${i}" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="6" tabindex="0" role="button" aria-label="${s.label}"/>`).join('');
+      pic = `<svg class="pic" viewBox="${b.view}" role="img" aria-label="Справа ${b.n}: ${b.title}. ${KINDS[b.kind]}; клацніть підозріле місце."><g class="art">${b.sch || ''}</g><g class="spots">${spots}</g><g class="marks"></g></svg>`;
+    }
+    const opts = b.kind === 'opts' ? `<div class="opts">${b.opts.map((o, i) => `<button type="button" class="opt" data-i="${i}">${o[0]}</button>`).join('')}</div>` : '';
+    const hasFix = b.kind !== 'opts' && (b.kind === 'code' || /fixpart/.test(b.sch || '') || b.kind === 'bb');
+    return `<article class="bug" id="bug-${b.id}" data-id="${b.id}" data-state="open" data-kind="${b.kf}" data-diff="${b.diff}" data-lessons="${b.lessons.join(' ')}">
+  <span class="stamp" aria-hidden="true"></span>
+  <header class="bug-h"><span class="bug-no">№${pad(b.n)}</span><div><h3>${b.title}</h3>
+    <div class="bug-meta">${lessonChips}<span class="chip">${KINDS[b.kind]}</span><span class="chip"><span class="stars" aria-hidden="true">${'★'.repeat(b.diff)}${'☆'.repeat(3 - b.diff)}</span> ${DIFF[b.diff]}</span>${b.mc ? `<span class="chip teach" title="Код помилкового уявлення">${b.mc}</span>` : ''}</div></div></header>
+  <div class="bug-b">
+    <div class="bug-pic">${pic}</div>
+    <div class="bug-side">
+      <p class="symptom"><b>Симптом</b>${b.symptom}</p>
+      <p class="task">${b.task}</p>
+      ${opts}
+      <p class="fb" aria-live="polite"></p>
+      <p class="hint-box" hidden><b>Підказка.</b> ${b.hint}</p>
+      <div class="bug-acts"><button type="button" class="btn sm ghost giveup">Здаюся — показати</button>${hasFix ? '<button type="button" class="btn sm showfix" hidden aria-pressed="false">Показати виправлення</button>' : ''}</div>
+      <div class="reveal" hidden>
+        <div class="r-bug"><h4>Що не так</h4><p>${b.bug}</p></div>
+        <div class="r-fix"><h4>Як виправити</h4><p>${b.fix}</p></div>
+        <div class="r-find"><h4>Як знайти на столі</h4><span class="tool">${b.tool}</span><p>${b.find}</p></div>
+      </div>
+    </div>
+  </div>
+</article>`;
+  }).join('') + '<p class="empty-msg" id="bugs-empty" hidden>Жодна справа не підходить під фільтри. Скиньте один з них.</p>';
+})();
+</script>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  const S = window.Schem;
+  const { list: B, LESSONS } = window.BUGS;
+  const byId = Object.fromEntries(B.map((b) => [b.id, b]));
+  const KEY = 'bugs.v1';
+  const saved = Study.store.get(KEY, {}) || {};
+  const st = saved.st || {};          // id → { s: 'found' | 'shown', tries }
+  const fl = Object.assign({ lesson: 'all', kind: 'all', diff: 'all', open: false }, saved.f || {});
+  const save = () => Study.store.set(KEY, { st, f: fl });
+  const tries = {};                   // misses in this visit, before solving
+
+  /* ================================================================ breadboard drawings */
+  const NS = 'http://www.w3.org/2000/svg';
+  function stub(svg, pins, { x = 2, w = 66, y = 40, h = 124, title = 'ESP32-S3' } = {}) {
+    const g = S.svg('g', {}, svg);
+    S.svg('rect', { class: 'bb-board-stub', x, y, width: w, height: h, rx: 4 }, g);
+    S.svg('text', { class: 'sch-pin', x: x + 2, y: y - 8 }, g).textContent = title;
+    const out = {};
+    pins.forEach((p) => {
+      S.svg('text', { class: `sch-pin ${p.cls}`, x: x + 5, y: p.y + 5, 'data-net': p.net }, g).textContent = p.t;
+      S.svg('circle', { cx: x + w - 6, cy: p.y, r: 3, fill: 'var(--muted)' }, g);
+      out[p.t] = { x: x + w - 6, y: p.y };
+    });
+    return out;
+  }
+  const J = (svg, from, to, net, cls, lift = 0, parent) => S.part(svg, 'jumper', { from, to, net, cls, lift, parent });
+  function layer(svg, cls) { return S.svg('g', { class: cls }, svg); }
+
+  // Standard LED loop on 18 columns at x = 80: GPIO13 → 3d, R1 3e→8e, LED in row c of cols 8/9, GND from 9e to the bottom rail.
+  function ledLoop(svg, variant) {
+    const art = svg.querySelector('.art');
+    const pins = stub(art, [{ t: 'GPIO13', y: 80, net: 'g13', cls: 'net-sig' }, { t: 'GND', y: 150, net: 'gnd', cls: 'net-gnd' }]);
+    const bb = S.breadboard(art, { cols: 18, x: 80, y: 0, colLabels: 'top' });
+    const bugL = layer(art, 'bugpart'), fixL = layer(art, 'fixpart');
+    J(art, bb.hole(9, 'e'), bb.rail('bottom', '-', 9), 'gnd', 'net-gnd');
+    J(art, pins.GND, bb.rail('bottom', '-', 1), 'gnd', 'net-gnd');
+    if (variant === 'no-res') {
+      J(art, pins.GPIO13, bb.hole(8, 'd'), 'g13', 'net-sig', 20, bugL);
+      J(art, pins.GPIO13, bb.hole(3, 'd'), 'g13', 'net-sig', 20, fixL);
+      S.part(art, 'res', { from: bb.hole(3, 'e'), to: bb.hole(8, 'e'), ohms: 220, label: 'R1', parent: fixL });
+    } else {
+      J(art, pins.GPIO13, bb.hole(3, 'd'), 'g13', 'net-sig', 20);
+      S.part(art, 'res', { from: bb.hole(3, 'e'), to: bb.hole(8, 'e'), ohms: 220, label: 'R1' });
+    }
+    const good = () => S.part(art, 'led', { anode: bb.hole(8, 'c'), cathode: bb.hole(9, 'c'), color: 'red', label: 'LED1', parent: fixL });
+    if (variant === 'led-rev') {
+      // No «довга ніжка» label: finding the longer (bent) leg is the task itself (see the hint); schem.js draws the bend.
+      S.part(art, 'led', { anode: bb.hole(9, 'c'), cathode: bb.hole(8, 'c'), color: 'red', label: 'LED1', parent: bugL }); good();
+    }
+    else if (variant === 'same-strip') { S.part(art, 'led', { anode: bb.hole(8, 'b'), cathode: bb.hole(8, 'c'), color: 'red', label: 'LED1', h: 18, parent: bugL }); good(); }
+    else S.part(art, 'led', { anode: bb.hole(8, 'c'), cathode: bb.hole(9, 'c'), color: 'red', label: 'LED1' });
+  }
+
+  const DRAW = {
+    'led-rev': (svg) => ledLoop(svg, 'led-rev'),
+    'same-strip': (svg) => ledLoop(svg, 'same-strip'),
+    'no-res': (svg) => ledLoop(svg, 'no-res'),
+    'btn-rot': (svg) => {
+      const art = svg.querySelector('.art');
+      const pins = stub(art, [{ t: 'GND', y: 60, net: 'gnd', cls: 'net-gnd' }, { t: 'GPIO4', y: 100, net: 'g4', cls: 'net-sig' }]);
+      const bb = S.breadboard(art, { cols: 18, x: 80, y: 0, colLabels: 'top' });
+      J(art, pins.GND, bb.rail('top', '-', 1), 'gnd', 'net-gnd');
+      J(art, pins.GPIO4, bb.hole(5, 'c'), 'g4', 'net-sig', 16);
+      J(art, bb.hole(8, 'b'), bb.rail('top', '-', 8), 'gnd', 'net-gnd');
+      const p = bb.hole(5, 'e');
+      const bug = layer(art, 'bugpart');
+      bug.setAttribute('transform', `rotate(90 ${p.x + 15} ${p.y + 15})`);
+      S.part(art, 'btn4', { x: p.x, y: p.y, w: 30, h: 30, parent: bug });
+      S.part(art, 'btn4', { x: p.x, y: p.y, w: 30, h: 30, parent: layer(art, 'fixpart') });
+      S.svg('text', { class: 'bb-part-lbl', x: p.x + 15, y: p.y + 52, 'text-anchor': 'middle' }, art).textContent = 'SW1';
+    },
+    'split-rail': (svg) => {
+      const art = svg.querySelector('.art');
+      const pins = stub(art, [{ t: '3V3', y: 60, net: '3v3', cls: 'net-3v3' }, { t: 'GND', y: 100, net: 'gnd', cls: 'net-gnd' }], { x: 2, w: 46, title: 'плата' });
+      const bb = S.breadboard(art, { cols: 24, x: 60, y: 0, split: true, colLabels: 'top' });
+      J(art, pins['3V3'], bb.rail('top', '+', 2), '3v3', 'net-3v3');
+      J(art, pins.GND, bb.rail('top', '-', 2), 'gnd', 'net-gnd');
+      J(art, bb.rail('top', '+', 16), bb.hole(16, 'a'), '3v3', 'net-3v3');
+      S.part(art, 'res', { from: bb.hole(16, 'b'), to: bb.hole(20, 'b'), ohms: 220, label: 'R1' });
+      S.part(art, 'led', { anode: bb.hole(20, 'e'), cathode: bb.hole(21, 'e'), color: 'red', label: 'LED1', h: 14 });
+      J(art, bb.hole(21, 'a'), bb.rail('top', '-', 21), 'gnd', 'net-gnd');
+      const fx = layer(art, 'fixpart');
+      J(art, bb.rail('top', '+', 11), bb.rail('top', '+', 13), '3v3', 'net-3v3', 8, fx);
+      J(art, bb.rail('top', '-', 11), bb.rail('top', '-', 13), 'gnd', 'net-gnd', 0, fx);
+    },
+  };
+
+  /* ================================================================ state + rendering */
+  const pts = (s) => (!s || s.s !== 'found') ? 0 : Math.max(1, 3 - (s.tries || 0));
+  const RANKS = [[0, 'Стажер'], [4, 'Технік'], [8, 'Інженер налагодження'], [12, 'Детектив схем'], [16, 'Гроза макеток'], [18, 'Головний по багах']];
+
+  function score() {
+    const found = B.filter((b) => st[b.id] && st[b.id].s === 'found').length;
+    const first = B.filter((b) => st[b.id] && st[b.id].s === 'found' && !st[b.id].tries).length;
+    const total = B.reduce((a, b) => a + pts(st[b.id]), 0);
+    $('#sc-found').textContent = found;
+    $('#sc-total').textContent = B.length;
+    $('#sc-first').textContent = first;
+    $('#sc-pts').textContent = `${total} / ${B.length * 3}`;
+    let r = RANKS[0], next = null;
+    for (let i = 0; i < RANKS.length; i++) if (found >= RANKS[i][0]) { r = RANKS[i]; next = RANKS[i + 1] || null; }
+    $('#sc-rank').textContent = r[1];
+    $('#sc-next').textContent = next ? `до «${next[1]}» — ще ${next[0] - found}` : 'усі справи закрито';
+    $$('#cells .cell').forEach((cell) => {
+      const s = st[cell.dataset.id];
+      cell.dataset.st = !s ? 'open' : s.s === 'shown' ? 'shown' : s.tries ? 'found' : 'first';
+      const b = byId[cell.dataset.id];
+      cell.setAttribute('aria-label', `Справа ${b.n}: ${b.title} — ${!s ? 'відкрита' : s.s === 'shown' ? 'підглянуто' : 'знайдено'}`);
+    });
+  }
+
+  $('#cells').innerHTML = B.map((b) => `<button type="button" class="cell" data-id="${b.id}">${b.n}</button>`).join('');
+  $('#cells').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) go(c.dataset.id); });
+
+  function go(id) {
+    const card = $(`#bug-${id}`);
+    if (!card) return;
+    if (card.hidden) { fl.lesson = 'all'; fl.kind = 'all'; fl.diff = 'all'; fl.open = false; syncFilters(); applyFilters(); }
+    card.scrollIntoView({ behavior: Study.reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+    card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+    // Focus the title, not a candidate: focusing the first hotspot would outline the answer in many cases.
+    const h = card.querySelector('.bug-h h3');
+    h.setAttribute('tabindex', '-1');
+    setTimeout(() => h.focus({ preventScroll: true }), 400);
+    try { history.replaceState(null, '', `#bug-${byId[id].n}`); } catch (e) { /* file:// or sandbox */ }
+  }
+  // #bug-3 (number, what the teacher sees) or #bug-split-rail (stable slug).
+  function fromHash() {
+    const m = location.hash.match(/^#bug-([\w-]+)$/);
+    if (!m) return null;
+    if (/^\d+$/.test(m[1])) { const b = B[+m[1] - 1]; return b ? b.id : null; }
+    return byId[m[1]] ? m[1] : null;
+  }
+
+  function markSpot(card, b) {
+    const svg = card.querySelector('svg.pic');
+    if (!svg || !b.spots) return;
+    const marks = svg.querySelector('.marks');
+    marks.textContent = '';
+    b.spots.forEach((s, i) => {
+      if (!s.ok) return;
+      svg.querySelector(`.spot[data-i="${i}"]`).classList.add('hit');
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('class', 'mark-t');
+      t.setAttribute('x', s.x + 4); t.setAttribute('y', s.y > 20 ? s.y - 5 : s.y + s.h + 15);
+      t.textContent = 'тут';
+      marks.appendChild(t);
+    });
+  }
+
+  function solve(card, b, how, restored) {
+    card.dataset.state = how;
+    card.querySelector('.stamp').textContent = how === 'found' ? 'ЗНАЙДЕНО' : 'ПІДГЛЯНУТО';
+    card.querySelector('.reveal').hidden = false;
+    card.querySelector('.hint-box').hidden = true;
+    card.querySelector('.giveup').hidden = true;
+    const sf = card.querySelector('.showfix'); if (sf) sf.hidden = false;
+    $$('.spot', card).forEach((s) => { s.setAttribute('tabindex', '-1'); s.setAttribute('aria-disabled', 'true'); });
+    $$('.cl', card).forEach((l, i) => { l.disabled = true; if (b.lines[i][1] === true) l.classList.add('hit'); });
+    $$('.opt', card).forEach((o, i) => { o.disabled = true; if (b.opts[i][1]) o.classList.add('right'); });
+    markSpot(card, b);
+    if (!restored) {
+      st[b.id] = { s: how, tries: tries[b.id] || 0 };
+      save(); score();
+      const fb = card.querySelector('.fb');
+      fb.className = 'fb ok';
+      const p = pts(st[b.id]);
+      fb.innerHTML = how === 'found' ? `<span class="k">Так!</span> ${tries[b.id] ? `Знайдено зі спроби ${tries[b.id] + 1}` : 'З першої спроби'}: +${p} ${p === 1 ? 'бал' : 'бали'}. Розбір нижче.` : 'Відповідь нижче. Спробуйте пояснити її своїми словами, перш ніж читати.';
+      if (!applyFilters.silent) applyFilters(true);
+    }
+  }
+
+  function miss(card, b, why, el) {
+    tries[b.id] = (tries[b.id] || 0) + 1;
+    el.classList.add('miss');
+    card.classList.add('hinted');
+    const fb = card.querySelector('.fb');
+    fb.className = 'fb no';
+    fb.innerHTML = `<span class="k">Не тут.</span> ${why || 'Тут усе гаразд.'}${tries[b.id] === 1 && b.kind !== 'opts' ? ' Підозрілі місця тепер обведено.' : ''}`;
+    if (tries[b.id] >= 2) card.querySelector('.hint-box').hidden = false;
+  }
+
+  B.forEach((b) => {
+    const card = $(`#bug-${b.id}`);
+    const svg = card.querySelector('svg.pic');
+    if (DRAW[b.id] && svg) DRAW[b.id](svg);
+    if (svg) svg.appendChild(svg.querySelector('.spots')), svg.appendChild(svg.querySelector('.marks'));
+    const choose = (i, el) => {
+      if (card.dataset.state !== 'open') return;
+      const item = b.kind === 'code' ? b.lines[i] : b.kind === 'opts' ? b.opts[i] : b.spots[i];
+      const ok = b.kind === 'code' || b.kind === 'opts' ? item[1] === true : !!item.ok;
+      if (ok) { if (b.kind === 'opts') el.classList.add('right'); solve(card, b, 'found'); }
+      else {
+        const why = b.kind === 'code' ? (item[2] || 'Цей рядок у порядку.') : b.kind === 'opts' ? item[2] : item.why;
+        if (b.kind === 'opts') el.classList.add('wrong');
+        miss(card, b, why, el);
+      }
+    };
+    card.addEventListener('click', (e) => {
+      const t = e.target.closest('.spot, .cl, .opt');
+      if (t && card.contains(t)) { choose(+t.dataset.i, t); return; }
+      if (svg && svg.contains(e.target) && card.dataset.state === 'open') {
+        const fb = card.querySelector('.fb');
+        fb.className = 'fb';
+        fb.textContent = 'Тут порожньо. Клацайте по деталях, дротах і виводах.';
+      }
+    });
+    card.addEventListener('keydown', (e) => {
+      const t = e.target.closest && e.target.closest('.spot');
+      if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); choose(+t.dataset.i, t); }
+    });
+    card.querySelector('.giveup').addEventListener('click', () => solve(card, b, 'shown'));
+    const sf = card.querySelector('.showfix');
+    if (sf) sf.addEventListener('click', () => {
+      const on = card.classList.toggle('fixed');
+      sf.setAttribute('aria-pressed', String(on));
+      sf.textContent = on ? 'Показати помилку' : 'Показати виправлення';
+    });
+    if (st[b.id]) solve(card, b, st[b.id].s, true);
+  });
+
+  /* ================================================================ filters */
+  const FDEF = {
+    lesson: [['all', 'Усі'], ...Object.entries(LESSONS).filter(([k]) => B.some((b) => b.lessons.includes(k))).map(([k, v]) => [k, v])],
+    kind: [['all', 'Усі'], ['bb', 'Макетка'], ['sch', 'Схема'], ['code', 'Код']],
+    diff: [['all', 'Усі'], ['1', '★ легко'], ['2', '★★ середньо'], ['3', '★★★ підступно']],
+  };
+  Object.entries(FDEF).forEach(([f, opts]) => {
+    const row = $(`.frow[data-f="${f}"]`);
+    opts.forEach(([v, label]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'fchip'; btn.dataset.v = v; btn.textContent = label;
+      btn.addEventListener('click', () => { fl[f] = v; syncFilters(); applyFilters(); save(); });
+      row.appendChild(btn);
+    });
+  });
+  $('#f-open').addEventListener('click', () => { fl.open = !fl.open; syncFilters(); applyFilters(); save(); });
+  function syncFilters() {
+    Object.keys(FDEF).forEach((f) => $$(`.frow[data-f="${f}"] .fchip`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(fl[f])))));
+    $('#f-open').setAttribute('aria-pressed', String(!!fl.open));
+  }
+  // keepSolved: a card solved just now stays visible under «Лише невирішені» until the filters change.
+  function applyFilters(keepSolved) {
+    let n = 0;
+    B.forEach((b) => {
+      const card = $(`#bug-${b.id}`);
+      const show = (fl.lesson === 'all' || b.lessons.includes(fl.lesson)) && (fl.kind === 'all' || b.kf === fl.kind) &&
+        (fl.diff === 'all' || String(b.diff) === String(fl.diff)) && (!fl.open || !st[b.id] || (keepSolved === true && !card.hidden));
+      card.hidden = !show;
+      $(`#cells .cell[data-id="${b.id}"]`).dataset.hidden = show ? '0' : '1';
+      if (show) n++;
+    });
+    $('#f-count').textContent = `Показано ${n} з ${B.length}`;
+    $('#bugs-empty').hidden = n > 0;
+  }
+  function random() {
+    const pool = B.filter((b) => !st[b.id] && !$(`#bug-${b.id}`).hidden);
+    const all = pool.length ? pool : B.filter((b) => !st[b.id]);
+    if (!all.length) { Study.toast('Усі справи закрито. Повна перемога!'); return; }
+    go(all[Math.floor(Math.random() * all.length)].id);
+  }
+  $('#rand').addEventListener('click', random);
+  $('#rand-top').addEventListener('click', random);
+  $('#sc-reset').addEventListener('click', () => {
+    if (!confirm('Скинути рахунок і відкрити всі справи заново?')) return;
+    Object.keys(st).forEach((k) => delete st[k]);
+    Object.keys(tries).forEach((k) => delete tries[k]);
+    save();
+    location.hash = '';
+    location.reload();
+  });
+  $('#tpl-copy').addEventListener('click', () => Study.copy($('#tpl').textContent));
+
+  syncFilters();
+  applyFilters();
+  score();
+
+  // Debug for authors: ?spots=1 outlines every hotspot.
+  if (/[?&]spots=1/.test(location.search)) $$('.bug').forEach((c) => c.classList.add('hinted'));
+  // ?reveal=1 opens every answer without saving (review screenshots); ?fix=1 also shows the corrected drawings.
+  if (/[?&]reveal=1/.test(location.search)) B.forEach((b) => solve($(`#bug-${b.id}`), b, 'found', true));
+  if (/[?&]fix=1/.test(location.search)) $$('.bug').forEach((c) => c.classList.add('fixed'));
+  // Deep link #bug-<id> (teacher screen-share).
+  const hid = fromHash();
+  if (hid) setTimeout(() => go(hid), 60);
+  window.addEventListener('hashchange', () => { const id = fromHash(); if (id) go(id); });
+});
+</script>
+</body>
+</html>

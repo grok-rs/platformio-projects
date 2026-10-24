@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 1.3 · ESP32-S3 і перша прошивка Blink</title>
+<meta name="description" content="Що таке мікроконтролер, що насправді робить кнопка Upload, як працюють setup() і loop(), і як підключити та виміряти перший зовнішній світлодіод на ESP32-S3.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 599px) {
+  .seg.four { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .seg.four button + button { border-left: 0; }
+  .seg.four button:nth-child(even) { border-left: 1px solid var(--line); }
+  .seg.four button:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+.readout { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 16px var(--f-mono); color: var(--ink); }
+.row-ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+
+/* code listings with line numbers */
+.codebox { margin: 0; padding: 8px 0; list-style: none; counter-reset: ln; font: 14px/1.6 var(--f-mono); font-variant-ligatures: none;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+.codebox li { margin: 0; display: flex; white-space: pre; min-height: 1.6em; padding-right: 12px; }
+.codebox li::before { counter-increment: ln; content: counter(ln); flex: none; width: 2.8em; padding-right: 10px; text-align: right; color: var(--muted); }
+.codebox .c { color: var(--muted); }
+.codebox .k { color: var(--accent); font-weight: 600; }
+.codebox li.cur { background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 3px 0 var(--accent); }
+pre.snip { font-size: 14px; }
+pre.snip .c { color: var(--muted); }
+
+/* why figure */
+.why-fig { display: block; width: 100%; max-width: 560px; margin: 8px auto 0; }
+
+/* pipeline (W1-3a) */
+.pipe { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pipe li:last-child { grid-column: 1 / -1; }
+.pipe li { margin: 0; position: relative; }
+.stg { position: relative; width: 100%; height: 100%; min-height: 48px; display: grid; grid-template-columns: 30px minmax(0, 1fr); row-gap: 4px; gap: 0 8px; align-items: center; text-align: left;
+  padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); cursor: pointer; font: inherit; }
+.stg .no { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 13px var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); }
+.stg b { font-size: 15px; line-height: 1.2; }
+.stg .file { grid-column: 1 / -1; font: 13px var(--f-mono); color: var(--muted); overflow-wrap: anywhere; }
+.stg:hover { border-color: var(--accent); }
+.stg[aria-current="step"] { box-shadow: inset 0 0 0 1px var(--accent); border-color: var(--accent); }
+.stg.done { border-color: var(--ok); }
+.stg.done .no { background: var(--ok); color: var(--panel); border-color: var(--ok); }
+.stg.fail { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--panel)); }
+.stg.fail .no { background: var(--bad); color: var(--panel); border-color: var(--bad); }
+.stg.active:not(.fail) { animation: stg-pulse 0.9s ease-in-out; }
+@keyframes stg-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.03); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); } 100% { transform: scale(1); } }
+.stg::before { content: ""; position: absolute; left: 10px; right: 10px; top: -1px; height: 4px; border-radius: 0 0 3px 3px; background: var(--zc, transparent); }
+.stg.pc { --zc: var(--accent); } .stg.bd { --zc: var(--hi); }
+.stg .where { font: 600 13px var(--f-mono); color: var(--muted); }
+@media (min-width: 900px) {
+  .pipe { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px 16px; }
+  .pipe li:last-child { grid-column: auto; }
+  .stg { grid-template-columns: 1fr; text-align: center; justify-items: center; padding: 10px 6px; min-height: 108px; align-content: start; }
+  .stg .no { grid-row: auto; margin-bottom: 4px; }
+  .pipe li + li::before { content: "→"; position: absolute; left: -8px; top: 30px; transform: translateX(-50%); color: var(--muted); font: 600 14px var(--f-mono); }
+}
+.pipe-zone { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 600 13px var(--f-mono); color: var(--muted); margin: -4px 0 10px; }
+.pipe-zone span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.pipe-zone .pc::before { background: var(--accent); }
+.pipe-zone .bd::before { background: var(--hi); }
+.pipe-d { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); padding: 10px 12px; margin-bottom: 12px; }
+.pipe-d h4 { margin: 0 0 6px; }
+.pipe-d p { margin: 0 0 6px; }
+.pipe-d .err { font: 13px/1.5 var(--f-mono); color: var(--bad); overflow-wrap: anywhere; }
+.pipe-status { min-height: 1.4em; font-weight: 600; margin: 0 0 10px; }
+.pipe-status.ok { color: var(--ok); } .pipe-status.no { color: var(--bad); }
+.term { margin: 0; height: 190px; overflow: auto; font: 13px/1.5 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.term .ln { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.term .cmd { color: var(--accent); }
+.term .err { color: var(--bad); font-weight: 600; }
+.term .okl { color: var(--ok); font-weight: 600; }
+.term .dim { color: var(--muted); }
+.flashmap { display: flex; width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin: 6px 0 4px; font: 600 13px var(--f-mono); }
+.flashmap span { display: grid; place-items: center; padding: 0 4px; border-right: 1px solid var(--line); white-space: nowrap; overflow: hidden; color: var(--ink); }
+.flashmap span:last-child { border-right: 0; }
+.fm-boot { flex: 2; background: color-mix(in srgb, var(--hi) 22%, var(--panel)); }
+.fm-part { flex: 1; background: color-mix(in srgb, var(--nsig2) 20%, var(--panel)); }
+.fm-ota { flex: 1; background: color-mix(in srgb, var(--nsig3) 20%, var(--panel)); }
+.fm-app { flex: 6; background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
+
+/* GPIO switch (idea 4) */
+.sw-svg .glow { transition: opacity .2s; }
+#gpio-sw :is(text, tspan) { font-size: 16px; } /* ≥ 13 px in the ~265 px idea column */
+@media (prefers-reduced-motion: reduce) { .sw-svg .glow, .blink-led .glow { transition: none; } .stg.active:not(.fail) { animation: none; } }
+
+/* setup/loop stepper (W1-3 stepper) */
+.step-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .step-grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } }
+.step-side { display: grid; gap: 10px; align-content: start; }
+.step-board { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.step-board svg { width: 64px; height: 64px; flex: none; }
+.step-board .v { font: 600 16px var(--f-mono); }
+.step-msg { margin: 0; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--panel-2); border-radius: 0 8px 8px 0; min-height: 4.6em; }
+.counters { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 15px; color: var(--muted); }
+.counters b { font: 600 16px var(--f-mono); color: var(--ink); }
+.wave { margin-top: 12px; }
+.wave canvas { width: 100%; height: 150px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+
+/* realtime blink */
+.blink-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: center; }
+@media (min-width: 640px) { .blink-grid { grid-template-columns: 150px minmax(0, 1fr); } }
+.blink-led { display: grid; justify-items: center; gap: 4px; padding: 8px; border-radius: 10px; border: 1px dashed var(--line); cursor: pointer; }
+.blink-led svg { width: 110px; height: 110px; }
+.blink-led .st { font: 600 13px var(--f-mono); color: var(--muted); text-align: center; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.presets .btn { min-height: 36px; padding: 4px 10px; font: 600 14px var(--f-mono); }
+
+/* find the bugs */
+.codebox.bugs li { padding-right: 0; }
+.codebox.bugs li::before { padding-top: 8px; }
+.codebox.bugs button { flex: 1; min-height: 40px; text-align: left; font: inherit; white-space: pre; color: var(--ink); background: none; border: 0; border-left: 3px solid transparent; padding: 0 12px 0 8px; cursor: pointer; }
+@media (pointer: coarse) { .seg button, .presets .btn, .codebox.bugs button { min-height: 44px; } } /* desktop keeps the compact size above */
+.codebox.bugs button:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.codebox.bugs button.hit { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.codebox.bugs button.hit::after { content: "  ✗ помилка"; color: var(--bad); font-weight: 600; }
+.codebox.bugs button.fine { border-left-color: var(--ok); }
+.codebox.bugs button.fine::after { content: "  ✓ ок"; color: var(--ok); }
+.codebox.bugs button.gap { color: var(--muted); font-style: italic; }
+@media (max-width: 599px) {
+  .codebox.bugs button.hit::after { content: "  ✗"; }
+  .codebox.bugs button.fine::after { content: "  ✓"; }
+}
+
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.vs { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .vs { grid-template-columns: 1fr 1fr; } }
+.fix-list li { margin-bottom: 10px; }
+.yt li { margin-bottom: 10px; }
+.lab-note { display: block; margin-top: 4px; }
+</style>
+</head>
+<body data-lesson="1-3">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:1-3">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Урок 1.3 · сб 12.09</p>
+    <h1>ESP32-S3 і перша прошивка: <span>Blink</span></h1>
+    <p class="lead">Сьогодні коло отримує мозок: двадцять рядків C++ вирішують, коли світить світлодіод. Розберемо, що відбувається між кнопкою Upload і першим спалахом.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: YD-ESP32-S3, кабель USB-C, LED, 220&nbsp;Ом</a></li>
+      <li><a class="chip" href="../1-2/">Спершу: урок 1.2 (резистор для LED)</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Досі світлодіод слухався лише джерела: є напруга — світить, немає — темно. Сьогодні між джерелом і LED з'являється програма. Те саме коло без жодного нового дроту стає таймером, сигналізацією чи передавачем азбуки Морзе.</p>
+    <p>А ще ви навчитеся за одним рядком лога казати, хто винен: код, кабель чи плата. Це економить вечори.</p>
+    <div class="vs">
+      <svg class="why-fig" viewBox="0 0 270 162" role="img" aria-label="Без мікроконтролера: джерело 3,3 В, резистор і світлодіод — LED світить, поки є напруга.">
+        <rect x="4" y="4" width="262" height="154" rx="10" fill="var(--panel)" stroke="var(--line)"/>
+        <text x="18" y="28" fill="var(--muted)" font-size="14" font-weight="600">Без мікроконтролера</text>
+        <rect x="22" y="58" width="40" height="56" rx="4" fill="none" stroke="var(--n33)" stroke-width="2"/>
+        <text x="42" y="91" text-anchor="middle" fill="var(--ink)" font-size="13">3,3 В</text>
+        <path d="M42 58V44H200V70M200 108V128H42V114" fill="none" stroke="var(--muted)" stroke-width="2"/>
+        <rect x="100" y="38" width="40" height="12" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+        <circle cx="200" cy="89" r="16" fill="var(--bad)" opacity=".85"/>
+        <text x="224" y="94" fill="var(--ink)" font-size="13">LED</text>
+        <text x="18" y="150" fill="var(--ink)" font-size="14">світить, поки є напруга</text>
+      </svg>
+      <svg class="why-fig" viewBox="0 0 270 162" role="img" aria-label="З мікроконтролером: між живленням і світлодіодом стоїть ESP32-S3 з програмою; від його виводу через той самий резистор до світлодіода — LED світить тоді, коли скаже код.">
+        <rect x="4" y="4" width="262" height="154" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="18" y="28" fill="var(--accent)" font-size="14" font-weight="600">З мікроконтролером</text>
+        <rect x="18" y="42" width="116" height="78" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="76" y="62" text-anchor="middle" fill="var(--ink)" font-size="14" font-weight="600">ESP32-S3</text>
+        <text x="76" y="84" text-anchor="middle" fill="var(--accent)" font-size="13" font-family="var(--f-mono)">if (…) HIGH;</text>
+        <text x="76" y="104" text-anchor="middle" fill="var(--accent)" font-size="13" font-family="var(--f-mono)">delay(…);</text>
+        <path d="M134 66H206V73M206 105V128H134V112" fill="none" stroke="var(--muted)" stroke-width="2"/>
+        <rect x="150" y="60" width="40" height="12" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+        <circle cx="206" cy="89" r="16" fill="var(--bad)" opacity=".85"/>
+        <text x="228" y="94" fill="var(--ink)" font-size="13">LED</text>
+        <text x="18" y="150" fill="var(--ink)" font-size="14">світить, коли скаже код</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b>, чим мікроконтролер відрізняється від одноплатного комп'ютера;</li>
+      <li><b>описати</b> шлях від <code>main.cpp</code> до спалаху LED і за текстом помилки <b>визначити</b> етап: компіляція чи завантаження;</li>
+      <li><b>створити</b> проєкт PlatformIO для YD-ESP32-S3 і <b>прошити</b> Blink;</li>
+      <li><b>пояснити</b>, коли виконуються <code>setup()</code> і <code>loop()</code>, і <b>розрахувати</b> частоту миготіння за <code>delay()</code>;</li>
+      <li><b>підключити</b> зовнішній LED до GPIO15 через 220&nbsp;Ом і <b>виміряти</b> напругу на виводі в HIGH і LOW.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>ESP32-S3 — увесь комп'ютер в одному чипі, без операційної системи</h3>
+      <p>Raspberry Pi — <b>одноплатний комп'ютер</b> (SBC): процесор, окрема оперативна пам'ять, SD-картка з Linux. Після увімкнення він спершу завантажує ОС. <b>Мікроконтролер</b> (MCU) тримає процесор, пам'ять і виводи в одному корпусі, а програма в нього одна і стартує одразу: це «голе залізо», bare metal.</p>
+      <p>ESP32-S3: два ядра Xtensa LX7 до 240&nbsp;МГц<sup class="cite" data-fact="s3-cpu"></sup>, 512&nbsp;КБ SRAM<sup class="cite" data-fact="s3-sram"></sup>, Wi-Fi 2,4&nbsp;ГГц і Bluetooth 5 LE<sup class="cite" data-fact="s3-wireless"></sup>. На нашій платі чип сидить у модулі WROOM-1 <b>N16R8</b>: 16&nbsp;МБ flash для програми і 8&nbsp;МБ PSRAM (додаткової оперативної пам'яті)<sup class="cite" data-fact="wroom-n16r8-memory"></sup>.</p>
+      <figure>
+        <svg viewBox="0 0 320 324" role="img" aria-label="Угорі мікроконтролер: модуль WROOM-1, у ньому чип ESP32-S3 з двома ядрами, SRAM, ROM і виводами GPIO, поруч flash 16 МБ і PSRAM 8 МБ; підпис: одна програма, старт одразу. Унизу одноплатний комп'ютер: окремі процесор, оперативна пам'ять і SD-картка з Linux; підпис: спершу завантажує ОС.">
+          <g font-size="16">
+          <rect x="4" y="4" width="312" height="158" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
+          <text x="14" y="26" fill="var(--muted)" font-weight="600">MCU · WROOM-1</text>
+          <rect x="14" y="38" width="150" height="90" rx="4" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+          <text x="89" y="58" text-anchor="middle" fill="var(--ink)" font-weight="600">ESP32-S3</text>
+          <text x="89" y="78" text-anchor="middle" fill="var(--accent)">CPU × 2</text>
+          <text x="89" y="98" text-anchor="middle" fill="var(--ink)">SRAM · ROM</text>
+          <text x="89" y="118" text-anchor="middle" fill="var(--nsig-ink)" font-weight="600">GPIO</text>
+          <rect x="176" y="38" width="72" height="42" rx="3" fill="none" stroke="var(--ink)"/>
+          <text x="212" y="56" text-anchor="middle" fill="var(--ink)">flash</text>
+          <text x="212" y="74" text-anchor="middle" fill="var(--muted)">16</text>
+          <rect x="176" y="86" width="72" height="42" rx="3" fill="none" stroke="var(--ink)"/>
+          <text x="212" y="104" text-anchor="middle" fill="var(--ink)">PSRAM</text>
+          <text x="212" y="122" text-anchor="middle" fill="var(--muted)">8</text>
+          <text x="14" y="150" fill="var(--ink)">одна програма, старт одразу</text>
+          <rect x="4" y="174" width="312" height="122" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
+          <text x="14" y="196" fill="var(--muted)" font-weight="600">SBC · Raspberry Pi</text>
+          <rect x="14" y="208" width="60" height="42" rx="3" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+          <text x="44" y="234" text-anchor="middle" fill="var(--ink)">CPU</text>
+          <rect x="82" y="208" width="60" height="42" rx="3" fill="none" stroke="var(--ink)"/>
+          <text x="112" y="234" text-anchor="middle" fill="var(--ink)">RAM</text>
+          <rect x="150" y="208" width="156" height="42" rx="3" fill="none" stroke="var(--ink)" stroke-dasharray="4 3"/>
+          <text x="228" y="234" text-anchor="middle" fill="var(--ink)">SD-картка: Linux</text>
+          <text x="14" y="278" fill="var(--ink)">спершу вантажить операційну систему</text>
+          <text x="160" y="318" text-anchor="middle" fill="var(--muted)">flash 16 МБ і PSRAM 8 МБ — у модулі</text>
+          </g>
+        </svg>
+        <figcaption>MCU — «спецпризначенець» з однією задачею; SBC — маленький ПК.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>MCU: одна програма, миттєвий старт, мале споживання. SBC: операційна система і багато програм.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Upload не копіює ваш код: на плату їде лише машинний код</h3>
+      <p>Плата не знає C++. Компілятор перекладає <code>main.cpp</code> у команди процесора Xtensa, лінкер додає ядро Arduino (там живуть <code>pinMode</code> і <code>delay</code>), і виходить образ <code>firmware.bin</code>. Програма-прошивальник esptool записує його у flash <b>через завантажувач у ROM</b> чипа<sup class="cite" data-fact="s3-rom"></sup> (точніше, ROM спершу приймає в RAM маленького помічника esptool, і flash пише вже він).</p>
+      <p>Тому «скачати код з плати» не вийде: <code>main.cpp</code> лишається на ноутбуці. Зате прошивка у flash переживає вимкнення і працює від будь-якого живлення.</p>
+      <figure>
+        <svg viewBox="0 0 320 252" role="img" aria-label="Ноутбук з файлом main.cpp; від нього кабель USB до плати; над кабелем підпис: лише машинний код firmware.bin. На платі flash з нулями й одиницями. Під ноутбуком: вихідний код лишається тут.">
+          <g font-size="16">
+          <rect x="8" y="8" width="170" height="72" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
+          <path d="M0 88H186L178 80H8Z" fill="var(--line)" stroke="var(--ink)"/>
+          <text x="93" y="38" text-anchor="middle" fill="var(--accent)" font-family="var(--f-mono)">main.cpp</text>
+          <text x="93" y="62" text-anchor="middle" fill="var(--muted)" font-family="var(--f-mono)">void loop()…</text>
+          <text x="192" y="34" fill="var(--ink)">код</text><text x="192" y="54" fill="var(--ink)">лишається</text><text x="192" y="74" fill="var(--ink)">тут</text>
+          <path d="M93 92V146" fill="none" stroke="var(--muted)" stroke-width="3"/>
+          <path d="M86 138l7 12 7-12z" fill="var(--muted)"/>
+          <text x="110" y="126" fill="var(--ink)">лише <tspan fill="var(--accent)" font-family="var(--f-mono)">.bin</tspan></text>
+          <rect x="8" y="156" width="304" height="90" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
+          <text x="20" y="178" fill="var(--ink)" font-weight="600">ESP32-S3</text>
+          <rect x="20" y="188" width="130" height="48" rx="3" fill="var(--panel)" stroke="var(--hi)"/>
+          <text x="85" y="207" text-anchor="middle" fill="var(--ink)">flash</text>
+          <text x="85" y="227" text-anchor="middle" fill="var(--muted)" font-family="var(--f-mono)">0110 1001</text>
+          <text x="164" y="208" fill="var(--ink)">машинні</text><text x="164" y="228" fill="var(--ink)">команди</text>
+          </g>
+        </svg>
+        <figcaption>Компілюється на комп'ютері, виконується на платі.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Між ноутбуком і платою мандрує лише машинний код. Кожна помилка має свій етап — дивіться віджет нижче.</p>
+    </article>
+
+    <div class="predict" data-ok="1" data-gate="w-pipe"
+         data-why="Компіляція, лінкування й образ робляться на ноутбуці і плати не потребують, тож збірка пройде. Зупиниться на етапі 5: PlatformIO не знайде порт. Отже, якщо збірка пройшла, а Upload ні — шукайте проблему в кабелі чи порті, а не в коді.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Код правильний, але USB-кабель ви забули під'єднати. Натискаєте Upload. Де зупиниться процес?</p>
+      <div class="opts">
+        <button class="opt">На компіляції: без плати нема для чого компілювати</button>
+        <button class="opt">Збірка пройде, зупиниться на пошуку порту</button>
+        <button class="opt">Усе пройде, просто LED не блиматиме</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-pipe">
+      <div class="ph"><h3>Конвеєр прошивки</h3><span class="small">натисніть етап — побачите, що там відбувається</span></div>
+      <div class="pb">
+        <div class="row-ctl">
+          <div class="seg four" role="group" aria-label="Сценарій" id="pipe-scen">
+            <button type="button" data-s="ok" aria-pressed="true">Усе гаразд</button>
+            <button type="button" data-s="code" aria-pressed="false">Помилка в коді</button>
+            <button type="button" data-s="noport" aria-pressed="false">Кабель не під'єднано</button>
+            <button type="button" data-s="boot" aria-pressed="false">Чип не відповідає</button>
+          </div>
+          <button type="button" class="btn primary" id="pipe-run">▶ Upload</button>
+          <button type="button" class="btn" id="pipe-step">Крок →</button>
+        </div>
+        <p class="pipe-zone"><span class="pc">етапи 1–4: на ноутбуці (Build)</span><span class="bd">етапи 5–7: кабель і плата</span></p>
+        <ol class="pipe" aria-label="Етапи прошивки">
+          <li><button type="button" class="stg pc" data-i="0"><span class="no">1</span><b>Код</b><span class="file">main.cpp</span></button></li>
+          <li><button type="button" class="stg pc" data-i="1"><span class="no">2</span><b>Компіляція</b><span class="file">main.cpp.o</span></button></li>
+          <li><button type="button" class="stg pc" data-i="2"><span class="no">3</span><b>Лінкування</b><span class="file">firmware.elf</span></button></li>
+          <li><button type="button" class="stg pc" data-i="3"><span class="no">4</span><b>Образ</b><span class="file">firmware.bin</span></button></li>
+          <li><button type="button" class="stg bd" data-i="4"><span class="no">5</span><b>Порт і ROM</b><span class="file">режим прошивки</span></button></li>
+          <li><button type="button" class="stg bd" data-i="5"><span class="no">6</span><b>Запис у flash</b><span class="file">4 образи</span></button></li>
+          <li><button type="button" class="stg bd" data-i="6"><span class="no">7</span><b>Запуск</b><span class="file">setup() → loop()</span></button></li>
+        </ol>
+        <p class="pipe-status" id="pipe-status" aria-live="polite"></p>
+        <div class="pipe-d" data-i="0">
+          <h4>1. Вихідний код</h4>
+          <p>Ви пишете C++ у VS Code. Це текст для людей і компілятора; плата його ніколи не побачить.</p>
+          <p class="small">Тут помилки ще «сплять»: редактор може підкреслити їх, але остаточно їх знайде компілятор.</p>
+        </div>
+        <div class="pipe-d" data-i="1" hidden>
+          <h4>2. Компіляція → <code>main.cpp.o</code></h4>
+          <p>Препроцесор підставляє <code>#include</code> і <code>#define</code>, компілятор <code>xtensa-esp32s3-elf-g++</code> перекладає кожен <code>.cpp</code> у машинні команди. Тут ловляться друкарські помилки й невідомі імена.</p>
+          <p class="err">error: 'LED_PIN' was not declared in this scope</p>
+          <p class="small">Що робити: виправити код. Ім'я має бути оголошене й однаково написане всюди.</p>
+        </div>
+        <div class="pipe-d" data-i="2" hidden>
+          <h4>3. Лінкування → <code>firmware.elf</code></h4>
+          <p>Лінкер з'єднує ваш код з ядром Arduino та ESP-IDF (там прихований <code>main</code>, <code>pinMode</code>, <code>delay</code>) і розставляє адреси.</p>
+          <p class="err">undefined reference to `setup()'</p>
+          <p class="small">Таке буває, якщо функцію <code>setup()</code> видалили чи перейменували: ядро її шукає і не знаходить.</p>
+        </div>
+        <div class="pipe-d" data-i="3" hidden>
+          <h4>4. Образ → <code>firmware.bin</code></h4>
+          <p>esptool (програма-прошивальник від Espressif) перетворює <code>.elf</code> на образ, який можна записати у flash: лише код і дані, без службової інформації для налагодження.</p>
+          <p class="small">Кнопка Build на цьому місці закінчує роботу і пише [SUCCESS]; Upload без паузи йде далі, і [SUCCESS] чи [FAILED] буде лише в кінці. Плата досі не потрібна.</p>
+        </div>
+        <div class="pipe-d" data-i="4" hidden>
+          <h4>5. Порт і завантажувач у ROM</h4>
+          <p>PlatformIO шукає порт плати, esptool скидає чип у <b>режим завантаження</b> (стан, у якому чип не запускає програму, а чекає нову прошивку). Тепер з ноутбуком говорить завантажувач, зашитий у ROM<sup class="cite" data-fact="s3-rom"></sup>: його не зітре жодна прошивка, тож плату з «поламаною» програмою все одно можна перепрошити.</p>
+          <p class="err">Error: Please specify `upload_port` for environment …<sup class="cite" data-fact="pio-no-upload-port"></sup><br>A fatal error occurred: Failed to connect to ESP32-S3: No serial data received.<sup class="cite" data-fact="esptool-failed-to-connect"></sup></p>
+          <p class="small">Що робити: кабель з лініями даних (не лише для заряджання), правильний порт, закритий монітор порту. Крайній засіб: утримуючи BOOT, натисніть і відпустіть RST, потім відпустіть BOOT<sup class="cite" data-fact="yd-boot-gpio0"></sup>.</p>
+        </div>
+        <div class="pipe-d" data-i="5" hidden>
+          <h4>6. Запис у flash</h4>
+          <p>esptool записує чотири образи за своїми адресами і звіряє контрольну суму<sup class="cite" data-fact="pio-upload-images-s3"></sup>:</p>
+          <div class="flashmap" role="img" aria-label="Карта flash не в масштабі: завантажувач за адресою 0x0, таблиця розділів 0x8000, boot_app0 0xe000, ваша програма з 0x10000.">
+            <span class="fm-boot">boot 0x0</span><span class="fm-part">0x8000</span><span class="fm-ota">0xe000</span><span class="fm-app">ваша програма 0x10000 →</span>
+          </div>
+          <p class="small">Не в масштабі. 0x8000 — таблиця розділів (карта: що де лежить у flash), 0xe000 — boot_app0 (позначка, яку програму запускати). Завантажувач тут — «другий рівень»: його стартує ROM, а він уже запускає вашу програму.</p>
+        </div>
+        <div class="pipe-d" data-i="6" hidden>
+          <h4>7. Скидання і запуск</h4>
+          <p>esptool перезапускає чип: ROM → завантажувач з flash → ваша програма → прихований <code>main</code> → <code>setup()</code> один раз → <code>loop()</code> знову і знову<sup class="cite" data-fact="core-main-setup-loop"></sup>. LED блимає.</p>
+          <p class="small">Якщо тут LED не світиться, а лог чистий — помилка логічна (не той пін, нема <code>pinMode</code>, LED навпаки). Її не знайдуть ні компілятор, ні esptool.</p>
+        </div>
+        <pre class="term" id="pipe-term" aria-label="Скорочений лог PlatformIO" tabindex="0"></pre>
+        <p class="small">Лог скорочений і схематичний: справжній довший, але ключові рядки такі самі.</p>
+      </div>
+    </div>
+
+    <article class="idea">
+      <h3>setup() — один раз, loop() — знову і знову</h3>
+      <p>У звичайному C++ програма починається з <code>main()</code> і колись закінчується. Пристрій не повинен «закінчуватися», тому ядро Arduino ховає <code>main</code> у себе. Після кожного увімкнення чи скидання воно один раз викликає вашу <code>setup()</code>, а потім у нескінченному циклі — <code>loop()</code><sup class="cite" data-fact="core-main-setup-loop"></sup>. (Обидві виконуються на процесорному ядрі 1 із двох<sup class="cite" data-fact="core-loop-task"></sup>.)</p>
+      <p>У <code>setup()</code> налаштовують залізо (<code>pinMode</code>), у <code>loop()</code> — те, що треба робити постійно. <b><code>delay()</code> — це «стоп» для <code>loop()</code>, а не для всього чипа:</b> наступні рядки <code>loop()</code> чекають, а сам чип працює далі<sup class="cite" data-fact="core-delay"></sup>. Як робити кілька справ одночасно — в уроці 2.3.</p>
+      <figure>
+        <ol class="codebox" aria-label="Спрощений прихований main ядра Arduino-ESP32 2.0.17">
+<li><span class="c">// ядро 2.0.17, спрощено</span></li>
+<li><span class="k">void</span> loopTask(<span class="k">void</span>*) {</li>
+<li>  setup();  <span class="c">// ① раз</span></li>
+<li>  <span class="k">for</span> (;;) { <span class="c">// ② вічно</span></li>
+<li>    loop();</li>
+<li>  }</li>
+<li>}</li>
+        </ol>
+        <figcaption>Спрощено з <code>cores/esp32/main.cpp</code>. Ви пишете лише <code>setup()</code> і <code>loop()</code>.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b><code>setup()</code> — підготовка після кожного скидання; <code>loop()</code> — серце, що б'ється, поки є живлення.</p>
+    </article>
+
+    <article class="idea">
+      <h3>digitalWrite перемикає вивід між 3,3 В і 0 В, а струм задає резистор</h3>
+      <p>Вивід у режимі <code>OUTPUT</code> — це перемикач усередині чипа: <code>HIGH</code> з'єднує ніжку з 3,3&nbsp;В, <code>LOW</code> — із землею. Згадайте мотузку-петлю: перемикач лише вирішує, чи може мотузка рухатися, а наскільки туго — задає резистор.</p>
+      <p>З 220&nbsp;Ом і червоним LED (≈&nbsp;1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>) виходить ≈&nbsp;6,4&nbsp;мА. Вихід за замовчуванням розрахований на ≈&nbsp;20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup>, але це налаштування драйвера, а не обмежувач: без резистора струм може вийти за безпечні межі і для виводу, і для LED (максимум 30&nbsp;мА<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>).</p>
+      <figure>
+        <svg class="sw-svg" id="gpio-sw" viewBox="0 -10 320 182" role="img" aria-label="Усередині чипа перемикач з'єднує вивід GPIO15 або з шиною 3,3 вольта, або з землею. Від виводу йде коло: резистор R1 220 ом, світлодіод LED1, назад до землі. У стані HIGH по колу біжать точки струму.">
+          <rect x="6" y="16" width="104" height="126" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
+          <text x="6" y="8" fill="var(--muted)">усередині ESP32-S3</text>
+          <path class="sch-w net-3v3" d="M16 40H70"/>
+          <text class="sch-pin net-3v3" x="16" y="34">3,3 В</text>
+          <path class="sch-w net-gnd" d="M16 120H70"/>
+          <text class="sch-pin net-gnd" x="16" y="114">0 В</text>
+          <circle cx="70" cy="40" r="3" fill="var(--ink)"/><circle cx="70" cy="120" r="3" fill="var(--ink)"/>
+          <path id="sw-lever" d="M96 80L70 40" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="96" cy="80" r="4" fill="var(--accent)"/>
+          <path class="sch-w net-sig" id="sw-w1" d="M96 80H140"/>
+          <text class="sch-pin net-sig" x="114" y="102">GPIO15</text>
+          <use class="sch-sym" href="#res" x="140" y="80"/>
+          <text class="sch-ref" x="170" y="66" text-anchor="middle">R1 <tspan class="sch-val">220 Ом</tspan></text>
+          <path class="sch-w net-sig2" id="sw-w2" d="M200 80H250"/>
+          <circle class="glow" id="sw-glow" cx="250" cy="110" r="20" fill="var(--bad)" opacity=".28"/>
+          <use class="sch-sym" href="#led" x="250" y="80" transform="rotate(90 250 80)"/>
+          <text class="sch-ref" x="278" y="114">LED1</text>
+          <path class="sch-w net-gnd" id="sw-w3" d="M250 140V160H40V142"/>
+          <path class="sch-w net-gnd" d="M40 120V142"/>
+          <text id="sw-txt" x="14" y="86" fill="var(--accent)" font-weight="600"></text>
+        </svg>
+        <div class="seg" role="group" aria-label="Стан виводу" id="sw-seg">
+          <button type="button" data-l="hi" aria-pressed="true">digitalWrite(15, HIGH)</button>
+          <button type="button" data-l="lo" aria-pressed="false">LOW</button>
+        </div>
+        <p class="readout" aria-live="polite"><span>На виводі <b id="sw-v">3,3 В</b></span><span>Струм <b id="sw-i">6,4 мА</b></span></p>
+      </figure>
+      <p class="key"><b>Головне</b>Вивід — вимикач до 3,3&nbsp;В, а не джерело струму: струм обмежує резистор.</p>
+    </article>
+    <details class="more">
+      <summary>Детальніше: чому HIGH буває трохи нижчий за 3,3 В</summary>
+      <p>Даташит гарантує для HIGH без навантаження не менше 0,8·VDD, тобто ≈&nbsp;2,64&nbsp;В<sup class="cite" data-fact="s3-voh"></sup>. Насправді на ненавантаженому виводі буде майже 3,3&nbsp;В. Коли через вивід тече струм LED, частина напруги падає всередині вихідного транзистора, і HIGH трохи просідає. Скільки саме — виміряєте в міні-лабі.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+    <div class="predict" data-ok="2" data-gate="w-step"
+         data-why="setup() виконується після кожного старту чипа: увімкнення — раз, кожне RST — ще раз, разом 4. Між стартами loop() крутиться скільки завгодно, а setup() не повторюється. Перевірте у віджеті: RST збільшує лічильник setup(), а «Крок» — лише loop().">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Плату увімкнули, потім тричі натиснули RST; між натисканнями <code>loop()</code> встигала виконатися по 10 разів. Скільки разів усього виконалася <code>setup()</code>?</p>
+      <div class="opts">
+        <button class="opt">1 — лише при подачі живлення</button>
+        <button class="opt">3 — по разу на кожне RST</button>
+        <button class="opt">4 — увімкнення і три скидання</button>
+        <button class="opt">31 — перед кожним loop()</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-step">
+      <div class="ph"><h3>Blink крок за кроком</h3><span class="small">час у віджеті віртуальний: затримка 1000 мс триває мить</span></div>
+      <div class="pb">
+        <div class="row-ctl">
+          <button type="button" class="btn primary" id="st-step">Крок →</button>
+          <button type="button" class="btn" id="st-auto" aria-pressed="false">▶ Авто</button>
+          <button type="button" class="btn ghost" id="st-rst">RST (скидання)</button>
+        </div>
+        <div class="step-grid">
+          <ol class="codebox" id="st-code" aria-label="Програма Blink з одним ім'ям піна LED_PIN">
+<li><span class="k">#include</span> &lt;Arduino.h&gt;</li>
+<li></li>
+<li><span class="k">#define</span> LED_PIN 15</li>
+<li></li>
+<li><span class="k">void</span> setup() {</li>
+<li>  pinMode(LED_PIN, OUTPUT);</li>
+<li>}</li>
+<li></li>
+<li><span class="k">void</span> loop() {</li>
+<li>  digitalWrite(LED_PIN, HIGH);</li>
+<li>  delay(1000);</li>
+<li>  digitalWrite(LED_PIN, LOW);</li>
+<li>  delay(1000);</li>
+<li>}</li>
+          </ol>
+          <div class="step-side">
+            <div class="step-board">
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle id="st-glow" cx="32" cy="28" r="26" fill="var(--bad)" opacity="0"/>
+                <path d="M20 40V24a12 12 0 0 1 24 0v16z" id="st-dome" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+                <path d="M26 40v18M38 40v14" stroke="var(--muted)" stroke-width="2"/>
+              </svg>
+              <div><div class="small">GPIO15 → R1 → LED1</div><div class="v" id="st-v">не налаштований (Z)</div></div>
+            </div>
+            <p class="step-msg" id="st-msg" aria-live="polite">Натисніть «Крок»: плату щойно увімкнули.</p>
+            <div class="counters"><span>t = <b id="st-t">0 мс</b></span><span>setup(): <b id="st-ns">0</b></span><span>loop(): <b id="st-nl">0</b></span></div>
+          </div>
+        </div>
+        <div class="wave">
+          <canvas id="st-cv" width="700" height="150" aria-label="Осцилограма напруги на GPIO15 за останні 5 секунд віртуального часу: до pinMode вивід не налаштований, потім чергуються 3,3 В і 0 В по 1000 мс."></canvas>
+          <p class="small">Напруга на GPIO15 за останні 5&nbsp;с: так її показав би осцилограф.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-blink"
+         data-why="Цикл 10 + 10 = 20 мс — це 50 спалахів за секунду. Око не встигає їх розрізнити і бачить середню яскравість: світлодіод здається рівним, але тьмянішим. На цьому трюку побудована ШІМ — керування яскравістю в наступних уроках.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Обидві затримки замінили на <code>delay(10)</code>. Що ви побачите на справжній платі?</p>
+      <div class="opts">
+        <button class="opt">Дуже швидке, але чітко помітне миготіння</button>
+        <button class="opt">Майже рівне світіння, тьмяніше за постійне</button>
+        <button class="opt">Темряву: за 10 мс LED не встигає засвітитися</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-blink">
+      <div class="ph"><h3>Blink у реальному часі</h3><span class="small">натисніть на світлодіод — пауза</span></div>
+      <div class="pb">
+        <div class="blink-grid">
+          <div class="blink-led" id="blink-stage" role="button" aria-pressed="false" aria-label="Світлодіод: запустити або зупинити миготіння">
+            <svg viewBox="0 0 110 110" aria-hidden="true">
+              <circle class="glow" id="bl-glow" cx="55" cy="46" r="44" fill="var(--bad)" opacity="0"/>
+              <path id="bl-dome" d="M35 70V42a20 20 0 0 1 40 0v28z" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+              <rect x="31" y="68" width="48" height="6" rx="1" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+              <path d="M45 74v32M65 74v26" stroke="var(--muted)" stroke-width="3"/>
+            </svg>
+            <span class="st" id="bl-st">пауза</span>
+          </div>
+          <div>
+            <div class="ctl"><label for="bl-on">delay після HIGH <b id="bl-on-v">1000 мс</b></label><input type="range" id="bl-on" min="0" max="100" step="0.5"></div>
+            <div class="ctl"><label for="bl-off">delay після LOW <b id="bl-off-v">1000 мс</b></label><input type="range" id="bl-off" min="0" max="100" step="0.5"></div>
+            <div class="presets" role="group" aria-label="Готові значення для обох затримок">
+              <button type="button" class="btn" data-ms="1000">1000</button>
+              <button type="button" class="btn" data-ms="200">200</button>
+              <button type="button" class="btn" data-ms="50">50</button>
+              <button type="button" class="btn" data-ms="10">10</button>
+              <button type="button" class="btn" data-ms="1">1</button>
+            </div>
+            <p class="readout" aria-live="polite"><span>Період <b id="bl-p">2000 мс</b></span><span>Частота <b id="bl-f">0,5 Гц</b></span><span>Світить <b id="bl-d">50 %</b> часу</span></p>
+          </div>
+        </div>
+        <div class="wave">
+          <canvas id="bl-cv" width="700" height="130" aria-label="Осцилограма напруги на виводі за останні 2 секунди реального часу: прямокутні імпульси 3,3 В з вибраними тривалостями."></canvas>
+          <p class="small" id="bl-note">Останні 2&nbsp;с. Екран оновлюється лише кілька десятків разів за секунду, тому дуже швидке миготіння він не покаже — віджет тоді малює середню яскравість, як її бачить око. Перевірте на платі в міні-лабі!</p>
+        </div>
+      </div>
+    </div>
+    <p class="small">Цей самий Blink крок за кроком на моделі плати з макеткою (JavaScript-порт коду з репозиторію) — у <a href="../../lab/#led-blink">Стенді ESP32-S3, вкладка «Миготіння LED»</a>.</p>
+  </section>
+
+  <!-- ============================================================ 06 example -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <p>Задача: LED на GPIO15 світить 0,5&nbsp;с і гасне на 1,5&nbsp;с.</p>
+    <ol class="worked">
+      <li><b>Назвіть пін один раз:</b> <code>#define LED_PIN 15</code><span class="why">чому: одне ім'я всюди. Якщо оголосити <code>LED_OUT</code>, а писати <code>LED_PIN</code>, компілятор зупиниться.</span></li>
+      <li><b>У setup():</b> <code>pinMode(LED_PIN, OUTPUT);</code><span class="why">чому: без цього вивід лишається входом і LED не засвітиться — а компілятор не попередить.</span></li>
+      <li><b>Увімкнути і чекати:</b> <code>digitalWrite(LED_PIN, HIGH); delay(500);</code><span class="why">чому: delay рахує мілісекунди, 0,5 с = 500 мс.</span></li>
+      <li><b>Вимкнути і чекати:</b> <code>digitalWrite(LED_PIN, LOW); delay(1500);</code><span class="why">чому: 1,5 с = 1500 мс; після цього loop() почнеться знову.</span></li>
+      <li><b>Перевірте ритм:</b> <span class="formula">500 + 1500 = 2000 мс → 1 спалах на 2 с (0,5 Гц)</span><span class="why">чому: один прохід loop() = сума всіх затримок у ньому.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <p>LED світить 0,2&nbsp;с і гасне на 0,8&nbsp;с.</p>
+    <ol class="faded">
+      <li><b>Пін і setup():</b> <code>#define LED_PIN 15</code>, <code>pinMode(LED_PIN, OUTPUT);</code></li>
+      <li><b>Увімкнути і чекати:</b> <code>digitalWrite(LED_PIN, HIGH); delay(200);</code></li>
+      <li>
+        <div class="try" data-ans="800" data-tol="0.001" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Яке число треба написати в <code>delay(…)</code> після <code>LOW</code>?</p>
+          <details><summary>Підказка</summary>0,8 с у мілісекундах: помножте на 1000.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="60" data-tol="0.001" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Скільки спалахів буде за хвилину?</p>
+          <details><summary>Підказка</summary>Один прохід loop() = 200 + 800 мс. Скільки таких у 60 000 мс?</details>
+        </div>
+      </li>
+    </ol>
+    <span class="tag ex-label">Самостійно</span>
+    <div class="panel" id="w-bugs">
+      <div class="ph"><h3>Знайдіть 3 помилки</h3><span class="small" id="bugs-n">знайдено 0 з 3</span></div>
+      <div class="pb">
+        <p>Студент хотів Blink з періодом 2&nbsp;с. Натискайте рядки, які вважаєте помилковими. Одна помилка — це те, чого в коді <i>бракує</i>: натисніть на місце, де воно мало б стояти.</p>
+        <ol class="codebox bugs" id="bugs-code" aria-label="Код з трьома помилками; кожен рядок — кнопка">
+<li><button type="button" data-msg="Цей рядок правильний: у PlatformIO Arduino API треба підключати явно.">#include &lt;Arduino.h&gt;</button></li>
+<li><button type="button" data-msg="Цей рядок правильний сам по собі. Подивіться, як ім'я використано далі.">#define LED_OUT 15</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: відкриття setup().">void setup() {</button></li>
+<li><button type="button" class="gap" data-bug="1" data-msg="Помилка: тут бракує pinMode(LED_OUT, OUTPUT). Вивід лишається входом, LED не світиться — і компілятор мовчить.">  // (порожньо)</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: запускає Serial для повідомлень. Але чого бракує в setup()?">  Serial.begin(115200);</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: закриття setup(). Але чого бракує всередині?">}</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: відкриття loop().">void loop() {</button></li>
+<li><button type="button" data-bug="1" data-msg="Помилка компіляції: LED_PIN ніде не оголошено, є лише LED_OUT. Саме так плутає імена приклад у LMS.">  digitalWrite(LED_PIN, HIGH);</button></li>
+<li><button type="button" data-bug="1" data-msg="Логічна помилка: delay(1) — це 1 мілісекунда, а не секунда. LED спалахне на мить і буде здаватися вимкненим.">  delay(1);</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: вимикає LED.">  digitalWrite(LED_OUT, LOW);</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: 1000 мс = 1 с.">  delay(1000);</button></li>
+<li><button type="button" data-msg="Цей рядок правильний: кінець loop().">}</button></li>
+        </ol>
+        <div class="fb" id="bugs-fb" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth">
+        <p class="seems">Upload копіює мій <code>main.cpp</code> на плату, і вона його читає.</p>
+        <p class="truth">На плату йде лише машинний код. Вихідний текст лишається на ноутбуці, і «витягти» його з плати не можна.</p>
+        <p class="test">Подивіться в лог Upload: там адреси й байти образів (<code>Writing at 0x00010000…</code>), а не рядки C++.</p>
+      </div>
+      <div class="myth">
+        <p class="seems"><code>loop()</code> виконується один раз, як звичайна функція.</p>
+        <p class="truth">Ядро викликає <code>loop()</code> знову і знову, поки є живлення. Один раз виконується <code>setup()</code> — після кожного скидання.</p>
+        <p class="test">Додайте в <code>loop()</code> <code>Serial.println(millis());</code> — побачите нескінченний потік чисел.</p>
+      </div>
+      <div class="myth" data-mc="E5">
+        <p class="seems">Напис біля піна на будь-якій платі — це номер GPIO.</p>
+        <p class="truth">На YD-ESP32-S3 цифри збігаються з GPIO, але є й «G», «3V3», «RX». На інших платах бувають D1, A0 тощо, а <code>LED_BUILTIN</code> на нашій взагалі не номер GPIO<sup class="cite" data-fact="core-led-builtin-s3"></sup>.</p>
+        <p class="test">Звіртеся з розпіновкою своєї плати (урок 1.4) і перевірте вивід мультиметром у HIGH.</p>
+      </div>
+      <div class="myth" data-mc="E4">
+        <p class="seems">Вивід сам «генерує» потрібний струм, тож резистор зайвий.</p>
+        <p class="truth">Вивід лише з'єднує коло з 3,3&nbsp;В. Без резистора струм задають тільки вихідний транзистор і LED; ≈&nbsp;20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup> — налаштування виходу, а не запобіжник, тож струм може перевищити безпечне і для виводу, і для LED.</p>
+        <p class="test">Порахуйте за законом Ома й виміряйте струм амперметром у розриві: з 220&nbsp;Ом буде ≈&nbsp;6&nbsp;мА.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Світлодіоду однаково, яким боком його вставити.</p>
+        <p class="truth">LED проводить лише від анода (довга ніжка) до катода. Вставлений навпаки він просто не світить; 3,3&nbsp;В у зворотному напрямку для нього безпечні<sup class="cite" data-fact="led-reverse-voltage"></sup>.</p>
+        <p class="test">Розверніть LED при працюючому Blink: темно. Поверніть — блимає.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <figure class="dual wide" id="dual-led" data-nets="gpio15=GPIO15; led_a=Анод LED; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 260 185" role="img" aria-label="Схема: вивід GPIO15 плати U1 через резистор R1 220 ом до анода світлодіода LED1, катод на землю; вивід GND плати теж на землю.">
+          <rect class="sch-w" x="10" y="44" width="60" height="110" rx="3"/>
+          <text class="sch-ref" x="10" y="34">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="80" transform="rotate(180 90 80)"/>
+          <text class="sch-pin net-sig" data-net="gpio15" x="62" y="85" text-anchor="end">GPIO15</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="130" transform="rotate(180 90 130)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="62" y="135" text-anchor="end">GND</text>
+          <path class="sch-w net-sig" data-net="gpio15" id="w-g15" d="M90 80H100"/>
+          <use class="sch-sym" href="#res" x="100" y="80"/>
+          <text class="sch-ref" x="130" y="66" text-anchor="middle">R1</text>
+          <text class="sch-val" x="130" y="104" text-anchor="middle">220 Ом</text>
+          <path class="sch-w net-sig2" data-net="led_a" id="w-la" d="M160 80H200"/>
+          <use class="sch-sym" href="#led" x="200" y="80" transform="rotate(90 200 80)"/>
+          <text class="sch-ref" x="186" y="124" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-k" d="M200 140V160"/>
+          <use href="#gnd" x="200" y="160" class="sch-sym net-gnd" data-net="gnd"/>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-gp" d="M90 130H120V150"/>
+          <use href="#gnd" x="120" y="150" class="sch-sym net-gnd" data-net="gnd"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-led" viewBox="0 0 262 222" role="img" aria-label="Макетка: дріт від виводу 15 плати у стовпчик 3, резистор зі стовпчика 3 у стовпчик 8, світлодіод анодом у стовпчик 8 і катодом у 9, дріт зі стовпчика 9 на шину мінус, з'єднану з виводом G (GND) плати."></svg>
+      </div>
+      <figcaption>Наведіть чи торкніться дроту або кнопки вузла — той самий вузол підсвітиться на обох видах. Плата YD-ESP32-S3 широка: на одній макетці вільний лише один ряд отворів з кожного боку, тому часто ставлять дві макетки поруч або виводять піни дротами «мама-тато».</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <div class="seg" role="group" aria-label="Рівень на GPIO15" id="lvl">
+        <button type="button" data-l="hi" aria-pressed="true">GPIO15 = HIGH</button>
+        <button type="button" data-l="lo" aria-pressed="false">GPIO15 = LOW</button>
+      </div>
+      <button type="button" class="btn" id="flow-btn" aria-pressed="false">Показати струм</button>
+      <span class="out" id="flow-out" aria-live="polite"></span>
+    </div>
+    <details class="more">
+      <summary>Чому саме GPIO15, а не будь-який вивід?</summary>
+      <p>GPIO15 — звичайний вивід (його альтернативна функція — кварц 32&nbsp;кГц, якого на нашій платі немає<sup class="cite" data-fact="s3-gpio15-16-xtal"></sup>). Його не займає ніщо з цього списку:</p>
+      <ul>
+        <li>strapping-піни GPIO0, 3, 45, 46 — їхній рівень під час скидання вибирає режим запуску<sup class="cite" data-fact="s3-strapping-pins"></sup>;</li>
+        <li>GPIO26–32 — внутрішня flash<sup class="cite" data-fact="s3-flash-pins"></sup>, GPIO35–37 — Octal PSRAM модуля N16R8<sup class="cite" data-fact="wroom-octal-psram-pins"></sup>;</li>
+        <li>GPIO19/20 — вбудований USB<sup class="cite" data-fact="s3-usb-pins"></sup>, GPIO43/44 — UART0<sup class="cite" data-fact="s3-uart0-pins"></sup>;</li>
+        <li>GPIO48 — RGB-світлодіод на самій платі<sup class="cite" data-fact="yd-rgb-gpio48"></sup>.</li>
+      </ul>
+      <p>Детально розпіновку розберемо в уроці 1.4. Проєкт <code>esp32-s3-led-blink</code> у репозиторії використовує GPIO4, 5 і 6 — це теж безпечні виводи.</p>
+    </details>
+    <p class="btn-row">
+      <a class="btn" href="../../lab/#led-blink">Відкрити Стенд (інтерактивна модель)</a>
+    </p>
+    <p class="small">На Стенді — проєкт <code>esp32-s3-led-blink</code> (два LED на GPIO4 і GPIO5). Щоб повторити схему уроку, перенесіть резистор і LED на GPIO15 і змініть <code>LED_PIN</code>.</p>
+  </section>
+
+  <!-- ============================================================ 09 lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <ul class="chips" aria-label="Що потрібно">
+      <li><span class="chip">YD-ESP32-S3 N16R8</span></li>
+      <li><span class="chip">кабель USB-C з даними</span></li>
+      <li><span class="chip">макетка MB-102</span></li>
+      <li><span class="chip">червоний LED 3&nbsp;мм</span></li>
+      <li><span class="chip">резистор 220&nbsp;Ом</span></li>
+      <li><span class="chip">2 перемички</span></li>
+      <li><span class="chip">мультиметр (бажано)</span></li>
+    </ul>
+    <div class="note danger">Змінюйте з'єднання лише з від'єднаним USB. Ніколи не з'єднуйте GPIO з виводом 5V: виводи ESP32-S3 не витримують 5&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>. LED — тільки через резистор.</div>
+    <ol>
+      <li><b>Проєкт.</b> PlatformIO → New Project → плата «Espressif ESP32-S3-DevKitC-1» (наша YD — її клон), framework Arduino. Потім у <code>platformio.ini</code> зафіксуйте платформу і пам'ять.
+<details class="more"><summary>platformio.ini для YD-ESP32-S3 N16R8</summary>
+<pre class="snip"><code>[env:esp32-s3-devkitc-1]
+platform  = espressif32@^7.1.0  <span class="c">; ядро Arduino 2.0.17</span>
+board     = esp32-s3-devkitc-1
+framework = arduino
+board_build.arduino.memory_type = qio_opi
+board_upload.flash_size = 16MB
+board_build.partitions = default_16MB.csv
+build_flags = -DBOARD_HAS_PSRAM -DARDUINO_USB_CDC_ON_BOOT=1
+monitor_speed = 115200</code></pre>
+</details>
+        <span class="small">Версія платформи важлива: без неї PlatformIO візьме новішу espressif32 з ядром 3.x<sup class="cite" data-fact="build-platform"></sup><sup class="cite" data-fact="core-arduino-version"></sup>. <code>qio_opi</code> — flash у режимі QIO, PSRAM — Octal<sup class="cite" data-fact="core-psram-mode"></sup>.</span></li>
+      <li><b>Кабель.</b> На платі два роз'єми USB-C<sup class="cite" data-fact="yd-usb-ports"></sup>. Прошивати можна через будь-який, але <code>Serial</code> наших проєктів виходить у роз'єм <b>USB</b>, не <b>COM</b><sup class="cite" data-fact="repo-serial-is-usb-cdc"></sup>.</li>
+      <li><b>Перший Blink без дротів.</b> Візьміть код з розділу 05, але замість <code>15</code> напишіть <code>LED_BUILTIN</code>. На нашій платі замигає білим RGB-світлодіод на GPIO48: ядро перенаправляє на нього <code>digitalWrite</code><sup class="cite" data-fact="core-led-builtin-s3"></sup>.
+        <span class="small lab-note">Upload — [SUCCESS], а RGB темний? На деяких ревізіях плати лінію RGB треба замкнути перемичкою «RGB» (повідомлення спільноти<sup class="cite" data-fact="yd-rgb-gpio48"></sup>). Не паяйте — переходьте до кроку 5 із зовнішнім LED.</span></li>
+      <li><b>Затримки.</b> Змінюйте обидва <code>delay</code>: 1000 → 200 → 50 → 10. Перед кожним Upload запишіть прогноз у таблицю 1.</li>
+      <li><b>Зовнішній LED.</b> Від'єднайте USB, зберіть коло з розділу 08 (GPIO15 → 220&nbsp;Ом → анод LED → катод → G). Поверніть <code>#define LED_PIN 15</code> і прошийте.</li>
+      <li><b>Вимірювання.</b> Поставте <code>delay(5000)</code>, щоб встигати. Виміряйте напругу між GPIO15 і G у HIGH і LOW, напругу на LED і струм (амперметр у розрив, червоний щуп у гнізді mA). Спершу — прогноз у таблицю 2.</li>
+      <li><b>Поясніть різницю</b> в останній колонці: чому HIGH під навантаженням трохи менший за 3,3&nbsp;В?</li>
+    </ol>
+    <table class="measure" data-key="1-3-delays">
+      <caption>Таблиця 1. Що видно при різних затримках</caption>
+      <thead><tr><th>delay, мс</th><th>Прогноз: що побачу</th><th>Що побачив</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>1000 / 1000</th><td></td><td></td><td></td></tr>
+        <tr><th>200 / 200</th><td></td><td></td><td></td></tr>
+        <tr><th>50 / 50</th><td></td><td></td><td></td></tr>
+        <tr><th>10 / 10</th><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <p class="small">У таблицю 2 пишіть числа з одиницями: «3,3 В», «6 мА».</p>
+    <table class="measure" data-key="1-3-volts" data-calc="diff">
+      <caption>Таблиця 2. Напруга і струм</caption>
+      <thead><tr><th>Величина</th><th>Прогноз</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>GPIO15, HIGH</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>GPIO15, LOW</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>На LED, HIGH</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Струм LED</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <div class="note tip" data-label="Розширення: що якщо…">
+      <ul>
+        <li>…вставити LED навпаки? (прогноз → перевірка)</li>
+        <li>…поставити <code>delay(1)</code> / <code>delay(1)</code>? Яскравість зміниться?</li>
+        <li>…два LED по черзі на GPIO4 і GPIO5? Готовий варіант — проєкт <code>esp32-s3-led-blink</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="1-3" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="1-3" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Азбука Морзе</h3>
+      <dl>
+        <dt>Мета</dt><dd>Передати назву команди азбукою Морзе з правильним ритмом. Одиниця часу — одна константа (наприклад, 200&nbsp;мс): крапка = 1, тире = 3, пауза всередині літери = 1, між літерами = 3, між словами = 7 одиниць. Латиницею: OHM = <code>--- .... --</code>.</dd>
+        <dt>Здати</dt><dd>Відео на 10&nbsp;с з платою і код (одним постом).</dd>
+      </dl>
+      <details class="more"><summary>Ролі, критерії оцінювання й ускладнення</summary>
+      <dl>
+        <dt>Ролі</dt><dd><ul>
+          <li><b>Збирач</b>: коло на макетці, відео; пише <code>dot()</code>.</li>
+          <li><b>Вимірювач</b>: за відео покадрово міряє тривалості й записує їх у пост (крапка, тире, паузи: очікувано мс → виміряно мс); пише <code>dash()</code>.</li>
+          <li><b>Доповідач</b>: пост і 3 хв демо в суботу; пише таблицю літер.</li>
+          <li><b>Скептик</b>: одне ім'я піна, резистор, полярність; пише цикл у <code>loop()</code> і розшифровує відео за таблицею Морзе, не дивлячись у код.</li>
+        </ul></dd>
+        <dt>Критерії</dt><dd><table class="rubric"><tbody>
+          <tr><td>Ритм: 1/3/1/3/7 витримано</td><td>0–2</td></tr>
+          <tr><td>Код: функції, одна константа часу, одне ім'я піна</td><td>0–2</td></tr>
+          <tr><td>Коло: резистор, полярність, безпечний пін</td><td>0–2</td></tr>
+          <tr><td>Відео розшифровується за таблицею Морзе (перевіряє Скептик)</td><td>0–2</td></tr>
+        </tbody></table></dd>
+        <dt>Ускладнення</dt><dd>Два LED: один для крапок, другий для тире. Для сміливих: SOS після натискання кнопки BOOT — як читати кнопку, підгляньте в уроці 1.5.</dd>
+      </dl>
+      </details>
+      <dl>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions, категорія «Командні виклики» (або Slack #show-and-tell — Доповідач перенесе).</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p><b>Підготуйте до дзвінка:</b> плату, підключену до комп'ютера (PlatformIO → Devices її бачить), кабель, макетку, LED, 220&nbsp;Ом, 2 перемички. Проєкт Blink створіть заздалегідь — на занятті лише Upload. Прочитайте розділи 01–05.</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1 (хв 22–34):</b> «Що записується на плату під час Upload? А — main.cpp, Б — машинний код, В — уся тека проєкту».</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуємо ≈&nbsp;45&nbsp;% Б, 40&nbsp;% А, 15&nbsp;% В. Якщо правильних 30–70&nbsp;% — «публічна пара» (А проти Б по 60&nbsp;с), переголосування, потім віджет «Конвеєр прошивки».</p></details>
+      <p><b>ConcepTest 2 (хв 55–62):</b> «Скільки разів виконається setup() за хвилину роботи Blink 1000/1000? А — 1, Б — 30, В — 60».</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуємо ≈&nbsp;65&nbsp;% А, решта Б/В (плутають з loop). Понад 70&nbsp;% правильних — коротко поясніть і рухайтесь далі; покажіть RST у віджеті «Blink крок за кроком».</p></details>
+      <p><b>Чат-водоспад (хв 55–62, після ConcepTest 2):</b> «delay(50) і delay(50): що побачимо?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуємо розкол між «рівне світіння» і «миготіння» — потім віджет «Blink у реальному часі» з пресетом 50.</p></details>
+      <p><b>POE-демо (хв 34–46):</b> від'єднайте USB на камеру і запитайте: «Upload — де зупиниться?» (А компіляція / Б порт / В запуск). Натисніть Upload, покажіть, що Build пройшов, а помилка — на порті. Потім під'єднайте, виберіть чужий порт → «Failed to connect». Наостанок покажіть BOOT + RST.</p>
+      <p><b>Знайди помилку (хв 46–55):</b> віджет «Знайдіть 3 помилки»: водоспад номерів рядків у чат.</p>
+      <p><b>Board sprint (хв 90–95):</b> у фреймі уроку — 7 перемішаних стікерів етапів; кожен нумерує їх у своєму підфреймі і ставить червону зірку на етап, де виникає «Failed to connect».</p>
+      <table class="rubric"><tbody>
+        <tr><td>22–34</td><td>Ідеї 1–2 + ConcepTest 1 + віджет «Конвеєр»</td></tr>
+        <tr><td>34–46</td><td>POE: USB від'єднано</td></tr>
+        <tr><td>46–55</td><td>Ідея 3 + «Знайдіть 3 помилки»</td></tr>
+        <tr><td>55–62</td><td>ConcepTest 2 + чат-водоспад delay(50)</td></tr>
+        <tr><td>62–90</td><td>Build-along: LED_BUILTIN → GPIO15 → вимірювання (розділ 09)</td></tr>
+        <tr><td>90–95</td><td>Board sprint: порядок 7 етапів і зірка на «Failed to connect»</td></tr>
+        <tr><td>95–108</td><td>Субота: демо команд + командний квіз; оголосити «Азбуку Морзе»</td></tr>
+      </tbody></table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, що відбувається між натисканням Upload і першим спалахом LED."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../lab/#led-blink">Стенд ESP32-S3: Миготіння LED</a></li>
+      <li><a class="chip deep" href="../../power-loads/">Пасивні й активні навантаження</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <p><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7paooi0813u2ykd6m8" target="_blank" rel="noopener">Урок 1.3 у LMS</a> (потрібен вхід).</p>
+    <ul class="yt">
+      <li><a href="https://www.youtube.com/watch?v=QuAkYkwP_SQ" target="_blank" rel="noopener">«Електроніка з ESP32: легкий старт»</a> — дивіться, як плату підключають, ставлять PlatformIO і переходять від вбудованого LED до зовнішнього на макетці.</li>
+      <li><a href="https://www.youtube.com/watch?v=bosxEIw5hbk" target="_blank" rel="noopener">«ESP32 Основи: (не)складне програмування»</a> — шукайте, де пояснюють <code>setup()</code>/<code>loop()</code> і першу прошивку; порівняйте з віджетом «Конвеєр».</li>
+      <li><a href="https://www.youtube.com/watch?v=x8AnBOcyOFg" target="_blank" rel="noopener">«VS Code + PlatformIO, ч. 3: перемикач платформ»</a> — як влаштовано <code>platformio.ini</code> і середовища (<code>[env:…]</code>).</li>
+      <li>Статті: <a href="https://docs.lilka.dev/uk/latest/programming/environment/" target="_blank" rel="noopener">налаштування PlatformIO (Лілка)</a>, <a href="https://dou.ua/forums/topic/51237/" target="_blank" rel="noopener">DOU: інструменти embedded і етапи збірки</a>. Статті IT Master про ESP32 описують класичний ESP32, а не S3: кількість і номери виводів там інші.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul class="chips">
+      <li><a class="chip" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-led-blink">esp32-s3-led-blink (cpp/ і rust/)</a></li>
+      <li><a class="chip" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-led-pwm">esp32-s3-led-pwm</a></li>
+    </ul>
+    <p class="small"><code>esp32-s3-led-blink</code> — розширений Blink: кілька LED, патерни, кнопка BOOT і команди в Serial; <code>delay()</code> там лише в самотесті, а миготіння — на <code>millis()</code> (це тема уроку 2.3).</p>
+    <details class="more">
+      <summary>Ядро 3.x: що зміниться</summary>
+      <p>Код цього уроку (<code>pinMode</code>, <code>digitalWrite</code>, <code>delay</code>) однаковий у ядрах 2.0.17 і 3.x. Різниця прийде пізніше: PlatformIO espressif32 8.0.0 перейшла на ядро 3.3.12<sup class="cite" data-fact="core-platform-8-core-3x"></sup>, і там змінено API ШІМ (LEDC) і таймерів<sup class="cite" data-fact="core-ledc-api-3x"></sup>. Тому в наших проєктах версія платформи зафіксована.</p>
+    </details>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (7 пунктів)</summary>
+    <ol class="fix-list">
+      <li>У прикладі Blink код оголошує <code>LED_OUT</code>, а розбір використовує <code>LED_PIN</code>; рядки з розбору не зберуться. Тут усюди одне ім'я — <code>LED_PIN</code><sup class="cite" data-fact="lms-err-1-3-led-name"></sup>.</li>
+      <li>«Має Wi-Fi та Bluetooth» — у ESP32-S3 лише Bluetooth 5 LE, класичного Bluetooth немає (бібліотеки на кшталт BluetoothSerial не працюють)<sup class="cite" data-fact="lms-err-1-3-bt-classic"></sup>.</li>
+      <li>Завантажувач: першим працює завантажувач у ROM чипа — його не стерти<sup class="cite" data-fact="s3-rom"></sup>; Upload щоразу записує у flash ще й завантажувач другого рівня за адресою 0x0<sup class="cite" data-fact="pio-upload-images-s3"></sup>.</li>
+      <li>«<code>loop()</code> — це <code>while(true)</code>»: точніше, <code>loop()</code> — звичайна функція, яку ядро викликає в нескінченному циклі; її локальні змінні щоразу створюються заново. І <code>setup()</code> виконується не лише при подачі живлення, а після кожного скидання<sup class="cite" data-fact="core-main-setup-loop"></sup>.</li>
+      <li>«Пін сам генерує струм»: вивід лише з'єднує коло з 3,3&nbsp;В, струм задає резистор; ≈&nbsp;20&nbsp;мА — типове налаштування сили виходу, а не робочий струм і не обмежувач<sup class="cite" data-fact="s3-gpio-drive-default"></sup>.</li>
+      <li>«HIGH — це 3,3 В»: без навантаження гарантовано не менше 0,8·VDD, під струмом HIGH трохи просідає<sup class="cite" data-fact="s3-voh"></sup>.</li>
+      <li>Рекомендована стаття про GPIO описує 34 виводи класичного ESP32; у ESP32-S3 їх 45 (0–21, 26–48)<sup class="cite" data-fact="lms-err-1-4-gpio-count"></sup>.</li>
+    </ol>
+    </details>
+    <details class="more">
+      <summary>Джерела: звідки кожне число на сторінці</summary>
+      <div id="sources"></div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const RM = Study.reducedMotion();
+  const VDD = 3.3, VF = 1.9, R1 = 220; // facts: led-red-3mm-vf
+  const I_LED = (VDD - VF) / R1 * 1000; // ≈ 6,4 мА
+  const press = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /* ==== 04 idea 4: GPIO as a switch to 3,3 V or GND ==== */
+  {
+    const lever = $('#sw-lever'), glow = $('#sw-glow');
+    const wires = ['#sw-w1', '#sw-w2', '#sw-w3'].map((s) => $(s));
+    const set = (hi) => {
+      lever.setAttribute('d', hi ? 'M96 80L70 40' : 'M96 80L70 120');
+      glow.setAttribute('opacity', hi ? '.55' : '0');
+      $('#sw-txt').textContent = hi ? 'HIGH' : 'LOW';
+      $('#sw-v').textContent = hi ? '≈ 3,3 В' : '0 В';
+      $('#sw-i').textContent = hi ? `≈ ${fmt.num(I_LED, 1)} мА` : '0 мА';
+      wires.forEach((w) => S.flow(w, { mA: hi ? I_LED : 0 }));
+    };
+    $$('#sw-seg button').forEach((b) => b.addEventListener('click', () => { press($('#sw-seg'), b); set(b.dataset.l === 'hi'); }));
+    set(true);
+  }
+
+  /* ==== 04 W1-3a: the flashing pipeline ==== */
+  {
+    const pipe = $('#w-pipe');
+    const stg = $$('.stg', pipe), det = $$('.pipe-d', pipe);
+    const term = $('#pipe-term'), status = $('#pipe-status');
+    const B = '.pio/build/esp32-s3-devkitc-1';
+    const LOG = [
+      ['Processing esp32-s3-devkitc-1 (platform: espressif32@^7.1.0; board: esp32-s3-devkitc-1; framework: arduino)'],
+      [`Compiling ${B}/src/main.cpp.o`],
+      [`Linking ${B}/firmware.elf`],
+      [`Building ${B}/firmware.bin`, 'Creating esp32s3 image...'],
+      ['Auto-detected: /dev/ttyACM0', 'Connecting...', 'Chip is ESP32-S3 …'],
+      ['Writing at 0x00000000... (100 %)', 'Writing at 0x00008000... (100 %)', 'Writing at 0x0000e000... (100 %)', 'Writing at 0x00010000... (100 %)', 'Hash of data verified.'],
+      ['Leaving...', 'Hard resetting via RTS pin...', ['========== [SUCCESS] ==========', 'okl']],
+    ];
+    const FAIL = {
+      code: { at: 1, lines: [`Compiling ${B}/src/main.cpp.o`, ["src/main.cpp:10:16: error: 'LED_PIN' was not declared in this scope", 'err'], [`*** [${B}/src/main.cpp.o] Error 1`, 'err'], ['========== [FAILED] ==========', 'err']],
+        msg: 'Зупинилось на етапі 2 (компіляція). Плата ще навіть не потрібна: виправляйте код.' },
+      noport: { at: 4, lines: [['Error: Please specify `upload_port` for environment or use global `--upload-port` option.', 'err'], ['========== [FAILED] ==========', 'err']],
+        msg: 'Збірка пройшла, зупинилось на етапі 5: порту немає. Перевірте кабель (з даними?) і роз\'єм.' },
+      boot: { at: 4, lines: ['Auto-detected: /dev/ttyACM0', 'Connecting........_____.....', ['A fatal error occurred: Failed to connect to ESP32-S3: No serial data received.', 'err'], ['========== [FAILED] ==========', 'err']],
+        msg: 'Збірка пройшла, порт знайдено, але чип не відповів (етап 5). Закрийте монітор, перевірте порт; крайній засіб — BOOT + RST.' },
+    };
+    let scen = 'ok', cur = -1, failed = false, runId = 0;
+    const line = (t, cls = '') => {
+      const s = document.createElement('span');
+      s.className = 'ln ' + cls; s.textContent = t; term.append(s); term.scrollTop = term.scrollHeight;
+    };
+    const show = (i) => {
+      det.forEach((d, k) => { d.hidden = k !== i; });
+      stg.forEach((b, k) => { if (k === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+    };
+    const reset = () => {
+      runId++; cur = -1; failed = false;
+      stg.forEach((b) => b.classList.remove('done', 'fail', 'active'));
+      term.textContent = ''; line('$ pio run -t upload', 'cmd');
+      status.textContent = ''; status.className = 'pipe-status';
+    };
+    const step = () => {
+      if (failed || cur >= stg.length - 1) return false;
+      cur++;
+      stg.forEach((b, k) => b.classList.toggle('active', k === cur));
+      show(cur);
+      const f = FAIL[scen];
+      if (f && f.at === cur) {
+        f.lines.forEach((l) => (Array.isArray(l) ? line(l[0], l[1]) : line(l)));
+        stg[cur].classList.add('fail'); failed = true;
+        status.textContent = '✗ ' + f.msg; status.className = 'pipe-status no';
+        return false;
+      }
+      LOG[cur].forEach((l) => (Array.isArray(l) ? line(l[0], l[1]) : line(l)));
+      stg[cur].classList.add('done');
+      if (cur === stg.length - 1) {
+        status.textContent = '✓ Прошивку записано, чип перезапущено: setup() → loop() → LED блимає.'; status.className = 'pipe-status ok';
+        return false;
+      }
+      return true;
+    };
+    const run = async () => {
+      reset();
+      const id = runId;
+      while (step()) { await sleep(RM ? 120 : 850); if (id !== runId) return; }
+    };
+    $$('#pipe-scen button').forEach((b) => b.addEventListener('click', () => { press($('#pipe-scen'), b); scen = b.dataset.s; reset(); show(0); }));
+    $('#pipe-run').addEventListener('click', run);
+    $('#pipe-step').addEventListener('click', () => { runId++; if (failed || cur >= stg.length - 1) reset(); step(); });
+    stg.forEach((b) => b.addEventListener('click', () => show(+b.dataset.i)));
+    reset(); show(0);
+    pipe.addEventListener('predict', (e) => { if (!e.detail.restored) run(); });
+  }
+
+  /* ==== canvas helper: square-wave plot ==== */
+  function plot(cv, { tStart, tEnd, segs, now, grid = 1000, rel = false }) {
+    const ctx = Study.fitCanvas(cv), t = Study.tokens();
+    const W = ctx.w, H = ctx.h, L = 44, Rp = 10, T = 12, Bm = 22;
+    const x = (ms) => L + (ms - tStart) / (tEnd - tStart) * (W - L - Rp);
+    const yHi = T + 4, yLo = H - Bm - 4, yZ = (yHi + yLo) / 2;
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = `13px ${t['f-mono']}`; ctx.fillStyle = t.muted; ctx.strokeStyle = t.line; ctx.lineWidth = 1;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('3,3 В', L - 6, yHi); ctx.fillText('0 В', L - 6, yLo);
+    ctx.beginPath(); ctx.moveTo(L, yHi); ctx.lineTo(W - Rp, yHi); ctx.moveTo(L, yLo); ctx.lineTo(W - Rp, yLo); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    const step = grid * Math.max(1, Math.ceil((tEnd - tStart) / grid / Math.max(2, Math.floor((W - L) / 80))));
+    const g0 = rel ? tEnd - Math.floor((tEnd - tStart) / step) * step : Math.ceil(tStart / step) * step;
+    for (let g = g0; g <= tEnd + 0.5; g += step) {
+      ctx.strokeStyle = t.line; ctx.setLineDash([2, 4]);
+      ctx.beginPath(); ctx.moveTo(x(g), T); ctx.lineTo(x(g), H - Bm); ctx.stroke(); ctx.setLineDash([]);
+      const v = rel ? (g - tEnd) / 1000 : g / 1000;
+      ctx.textAlign = g < tStart + 1 ? 'left' : g > tEnd - 1 ? 'right' : 'center';
+      ctx.fillText(rel && Math.abs(v) < 1e-6 ? 'зараз' : `${fmt.num(v, 1)} с`, x(g), H - 6);
+    }
+    ctx.textAlign = 'center';
+    const yOf = (v) => (v === 'hi' ? yHi : v === 'lo' ? yLo : yZ);
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    for (let k = 0; k < segs.length; k++) {
+      const s = segs[k], a = Math.max(s.t, tStart), b = Math.min(k + 1 < segs.length ? segs[k + 1].t : now, tEnd);
+      if (b < a) continue;
+      ctx.strokeStyle = s.v === 'hi' ? t['lvl-hi'] : s.v === 'lo' ? t['lvl-lo'] : t['lvl-z'];
+      ctx.setLineDash(s.v === 'z' ? [5, 4] : []);
+      ctx.beginPath(); ctx.moveTo(x(a), yOf(s.v)); ctx.lineTo(x(b), yOf(s.v));
+      if (k + 1 < segs.length && segs[k + 1].t <= tEnd && segs[k + 1].t >= tStart) ctx.lineTo(x(b), yOf(segs[k + 1].v));
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    if (segs.length && segs[0].v === 'z' && tStart === 0) {
+      ctx.fillStyle = t.muted; ctx.textAlign = 'left'; ctx.fillText('Z', x(0) + 4, yZ - 6);
+    }
+  }
+
+  /* ==== 05 stepper: setup()/loop() with the pin waveform ==== */
+  {
+    const code = $$('#st-code li');
+    const PROG = [
+      { ln: 4, k: 'setup', ms: 300, msg: 'Плату увімкнули (або натиснули RST). Поки чип стартує, GPIO15 не налаштований (Z). Потім ядро викликає setup() — один раз.' },
+      { ln: 5, k: 'pm', msg: 'pinMode: GPIO15 тепер вихід. Поки що на ньому LOW, 0 В.' },
+      { ln: 6, k: 'none', msg: 'setup() закінчилась. Її не викличуть до наступного скидання.' },
+      { ln: 8, k: 'loop', msg: 'Ядро викликає loop() — це вже {n}-й раз.' },
+      { ln: 9, k: 'hi', msg: 'HIGH: вивід з\'єднано з 3,3 В — струм тече через R1 і LED, LED світить.' },
+      { ln: 10, k: 'delay', ms: 1000, msg: 'delay(1000): loop() чекає 1000 мс. LED так і світить — вимкнути його нікому.' },
+      { ln: 11, k: 'lo', msg: 'LOW: вивід з\'єднано з землею, обидва кінці кола під 0 В — струму немає.' },
+      { ln: 12, k: 'delay', ms: 1000, msg: 'delay(1000): ще 1000 мс очікування, LED темний.' },
+      { ln: 13, k: 'end', msg: 'Кінець loop(). Ядро одразу викликає її знову — без жодної паузи.' },
+    ];
+    const st = { i: 0, t: 0, pin: 'z', ns: 0, nl: 0, segs: [{ t: 0, v: 'z' }], busy: false, auto: false };
+    const cv = $('#st-cv');
+    const level = (v) => { st.pin = v; st.segs.push({ t: st.t, v }); if (st.segs.length > 80) st.segs.splice(0, 20); };
+    const draw = () => {
+      const tEnd = Math.max(st.t, 5000);
+      plot(cv, { tStart: tEnd - 5000, tEnd, segs: st.segs, now: st.t });
+      $('#st-t').textContent = `${fmt.num(st.t, 0)} мс`;
+      $('#st-ns').textContent = st.ns; $('#st-nl').textContent = st.nl;
+      const on = st.pin === 'hi';
+      $('#st-glow').setAttribute('opacity', on ? '.5' : '0');
+      $('#st-dome').setAttribute('fill', on ? 'var(--bad)' : 'var(--panel)');
+      $('#st-v').textContent = st.pin === 'hi' ? 'HIGH ≈ 3,3 В' : st.pin === 'lo' ? 'LOW = 0 В' : 'не налаштований (Z)';
+    };
+    const mark = (ln) => code.forEach((li, k) => li.classList.toggle('cur', k === ln));
+    const animate = (ms) => new Promise((res) => {
+      const t0 = st.t, dur = RM ? 0 : 700;
+      if (!dur) { st.t = t0 + ms; draw(); res(); return; }
+      const s0 = performance.now();
+      const fr = (now) => {
+        const p = Math.min(1, (now - s0) / dur);
+        st.t = t0 + ms * p; draw();
+        if (p < 1) requestAnimationFrame(fr); else res();
+      };
+      requestAnimationFrame(fr);
+    });
+    const exec = async () => {
+      if (st.busy) return;
+      st.busy = true;
+      const p = PROG[st.i];
+      mark(p.ln);
+      if (p.k === 'setup') st.ns++;
+      if (p.k === 'pm' || p.k === 'lo') level('lo');
+      if (p.k === 'hi') level('hi');
+      if (p.k === 'loop') st.nl++;
+      $('#st-msg').textContent = p.msg.replace('{n}', st.nl);
+      if (p.ms) await animate(p.ms); else draw();
+      st.i = p.k === 'end' ? 3 : st.i + 1;
+      st.busy = false;
+    };
+    const runAuto = async () => {
+      while (st.auto) { await exec(); await sleep(RM ? 600 : 450); }
+    };
+    $('#st-step').addEventListener('click', exec);
+    $('#st-auto').addEventListener('click', (e) => {
+      st.auto = !st.auto;
+      e.currentTarget.setAttribute('aria-pressed', String(st.auto));
+      e.currentTarget.textContent = st.auto ? '❚❚ Пауза' : '▶ Авто';
+      if (st.auto) runAuto();
+    });
+    $('#st-rst').addEventListener('click', () => {
+      if (st.busy) return;
+      st.i = 0; level('z'); mark(-1);
+      $('#st-msg').textContent = 'RST: чип перезапустився. Вивід знову не налаштований, програма почнеться з setup(). Натисніть «Крок».';
+      draw();
+    });
+    draw();
+    Study.onTheme(draw);
+    window.addEventListener('resize', draw);
+  }
+
+  /* ==== 05 real-time blink (flicker fusion) ==== */
+  {
+    const MAX = 2000;
+    const toMs = (v) => Math.max(1, Math.round(Math.pow(MAX, v / 100)));
+    const toV = (ms) => Math.log(ms) / Math.log(MAX) * 100;
+    const on = $('#bl-on'), off = $('#bl-off'), cv = $('#bl-cv');
+    let tOn = 1000, tOff = 1000, t = 0;
+    const read = () => {
+      const P = tOn + tOff;
+      $('#bl-on-v').textContent = `${tOn} мс`; $('#bl-off-v').textContent = `${tOff} мс`;
+      $('#bl-p').textContent = `${fmt.num(P, 0)} мс`;
+      $('#bl-f').textContent = `${fmt.num(1000 / P, P > 200 ? 2 : 1)} Гц`;
+      $('#bl-d').textContent = `${fmt.num(tOn / P * 100, 0)} %`;
+    };
+    const draw = () => {
+      const P = tOn + tOff, ph = ((t % P) + P) % P, isOn = ph < tOn, fast = P < 80;
+      const glow = fast ? 0.5 * tOn / P + 0.05 : (isOn ? 0.55 : 0);
+      $('#bl-glow').setAttribute('opacity', glow.toFixed(2));
+      $('#bl-dome').setAttribute('fill', fast ? 'var(--bad)' : (isOn ? 'var(--bad)' : 'var(--panel)'));
+      $('#bl-dome').setAttribute('fill-opacity', fast ? (0.25 + 0.75 * tOn / P).toFixed(2) : '1');
+      const running = sim && sim.running;
+      $('#bl-st').textContent = !running ? 'пауза — натисніть' : fast ? 'занадто швидко для екрана: середня яскравість' : (isOn ? 'HIGH' : 'LOW');
+      // Square wave over the last 2 s, built from its edges.
+      const tEnd = Math.max(t, MAX), tStart = tEnd - MAX, segs = [];
+      let k = Math.floor(tStart / P) * P;
+      for (; k <= tEnd; k += P) { segs.push({ t: k, v: 'hi' }, { t: k + tOn, v: 'lo' }); }
+      plot(cv, { tStart, tEnd, segs, now: tEnd, grid: 500, rel: true });
+    };
+    let sim = null;
+    const setBoth = (ms) => { tOn = tOff = ms; on.value = off.value = toV(ms); read(); draw(); };
+    [on, off].forEach((el) => el.addEventListener('input', () => { tOn = toMs(+on.value); tOff = toMs(+off.value); read(); draw(); }));
+    $$('#w-blink .presets button').forEach((b) => b.addEventListener('click', () => setBoth(+b.dataset.ms)));
+    const stage = $('#blink-stage');
+    sim = Study.sim(stage, (dt) => { t += dt * 1000; draw(); });
+    sim.pause();
+    const sync = () => setTimeout(() => { stage.setAttribute('aria-pressed', String(sim.running)); draw(); });
+    stage.addEventListener('click', sync);
+    stage.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') sync(); });
+    setBoth(1000);
+    $('#w-blink').addEventListener('predict', () => { if (!RM) sim.play(); sync(); });
+    Study.onTheme(draw);
+    window.addEventListener('resize', draw);
+  }
+
+  /* ==== 06 find the 3 bugs ==== */
+  {
+    const btns = $$('#bugs-code button'), fb = $('#bugs-fb');
+    const found = new Set();
+    btns.forEach((b, i) => b.addEventListener('click', () => {
+      const bug = b.dataset.bug === '1';
+      b.classList.add(bug ? 'hit' : 'fine');
+      if (bug) found.add(i);
+      $('#bugs-n').textContent = `знайдено ${found.size} з 3`;
+      fb.className = bug ? 'fb ok' : 'fb';
+      fb.textContent = b.dataset.msg + (found.size === 3 ? ' Усі три знайдено! Лише одну з них ловить компілятор — дві інші видно тільки на залізі.' : '');
+    }));
+  }
+
+  /* ==== 08 dual figure: breadboard + level + current ==== */
+  {
+    const bbSvg = $('#bb-led');
+    const g = S.svg('g', {}, bbSvg);
+    S.svg('rect', { x: 2, y: 50, width: 58, height: 86, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
+    S.svg('text', { class: 'sch-pin', x: 6, y: 42 }, g).textContent = 'плата';
+    S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 75 }, g).textContent = 'G';
+    S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio15', x: 8, y: 115 }, g).textContent = '15';
+    const pin15 = { x: 50, y: 110 }, pinGnd = { x: 50, y: 70 };
+    const bb = S.breadboard(bbSvg, { cols: 14, rails: true, x: 76, y: 0, colLabels: 'bottom' });
+    bb.mark(3, 'top', 'gpio15', 'net-sig');
+    bb.mark(8, 'top', 'led_a', 'net-sig2');
+    bb.mark(9, 'top', 'gnd', 'net-gnd');
+    bb.markRail('top', '-', 'gnd', 'net-gnd');
+    const j15 = S.part(bbSvg, 'jumper', { from: pin15, to: bb.hole(3, 'c'), net: 'gpio15', cls: 'net-sig', lift: 24, title: 'Дріт GPIO15 → стовпчик 3' });
+    S.part(bbSvg, 'res', { from: bb.hole(3, 'a'), to: bb.hole(8, 'a'), ohms: 220 });
+    const led = S.part(bbSvg, 'led', { anode: bb.hole(8, 'e'), cathode: bb.hole(9, 'e'), color: 'red' });
+    // Part labels sit in the empty centre channel, so they never cover holes or rails.
+    const chY = (bb.hole(5, 'e').y + bb.hole(5, 'f').y) / 2 + 4;
+    S.svg('text', { class: 'bb-part-lbl', x: (bb.hole(3, 'a').x + bb.hole(8, 'a').x) / 2, y: chY, 'text-anchor': 'middle' }, bbSvg).textContent = 'R1';
+    S.svg('text', { class: 'bb-part-lbl', x: bb.hole(9, 'e').x + 2, y: chY, 'text-anchor': 'middle' }, bbSvg).textContent = 'LED1';
+    const jK = S.part(bbSvg, 'jumper', { from: bb.hole(9, 'a'), to: bb.rail('top', '-', 9), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 9 → шина мінус' });
+    const jG = S.part(bbSvg, 'jumper', { from: pinGnd, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'G (GND) плати → шина мінус' });
+    const dual = $('#dual-led');
+    const wires = [[$('#w-g15'), 1], [$('#w-la'), 1], [$('#w-k'), 1], [$('#w-gp'), -1], [j15, 1], [jK, 1], [jG, -1]];
+    let lvl = 'hi', flowOn = false;
+    const upd = () => {
+      const i = lvl === 'hi' ? I_LED : 0;
+      S.setNetLevel(dual, 'gpio15', lvl);
+      led.style.opacity = lvl === 'hi' ? '1' : '.45';
+      wires.forEach(([w, dir]) => { if (flowOn) S.flow(w, { mA: i, dir }); else if (w._flow) w._flow.set(0); });
+      $('#flow-out').textContent = lvl === 'hi' ? `I = (3,3 − 1,9) / 220 ≈ ${fmt.num(i, 1)} мА` : 'GPIO15 = 0 В: струму немає.';
+    };
+    $$('#lvl button').forEach((b) => b.addEventListener('click', () => { lvl = b.dataset.l; press($('#lvl'), b); upd(); }));
+    $('#flow-btn').addEventListener('click', (e) => {
+      flowOn = !flowOn;
+      e.currentTarget.setAttribute('aria-pressed', String(flowOn));
+      e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
+      upd();
+    });
+    upd();
+  }
+});
+</script>
+</body>
+</html>

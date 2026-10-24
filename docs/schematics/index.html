@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Як читати схеми</title>
+<meta name="description" content="Граматика електричних схем, символи IEC і ANSI з виводами, позначення номіналів 4k7, 2R2, 100n, 104, колірні смужки, ряд E12, вузли схеми і зв'язок схеми з макеткою.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Reference page: same look as a lesson hub (.hub column, section.hs), no lesson-only sections.
+   Widgets: symbol cards, notation decoder, colour bands, E12 picker, net colouring, node counting, dual figure. */
+.sch-ref { font-size: 15px; }
+.sch-val, .sch-pin { font-size: 14px; }
+figure.fig { margin: 16px 0; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+figure.fig > svg { display: block; width: 100%; height: auto; }
+.mk circle { fill: var(--accent); }
+.mk text { fill: var(--accent-ink); font: 700 13px var(--f-mono); text-anchor: middle; dominant-baseline: central; }
+.flow-arrow { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.lbl-muted { fill: var(--muted); font: 500 13px var(--f-body); }
+/* One net -> colour mapping for the whole page: GPIO13 amber (net-sig), LED anode blue (net-sig2),
+   LDR divider / GPIO1 green (net-sig3), button / GPIO7 violet (page-local net-sig4: §02 needs a fourth signal colour).
+   Lead overlays (path.sch-w after the symbols) carry the net colour over the symbol leads, end to end. */
+.net-sig4 { stroke: var(--teach); color: var(--teach); }
+/* Big schematics keep a readable scale on phones: they scroll sideways inside their frame instead. */
+.swipe-hint { display: none; margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+@media (max-width: 600px) {
+  .fig-x { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .fig-x > svg { min-width: 520px; }
+  .swipe-hint { display: block; }
+}
+
+/* rules list next to the annotated schematic */
+ol.rules { list-style: none; counter-reset: rule; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+ol.rules > li { counter-increment: rule; position: relative; margin: 0; padding: 10px 12px 10px 48px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+ol.rules > li::before {
+  content: counter(rule); position: absolute; left: 10px; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; font: 700 13px var(--f-mono); background: var(--accent); color: var(--accent-ink);
+}
+ol.rules b { display: block; }
+
+/* symbol cards */
+.sym-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); margin: 16px 0; }
+.sym-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px 12px; min-width: 0; }
+.sym-card h3 { font-size: 1.2rem; margin: 0 0 4px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.sym-card h3 .ref { font: 600 14px var(--f-mono); color: var(--accent); }
+.sym-pics { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.sym-pics figure { margin: 0; max-width: 100%; }
+/* Every thumbnail at one scale: the script sets width = viewBox width × SYM_SCALE; IEC/ANSI pairs stack. */
+.sym-pics svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.sym-pics figcaption { margin: 0; font: 600 13px var(--f-mono); letter-spacing: .05em; text-align: center; }
+.sym-card p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; }
+.pin-dot { fill: var(--accent); }
+.pin-t { fill: var(--accent); font: 600 12px var(--f-mono); }
+.sym-filter { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* segmented buttons */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 40px; padding: 6px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* decoder */
+.dec-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.dec-row input { font: 600 20px var(--f-mono); width: 9ch; }
+.dec-out { margin-top: 12px; display: grid; gap: 8px; }
+.dec-out .res { padding: 10px 12px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.dec-out .res b { font: 700 20px var(--f-mono); color: var(--ink); }
+.dec-out .res .k { display: block; font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dec-out .res .how { display: block; font-size: 15px; color: var(--muted); }
+.ex-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ex-chips button { font: 600 14px var(--f-mono); min-height: 36px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); color: var(--accent); cursor: pointer; }
+.ex-chips button:hover { border-color: var(--accent); }
+
+/* colour bands */
+.bands-svg { display: block; width: 100%; max-width: 420px; height: auto; margin: 4px auto 10px; }
+.band-sel { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
+.band-sel label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.band-sel select { width: 100%; }
+.band-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); vertical-align: -1px; margin-right: 4px; }
+.band-val { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.band-val input { font: 600 18px var(--f-mono); width: 10ch; }
+.band-read { font: 600 17px var(--f-mono); }
+
+/* E12 */
+table.e12 td, table.e12 th { text-align: center; font-family: var(--f-mono); font-variant-numeric: tabular-nums; padding: 6px 8px; }
+table.e12 tbody th { text-align: left; }
+table.e12 td.hit { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); font-weight: 700; outline: 2px solid var(--accent); outline-offset: -2px; }
+.e12-out { font: 600 16px var(--f-mono); }
+
+/* net colouring */
+.paint-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.paint-bar .pc { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: 700 15px var(--f-mono); cursor: pointer; }
+.paint-bar .pc .sw { width: 18px; height: 18px; border-radius: 50%; background: var(--muted); display: inline-block; }
+/* Swatch colour set per brush explicitly: the label stays ink, so `.pc{color}` must not drive the swatch. */
+.paint-bar .pc.c1 .sw { background: var(--n5); } .paint-bar .pc.c2 .sw { background: var(--nsig2); }
+.paint-bar .pc.c3 .sw { background: var(--nsig3); } .paint-bar .pc.c4 .sw { background: var(--n33); }
+.paint-bar .pc.c5 .sw { background: var(--teach); }
+@media (pointer: coarse) { .paint-bar .pc { min-height: 44px; } }
+.paint-bar .pc[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); border-color: var(--accent); }
+.seg-w { fill: none; stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1 6; }
+.seg-w.painted { stroke-dasharray: none; stroke-width: 4; }
+.seg-w.bad { stroke-dasharray: 8 5; }
+.seg-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; pointer-events: stroke; }
+.seg-hit:focus-visible { outline: none; stroke: color-mix(in srgb, var(--accent) 25%, transparent); }
+.seg-num { font: 700 13px var(--f-mono); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.c1 { color: var(--n5); } .c2 { color: var(--nsig2); } .c3 { color: var(--nsig3); } .c4 { color: var(--n33); } .c5 { color: var(--teach); }
+.seg-w.c1, .seg-w.c2, .seg-w.c3, .seg-w.c4, .seg-w.c5 { stroke: currentColor; }
+.seg-num.c1, .seg-num.c2, .seg-num.c3, .seg-num.c4, .seg-num.c5 { fill: currentColor; }
+.paint-fb { margin-top: 10px; min-height: 1.4em; }
+.paint-fb.ok { color: var(--ok); } .paint-fb.no { color: var(--bad); }
+
+/* node count reveal badges */
+.node-badge circle { fill: var(--panel); stroke: currentColor; stroke-width: 2; }
+.node-badge text { fill: currentColor; font: 700 13px var(--f-mono); text-anchor: middle; dominant-baseline: central; }
+
+/* dual figure controls */
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -4px 0 8px; }
+.dual-ctl .out { font-size: 15px; }
+.bb-tag { fill: var(--ink); font: 600 13px var(--f-mono); }
+.bb-mcu { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.5; }
+
+/* pin naming */
+.three { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); margin: 14px 0; }
+.three > div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.three .tag { display: block; margin-bottom: 4px; }
+.three b.big { display: block; font: 700 1.6rem var(--f-mono); color: var(--ink); }
+.three p { margin: 4px 0 0; font-size: 15px; }
+
+/* bad / good pairs */
+.pairs { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin: 14px 0; }
+.pair { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.pair h3 { margin: 0 0 8px; font-size: 1.2rem; }
+.pair .pp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pair figure { margin: 0; }
+.pair svg { display: block; width: 100%; height: auto; }
+.pair figcaption { margin: 4px 0 0; font: 600 13px var(--f-mono); text-align: center; }
+.pair .bad-c { color: var(--bad); } .pair .good-c { color: var(--ok); }
+.pair p { margin: 8px 0 0; font-size: 15px; }
+.bad-mark { stroke: var(--bad); stroke-width: 2.5; fill: none; }
+.good-mark { stroke: var(--ok); stroke-width: 2.5; fill: none; }
+</style>
+</head>
+<body data-sprite>
+<a class="skip" href="#main">До змісту</a>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="schematics">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main" data-toc="Зміст сторінки">
+  <header id="top">
+    <p class="eyebrow">Довідка · спершу перед уроком 1.1, потім щоразу, коли бачите нову схему</p>
+    <h1>Як читати <span>схеми</span></h1>
+    <p class="lead">Схема показує лише одне: що з чим з'єднано. Тут правила креслення, символи IEC і ANSI, записи на кшталт 4k7 чи 104 і вправи, після яких схема й макетка читаються однаково.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><span class="chip"><span class="k">≈</span> 30 хв, можна частинами</span></li>
+      <li><a class="chip" href="#nets">Вправа: розфарбуйте вузли</a></li>
+      <li><a class="chip" href="../cards/">Картки: позначення і символи</a></li>
+      <li><a class="chip" href="../atlas/">Атлас компонентів</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#values">Розшифрувати 4k7 чи 104 →</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 graph -->
+  <section class="hs" id="graph">
+    <h2><span class="n">01</span> Схема — це граф, а не фото</h2>
+    <article class="idea">
+      <h3>Важать лише з'єднання, а не форма ліній</h3>
+      <p>Програмісту зручно думати так: <b>деталі — це ребра графа, а вузли — точки, де ребра сходяться</b>. Вузол (англ. <i>net</i>) — усе, що з'єднано дротами без жодної деталі між ними. У будь-якій точці одного вузла напруга однакова.</p>
+      <p>Обидва малюнки — одне й те саме коло: GPIO13 → резистор → світлодіод → GND. Довжина ліній, повороти й розташування деталей нічого не змінюють. Макетка — ще один спосіб розкласти той самий граф у просторі.</p>
+      <figure>
+        <svg viewBox="0 0 240 215" role="img" aria-label="Одне коло, намальоване двічі: у рядок і змійкою. В обох варіантах ті самі три вузли: GPIO13, анод світлодіода і GND.">
+          <text class="lbl-muted" x="0" y="14">Варіант А</text>
+          <text class="sch-pin net-sig" x="6" y="40">GPIO13</text>
+          <path class="sch-w net-sig" d="M10 50H60"/>
+          <use href="#res" x="60" y="50" class="sch-sym"/>
+          <text class="sch-ref" x="90" y="36" text-anchor="middle">R1</text>
+          <text class="sch-val" x="90" y="72" text-anchor="middle">220R</text>
+          <path class="sch-w net-sig2" d="M120 50H140"/>
+          <use href="#led" x="140" y="50" class="sch-sym"/>
+          <text class="sch-ref" x="170" y="76" text-anchor="middle">LED1</text>
+          <path class="sch-w net-gnd" d="M200 50H220V60"/>
+          <use href="#gnd" x="220" y="60" class="sch-sym net-gnd"/>
+          <text class="lbl-muted" x="0" y="104">Варіант Б</text>
+          <text class="sch-pin net-sig" x="6" y="208">GPIO13</text>
+          <path class="sch-w net-sig" d="M10 190H50V180"/>
+          <use href="#res" x="50" y="180" class="sch-sym" transform="rotate(-90 50 180)"/>
+          <text class="sch-ref" x="64" y="146">R1</text>
+          <text class="sch-val" x="64" y="162">220R</text>
+          <path class="sch-w net-sig2" d="M50 120V110H170"/>
+          <use href="#led" x="170" y="110" class="sch-sym" transform="rotate(90 170 110)"/>
+          <text class="sch-ref" x="156" y="146" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" d="M170 170V180"/>
+          <use href="#gnd" x="170" y="180" class="sch-sym net-gnd"/>
+          <path class="sch-w net-sig" d="M10 50H75M10 190H50V165"/>
+          <path class="sch-w net-sig2" d="M105 50H160M50 135V110H170V130"/>
+          <path class="sch-w net-gnd" d="M180 50H220V60M170 150V180"/>
+        </svg>
+        <figcaption>Колір дроту — це вузол: жовтий GPIO13, синій анод LED, сірий GND. В обох варіантах їх по три.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Рахуйте вузли, а не лінії. Дві різні на вигляд схеми з однаковими вузлами — це одне коло.</p>
+    </article>
+  </section>
+
+  <!-- ============================================================ 02 grammar -->
+  <section class="hs" id="grammar">
+    <h2><span class="n">02</span> Граматика: вісім правил</h2>
+    <p>Ці правила не закон природи, а домовленість креслярів. Через неї будь-яку акуратну схему можна прочитати за хвилину. Цифри на малюнку відповідають пунктам списку.</p>
+    <p class="swipe-hint">← схему можна прокрутити вбік →</p>
+    <figure class="fig wide fig-x">
+      <svg viewBox="0 0 440 312" role="img" aria-label="Приклад правильно накресленої схеми. Ліворуч дільник з резистора R1 10 кілоом і фоторезистора LDR1 до GPIO1, кнопка SW1 на GPIO7. Посередині плата U1. Праворуч від GPIO13 резистор R2 220 ом і світлодіод LED1 до землі. Живлення 3V3 вгорі, символи GND унизу.">
+        <use href="#vcc" x="80" y="40" class="sch-sym net-3v3"/>
+        <text class="sch-pin net-3v3" x="80" y="20" text-anchor="middle">3V3</text>
+        <use href="#res" x="80" y="40" class="sch-sym" transform="rotate(90 80 40)"/>
+        <text class="sch-ref" x="66" y="68" text-anchor="end">R1</text>
+        <text class="sch-val" x="66" y="84" text-anchor="end">10k</text>
+        <path class="sch-w net-sig3" d="M80 100V120M80 110H150"/>
+        <use href="#dot" x="80" y="110" class="sch-sym net-sig3"/>
+        <use href="#ldr" x="80" y="120" class="sch-sym" transform="rotate(90 80 120)"/>
+        <text class="sch-ref" x="66" y="148" text-anchor="end">LDR1</text>
+        <text class="sch-val" x="66" y="164" text-anchor="end">GL5528</text>
+        <path class="sch-w net-gnd" d="M80 180V190"/>
+        <use href="#gnd" x="80" y="190" class="sch-sym net-gnd"/>
+
+        <path class="sch-w net-sig4" d="M150 180H130"/>
+        <use href="#btn" x="130" y="180" class="sch-sym" transform="rotate(90 130 180)"/>
+        <text class="sch-ref" x="116" y="230" text-anchor="end">SW1</text>
+        <path class="sch-w net-gnd" d="M130 240V250"/>
+        <use href="#gnd" x="130" y="250" class="sch-sym net-gnd"/>
+
+        <rect class="sch-w" x="170" y="70" width="120" height="150" rx="3"/>
+        <text class="sch-ref" x="170" y="62">U1</text>
+        <text class="sch-val" x="230" y="92" text-anchor="middle">YD-ESP32-S3</text>
+        <use href="#mcu-pin" x="150" y="110" class="sch-sym"/>
+        <text class="sch-pin" x="182" y="115">GPIO1 · LDR</text>
+        <use href="#mcu-pin" x="150" y="180" class="sch-sym"/>
+        <text class="sch-pin" x="182" y="185">GPIO7 · BTN</text>
+        <use href="#mcu-pin" x="310" y="150" class="sch-sym" transform="rotate(180 310 150)"/>
+        <text class="sch-pin" x="278" y="155" text-anchor="end">GPIO13 · LED</text>
+
+        <use href="#res" x="310" y="150" class="sch-sym"/>
+        <text class="sch-ref" x="340" y="136" text-anchor="middle">R2</text>
+        <text class="sch-val" x="340" y="174" text-anchor="middle">220R</text>
+        <path class="sch-w net-sig2" d="M370 150H400"/>
+        <use href="#led" x="400" y="150" class="sch-sym" transform="rotate(90 400 150)"/>
+        <text class="sch-ref" x="384" y="196" text-anchor="end">LED1</text>
+        <path class="sch-w net-gnd" d="M400 210V220"/>
+        <use href="#gnd" x="400" y="220" class="sch-sym net-gnd"/>
+
+        <path class="sch-w net-3v3" d="M80 40V55"/>
+        <path class="sch-w net-sig3" d="M80 85V135M150 110H170"/>
+        <use href="#dot" x="80" y="110" class="sch-sym net-sig3"/>
+        <path class="sch-w net-sig4" d="M170 180H130V197"/>
+        <path class="sch-w net-sig" d="M290 150H325"/>
+        <path class="sch-w net-sig2" d="M355 150H400V170"/>
+        <path class="sch-w net-gnd" d="M80 165V190M130 223V250M400 190V220"/>
+
+        <path class="flow-arrow" d="M40 300H404"/>
+        <path d="M412 300L402 295V305Z" fill="var(--muted)"/>
+        <text class="lbl-muted" x="228" y="292" text-anchor="middle">датчики → МК → навантаження</text>
+
+        <g class="mk" aria-hidden="true">
+          <circle cx="28" cy="300" r="10"/><text x="28" y="300">1</text>
+          <circle cx="108" cy="22" r="10"/><text x="108" y="22">2</text>
+          <circle cx="104" cy="96" r="10"/><text x="104" y="96">3</text>
+          <circle cx="368" cy="122" r="10"/><text x="368" y="122">4</text>
+          <circle cx="230" cy="132" r="10"/><text x="230" y="132">5</text>
+          <circle cx="426" cy="234" r="10"/><text x="426" y="234">6</text>
+        </g>
+      </svg>
+      <figcaption>Зразок: дільник на фоторезисторі, кнопка і світлодіод на одній платі. Наведіть погляд на кожну цифру й знайдіть відповідний пункт нижче.</figcaption>
+    </figure>
+    <ol class="rules">
+      <li><b>Сигнал іде зліва направо.</b> Датчики й кнопки ліворуч, мікроконтролер посередині, навантаження (світлодіоди, реле, двигуни) праворуч.</li>
+      <li><b>Живлення вгорі, земля внизу.</b> Струм «стікає» згори донизу, як вода з гори: так легше уявляти, де напруга вища.</li>
+      <li><b>Точка — це з'єднання.</b> Дроти малюють лише горизонтально й вертикально. Відгалуження — Т-подібне і з точкою. Хрестоподібних з'єднань уникають: точку легко загубити.</li>
+      <li><b>Позначення і номінал біля кожної деталі.</b> Над деталлю або ліворуч — позначення (R2), під нею або праворуч — номінал (220R). Текст завжди читається без повороту голови.</li>
+      <li><b>Кожен вивід МК підписаний двічі:</b> номер GPIO і функція, наприклад «GPIO7 · BTN». Тоді схему легко звірити з кодом.</li>
+      <li><b>Символ GND замість довгих дротів назад.</b> Усі символи землі на схемі — один вузол, навіть якщо між ними немає лінії. Те саме з мітками «3V3» і «+5V».</li>
+      <li><b>Однакова мітка — один дріт.</b> На великих схемах замість ліній пишуть назву вузла (net label), наприклад <code>LED_PWM</code>. Усі місця з цією назвою з'єднані.</li>
+      <li><b>Читайте великі схеми блоками:</b> спершу знайдіть живлення, потім мікроконтролер, потім пройдіть кожен його вивід до деталей.</li>
+    </ol>
+    <details class="more">
+      <summary>Літери позначень: R, C, D, Q, U…</summary>
+      <div class="tbl"><table>
+        <thead><tr><th>Літера</th><th>Деталь</th><th>Приклад</th></tr></thead>
+        <tbody>
+          <tr><th>R</th><td>резистор (також потенціометр, фоторезистор)</td><td><code>R1 220R</code></td></tr>
+          <tr><th>C</th><td>конденсатор</td><td><code>C3 100n</code></td></tr>
+          <tr><th>D, LED</th><td>діод, світлодіод</td><td><code>D1 1N4148</code>, <code>LED1</code></td></tr>
+          <tr><th>Q</th><td>транзистор</td><td><code>Q1 BC547</code></td></tr>
+          <tr><th>U</th><td>мікросхема, модуль, плата</td><td><code>U1 ESP32-S3</code></td></tr>
+          <tr><th>SW</th><td>кнопка, перемикач</td><td><code>SW1</code></td></tr>
+          <tr><th>K</th><td>реле (котушка і контакти мають одне позначення)</td><td><code>K1</code></td></tr>
+          <tr><th>M</th><td>двигун</td><td><code>M1</code></td></tr>
+          <tr><th>J</th><td>роз'єм, гребінка</td><td><code>J1</code></td></tr>
+          <tr><th>BT</th><td>батарея</td><td><code>BT1</code></td></tr>
+        </tbody>
+      </table></div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 03 symbols -->
+  <section class="hs" id="symbols">
+    <h2><span class="n">03</span> Символи: IEC і ANSI</h2>
+    <p>В Україні та Європі креслять за IEC: резистор — прямокутник. В американських джерелах (SparkFun, Adafruit, Arduino) — за ANSI: резистор — зигзаг. Для решти деталей стилі майже збігаються. На цьому сайті скрізь IEC, а ANSI показано поруч, щоб ви впізнавали обидва.</p>
+    <p>Зелені точки на символах — виводи (піни), літери біля них — їхні назви. Де є полярність, вона написана в описі.</p>
+    <div class="sym-grid" id="sym-grid" aria-live="off">
+      <noscript><p>Таблиця символів малюється скриптом. Увімкніть JavaScript, щоб її побачити.</p></noscript>
+    </div>
+  </section>
+
+  <!-- ============================================================ 04 values -->
+  <section class="hs" id="values">
+    <h2><span class="n">04</span> Номінали: 4k7, 2R2, 104 і кольорові смужки</h2>
+    <p>Кома на схемі чи корпусі легко губиться: «4,7k» після ксерокопії стає «47k». Тому стандарт IEC 60062 пропонує ставити <b>букву-множник на місце коми</b>. Так записують номінали на схемах (RKM-код). На самих деталях пишуть числові коди або малюють смужки.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Запис</th><th>Значення</th><th>Як читати</th></tr></thead>
+      <tbody>
+        <tr><th>4k7</th><td>4,7&nbsp;кОм</td><td>k — кома і «кіло» водночас</td></tr>
+        <tr><th>2R2</th><td>2,2&nbsp;Ом</td><td>R — кома, множник ×1</td></tr>
+        <tr><th>470R</th><td>470&nbsp;Ом</td><td>R в кінці — ціле число ом</td></tr>
+        <tr><th>1M</th><td>1&nbsp;МОм</td><td>велика M — мега; мала m — мілі</td></tr>
+        <tr><th>100n</th><td>100&nbsp;нФ</td><td>n — нано, для конденсаторів</td></tr>
+        <tr><th>4n7</th><td>4,7&nbsp;нФ</td><td>n на місці коми</td></tr>
+        <tr><th>10u</th><td>10&nbsp;мкФ</td><td>u замість грецької µ</td></tr>
+        <tr><th>472</th><td>4,7&nbsp;кОм</td><td>SMD-резистор: 47 і ще 2 нулі</td></tr>
+        <tr><th>4701</th><td>4,7&nbsp;кОм</td><td>точний резистор: 470 і ще 1 нуль</td></tr>
+        <tr><th>104</th><td>100&nbsp;нФ</td><td>конденсатор: 10 і 4 нулі <b>пікофарад</b></td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="panel wide" id="decoder">
+      <div class="ph"><h3>Розшифрувальник</h3><span class="small">введіть будь-який запис</span></div>
+      <div class="pb">
+        <div class="dec-row">
+          <label for="dec-in" class="sr-only">Запис номіналу</label>
+          <input id="dec-in" type="text" value="4k7" autocomplete="off" spellcheck="false" inputmode="text">
+          <div class="seg" role="group" aria-label="Тип деталі" id="dec-kind">
+            <button type="button" data-k="auto" aria-pressed="true">Авто</button>
+            <button type="button" data-k="res" aria-pressed="false">Резистор</button>
+            <button type="button" data-k="cap" aria-pressed="false">Конденсатор</button>
+          </div>
+        </div>
+        <div class="ex-chips" id="dec-ex" aria-label="Приклади"></div>
+        <div class="dec-out" id="dec-out" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <h3>Кольорові смужки</h3>
+    <p>На вивідних резисторах номінал закодовано смужками (IEC 60062<sup class="cite" data-fact="iec-colour-code"></sup>). На резисторі з <b>4 смужками</b> перші дві — цифри, третя — множник (скільки нулів дописати), четверта — допуск. На точних резисторах <b>5 смужок</b>: три цифри, множник, допуск. Читають від краю, де смужки густіші; допуск (золотий ±5&nbsp;%, коричневий ±1&nbsp;%) стоїть окремо, з більшим проміжком.</p>
+    <div class="panel wide" id="bands">
+      <div class="ph"><h3>Смужки ↔ номінал</h3>
+        <div class="seg" role="group" aria-label="Кількість смужок" id="band-n">
+          <button type="button" data-n="4" aria-pressed="true">4 смужки</button>
+          <button type="button" data-n="5" aria-pressed="false">5 смужок</button>
+        </div>
+      </div>
+      <div class="pb">
+        <svg class="bands-svg" id="band-svg" viewBox="0 0 300 70" role="img" aria-label="Резистор із кольоровими смужками"></svg>
+        <div class="band-sel" id="band-sel"></div>
+        <div class="band-val">
+          <label for="band-in">Номінал:</label>
+          <input id="band-in" type="text" value="4k7" autocomplete="off" spellcheck="false">
+          <span class="band-read" id="band-read" aria-live="polite"></span>
+        </div>
+        <p class="small" style="margin:8px 0 0">Змініть смужки — побачите номінал. Введіть номінал (4k7, 220, 1M, 4,7 кОм) — побачите смужки.</p>
+      </div>
+    </div>
+
+    <h3>Перевірте себе</h3>
+    <div class="try" data-ans="2.2" data-tol="0.01" data-unit="Ом" data-dec="1">
+      <span class="tag">Спробуйте</span>
+      <p>На схемі біля резистора написано «2R2». Скільки це ом?</p>
+      <details><summary>Підказка</summary><p>R стоїть на місці коми.</p></details>
+    </div>
+    <div class="try" data-ans="100" data-tol="0.01" data-unit="нФ" data-dec="0">
+      <span class="tag">Спробуйте</span>
+      <p>На жовтому керамічному конденсаторі надруковано «104». Скільки це нанофарад?</p>
+      <details><summary>Підказка</summary><p>10 і ще 4 нулі — це пікофаради. 1&nbsp;нФ = 1000&nbsp;пФ.</p></details>
+    </div>
+    <div class="try" data-ans="1000" data-tol="0.01" data-unit="Ом" data-dec="0">
+      <span class="tag">Спробуйте</span>
+      <p>Смужки: коричневий, чорний, червоний, золотий. Який опір?</p>
+      <details><summary>Підказка</summary><p>Цифри 1 і 0, множник червоний — два нулі.</p></details>
+    </div>
+  </section>
+
+  <!-- ============================================================ 05 e12 -->
+  <section class="hs" id="e12">
+    <h2><span class="n">05</span> Ряд E12: які номінали бувають</h2>
+    <p>Резистора на 140&nbsp;Ом у наборі не знайдете. Номінали випускають рядами (IEC 60063): у ряді <b>E12</b> на кожну декаду 12 значень, кожне приблизно на 20&nbsp;% більше за попереднє<sup class="cite" data-fact="iec-e12"></sup>. Допуск ±10&nbsp;% якраз перекриває проміжки. Ті самі 12 цифр повторюються в кожній декаді.</p>
+    <p class="formula">10 · 12 · 15 · 18 · 22 · 27 · 33 · 39 · 47 · 56 · 68 · 82</p>
+    <div class="tbl"><table class="e12" id="e12-table" aria-label="Ряд E12 у п'яти декадах">
+      <thead><tr><th>Декада</th><th colspan="12">Номінали (запис RKM)</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <ol class="worked">
+      <li><b>Задача.</b> Червоний світлодіод від 3,3&nbsp;В, хочемо близько 10&nbsp;мА. Пряма напруга LED типово 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>.</li>
+      <li><b>Рахуємо.</b> <span class="formula">R = (3,3 − 1,9) / 0,010 = 140 Ом</span><span class="why">чому: на резисторі лишається різниця напруг, а струм у послідовному колі один.</span></li>
+      <li><b>Беремо найближчий більший з E12:</b> 150&nbsp;Ом. <span class="formula">I = 1,4 / 150 ≈ 9,3 мА</span><span class="why">чому більший: струм вийде трохи меншим за розрахунковий, а не більшим. Для світлодіода це безпечніше.</span></li>
+    </ol>
+    <div class="panel">
+      <div class="ph"><h3>Підібрати з E12</h3></div>
+      <div class="pb">
+        <div class="dec-row">
+          <label for="e12-in">Розрахований опір:</label>
+          <input id="e12-in" type="text" value="140" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="e12-out" id="e12-out" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="try" data-ans="1200" data-tol="0.01" data-unit="Ом" data-dec="0">
+      <span class="tag">Спробуйте</span>
+      <p>Розрахунок дав 1,1&nbsp;кОм. Який найближчий <b>більший</b> номінал з E12? Можна ввести у вигляді «1k2».</p>
+      <details><summary>Підказка</summary><p>Знайдіть у ряді число, що йде після 10.</p></details>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 nets -->
+  <section class="hs" id="nets">
+    <h2><span class="n">06</span> Вузли: розфарбуйте схему</h2>
+    <p>Найкраща вправа на читання схем: <b>кожен вузол — своїм кольором</b>. Виберіть колір і клацайте по дротах (пунктир). Дроти, з'єднані між собою без деталей, мають бути одного кольору, а різні вузли — різного. Повторне клацання тим самим кольором стирає.</p>
+    <div class="panel wide" id="paint">
+      <div class="ph"><h3>Розфарбуйте вузли</h3><span class="small">5 кольорів — їх вистачить</span></div>
+      <div class="pb">
+        <div class="paint-bar" id="paint-bar" role="group" aria-label="Колір пензля"></div>
+        <p class="swipe-hint">← схему можна прокрутити вбік →</p>
+        <div class="fig-x"><svg id="paint-svg" viewBox="0 0 420 260" role="group" aria-label="Схема для розфарбовування: живлення 3V3 двічі, R1 10 кілоом, кнопка SW1 на GPIO7, R2 220 ом і світлодіод LED1 на GPIO13, два символи GND. Дев'ять ділянок дроту можна клацнути.">
+          <use href="#vcc" x="60" y="40" class="sch-sym"/>
+          <text class="sch-pin" x="60" y="20" text-anchor="middle">3V3</text>
+          <use href="#res" x="60" y="50" class="sch-sym" transform="rotate(90 60 50)"/>
+          <text class="sch-ref" x="46" y="78" text-anchor="end">R1</text>
+          <text class="sch-val" x="46" y="94" text-anchor="end">10k</text>
+          <use href="#dot" x="60" y="130" class="sch-sym"/>
+          <use href="#btn" x="60" y="150" class="sch-sym" transform="rotate(90 60 150)"/>
+          <text class="sch-ref" x="46" y="186" text-anchor="end">SW1</text>
+          <use href="#gnd" x="60" y="222" class="sch-sym"/>
+          <rect class="sch-w" x="150" y="90" width="110" height="100" rx="3"/>
+          <text class="sch-ref" x="150" y="82">U1</text>
+          <use href="#vcc" x="205" y="70" class="sch-sym"/>
+          <text class="sch-pin" x="205" y="50" text-anchor="middle">3V3</text>
+          <text class="sch-pin" x="205" y="110" text-anchor="middle">3V3</text>
+          <use href="#mcu-pin" x="130" y="130" class="sch-sym"/>
+          <text class="sch-pin" x="162" y="135">GPIO7</text>
+          <use href="#mcu-pin" x="280" y="160" class="sch-sym" transform="rotate(180 280 160)"/>
+          <text class="sch-pin" x="248" y="165" text-anchor="end">GPIO13</text>
+          <use href="#res" x="290" y="160" class="sch-sym"/>
+          <text class="sch-ref" x="320" y="146" text-anchor="middle">R2</text>
+          <text class="sch-val" x="320" y="184" text-anchor="middle">220R</text>
+          <use href="#led" x="370" y="160" class="sch-sym" transform="rotate(90 370 160)"/>
+          <text class="sch-ref" x="356" y="208" text-anchor="end">LED1</text>
+          <use href="#gnd" x="370" y="230" class="sch-sym"/>
+          <g id="paint-segs">
+            <path data-truth="v33" d="M60 40V50"/>
+            <path data-truth="v33" d="M205 70V90"/>
+            <path data-truth="btn" d="M60 110V130"/>
+            <path data-truth="btn" d="M60 130H130"/>
+            <path data-truth="btn" d="M60 130V150"/>
+            <path data-truth="gnd" d="M60 210V222"/>
+            <path data-truth="g13" d="M280 160H290"/>
+            <path data-truth="la" d="M350 160H370"/>
+            <path data-truth="gnd" d="M370 220V230"/>
+          </g>
+        </svg></div>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="paint-check">Перевірити</button>
+          <button type="button" class="btn" id="paint-reset">Почати знову</button>
+          <button type="button" class="btn ghost" id="paint-show">Показати відповідь</button>
+        </div>
+        <p class="paint-fb" id="paint-fb" aria-live="polite"></p>
+      </div>
+    </div>
+    <details class="more">
+      <summary>Підказка, якщо застрягли</summary>
+      <p>Дві мітки «3V3» — один вузол, два символи GND — теж один. Дріт до GPIO7 відходить від точки, тож він у тому ж вузлі, що й низ R1 та верх кнопки. Резистор і світлодіод розділяють вузли: їхні виводи завжди в різних вузлах.</p>
+    </details>
+
+    <h3>Скільки вузлів?</h3>
+    <p>Це питання часто ставлять на занятті: відповідь для схеми й для макетки має збігтися.</p>
+    <figure class="fig">
+      <svg id="count-svg" viewBox="0 0 290 160" role="img" aria-label="Схема для підрахунку вузлів: батарея BT1, резистор R1 зверху, резистори R2 і R3 паралельно до землі, три символи GND.">
+        <use href="#vsrc" x="40" y="60" class="sch-sym" transform="rotate(90 40 60)"/>
+        <text class="sch-ref" x="54" y="100">BT1</text>
+        <text class="sch-val" x="54" y="116">4,5 В</text>
+        <path class="sch-w" data-net="n1" data-cls="net-sig" d="M40 60V40H80"/>
+        <use href="#res" x="80" y="40" class="sch-sym"/>
+        <text class="sch-ref" x="110" y="26" text-anchor="middle">R1</text>
+        <text class="sch-val" x="110" y="62" text-anchor="middle">1k</text>
+        <path class="sch-w" data-net="a" data-cls="net-sig2" d="M140 40H240V60"/>
+        <path class="sch-w" data-net="a" data-cls="net-sig2" d="M180 40V60"/>
+        <use href="#dot" x="180" y="40" class="sch-sym" data-net="a" data-cls="net-sig2"/>
+        <use href="#res" x="180" y="60" class="sch-sym" transform="rotate(90 180 60)"/>
+        <text class="sch-ref" x="166" y="88" text-anchor="end">R2</text>
+        <text class="sch-val" x="166" y="104" text-anchor="end">2k2</text>
+        <use href="#res" x="240" y="60" class="sch-sym" transform="rotate(90 240 60)"/>
+        <text class="sch-ref" x="254" y="88">R3</text>
+        <text class="sch-val" x="254" y="104">4k7</text>
+        <path class="sch-w" data-net="gnd" data-cls="net-gnd" d="M40 120V130"/>
+        <path class="sch-w" data-net="gnd" data-cls="net-gnd" d="M180 120V130"/>
+        <path class="sch-w" data-net="gnd" data-cls="net-gnd" d="M240 120V130"/>
+        <use href="#gnd" x="40" y="130" class="sch-sym" data-net="gnd" data-cls="net-gnd"/>
+        <use href="#gnd" x="180" y="130" class="sch-sym" data-net="gnd" data-cls="net-gnd"/>
+        <use href="#gnd" x="240" y="130" class="sch-sym" data-net="gnd" data-cls="net-gnd"/>
+      </svg>
+    </figure>
+    <div class="predict" data-ok="0" data-gate="count-reveal"
+         data-why="Вузлів три: плюс батареї з лівим виводом R1; точка між R1, R2 і R3 (вона одна, хоч ліній кілька); і земля — усі три символи GND разом з мінусом батареї. Число ліній чи символів GND тут нічого не означає.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Скільки різних вузлів на цій схемі?</p>
+      <div class="opts cols-2">
+        <button class="opt">3</button>
+        <button class="opt">4</button>
+        <button class="opt">5</button>
+        <button class="opt">7 — скільки ділянок дроту</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated" id="count-reveal">
+      <figure class="fig" id="count-fig" data-schem-link data-nets="n1=Вузол 1 · плюс BT1; a=Вузол 2 · R1–R2–R3; gnd=Вузол 3 · GND">
+        <figcaption>Кожен вузол — свій колір і номер. Натисніть кнопку вузла або дріт, щоб виділити його.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 dual -->
+  <section class="hs" id="dual">
+    <h2><span class="n">07</span> Схема ↔ макетка</h2>
+    <p>На макетці з'єднання сховані всередині: кожні <b>5 отворів у стовпчику (a–e або f–j) — одна металева смужка</b>, тобто один вузол. Довгі ряди з краю — шини живлення. Наведіть курсор на отвір: підсвітиться вся його смужка. На деяких довгих макетках шини розірвані посередині — перевірте мультиметром.</p>
+    <p>Нижче те саме коло двома мовами. Наведіть курсор чи натисніть на дріт або кнопку вузла: він підсвітиться в обох видах.</p>
+    <figure class="dual wide" id="dual-led" data-nets="gpio13=GPIO13; led_a=Анод LED; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 260 185" role="img" aria-label="Схема: вивід GPIO13 плати U1 через резистор R1 220 ом до анода світлодіода LED1, катод до землі. Вивід GND плати теж на землю.">
+          <rect class="sch-w" x="10" y="44" width="60" height="110" rx="3"/>
+          <text class="sch-ref" x="10" y="34">U1 · ESP32-S3</text>
+          <use href="#mcu-pin" x="90" y="80" class="sch-sym" transform="rotate(180 90 80)"/>
+          <text class="sch-pin net-sig" data-net="gpio13" x="62" y="85" text-anchor="end">GPIO13</text>
+          <use href="#mcu-pin" x="90" y="130" class="sch-sym" transform="rotate(180 90 130)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="62" y="135" text-anchor="end">GND</text>
+          <path class="sch-w net-sig" data-net="gpio13" id="w-s-g13" d="M90 80H100"/>
+          <use href="#res" x="100" y="80" class="sch-sym"/>
+          <text class="sch-ref" x="130" y="66" text-anchor="middle">R1</text>
+          <text class="sch-val" x="130" y="104" text-anchor="middle">220 Ом</text>
+          <path class="sch-w net-sig2" data-net="led_a" id="w-s-la" d="M160 80H200"/>
+          <use href="#led" x="200" y="80" class="sch-sym" transform="rotate(90 200 80)"/>
+          <text class="sch-ref" x="186" y="124" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-s-k" d="M200 140V160"/>
+          <use href="#gnd" x="200" y="160" class="sch-sym net-gnd" data-net="gnd"/>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-s-gp" d="M90 130H120V150"/>
+          <use href="#gnd" x="120" y="150" class="sch-sym net-gnd" data-net="gnd"/>
+          <path class="sch-w net-sig" data-net="gpio13" d="M70 80H115"/>
+          <path class="sch-w net-sig2" data-net="led_a" d="M145 80H200V100"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M200 120V160M70 130H90"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-led" viewBox="0 0 262 222" role="img" aria-label="Макетка: дріт від GPIO13 плати в стовпчик 3, резистор від стовпчика 3 до 8, світлодіод анодом у стовпчик 8 і катодом у стовпчик 9, дріт від стовпчика 9 на верхню шину мінус, ця шина з'єднана з GND плати."></svg>
+      </div>
+      <figcaption>Резистор і світлодіод з'єднані, бо їхні ніжки стоять в одній смужці (стовпчик 8), а не тому, що вони поруч.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <div class="seg" role="group" aria-label="Рівень на GPIO13" id="lvl">
+        <button type="button" data-l="hi" aria-pressed="true">GPIO13 = HIGH</button>
+        <button type="button" data-l="lo" aria-pressed="false">GPIO13 = LOW</button>
+      </div>
+      <button type="button" class="btn" id="flow-btn" aria-pressed="false">Показати струм</button>
+      <span class="out" id="flow-out" aria-live="polite"></span>
+    </div>
+    <p class="small">Точки рухаються з однаковою швидкістю в кожному дроті: струм у послідовному колі всюди той самий, світлодіод його не «з'їдає».</p>
+  </section>
+
+  <!-- ============================================================ 08 pins -->
+  <section class="hs" id="pins">
+    <h2><span class="n">08</span> Номер виводу ≠ GPIO ≠ напис на платі</h2>
+    <p>Одна й та сама ніжка має щонайменше три «імені». Плутанина між ними — одна з найчастіших причин «код правильний, а нічого не працює».</p>
+    <div class="three">
+      <div><span class="tag">У коді</span><b class="big">GPIO13</b><p>Номер сигналу всередині чипа ESP32-S3. В Arduino для ESP32 саме його пишуть у <code>pinMode(13, OUTPUT)</code>.</p></div>
+      <div><span class="tag">На модулі WROOM-1</span><b class="big">pin 21</b><p>Порядковий номер контакту на краю модуля в даташиті<sup class="cite" data-fact="wroom-gpio13-14-free"></sup>. Потрібен, лише якщо розводите власну плату.</p></div>
+      <div><span class="tag">На платі YD-ESP32-S3</span><b class="big">«13»</b><p>Підпис біля гребінки. На цій платі друкують номер GPIO; на інших платах трапляються «D7», «A0» чи «IO13».</p></div>
+    </div>
+    <div class="predict" data-ok="1" id="pin-predict"
+         data-why="В Arduino-ядрі ESP32 число в pinMode — це номер GPIO. На YD-ESP32-S3 біля гребінки надруковано саме номери GPIO, тож шукайте підпис «13». Номер контакту модуля (pin 21) і позиція на гребінці для коду нічого не значать.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>У скетчі написано <code>pinMode(13, OUTPUT)</code>. Куди на YD-ESP32-S3 підключати світлодіод?</p>
+      <div class="opts">
+        <button class="opt">До 13-го контакту модуля ESP32-S3-WROOM-1</button>
+        <button class="opt">До виводу з підписом «13» на платі (GPIO13)</button>
+        <button class="opt">До 13-го виводу гребінки, якщо рахувати від USB-роз'єму</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="tbl"><table>
+      <caption>Кілька виводів, з якими ви зустрінетеся</caption>
+      <thead><tr><th>У коді (GPIO)</th><th>Контакт модуля</th><th>Що треба знати</th></tr></thead>
+      <tbody>
+        <tr><th>GPIO13, GPIO14</th><td>21, 22</td><td>звичайні вільні виводи — добрі для LED і кнопок<sup class="cite" data-fact="wroom-gpio13-14-free"></sup></td></tr>
+        <tr><th>GPIO0</th><td>27</td><td>кнопка BOOT і strapping-пін: рівень читається при старті<sup class="cite" data-fact="yd-boot-gpio0"></sup><sup class="cite" data-fact="s3-strapping-pins"></sup></td></tr>
+        <tr><th>GPIO48</th><td>25</td><td>вбудований RGB-світлодіод WS2812 на платі<sup class="cite" data-fact="yd-rgb-gpio48"></sup></td></tr>
+        <tr><th>GPIO35, 36, 37</th><td>28, 29, 30</td><td>на гребінці є, але в N16R8 зайняті пам'яттю PSRAM — не використовуйте<sup class="cite" data-fact="wroom-octal-psram-pins"></sup></td></tr>
+        <tr><th>GPIO22–25</th><td>—</td><td>у ESP32-S3 таких GPIO немає взагалі<sup class="cite" data-fact="s3-gpio-numbering"></sup></td></tr>
+      </tbody>
+    </table></div>
+    <p class="key"><b>Головне</b>На схемі біля кожного виводу пишіть номер GPIO і функцію: «GPIO13 · LED». Той самий номер стоїть у коді й на платі.</p>
+  </section>
+
+  <!-- ============================================================ 09 mistakes -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">09</span> Типові помилки на схемах</h2>
+    <div class="pairs">
+      <article class="pair">
+        <h3>Хрест замість двох Т</h3>
+        <div class="pp">
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Погано: чотири дроти сходяться в одній точці хрестом.">
+              <path class="sch-w" d="M20 45H120M70 10V80"/>
+              <use href="#dot" x="70" y="45" class="sch-sym"/>
+              <circle class="bad-mark" cx="70" cy="45" r="14"/>
+            </svg>
+            <figcaption class="bad-c">✗ погано</figcaption>
+          </figure>
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Добре: два Т-подібні з'єднання з точками, зсунуті одне від одного.">
+              <path class="sch-w" d="M20 45H120M55 10V45M85 45V80"/>
+              <use href="#dot" x="55" y="45" class="sch-sym"/>
+              <use href="#dot" x="85" y="45" class="sch-sym"/>
+            </svg>
+            <figcaption class="good-c">✓ добре</figcaption>
+          </figure>
+        </div>
+        <p>Після друку чи скриншота точку в хресті легко загубити — і з'єднання перетвориться на перетин.</p>
+      </article>
+      <article class="pair">
+        <h3>Перетин без точки — не з'єднання</h3>
+        <div class="pp">
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Два дроти перетинаються без точки: вони не з'єднані.">
+              <path class="sch-w net-sig" d="M20 45H120"/>
+              <path class="sch-w net-sig2" d="M70 10V80"/>
+            </svg>
+            <figcaption>не з'єднані</figcaption>
+          </figure>
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Т-з'єднання з точкою: дроти з'єднані.">
+              <path class="sch-w net-sig" d="M20 45H120M70 45V80"/>
+              <use href="#dot" x="70" y="45" class="sch-sym net-sig"/>
+            </svg>
+            <figcaption>з'єднані</figcaption>
+          </figure>
+        </div>
+        <p>Новачки часто вважають, що будь-яке перехрещення ліній — це контакт. Ні: контакт позначає лише точка.</p>
+      </article>
+      <article class="pair">
+        <h3>Довгий дріт землі через усю схему</h3>
+        <div class="pp">
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Погано: два резистори з'єднані довгим нижнім дротом.">
+              <use href="#res" x="30" y="10" class="sch-sym" transform="rotate(90 30 10)"/>
+              <use href="#res" x="110" y="10" class="sch-sym" transform="rotate(90 110 10)"/>
+              <path class="sch-w" d="M30 70V82H110V70"/>
+              <path class="bad-mark" d="M24 86H116"/>
+            </svg>
+            <figcaption class="bad-c">✗ заплутано</figcaption>
+          </figure>
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Добре: у кожного резистора свій символ GND.">
+              <use href="#res" x="30" y="10" class="sch-sym" transform="rotate(90 30 10)"/>
+              <use href="#res" x="110" y="10" class="sch-sym" transform="rotate(90 110 10)"/>
+              <use href="#gnd" x="30" y="70" class="sch-sym net-gnd"/>
+              <use href="#gnd" x="110" y="70" class="sch-sym net-gnd"/>
+            </svg>
+            <figcaption class="good-c">✓ символи GND</figcaption>
+          </figure>
+        </div>
+        <p>На великій схемі такі дроти перетинають усе підряд. Символ GND каже те саме коротше.</p>
+      </article>
+      <article class="pair">
+        <h3>Номінал догори ногами, без позначення</h3>
+        <div class="pp">
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Погано: резистор без позначення, номінал написано догори ногами.">
+              <path class="sch-w" d="M10 45H40M100 45H130"/>
+              <use href="#res" x="40" y="45" class="sch-sym"/>
+              <text class="sch-val" x="70" y="24" text-anchor="middle" transform="rotate(180 70 20)">220</text>
+            </svg>
+            <figcaption class="bad-c">✗ що це?</figcaption>
+          </figure>
+          <figure>
+            <svg viewBox="0 0 140 90" role="img" aria-label="Добре: над резистором R1, під ним 220R.">
+              <path class="sch-w" d="M10 45H40M100 45H130"/>
+              <use href="#res" x="40" y="45" class="sch-sym"/>
+              <text class="sch-ref" x="70" y="30" text-anchor="middle">R1</text>
+              <text class="sch-val" x="70" y="70" text-anchor="middle">220R</text>
+            </svg>
+            <figcaption class="good-c">✓ R1 / 220R</figcaption>
+          </figure>
+        </div>
+        <p>Без позначення R1 нема як сказати «перевір R1» у чаті. Без одиниці «220» може бути і омами, і пікофарадами.</p>
+      </article>
+    </div>
+    <div class="myth">
+      <p class="seems">Порядок деталей на схемі — це порядок на макетці: якщо резистор намальовано перед світлодіодом, він «спершу гасить струм».</p>
+      <p class="truth">Схема — граф. У послідовному колі струм один і той самий усюди, тож резистор до чи після світлодіода дає однаковий результат.</p>
+      <p class="test">Поміняйте місцями R і LED на макетці й виміряйте струм: число не зміниться.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">«1m» і «1M» — те саме, просто різний регістр.</p>
+      <p class="truth">Мала m — мілі (×0,001), велика M — мега (×1&nbsp;000&nbsp;000). Різниця в мільярд разів.</p>
+      <p class="test">Наберіть обидва записи в розшифрувальнику вище.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">На схемі досить написати номер виводу: «пін 21».</p>
+      <p class="truth">Номер контакту модуля, номер GPIO і підпис на платі — різні речі. Пишіть «GPIO13 · LED»: цей номер стоїть і в коді, і на платі.</p>
+      <p class="test">Знайдіть GPIO13 у таблиці розділу 08: контакт модуля в нього 21.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 10 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">10</span> Картки</h2>
+    <p>Дві колоди до цієї сторінки: позначення номіналів і символи. Повторюйте по кілька хвилин на день — це надійніше, ніж перечитувати.</p>
+    <h3>Позначення: 4k7, 104, E12</h3>
+    <div class="deck-mini" data-deck="notation" data-n="8"></div>
+    <h3>Символи і виводи</h3>
+    <div class="deck-mini" data-deck="symbols" data-n="8"></div>
+    <p><a class="btn" href="../cards/">Усі картки в тренажері →</a></p>
+  </section>
+
+  <!-- ============================================================ 11 more -->
+  <section class="hs" id="more">
+    <h2><span class="n">11</span> Матеріали і джерела</h2>
+    <ul>
+      <li><a href="https://learn.sparkfun.com/tutorials/how-to-read-a-schematic" target="_blank" rel="noopener">SparkFun: How to Read a Schematic</a> (англ.) — символи в стилі ANSI, корисно для впізнавання.</li>
+      <li><a href="https://www.falstad.com/circuit/circuitjs.html?euroResistors=true" target="_blank" rel="noopener">Falstad CircuitJS</a> — симулятор кіл у браузері; параметр <code>euroResistors=true</code> вмикає символи IEC.</li>
+      <li><a href="../atlas/">Атлас компонентів</a> — фото, виводи й полярність кожної деталі з набору.</li>
+    </ul>
+    <h3>Джерела</h3>
+    <ol id="sources" class="sources"></ol>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+    <details class="more">
+      <summary>Для авторів сторінок: як малювати схеми на сайті</summary>
+      <p>Символи беруться зі спрайта <code>assets/symbols.svg</code>: <code>&lt;use href="#res" x="…" y="…"/&gt;</code>. Вивід 1 у точці (x, y), вивід 2 — на 60 одиниць праворуч; повороти лише на 0/90/180/270°. Сітка — 10 одиниць. Дроти — <code>path.sch-w</code> з класом вузла <code>.net-5v</code>, <code>.net-3v3</code>, <code>.net-gnd</code>, <code>.net-sig</code>… і атрибутом <code>data-net</code>. Фігура <code>figure.dual[data-nets]</code> отримує легенду вузлів і підсвічування автоматично (<code>assets/schem.js</code>).</p>
+    </details>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/flashcards.js" defer></script>
+<script src="../assets/schem.js" defer></script>
+<script>
+/* Page widgets. Runs on study:ready (Study and Schem are loaded by then); schem.js inlines the sprite and links
+   figures right after, so every <use href="#…"> created here resolves too. */
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  if (!S) return;
+  const NBSP = ' ';
+
+  /* ==== 03 symbol cards ==== */
+  const TWO = '-14 -34 88 60', THREE = '-16 -42 72 86';
+  const SYM_SCALE = 1.5; // px per sprite unit, the same for every thumbnail
+  const P2 = (a = '1', b = '2') => [[0, 0, a], [60, 0, b]];
+  const SYMS = [
+    { id: 'res', us: 'res-us', name: 'Резистор', ref: 'R', pins: P2(), note: 'Неполярний: ставте будь-яким боком.' },
+    { id: 'pot', us: 'pot-us', name: 'Потенціометр', ref: 'R, RV', pins: [...P2(), [30, -20, 'W']], note: 'Крайні виводи 1 і 2 — кінці доріжки, W — повзунок посередині.' },
+    { id: 'ldr', us: 'ldr-us', name: 'Фоторезистор', ref: 'R, LDR', pins: P2(), note: 'Неполярний. Стрілки всередину: світло падає на деталь.' },
+    { id: 'cap', name: 'Конденсатор', ref: 'C', pins: P2(), note: 'Керамічний, неполярний. Код 104 = 100 нФ.' },
+    { id: 'cap-pol', us: 'cap-pol-us', name: 'Електролітичний конденсатор', ref: 'C', pins: P2('+', '−'), note: 'Полярний! Смужка з «−» на корпусі — мінус, довша ніжка — плюс.' },
+    { id: 'diode', name: 'Діод', ref: 'D', pins: P2('A', 'K'), note: 'Струм іде за трикутником: від анода A до катода K. Смужка на корпусі — катод.' },
+    { id: 'led', name: 'Світлодіод', ref: 'LED, D', pins: P2('A', 'K'), note: 'Довша ніжка — анод A; плаский край корпусу — катод K. Стрілки назовні: світло виходить.' },
+    { id: 'btn', name: 'Кнопка', ref: 'SW', pins: P2(), note: 'Нормально розімкнена: з\'єднує 1 і 2, лише поки натиснута. У тактової кнопки 4 ніжки, попарно з\'єднані.' },
+    { id: 'sw', name: 'Перемикач', ref: 'SW', pins: P2(), note: 'Один контакт, один напрямок (SPST): лишається в тому стані, куди перемкнули.' },
+    { id: 'npn', name: 'NPN-транзистор', ref: 'Q', pins: [[0, 0, 'B'], [30, -30, 'C'], [30, 30, 'E']], note: 'Стрілка на емітері E назовні — це NPN. Порядок ніжок у корпусі різний: у BC547 C-B-E.' },
+    { id: 'nmos', name: 'N-канальний MOSFET', ref: 'Q', pins: [[0, 0, 'G'], [30, -30, 'D'], [30, 30, 'S']], note: 'Затвор G, стік D, витік S. Розірваний канал: без напруги на затворі транзистор закритий.' },
+    { id: 'relay-coil', name: 'Котушка реле', ref: 'K', pins: P2(), note: 'Неполярна, але під час вимкнення дає сплеск напруги. Тому паралельно ставлять діод.' },
+    { id: 'relay-no', name: 'Контакт реле (NO)', ref: 'K', pins: P2('COM', 'NO'), note: 'Нормально розімкнений. Позначення як у котушки (K1): видно, що це одне реле.' },
+    { id: 'motor', name: 'Двигун', ref: 'M', pins: P2(), note: 'Двигун постійного струму. Від GPIO напряму не живлять: лише через транзистор.' },
+    { id: 'vsrc', name: 'Джерело живлення', ref: 'BT, V', pins: P2('+', '−'), note: 'Довга тонка пластина — плюс, коротка товста — мінус.' },
+    { id: 'meter-v', name: 'Вольтметр', ref: 'V', pins: P2('+', 'COM'), note: 'Вмикають паралельно до ділянки, коло не розривають.' },
+    { id: 'meter-a', name: 'Амперметр', ref: 'A', pins: P2('+', 'COM'), note: 'Вмикають послідовно, в розрив кола.' },
+    { id: 'gnd', name: 'Земля (GND)', ref: '—', pins: [[0, 0, '']], box: '-26 -10 52 40', note: '0 В, точка відліку. Усі символи GND на схемі — один вузол.' },
+    { id: 'vcc', name: 'Мітка живлення', ref: '—', pins: [[0, 0, '']], box: '-26 -36 52 46', label: '3V3', note: 'Біля неї пишуть напругу: «3V3», «+5V». Однакові мітки — один вузол.' },
+    { id: 'dot', name: 'Точка з\'єднання', ref: '—', pins: [], box: '-20 -14 40 28', note: 'Є точка — дроти з\'єднані. Перетин без точки — не з\'єднані.' },
+    { id: 'mcu-pin', name: 'Вивід мікроконтролера', ref: 'U', pins: [[0, 0, '']], box: '-10 -16 48 32', note: 'Підпис усередині мікросхеми: номер GPIO і функція, «GPIO7 · BTN».' },
+  ];
+  // Where to put a pin name so it does not sit on the symbol.
+  const pinLabelPos = (s, [x, y]) => {
+    if (s.pins.length === 3 && s.id !== 'pot') return x === 0 ? [-5, -7, 'end'] : [36, y < 0 ? -24 : 32, 'start'];
+    if (y < 0) return [x + 7, y - 2, 'start'];
+    return [x, 20, 'middle'];
+  };
+  function symbolSvg(s, id) {
+    const box = s.box || (s.pins.length === 3 && s.id !== 'pot' ? THREE : TWO);
+    const el = S.svg('svg', { viewBox: box, width: +box.split(' ')[2] * SYM_SCALE, role: 'img', 'aria-label': `${s.name}, ${id === s.id ? 'IEC' : 'ANSI'}: виводи ${s.pins.map((p) => p[2]).filter(Boolean).join(', ') || 'один'}` });
+    S.use(el, id, 0, 0);
+    if (s.label) S.svg('text', { class: 'pin-t', x: 0, y: -22, 'text-anchor': 'middle' }, el).textContent = s.label;
+    for (const p of s.pins) {
+      S.svg('circle', { class: 'pin-dot', cx: p[0], cy: p[1], r: 2.6 }, el);
+      if (!p[2]) continue;
+      const [lx, ly, anchor] = pinLabelPos(s, p);
+      S.svg('text', { class: 'pin-t', x: lx, y: ly, 'text-anchor': anchor }, el).textContent = p[2];
+    }
+    return el;
+  }
+  const grid = $('#sym-grid');
+  grid.textContent = '';
+  for (const s of SYMS) {
+    const card = document.createElement('article');
+    card.className = 'sym-card';
+    card.innerHTML = `<h3><span>${s.name}</span><span class="ref">${s.ref}</span></h3><div class="sym-pics"></div><p></p>`;
+    const pics = $('.sym-pics', card);
+    const fig = (id, cap) => {
+      const f = document.createElement('figure');
+      f.append(symbolSvg(s, id));
+      const c = document.createElement('figcaption');
+      c.textContent = cap;
+      f.append(c);
+      pics.append(f);
+    };
+    fig(s.id, s.us ? 'IEC' : 'IEC = ANSI');
+    if (s.us) fig(s.us, 'ANSI');
+    $('p', card).textContent = s.note;
+    grid.append(card);
+  }
+
+  /* ==== 04 notation decoder ==== */
+  const decIn = $('#dec-in'), decOut = $('#dec-out');
+  let decKind = 'auto';
+  const KIND_UK = { res: 'резистор', cap: 'конденсатор' };
+  function renderDecode() {
+    const list = S.decode(decIn.value, decKind);
+    if (!decIn.value.trim()) { decOut.innerHTML = ''; return; }
+    if (!list.length) {
+      decOut.innerHTML = '<div class="res"><span class="how">Не впізнаю цей запис. Спробуйте 4k7, 2R2, 100n, 472, 104 або «4,7 кОм».</span></div>';
+      return;
+    }
+    decOut.innerHTML = '';
+    for (const r of list) {
+      const box = document.createElement('div');
+      box.className = 'res';
+      box.innerHTML = `<span class="k">${list.length > 1 ? 'якщо це ' : ''}${KIND_UK[r.kind]}</span><b></b><span class="how"></span>`;
+      $('b', box).textContent = r.text;
+      $('.how', box).textContent = r.how;
+      if (r.kind === 'res' && r.value > 0) {
+        const bands = S.colorBands(r.value, 4);
+        if (bands.length) $('.how', box).textContent += `. Смужки: ${bands.map((b) => S.BAND_UK[b]).join(', ')}.`;
+      }
+      decOut.append(box);
+    }
+    if (list.length > 1) {
+      const n = document.createElement('div');
+      n.className = 'res';
+      n.innerHTML = '<span class="how">Три цифри без букви неоднозначні: на SMD-резисторі це оми, на керамічному конденсаторі — пікофаради. Дивіться, на якій деталі напис.</span>';
+      decOut.append(n);
+    }
+  }
+  decIn.addEventListener('input', renderDecode);
+  $$('#dec-kind button').forEach((b) => b.addEventListener('click', () => {
+    decKind = b.dataset.k;
+    $$('#dec-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderDecode();
+  }));
+  const exBox = $('#dec-ex');
+  ['4k7', '2R2', '470R', '1M', '1m', '100n', '4n7', '10u', '472', '4701', '104', '222', '220'].forEach((t) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = t;
+    b.addEventListener('click', () => { decIn.value = t; renderDecode(); });
+    exBox.append(b);
+  });
+  renderDecode();
+
+  /* ==== 04 colour bands ==== */
+  const DIG = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'];
+  const MULT = [...DIG, 'gold', 'silver'];
+  const TOLS = ['brown', 'red', 'green', 'blue', 'violet', 'grey', 'gold', 'silver'];
+  const multText = (c) => (c === 'gold' ? '×0,1' : c === 'silver' ? '×0,01' : '×' + fmt.num(10 ** DIG.indexOf(c), 0));
+  let nBands = 4, bands = ['yellow', 'violet', 'red', 'gold'];
+  const bandSvg = $('#band-svg'), bandSel = $('#band-sel'), bandIn = $('#band-in'), bandRead = $('#band-read');
+  function drawResistor() {
+    bandSvg.textContent = '';
+    S.svg('path', { d: 'M4 35H296', stroke: '#8d979e', 'stroke-width': 4, 'stroke-linecap': 'round' }, bandSvg);
+    S.svg('rect', { x: 70, y: 12, width: 160, height: 46, rx: 18, fill: '#dcc394', stroke: '#9c855a', 'stroke-width': 1.5 }, bandSvg);
+    const xs = nBands === 5 ? [92, 112, 132, 152, 200] : [96, 120, 144, 200];
+    bands.forEach((c, i) => S.svg('rect', { x: xs[i], y: 12, width: 12, height: 46, fill: S.BAND_HEX[c], stroke: 'rgba(0,0,0,.35)', 'stroke-width': 1 }, bandSvg));
+    bandSvg.setAttribute('aria-label', `Резистор, смужки: ${bands.map((b) => S.BAND_UK[b]).join(', ')}`);
+  }
+  function buildSelects() {
+    bandSel.textContent = '';
+    const roles = nBands === 5 ? ['1-ша цифра', '2-га цифра', '3-тя цифра', 'множник', 'допуск'] : ['1-ша цифра', '2-га цифра', 'множник', 'допуск'];
+    roles.forEach((role, i) => {
+      const list = role === 'множник' ? MULT : role === 'допуск' ? TOLS : DIG;
+      const lab = document.createElement('label');
+      lab.innerHTML = `<span><span class="band-sw"></span>${i + 1}. ${role}</span>`;
+      const sel = document.createElement('select');
+      for (const c of list) {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = `${S.BAND_UK[c]} · ${role === 'множник' ? multText(c) : role === 'допуск' ? '±' + fmt.num(S.TOL[c], 2) + NBSP + '%' : DIG.indexOf(c)}`;
+        sel.append(o);
+      }
+      sel.value = list.includes(bands[i]) ? bands[i] : list[0];
+      sel.addEventListener('change', () => { bands[i] = sel.value; syncFromBands(); });
+      lab.append(sel);
+      bandSel.append(lab);
+    });
+  }
+  function paintSwatches() {
+    $$('label', bandSel).forEach((l, i) => { $('.band-sw', l).style.background = S.BAND_HEX[bands[i]]; });
+  }
+  function syncFromBands() {
+    const r = S.fromBands(bands);
+    drawResistor();
+    paintSwatches();
+    bandRead.textContent = r ? `= ${fmt.si(r.ohms, 'Ом', 3)} ±${fmt.num(r.tol, 2)}${NBSP}%` : '';
+    if (r) bandIn.value = fmt.si(r.ohms, 'Ом', 3);
+  }
+  function syncFromValue() {
+    const list = S.decode(bandIn.value, 'res');
+    const v = list.length ? list[0].value : NaN;
+    const b = Number.isFinite(v) ? S.colorBands(v, nBands) : [];
+    if (b.length < nBands) { bandRead.textContent = 'Такий номінал смужками не записати'; return; }
+    bands = b;
+    $$('select', bandSel).forEach((s, i) => { s.value = bands[i]; });
+    drawResistor();
+    paintSwatches();
+    const r = S.fromBands(bands);
+    const rounded = Math.abs(r.ohms - v) > v * 1e-6;
+    bandRead.textContent = `${bands.map((x) => S.BAND_UK[x]).join(' · ')}${rounded ? ` (округлено до ${fmt.si(r.ohms, 'Ом', 3)})` : ''}`;
+  }
+  bandIn.addEventListener('input', syncFromValue);
+  $$('#band-n button').forEach((btn) => btn.addEventListener('click', () => {
+    nBands = +btn.dataset.n;
+    $$('#band-n button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    const r = S.fromBands(bands);
+    bands = S.colorBands(r ? r.ohms : 4700, nBands);
+    buildSelects();
+    syncFromBands();
+  }));
+  buildSelects();
+  syncFromBands();
+
+  /* ==== 05 E12 table and picker ==== */
+  const rkm = (v) => {
+    // 4700 → 4k7, 470 → 470R, 1000 → 1k0, 10 → 10R, 100000 → 100k
+    if (v >= 1e3) { const k = v / 1e3; return Number.isInteger(k) && k >= 10 ? `${k}k` : String(k.toFixed(1)).replace('.', 'k'); }
+    return `${v}R`;
+  };
+  const tbody = $('#e12-table tbody');
+  const DECADES = [[1, '10 Ом'], [10, '100 Ом'], [100, '1 кОм'], [1000, '10 кОм'], [10000, '100 кОм']];
+  for (const [m, name] of DECADES) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<th>${name.replace(' ', NBSP)}</th>` + S.E12.map((e) => `<td data-v="${e * m}">${rkm(e * m)}</td>`).join('');
+    tbody.append(tr);
+  }
+  const e12In = $('#e12-in'), e12Out = $('#e12-out');
+  function pickE12() {
+    $$('td.hit', tbody).forEach((td) => td.classList.remove('hit'));
+    const v = Study.parseNum(e12In.value.replace(/\s*(Ом|Ω)$/i, ''));
+    if (!(v > 0)) { e12Out.textContent = 'Введіть опір, наприклад 140 або 1,1k.'; return; }
+    const up = S.eSeries(v), near = S.eSeries(v, { mode: 'near' });
+    e12Out.textContent = `Більший: ${fmt.si(up, 'Ом')} (${rkm(up)}) · найближчий: ${fmt.si(near, 'Ом')}`;
+    const td = $(`td[data-v="${up}"]`, tbody);
+    if (td) td.classList.add('hit');
+  }
+  e12In.addEventListener('input', pickE12);
+  pickE12();
+
+  /* ==== 06 net colouring ==== */
+  const PAINTS = 5;
+  const PAINT_UK = ['', 'червоний', 'синій', 'зелений', 'помаранчевий', 'фіолетовий'];
+  const paintSvg = $('#paint-svg'), bar = $('#paint-bar'), pfb = $('#paint-fb');
+  let brush = 1;
+  for (let i = 1; i <= PAINTS; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `pc c${i}`;
+    b.dataset.c = i;
+    b.setAttribute('aria-pressed', String(i === brush));
+    b.setAttribute('aria-label', `Колір ${i} · ${PAINT_UK[i]}`);
+    b.innerHTML = `<span class="sw"></span>${i}`;
+    b.addEventListener('click', () => { brush = i; $$('.pc', bar).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+    bar.append(b);
+  }
+  const segs = $$('#paint-segs path').map((p, i) => {
+    p.setAttribute('class', 'seg-w');
+    const hit = S.svg('path', { class: 'seg-hit', d: p.getAttribute('d'), tabindex: 0, role: 'button', 'aria-label': `Ділянка дроту ${i + 1}` });
+    p.after(hit);
+    const L = p.getTotalLength(), m = p.getPointAtLength(L / 2);
+    const vertical = Math.abs(p.getPointAtLength(0).x - p.getPointAtLength(L).x) < 1;
+    const num = S.svg('text', { class: 'seg-num', x: m.x + (vertical ? 12 : 0), y: m.y + (vertical ? 0 : -11) });
+    $('#paint-segs').append(num);
+    const seg = { p, hit, num, truth: p.dataset.truth, c: 0 };
+    const paint = () => { seg.c = seg.c === brush ? 0 : brush; render(seg); pfb.textContent = ''; pfb.className = 'paint-fb'; };
+    hit.addEventListener('click', paint);
+    hit.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); paint(); } });
+    return seg;
+  });
+  function render(seg, bad = false) {
+    seg.p.setAttribute('class', `seg-w${seg.c ? ` painted c${seg.c}` : ''}${bad ? ' bad' : ''}`);
+    seg.num.setAttribute('class', `seg-num${seg.c ? ` c${seg.c}` : ''}`);
+    seg.num.textContent = seg.c ? String(seg.c) : '';
+    seg.hit.setAttribute('aria-label', `Ділянка дроту ${segs ? segs.indexOf(seg) + 1 : ''}${seg.c ? `, колір ${seg.c} · ${PAINT_UK[seg.c]}` : ', не зафарбована'}`);
+  }
+  segs.forEach((s) => render(s));
+  $('#paint-check').addEventListener('click', () => {
+    const nets = [...new Set(segs.map((s) => s.truth))];
+    const colourOf = {};
+    let good = 0;
+    const badSegs = new Set();
+    for (const n of nets) {
+      const cs = new Set(segs.filter((s) => s.truth === n).map((s) => s.c));
+      if (cs.size === 1 && !cs.has(0)) colourOf[n] = [...cs][0];
+      else segs.filter((s) => s.truth === n).forEach((s) => badSegs.add(s));
+    }
+    // A colour reused by two different nets is wrong for both.
+    for (const n of Object.keys(colourOf)) {
+      const clash = Object.keys(colourOf).some((m) => m !== n && colourOf[m] === colourOf[n]);
+      if (clash) segs.filter((s) => s.truth === n).forEach((s) => badSegs.add(s));
+      else good++;
+    }
+    segs.forEach((s) => render(s, badSegs.has(s)));
+    const unpainted = segs.filter((s) => !s.c).length;
+    pfb.className = 'paint-fb ' + (good === nets.length ? 'ok' : 'no');
+    pfb.textContent = good === nets.length
+      ? `Так! ${nets.length} вузлів. Два символи 3V3 і два GND — це по одному вузлу.`
+      : `Правильно ${good} з ${nets.length} вузлів.${unpainted ? ` Незафарбованих ділянок: ${unpainted}.` : ''} Ділянки з помилкою стали штриховими.`;
+  });
+  $('#paint-reset').addEventListener('click', () => { segs.forEach((s) => { s.c = 0; render(s); }); pfb.textContent = ''; });
+  $('#paint-show').addEventListener('click', () => {
+    const order = ['v33', 'btn', 'g13', 'la', 'gnd'];
+    segs.forEach((s) => { s.c = order.indexOf(s.truth) + 1; render(s); });
+    pfb.className = 'paint-fb';
+    pfb.textContent = 'Відповідь: 5 вузлів — 3V3, вузол кнопки (низ R1, верх SW1, GPIO7), GPIO13, анод LED і GND.';
+  });
+
+  /* ==== 06 node counting: coloured copy behind the prediction ==== */
+  const countFig = $('#count-fig');
+  const copy = $('#count-svg').cloneNode(true);
+  copy.removeAttribute('id');
+  copy.setAttribute('aria-label', 'Та сама схема з розфарбованими вузлами: вузол 1 — плюс батареї до R1, вузол 2 — між R1, R2 і R3, вузол 3 — земля.');
+  $$('[data-cls]', copy).forEach((el) => el.classList.add(el.dataset.cls));
+  const badge = (x, y, n, cls, net) => {
+    const g = S.svg('g', { class: `node-badge ${cls}`, 'data-net': net }, copy);
+    S.svg('circle', { cx: x, cy: y, r: 10 }, g);
+    S.svg('text', { x, y }, g).textContent = n;
+  };
+  badge(60, 26, '1', 'net-sig', 'n1');
+  badge(210, 26, '2', 'net-sig2', 'a');
+  [[56, 144], [196, 144], [256, 144]].forEach(([x, y]) => badge(x, y, '3', 'net-gnd', 'gnd'));
+  countFig.prepend(copy);
+
+  /* ==== 07 dual figure: breadboard view ==== */
+  const bbSvg = $('#bb-led');
+  const mcu = S.svg('g', { class: 'bb-mcuside' }, bbSvg);
+  S.svg('rect', { class: 'bb-mcu', x: 2, y: 50, width: 58, height: 86, rx: 4 }, mcu);
+  S.svg('text', { class: 'bb-tag', x: 6, y: 42 }, mcu).textContent = 'плата';
+  S.svg('text', { class: 'bb-tag net-gnd', 'data-net': 'gnd', x: 8, y: 75 }, mcu).textContent = 'GND';
+  S.svg('text', { class: 'bb-tag net-sig', 'data-net': 'gpio13', x: 8, y: 115 }, mcu).textContent = '13';
+  const pinG13 = { x: 50, y: 110 }, pinGnd = { x: 50, y: 70 };
+  for (const p of [pinG13, pinGnd]) S.svg('rect', { x: p.x - 3.5, y: p.y - 3.5, width: 7, height: 7, fill: '#c9a032' }, mcu);
+  const bb = S.breadboard(bbSvg, { cols: 14, rails: true, x: 76, y: 0, colLabels: 'bottom' });
+  bb.mark(3, 'top', 'gpio13', 'net-sig');
+  bb.mark(8, 'top', 'led_a', 'net-sig2');
+  bb.mark(9, 'top', 'gnd', 'net-gnd');
+  bb.markRail('top', '-', 'gnd', 'net-gnd');
+  const jG13 = S.part(bbSvg, 'jumper', { from: pinG13, to: bb.hole(3, 'c'), net: 'gpio13', cls: 'net-sig', lift: 24, title: 'Дріт GPIO13 → стовпчик 3' });
+  S.part(bbSvg, 'res', { from: bb.hole(3, 'a'), to: bb.hole(8, 'a'), ohms: 220, label: 'R1' });
+  const led = S.part(bbSvg, 'led', { anode: bb.hole(8, 'e'), cathode: bb.hole(9, 'e'), color: 'red', label: 'LED1' });
+  const jK = S.part(bbSvg, 'jumper', { from: bb.hole(9, 'a'), to: bb.rail('top', '-', 9), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Дріт зі стовпчика 9 на шину мінус' });
+  const jGnd = S.part(bbSvg, 'jumper', { from: pinGnd, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → шина мінус' });
+
+  /* ==== 07 level and current ==== */
+  const dual = $('#dual-led');
+  const VF = 1.9, R = 220; // red LED typical Vf (facts: led-red-3mm-vf), R1 = 220 Ом
+  let level = 'hi', flowOn = false;
+  const wires = [
+    [$('#w-s-g13'), 1], [$('#w-s-la'), 1], [$('#w-s-k'), 1], [$('#w-s-gp'), -1],
+    [jG13, 1], [jK, 1], [jGnd, -1],
+  ];
+  function updateCircuit() {
+    const mA = level === 'hi' ? (3.3 - VF) / R * 1000 : 0;
+    S.setNetLevel(dual, 'gpio13', level);
+    led.style.opacity = level === 'hi' ? '1' : '.45';
+    wires.forEach(([w, dir]) => { if (flowOn) S.flow(w, { mA, dir }); else if (w._flow) w._flow.set(0); });
+    $('#flow-out').textContent = level === 'hi'
+      ? `I = (3,3 − 1,9) / 220 ≈ ${fmt.num(mA, 1)} мА`
+      : 'GPIO13 = 0 В: напруги на колі немає, струму теж.';
+  }
+  $$('#lvl button').forEach((b) => b.addEventListener('click', () => {
+    level = b.dataset.l;
+    $$('#lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    updateCircuit();
+  }));
+  $('#flow-btn').addEventListener('click', (e) => {
+    flowOn = !flowOn;
+    e.currentTarget.setAttribute('aria-pressed', String(flowOn));
+    e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
+    updateCircuit();
+  });
+  updateCircuit();
+});
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@
 <meta name="description" content="Модуль 2.2: пасивні й активні компоненти, чому мотор не можна підключити до піна ESP32-S3, транзисторний ключ і резистор бази, вибір BJT чи логічного MOSFET, захисний діод, конденсатори, brownout, спільна земля. Живі схеми, осцилограф, калькулятори, домашнє завдання з реле й ШІМ, тест і режим викладача.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
 /* Layout: lesson notebook on graph paper. Each section: goal → text → «Перевірте себе» → typical mistakes → widgets.
    Widgets never start on their own: predict → run → explain. Teacher notes are hidden unless teacher mode is on. */
@@ -24,8 +24,8 @@
   --n33: #e07a00; --n5: #d1342b; --ngnd: #2a3945; --nsig: #a87a00; --nmot: #7c4dd6;
   --ch1: #7c4dd6; --ch2: #e07a00;
   --scope: #0f1a22; --scope-grid: rgba(150, 200, 230, .12); --scope-text: #9fb4c3; --scope-ch1: #c4a5ff; --scope-ch2: #ffb04d;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Literata", Georgia, "Times New Roman", serif;
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -259,6 +259,23 @@ body.fast .fast-note { display: block; }
 .dia svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
 .svg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 @media (max-width: 600px) { .svg-scroll > svg.minw { width: 600px; max-width: none; } }
+/* axis and value labels stay >= 12 px rendered: wider phone drawings (they scroll sideways), W1 and W7 get the full row */
+.grid2:has(> #w2) { grid-template-columns: minmax(0, 1fr); }
+#w2svg .lbm { font-size: 11.5px; }
+#w2svg { display: block; max-width: 820px; margin: 0 auto; }
+#w7g .lbm { font-size: 12px; }
+@media (min-width: 981px) { #w3 > .grid2 { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+#w3svg :is(.lb, .lbv, .lbm) { font-size: 13px; }
+.w7stack svg { display: block; max-width: 760px; margin: 0 auto; }
+.w7stack > div + div { border-top: 1px solid var(--line); }
+.svg-scroll:focus-visible { outline: 2.5px solid var(--focus, var(--accent)); outline-offset: -3px; }
+@media (max-width: 600px) {
+  .svg-scroll > #w2svg { width: 700px; }
+  .svg-scroll > #w3svg { width: 720px; }
+  .svg-scroll > #w6scope { width: 520px; max-width: none; }
+  .svg-scroll > #w7sch { width: 620px; max-width: none; }
+  .svg-scroll > #w7g { width: 660px; max-width: none; }
+}
 .w { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .w.n33 { stroke: var(--n33); } .w.n5 { stroke: var(--n5); } .w.gnd { stroke: var(--ngnd); } .w.sig { stroke: var(--nsig); } .w.mot { stroke: var(--nmot); } .w.ink { stroke: var(--ink); }
 .w.thin { stroke-width: 1.6; } .w.thick { stroke-width: 3.4; }
@@ -408,21 +425,19 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
   .scope svg, .serial { background: #fff; }
 }
 </style>
+<!-- design bridge: shared tokens, fonts and background override this page's own token block -->
+<link rel="stylesheet" href="../assets/theme.css">
 </head>
 <body>
 <a class="skip" href="#s1">До змісту уроку</a>
-<nav class="site-nav" aria-label="Навігація сайтом">
-  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Усі матеріали</a>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.3–1.4</span><a href="../pull-resistors/">Підтяжка входу</a><a href="../lab/">Стенд ESP32-S3</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.5</span><a href="../scope-signals/">Теорія: осцилограф</a><a href="../bounce-lab/">ДЗ: брязкіт</a><a href="../bounce-bench/">Брязкіт на стенді</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.6</span><a href="../adc-light/">Теорія: АЦП</a><a href="../ldr-lab/">ДЗ: люксметр</a></span>
-  <span class="sn-group"><span class="sn-mod">Міні-проєкт 1</span><a href="../twilight-relay/">Сутінковий перемикач</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 2.2</span><a href="../power-loads/" aria-current="page">Потужне навантаження</a></span>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="power-loads">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
 </nav>
+<p class="from-lesson" style="max-width:1240px;margin:8px auto 0;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font:500 14px/1.45 var(--f-body,system-ui,sans-serif)">Частина <a href="../lessons/2-2/">уроку 2.2 · Потужне навантаження</a></p>
 <div class="wrap">
   <header class="masthead">
-    <div class="eyebrow">Модуль 2.2 · Embedded Development · YD-ESP32-S3 / ESP32-S3-DevKitC-1 N16R8</div>
-    <h1>Пасивні й активні: <span>потужне навантаження</span></h1>
+    <div class="eyebrow">Модуль 2 · Урок 2.2 · Глибше · <span style="white-space:nowrap">YD-ESP32-S3 N16R8</span></div>
+    <h1>Пасивні й активні: потужне <span>навантаження</span></h1>
     <p>Як підключити до ESP32-S3 двигун, котушку реле чи світлодіодну стрічку і нічого не спалити. Це перевірена й доповнена версія уроку з LMS: кожне число має джерело [n], список — у кінці. Сьогоднішня схема — той самий «скелет», що й у міні-проєкті <a href="../twilight-relay/">«Сутінковий перемикач»</a> [33], тільки навантаження більше. Анімації не запускаються самі: спершу ви робите прогноз, потім натискаєте «Пуск», потім читаєте пояснення.</p>
     <nav class="toc" aria-label="Розділи">
       <a href="#s1"><span>1</span>Розминка</a>
@@ -486,7 +501,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
   <main>
   <!-- ===================== 1. WARM-UP ===================== -->
   <section class="sec" id="s1" aria-labelledby="h1t">
-    <div class="sec-head"><h2 id="h1t"><span class="n">1</span>Розминка: що ви вже знаєте</h2></div>
+    <div class="sec-head"><h2 id="h1t"><span class="n">01</span>Розминка: що ви вже знаєте</h2></div>
     <p class="goal"><b>Мета</b><span>пригадати схему «Сутінкового перемикача» [33], бо сьогодні ми її розширимо.</span></p>
     <div class="tnote"><p><b>19:05 · 8 хв.</b> Розминка індивідуально, потім розбір. 3 питання про «Сутінковий перемикач» (W0). Викликати 2–3 людей.</p></div>
     <div class="learn">
@@ -530,7 +545,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
 
   <!-- ===================== 2. PROBLEM ===================== -->
   <section class="sec" id="s2" aria-labelledby="h2t">
-    <div class="sec-head"><h2 id="h2t"><span class="n">2</span>Проблема: чому двигун не можна підключити прямо до піна</h2></div>
+    <div class="sec-head"><h2 id="h2t"><span class="n">02</span>Проблема: чому двигун не можна підключити прямо до піна</h2></div>
     <p class="goal"><b>Мета</b><span>порівняти струм навантаження зі струмом, який може дати пін ESP32-S3, і зробити висновок, чи потрібен ключ.</span></p>
     <div class="tnote">
       <p><b>19:13 · 10 хв · Демо 1 — струм мотора (POE).</b></p>
@@ -577,7 +592,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
           <div class="pb">
             <div class="row" role="group" aria-label="Навантаження" id="w2loads"></div>
             <div class="poe" id="w2poe" data-poe="w2"></div>
-            <div class="dia svg-scroll">
+            <div class="dia svg-scroll" tabindex="0" role="region" aria-label="Шкала струму (гортайте вбік)">
               <svg id="w2svg" class="minw" viewBox="0 0 640 170" role="img" aria-labelledby="w2t">
                 <title id="w2t">Шкала струму від 1 мА до 3 А з межами піна ESP32-S3 і смугою вибраного навантаження</title>
                 <g id="w2axis"></g>
@@ -619,7 +634,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
 
   <!-- ===================== 3. ACTIVE / PASSIVE ===================== -->
   <section class="sec" id="s3" aria-labelledby="h3t">
-    <div class="sec-head"><h2 id="h3t"><span class="n">3</span>Активні та пасивні компоненти</h2></div>
+    <div class="sec-head"><h2 id="h3t"><span class="n">03</span>Активні та пасивні компоненти</h2></div>
     <p class="goal"><b>Мета</b><span>розрізнити активний і пасивний компонент за критерієм підсилення потужності; знати, що робить кожен базовий компонент.</span></p>
     <div class="tnote"><p><b>19:23 · 10 хв · у парах.</b> Сортування W2. Обговорити реле й діод: «Активний чи пасивний? Чому?» Критерій — підсилення потужності.</p><p>Стежте за уявленням «транзистор створює енергію». Виявити: «Звідки енергія мотора?» Виправити: енергія — з джерела мотора [3]. Резервне питання: «Діод — активний чи пасивний?» (джерела розходяться; критерій — підсилення [2][3]).</p></div>
     <div class="learn">
@@ -705,7 +720,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
 
   <!-- ===================== 4. TRANSISTOR SWITCH ===================== -->
   <section class="sec" id="s4" aria-labelledby="h4t">
-    <div class="sec-head"><h2 id="h4t"><span class="n">4</span>Транзистор як електронний ключ</h2></div>
+    <div class="sec-head"><h2 id="h4t"><span class="n">04</span>Транзистор як електронний ключ</h2></div>
     <p class="goal"><b>Мета</b><span>зібрати NPN-ключ на «мінусі» (low-side), розрахувати R<sub>Б</sub> і перевірити, чи транзистор у насиченні.</span></p>
     <div class="tnote">
       <p><b>19:33 · 17 хв · розв'язаний приклад → з пропуском → самостійно.</b> На дошці вголос — приклад А. Студенти добивають Б. Індивідуально — В: «Чи впорається BC547B?» Конфлікт: I<sub>Б</sub> ≈ 25–50 мА &gt; 20 мА → MOSFET. Віджети W3, W4, W5.</p>
@@ -722,21 +737,33 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13.5px; max-width: 92
             <li><b>Колектор (collector)</b> — сюди приходить струм навантаження: «+» живлення двигуна → двигун → колектор.</li>
             <li><b>Емітер (emitter)</b> — з'єднаний із землею GND.</li>
           </ul>
-          <p>Схема ключа на «мінусі» (low-side switch) — праворуч і в живому симуляторі W3 нижче. ESP32-S3 віддає лише невеликий струм бази (зазвичай 0,3–3 мА). Великий струм двигуна тече тільки колом «живлення → двигун → колектор → емітер → GND» [7]. Тобто пін віддає лише одиниці міліампер, а не сотні.</p>
+          <p>Схема ключа на «мінусі» (low-side switch) — праворуч і у живій моделі W3 нижче. ESP32-S3 віддає лише невеликий струм бази (зазвичай 0,3–3 мА). Великий струм двигуна тече тільки колом «живлення → двигун → колектор → емітер → GND» [7]. Тобто пін віддає лише одиниці міліампер, а не сотні.</p>
         </div>
-        <pre class="formula" aria-label="Схема ключа на мінусі текстом">+U_дв ──── навантаження ──── колектор
-                              │  NPN
-пін ESP32-S3 ── R_Б ──────── база
-                              │
-                            емітер ── GND (спільна)</pre>
+        <figure class="dia" style="margin:0">
+          <svg viewBox="0 0 300 250" role="img" aria-labelledby="lsT" style="display:block;width:100%;max-width:360px;height:auto;margin:0 auto">
+            <title id="lsT">Ключ на мінусі: +U дв → навантаження → колектор NPN; пін ESP32-S3 через R Б на базу; емітер на спільну GND</title>
+            <path class="w mot" d="M200 18 V42"/><text class="lb" x="210" y="24">+U<tspan baseline-shift="sub" font-size="10">дв</tspan></text>
+            <circle class="sym" cx="200" cy="64" r="20"/><text class="lbt" x="200" y="70" text-anchor="middle">M</text><text class="lbm" x="172" y="68" text-anchor="end">навантаження</text>
+            <path class="w mot" d="M200 84 V118"/><text class="lbm" x="210" y="112">колектор</text>
+            <circle class="sym" cx="196" cy="140" r="22"/>
+            <path class="sym" d="M184 126 V154" style="stroke-width:3"/><path class="sym" d="M184 132 L200 118 M184 148 L200 162"/>
+            <path d="M200 162 L190 159 L195 152 Z" fill="var(--ink)"/>
+            <text class="lbm" x="224" y="144">NPN</text>
+            <path class="w sig" d="M30 140 H74 M126 140 H184"/><rect class="sym" x="74" y="130" width="52" height="20" style="fill:var(--sheet, var(--panel))"/>
+            <text class="lb" x="100" y="122" text-anchor="middle">R<tspan baseline-shift="sub" font-size="10">Б</tspan></text>
+            <text class="lbm" x="30" y="128">пін</text><text class="lbm" x="30" y="166">ESP32-S3</text><text class="lbm" x="150" y="166" text-anchor="middle">база</text>
+            <path class="w gnd" d="M200 162 V214"/><path class="sym" d="M186 214 H214 M191 220 H209 M196 226 H204"/>
+            <text class="lbm" x="210" y="196">емітер</text><text class="lbm" x="180" y="236" text-anchor="end">GND (спільна)</text>
+          </svg>
+        </figure>
       </div>
 
       <h3 class="sub"><span class="n">4.2</span>Резистор бази обов'язковий</h3>
       <div class="prose">
         <p>Перехід база–емітер поводиться як діод: на ньому ≈ 0,7 В [14]. Струм бази:</p>
-        <div class="formula">I_Б = (3,3 В − 0,7 В) / R_Б
-R_Б = 10 кОм → I_Б ≈ 0,26 мА
-R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
+        <div class="formula">I<sub>Б</sub> = (3,3 В − 0,7 В) / R<sub>Б</sub>
+R<sub>Б</sub> = 10 кОм → I<sub>Б</sub> ≈ 0,26 мА
+R<sub>Б</sub> =  1 кОм → I<sub>Б</sub> ≈ 2,6 мА</div>
         <p>При великих струмах колектора напруга база–емітер зростає до ~0,9 В, тому струм бази трохи менший [14]. Обидва струми (0,26 і 2,6 мА) безпечні для піна.</p>
         <p class="callout bad" id="noRb"><b>Що буде без R<sub>Б</sub>.</b> Перехід база–емітер «притискає» пін до ~0,7 В. Пін віддає стільки струму, скільки фізично може (десятки мА), і працює перевантаженим [9]. Струм бази тоді задає слабкість піна, а не ви. Пін може деградувати або вийти з ладу. Резистор R<sub>Б</sub> задає струм саме таким, як ви розрахували.</p>
       </div>
@@ -769,7 +796,7 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
         <div class="ph"><h3><span class="wid">W3</span>Живий NPN-ключ</h3><span class="mode-ind off" id="w3mode" aria-live="polite">відсічка</span></div>
         <p class="try"><b>Спробуйте:</b> 1) Котушка реле + BC547B: знайдіть найбільший R<sub>Б</sub>, при якому індикатор зелений. 2) Мотор + BC547B: чи є хоч один R<sub>Б</sub>, що дає зелений і не перевантажує пін? 3) Перемкніть на AO3400A. Зверніть увагу на струм піна і нагрів.</p>
         <div class="grid2" style="gap:0">
-          <div class="dia svg-scroll" style="border-right:1px solid var(--line)">
+          <div class="dia svg-scroll" style="border-right:1px solid var(--line)" tabindex="0" role="region" aria-label="Схема ключа (гортайте вбік)">
             <svg id="w3svg" class="minw" viewBox="0 0 680 350" role="img" aria-labelledby="w3t w3d">
               <title id="w3t">Ключ на мінусі: пін, резистор бази, транзистор, навантаження, джерело</title>
               <desc id="w3d">Пін ESP32-S3 через R_Б іде на базу. Колектор з'єднаний з навантаженням, яке живиться від окремого джерела. Емітер і мінус джерела з'єднані зі спільною GND. Жовті точки — струм бази, фіолетові — струм навантаження.</desc>
@@ -785,8 +812,8 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
               <g id="w3rb"><rect class="box2" x="232" y="191" width="60" height="18" rx="2"/></g>
               <path class="w sig" id="w3rbWire" d="M232 200 H292" opacity="0"/>
               <path class="w sig" d="M292 200 H398"/>
-              <text class="lbv" id="w3rbTxt" x="262" y="182" text-anchor="middle">R_Б 10 кОм</text>
-              <text class="lbv" id="w3ibTxt" x="262" y="230" text-anchor="middle">I_Б = 0</text>
+              <text class="lbv" id="w3rbTxt" x="262" y="182" text-anchor="middle">R<tspan baseline-shift="sub" font-size="75%">Б</tspan> 10 кОм</text>
+              <text class="lbv" id="w3ibTxt" x="262" y="230" text-anchor="middle">I<tspan baseline-shift="sub" font-size="75%">Б</tspan> = 0</text>
               <text class="lbv" id="w3vbeTxt" x="392" y="184" text-anchor="end"></text>
               <!-- BJT symbol -->
               <g id="w3bjt">
@@ -814,9 +841,9 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
               <g id="w3loadMotor"><circle class="sym" cx="446" cy="100" r="30"/><text class="lbt" x="446" y="106" text-anchor="middle">M</text><path class="w mot" d="M446 40 V70 M446 130 V138"/></g>
               <g id="w3loadCoil" opacity="0"><rect class="box2" x="426" y="70" width="40" height="60" rx="2"/><path class="sym" d="M426 130 L466 70"/><text class="lbm" x="420" y="104" text-anchor="end">котушка</text><path class="w mot" d="M446 40 V70 M446 130 V138"/></g>
               <g id="w3loadStrip" opacity="0"><rect class="box2" x="420" y="66" width="52" height="68" rx="4"/><path class="sym" d="M434 84 h24 l-12 14 z M434 98 h24 M434 110 h24 l-12 14 z M434 124 h24"/><path class="w mot" d="M446 40 V66 M446 134 V138"/></g>
-              <text class="lbv" id="w3icTxt" x="500" y="96">I_К = 0</text>
+              <text class="lbv" id="w3icTxt" x="500" y="96">I<tspan baseline-shift="sub" font-size="75%">К</tspan> = 0</text>
               <text class="lbv" id="w3loadTxt" x="500" y="116"></text>
-              <text class="lbv" id="w3vceTxt" x="466" y="206">U_КЕ = 6 В</text>
+              <text class="lbv" id="w3vceTxt" x="466" y="206">U<tspan baseline-shift="sub" font-size="75%">КЕ</tspan> = 6 В</text>
               <!-- emitter / gnd -->
               <path class="w gnd" d="M446 228 V310 M164 280 H190 V310 H600 V196"/>
               <path class="sym" d="M300 310 V322 M286 322 H314 M291 328 H309 M296 334 H304"/>
@@ -973,7 +1000,7 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
 
   <!-- ===================== 5. CHOOSING A SWITCH ===================== -->
   <section class="sec" id="s5" aria-labelledby="h5t">
-    <div class="sec-head"><h2 id="h5t"><span class="n">5</span>Як вибрати ключ</h2></div>
+    <div class="sec-head"><h2 id="h5t"><span class="n">05</span>Як вибрати ключ</h2></div>
     <p class="goal"><b>Мета</b><span>вибрати ключ для 70 мА, ~200 мА і 0,5–2 А та обґрунтувати вибір цифрами з даташита.</span></p>
     <div class="tnote"><p>Входить у блок 19:33 (W5). Уявлення «IRLZ44N "логічний" = відкритий від 3,3 В» виявляємо питанням 8 тесту; виправлення — дивитися R<sub>DS(on)</sub> при 2,5 В [18][21].</p></div>
     <div class="learn">
@@ -1057,7 +1084,7 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
 
   <!-- ===================== 6. PROTECTION ===================== -->
   <section class="sec" id="s6" aria-labelledby="h6t">
-    <div class="sec-head"><h2 id="h6t"><span class="n">6</span>Захист: діод, конденсатори, спільна земля</h2></div>
+    <div class="sec-head"><h2 id="h6t"><span class="n">06</span>Захист: діод, конденсатори, спільна земля</h2></div>
     <p class="prose">Двигун — це не лампочка. Усередині — котушка (індуктивність), і вона має «характер» [6].</p>
 
     <h3 class="sub" id="s6a"><span class="n">6А</span>Захисний діод та індуктивний викид</h3>
@@ -1108,7 +1135,7 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
           </div>
           <div class="row">
             <button type="button" class="btn primary" id="w6on">Увімкнути транзистор</button>
-            <button type="button" class="btn primary" id="w6off">Вимкнути транзистор</button>
+            <button type="button" class="btn" id="w6off">Вимкнути транзистор</button>
             <button type="button" class="btn" id="w6slow" aria-pressed="false" title="Повільна анімація: події тривають мілісекунди, тут їх розтягнуто">Сповільнити в 1000 разів</button>
             <button type="button" class="btn" id="w6fix" hidden>Замінити транзистор</button>
           </div>
@@ -1139,20 +1166,20 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
               <path class="symf" d="M180 222 l-10 -1 l5 -7 z"/>
               <path class="w sig" d="M20 200 H60 M96 200 H100"/>
               <rect class="box2" x="60" y="193" width="36" height="14" rx="2"/>
-              <text class="lbm" x="12" y="190">GPIO</text><text class="lbm" x="78" y="186" text-anchor="middle">R_Б</text>
+              <text class="lbm" x="12" y="190">GPIO</text><text class="lbm" x="78" y="186" text-anchor="middle">R<tspan baseline-shift="sub" font-size="75%">Б</tspan></text>
               <path class="w gnd" d="M180 222 V270 H320 V166 M100 270 H180"/>
               <path class="sym" d="M100 270 V280 M88 280 H112 M92 286 H108 M96 292 H104"/>
               <path class="sym" d="M304 126 H336 M312 136 H328 M304 146 H336 M312 156 H328" style="stroke-width:2.6"/>
               <path class="w gnd" d="M320 156 V166"/>
               <text class="lb" x="300" y="122" text-anchor="end">+6 В</text><text class="lbm" x="300" y="170" text-anchor="end">4×AA</text>
               <path d="M110 150 H172" stroke="var(--ch1)" stroke-width="2" fill="none"/><path d="M172 145 l8 5 l-8 5 z" fill="var(--ch1)"/>
-              <text class="lbm" x="110" y="143" style="fill:var(--ch1)">CH1 · U_К</text>
+              <text class="lbm" x="110" y="143" style="fill:var(--ch1)">CH1 · U<tspan baseline-shift="sub" font-size="75%">К</tspan></text>
               <g id="w6broken" opacity="0"><circle cx="166" cy="200" r="27" fill="none" stroke="var(--bad)" stroke-width="3"/><path d="M150 184 L182 216 M182 184 L150 216" stroke="var(--bad)" stroke-width="3"/><text class="lb" x="166" y="246" text-anchor="middle" style="fill:var(--bad)">пробито</text></g>
               <path class="flow" id="w6fMain" d="M320 120 V30 H180 V270 H320 V166"/>
               <path class="flow" id="w6fFree" d="M180 66 V150 H250 V30 H180 V66"/>
             </svg>
           </div>
-          <div class="dia scope" style="border-top:1px solid var(--line);padding:8px">
+          <div class="dia scope svg-scroll" style="border-top:1px solid var(--line);padding:8px" tabindex="0" role="region" aria-label="Екран осцилографа (гортайте вбік)">
             <svg id="w6scope" viewBox="0 0 420 250" role="img" aria-labelledby="w6st">
               <title id="w6st">Екран осцилографа: CH1 напруга на колекторі, CH2 струм котушки</title>
               <g id="w6grid"></g>
@@ -1197,7 +1224,7 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
       </div>
     </div>
 
-    <h3 class="sub" id="s6b"><span class="n">6Б</span>Конденсатори і просідання живлення (brownout)</h3>
+    <h3 class="sub" id="s6b"><span class="n">06Б</span>Конденсатори і просідання живлення (brownout)</h3>
     <p class="goal"><b>Мета</b><span>пояснити, навіщо великий електролітичний конденсатор і 100 нФ, і розпізнати перезавантаження через просідання живлення.</span></p>
     <div class="tnote">
       <p><b>Демо 3 — brownout</b> (у блоці 20:13; якщо brownout не відтворився, одразу W7).</p>
@@ -1246,16 +1273,16 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
             <button type="button" class="btn primary" id="w7go">Старт мотора</button>
           </div>
         </div>
-        <div class="grid2" style="gap:0">
-          <div style="border-top:1px solid var(--line);border-right:1px solid var(--line)">
-            <div class="dia"><svg id="w7sch" viewBox="0 0 550 186" role="img" aria-labelledby="w7st w7sd">
+        <div class="w7stack">
+          <div style="border-top:1px solid var(--line)">
+            <div class="dia svg-scroll" tabindex="0" role="region" aria-label="Схема живлення (гортайте вбік)"><svg id="w7sch" viewBox="0 0 550 186" role="img" aria-labelledby="w7st w7sd">
               <title id="w7st">Схема живлення: USB, плата зі стабілізатором 3,3 В, мотор, ключ, 4×AA</title>
               <desc id="w7sd">USB 5 В живить плату; стабілізатор робить 3,3 В для ESP32-S3. «+» мотора з'єднаний або з піном 5V плати, або з плюсом окремих 4×AA; другий вивід мотора через ключ іде на GND. Біля мотора можуть стояти 470 мкФ (плюсом до «+», смужкою до GND) і 100 нФ прямо на виводах.</desc>
               <rect class="box" x="8" y="26" width="64" height="40" rx="5"/><text class="lb" x="40" y="50" text-anchor="middle">USB 5 В</text>
               <path class="w n5" d="M72 46 H110"/>
               <rect id="w7board" x="110" y="10" width="210" height="140" rx="8" fill="var(--panel-2)" stroke="var(--line)" stroke-width="1.5"/>
               <text class="lbm" x="120" y="28">плата YD-ESP32-S3</text>
-              <rect class="box2" x="122" y="36" width="96" height="38" rx="4"/><text class="lbm" x="170" y="51" text-anchor="middle" style="font-size:10px">стабілізатор</text><text class="lbm" x="170" y="67" text-anchor="middle">5 → 3,3 В</text>
+              <rect class="box2" x="122" y="36" width="96" height="38" rx="4"/><text class="lbm" x="170" y="51" text-anchor="middle" style="font-size:11px">стабілізатор</text><text class="lbm" x="170" y="67" text-anchor="middle">5 → 3,3 В</text>
               <path class="w n33" d="M218 53 H236"/>
               <rect class="box2" x="236" y="36" width="76" height="34" rx="4"/><text class="lb" x="274" y="57" text-anchor="middle">ESP32-S3</text>
               <text class="lbv" id="w7v33" x="262" y="92" text-anchor="middle">3,3 В</text>
@@ -1276,7 +1303,7 @@ R_Б =  1 кОм → I_Б ≈ 2,6 мА</div>
             </svg></div>
           </div>
           <div style="border-top:1px solid var(--line)">
-            <div class="dia"><svg id="w7g" viewBox="0 0 600 220" role="img" aria-labelledby="w7gt">
+            <div class="dia svg-scroll" tabindex="0" role="region" aria-label="Графік лінії 3,3 В (гортайте вбік)"><svg id="w7g" viewBox="0 0 600 220" role="img" aria-labelledby="w7gt">
               <title id="w7gt">Графік напруги лінії 3,3 В ESP32-S3 у часі з межами 3,6 В, 3,0 В і порогом brownout 2,44 В</title>
               <g id="w7gGrid"></g>
               <polyline id="w7line" fill="none" stroke="var(--n33)" stroke-width="2.2" points=""/>
@@ -1351,7 +1378,7 @@ setup(): плата стартувала
             <text class="lbt" x="124" y="44">ESP32-S3</text><text class="lbm" x="124" y="62">3,3 В логіка</text>
             <text class="lbm" x="272" y="64" text-anchor="end">GPIO</text><text class="lbm" x="272" y="164" text-anchor="end">GND</text>
             <path class="w sig" d="M280 60 H310 V170 H330 M380 170 H448"/>
-            <rect class="box2" x="330" y="162" width="50" height="16" rx="2"/><text class="lbm" x="355" y="154" text-anchor="middle">R_Б</text>
+            <rect class="box2" x="330" y="162" width="50" height="16" rx="2"/><text class="lbm" x="355" y="154" text-anchor="middle">R<tspan baseline-shift="sub" font-size="75%">Б</tspan></text>
             <circle class="sym" cx="470" cy="170" r="24"/>
             <path class="sym" d="M448 170 H458 M458 154 V186" style="stroke-width:2.6"/>
             <path class="sym" d="M458 162 L490 148 M458 178 L490 192"/><path class="symf" d="M490 192 l-10 -1 l5 -7 z"/>
@@ -1397,7 +1424,7 @@ setup(): плата стартувала
 
   <!-- ===================== 7. SAFETY ===================== -->
   <section class="sec" id="s7" aria-labelledby="h7t">
-    <div class="sec-head"><h2 id="h7t"><span class="n">7</span>Безпека на макетці</h2></div>
+    <div class="sec-head"><h2 id="h7t"><span class="n">07</span>Безпека на макетці</h2></div>
     <div class="tnote"><p><b>19:58 · 5 хв · Інструктаж з безпеки</b> (перед перервою). Розділ 7 дослівно. Двоє студентів повторюють по одному правилу своїми словами. Наголосити: діод і електроліт — перевірка орієнтації <b>до</b> ввімкнення; живлення мотора — останнім увімкнути, першим вимкнути; Li-ion — без коротких замикань; 230 В — ніколи. Демо без діода — тільки викладач.</p></div>
     <p class="callout bad"><b>Прочитайте перед збиранням.</b> Порушення цих правил — це спалений пін, вибухлий конденсатор або опік.</p>
     <ol class="safety">
@@ -1415,7 +1442,7 @@ setup(): плата стартувала
 
   <!-- ===================== 8. BUILD ===================== -->
   <section class="sec" id="s8" aria-labelledby="h8t">
-    <div class="sec-head"><h2 id="h8t"><span class="n">8</span>Набір, збирання і перевірка перед увімкненням</h2></div>
+    <div class="sec-head"><h2 id="h8t"><span class="n">08</span>Набір, збирання і перевірка перед увімкненням</h2></div>
     <p class="goal"><b>Мета</b><span>зібрати ключ на двигун і перевірити його вимірюваннями.</span></p>
     <div class="tnote">
       <p><b>20:28 · 4 хв · ConcepTest 2</b> — W11, варіант 1: «Знайдіть 3 помилки» (діод навпаки, немає спільної GND, немає резистора затвора). Уявлення «смужка діода до GND» виявляється саме тут — до того, як студенти зберуть схему.</p>
@@ -1513,7 +1540,7 @@ setup(): плата стартувала
       <div class="callout">
         <p><b>Прошивка ТЗ-A</b> — <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bright-module">esp32-s3-bright-module</a>
           (C++ PlatformIO і Rust): окрема прошивка на кожен етап — <code>switch</code> (етап 2, заміри U<sub>БЕ</sub>), <code>sweep</code>
-          (етап 3, U<sub>КЕ</sub> ≈ 0,2 В на 255), <code>levels</code> (етап 4), <code>softpwm</code> (рівень «+»), модульні тести логіки й сценарії Wokwi.
+          (етап 3, U<sub>КЕ</sub> ≈ 0,2 В на 255), <code>levels</code> (етап 4), <code>softpwm</code> (рівень «+»), модульні тести логіки.
           У README — що міряти на кожному етапі й порівняння LEDC із програмним ШІМ.</p>
       </div>
       <div class="tnote">
@@ -1527,7 +1554,7 @@ setup(): плата стартувала
 
   <!-- ===================== 9. HOMEWORK ===================== -->
   <section class="sec" id="s9" aria-labelledby="h9t">
-    <div class="sec-head"><h2 id="h9t"><span class="n">9</span>Домашнє завдання</h2></div>
+    <div class="sec-head"><h2 id="h9t"><span class="n">09</span>Домашнє завдання</h2></div>
     <div class="tnote"><p><b>20:52 · 3 хв · Пояснення ДЗ.</b> ДЗ 1 — час реле (переривання + брязкіт, зв'язок з модулем 1.5). ДЗ 2 — опційно. Показати таблицю UART-ШІМ (W9, W10). Відповіді: 70 % → 0xFC; 0x0F і 0x55 → обидва 50 %. Уявлення «<code>ledcAttach</code> всюди»: ядро 2.0.17 — <code>ledcSetup</code> [43].</p></div>
     <p class="callout">Вимоги з LMS: код і результат — на GitHub; посилання на репозиторій — у LMS.</p>
 
@@ -1635,8 +1662,8 @@ void setup() {
       <div class="prose">
         <p><b>Ключ для двигуна.</b> BC547B тут не годиться: 100 мА максимум [14]. Беріть логічний MOSFET (розділ 5), окреме живлення мотора і спільну GND. Діод паралельно мотору (катод до «+») обов'язковий: при ШІМ транзистор вимикається тисячі разів на секунду, і щоразу діод бере на себе струм мотора [7]. Для ШІМ — швидкий діод (1N5819 або UF4007) [49][48].</p>
         <p><b>Потенціометр → тривалість HIGH/LOW.</b> <code>analogRead()</code> на ESP32-S3 дає 0…4095 [42]. Для періоду T:</p>
-        <div class="formula">t_HIGH = raw × T / 4095
-t_LOW  = T − t_HIGH</div>
+        <div class="formula">t<sub>HIGH</sub> = raw × T / 4095
+t<sub>LOW</sub>  = T − t<sub>HIGH</sub></div>
         <p>Біля нуля і біля максимуму просто тримайте пін постійно LOW або HIGH: надто короткий імпульс програмно не вийде [42].</p>
         <p><b>Яку частоту вибрати</b> [41][38]:</p>
       </div>
@@ -1844,7 +1871,7 @@ ledcAttachPin(PIN_MOTOR, 0);</span>
           <li><a href="https://www.electronics-tutorials.ws/transistor/tran_7.html" rel="noopener">Electronics-Tutorials, «MOSFET as a Switch»</a> — MOSFET-ключ, R<sub>DS(on)</sub>, резистор затвора.</li>
           <li><s>ariat-tech, «Посібник з транзисторних ключів»</s> — <b>фактично недоступне:</b> відкривається сторінка перевірки (captcha). Натомість читайте п. 2–3.</li>
           <li><a href="https://e-lab.com.ua/electronics-basics/bipoliarnyi-tranzystor.html" rel="noopener">e-lab, «Біполярний транзистор»</a> — NPN/PNP, виводи, режими — українською.</li>
-          <li><a href="https://www.falstad.com/circuit/" rel="noopener">Falstad CircuitJS</a> — безкоштовна пісочниця, де видно індуктивний викид. Wokwi аналогових ефектів котушки не моделює [51].</li>
+          <li><a href="https://www.falstad.com/circuit/" rel="noopener">Falstad CircuitJS</a> — безкоштовна пісочниця, де видно індуктивний викид [51].</li>
           <li><a href="https://www.pololu.com/docs/0J15/9" rel="noopener">Pololu, «Dealing with Motor Noise»</a> — 100 нФ на моторі і конденсатор на живленні [25].</li>
         </ol>
         <h3 class="sub4">Сторінки курсу</h3>
@@ -2071,6 +2098,20 @@ const store = {
   set(k, v) { try { localStorage.setItem('power-loads:' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } },
 };
 const SVGNS = 'http://www.w3.org/2000/svg';
+// Subscripts: «U_КЕ = 6 В» → U<tspan baseline-shift="sub" font-size="75%">КЕ</tspan> = 6 В in SVG (no <sub> there),
+// U<sub>КЕ</sub> in HTML. The letters after «_» are the same Cyrillic ones as in the prose.
+const SUB_RE = /([A-Za-zА-Яа-яІі])_([A-Za-zА-ЯІЄЇа-яієї]+(?:\([a-z]+\))?)/g;
+function setSub(e, str) {
+  e.textContent = '';
+  let last = 0;
+  for (const m of str.matchAll(SUB_RE)) {
+    e.append(str.slice(last, m.index) + m[1]);
+    const t = document.createElementNS(SVGNS, 'tspan'); t.setAttribute('baseline-shift', 'sub'); t.setAttribute('font-size', '75%'); t.textContent = m[2]; e.append(t);
+    last = m.index + m[0].length;
+  }
+  e.append(str.slice(last));
+}
+const subHTML = str => str.replace(SUB_RE, '$1<sub>$2</sub>');
 function el(tag, attrs = {}, parent) {
   const e = document.createElementNS(SVGNS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -2224,7 +2265,7 @@ function frame(ts) {
 function makePOE(box, cfg) {
   const st = { choice: null, done: false };
   box.innerHTML = `<span class="k">Прогноз → Пуск → Пояснення</span><p>${cfg.q}</p>` +
-    `<div class="opts" role="group" aria-label="Ваш прогноз">${cfg.opts.map((o, i) => `<button type="button" class="opt" data-i="${i}" aria-pressed="false">${'абв'[i]}) ${o}</button>`).join('')}</div>` +
+    `<div class="opts lettered" role="group" aria-label="Ваш прогноз">${cfg.opts.map((o, i) => `<button type="button" class="opt" data-i="${i}" aria-pressed="false">${'абв'[i]}) ${o}</button>`).join('')}</div>` +
     `<div class="row"><button type="button" class="btn primary poe-run" disabled>${cfg.run || 'Пуск'}</button><span class="small poe-hint" aria-live="polite">Спершу виберіть варіант.</span></div><div class="exp" hidden aria-live="polite"></div>`;
   const run = $('.poe-run', box), hint = $('.poe-hint', box), exp = $('.exp', box);
   box.addEventListener('click', e => {
@@ -2282,7 +2323,7 @@ function makePOE(box, cfg) {
     ], ok: 2 },
   ];
   const box = $('#w0'); let right = 0, answered = 0;
-  box.innerHTML = Q.map((q, i) => `<div class="w0q" data-i="${i}" style="margin-bottom:12px"><p style="margin:0 0 6px;font-weight:600">П${i + 1}. ${q.q}</p><div class="opts">${q.o.map((o, j) => `<button type="button" class="opt" data-j="${j}">${'абв'[j]}) ${o[0]}</button>`).join('')}</div><div class="qfb" aria-live="polite"></div></div>`).join('');
+  box.innerHTML = Q.map((q, i) => `<div class="w0q" data-i="${i}" style="margin-bottom:12px"><p style="margin:0 0 6px;font-weight:600">П${i + 1}. ${q.q}</p><div class="opts lettered">${q.o.map((o, j) => `<button type="button" class="opt" data-j="${j}">${'абв'[j]}) ${o[0]}</button>`).join('')}</div><div class="qfb" aria-live="polite"></div></div>`).join('');
   box.addEventListener('click', e => {
     const b = e.target.closest('.opt'); if (!b) return;
     const card = b.closest('.w0q'); if (card.dataset.done) return;
@@ -2492,24 +2533,24 @@ const W3R = { ib: 0, ic: 0 };
     const rName = K.bjt ? 'R_Б' : 'R_З';
     $('#w3rbLbl').innerHTML = `${K.bjt ? 'R<sub>Б</sub>' : 'R<sub>З</sub> (затвор)'} (ряд E12, логарифмічно): <b class="out" id="w3rbOut">${o.R ? fR(o.R) : 'без резистора'}</b>`;
     $('#w3rbR').setAttribute('aria-valuetext', o.R ? fR(o.R) : 'без резистора');
-    $('#w3rbTxt').textContent = o.R ? `${rName} ${fR(o.R)}` : 'без резистора!';
+    setSub($('#w3rbTxt'), o.R ? `${rName} ${fR(o.R)}` : 'без резистора!');
     $('#w3rbTxt').style.fill = o.R ? '' : 'var(--bad)';
     $('#w3rb').style.opacity = o.R ? 1 : 0; $('#w3rbWire').style.opacity = o.R ? 0 : 1;
     $('#w3bjt').style.opacity = K.bjt ? 1 : 0; $('#w3fet').style.opacity = K.bjt ? 0 : 1;
     $('#w3keyName').textContent = K.n;
     for (const k in LOADS) $('#w3load' + LOADS[k].g).style.opacity = k === W3S.load ? 1 : 0;
     $('#w3srcTxt').textContent = nf(L.U, 0) + ' В';
-    $('#w3loadTxt').textContent = W3S.load === 'strip' ? '' : `R_нав ${nf(L.R, 0)} Ом`;
-    $('#w3ibTxt').textContent = K.bjt ? `I_Б = ${o.R === 0 && W3S.pin ? '≫ 20 мА' : fI(o.ib)}` : (W3S.pin ? 'I_З ≈ 0 (статично)' : 'I_З = 0');
-    $('#w3vbeTxt').textContent = W3S.pin ? (K.bjt ? `U_БЕ ≈ ${nf(o.vbe, 1)} В` : 'U_ЗВ = 3,3 В') : '';
-    $('#w3icTxt').textContent = `${K.bjt ? 'I_К' : 'I_С'} = ${fI(o.ic)}`;
-    $('#w3vceTxt').textContent = `${K.bjt ? 'U_КЕ' : 'U_СВ'} = ${fV(o.vce)}`;
+    setSub($('#w3loadTxt'), W3S.load === 'strip' ? '' : `R_нав ${nf(L.R, 0)} Ом`);
+    setSub($('#w3ibTxt'), K.bjt ? `I_Б = ${o.R === 0 && W3S.pin ? '≫ 20 мА' : fI(o.ib)}` : (W3S.pin ? 'I_З ≈ 0 (статично)' : 'I_З = 0'));
+    setSub($('#w3vbeTxt'), W3S.pin ? (K.bjt ? `U_БЕ ≈ ${nf(o.vbe, 1)} В` : 'U_ЗВ = 3,3 В') : '');
+    setSub($('#w3icTxt'), `${K.bjt ? 'I_К' : 'I_С'} = ${fI(o.ic)}`);
+    setSub($('#w3vceTxt'), `${K.bjt ? 'U_КЕ' : 'U_СВ'} = ${fV(o.vce)}`);
     const MODES = {
       off: ['відсічка', 'off'], sat: [K.darl ? 'відкритий (U_КЕ ≈ 1 В)' : 'насичення гарантоване', K.darl ? 'warn' : 'ok'],
       likely: ['ймовірно насичення, без гарантії', 'warn'], active: ['активний режим', 'bad'], fet: ['повністю відкритий (R_DS(on) ≤ 48 мОм)', 'ok'],
     };
     const [mt, mc] = MODES[o.mode];
-    const mi = $('#w3mode'); mi.textContent = mt; mi.className = 'mode-ind ' + mc;
+    const mi = $('#w3mode'); mi.innerHTML = subHTML(mt); mi.className = 'mode-ind ' + mc;
     $('#w3roPin').textContent = !W3S.pin ? '0' : K.bjt ? (o.R === 0 ? '≫ 20 мА' : fI(o.ipin)) : '≈ 0 (лише ривок при перемиканні)';
     $('#w3roPin').className = o.ipin > 0.02 ? 'v-bad' : '';
     $('#w3roIc').textContent = W3S.pin ? `${fI(o.ic)} / ${fI(o.ineed)}` : '0';
@@ -2699,9 +2740,9 @@ const W3R = { ib: 0, ic: 0 };
   const g = $('#w6grid');
   for (let i = 0; i <= 10; i++) el('line', { x1: PX0 + i * 38, y1: PY0, x2: PX0 + i * 38, y2: PY1, class: 'sc-grid' }, g);
   for (let j = 0; j <= 8; j++) el('line', { x1: PX0, y1: PY0 + j * 27.5, x2: PX1, y2: PY0 + j * 27.5, class: 'sc-grid' }, g);
-  for (const u of [0, 6, 12]) { const t = el('text', { x: PX0 - 4, y: yU(u) + 4, class: 'sc-txt', 'text-anchor': 'end' }, g); t.textContent = u + 'В'; }
+  for (const u of [0, 6, 12]) { const t = el('text', { x: PX0 - 4, y: yU(u) + 4, class: 'sc-txt', 'text-anchor': 'end' }, g); t.textContent = u + '\u00a0В'; }
   el('line', { x1: PX0, y1: yU(6), x2: PX1, y2: yU(6), stroke: 'var(--scope-ch1)', 'stroke-opacity': .45, class: 'sc-lim' }, g);
-  const t6 = el('text', { x: PX1 - 2, y: yU(6) + 14, class: 'sc-txt', 'text-anchor': 'end' }, g); t6.textContent = 'U_дв = 6 В';
+  const t6 = el('text', { x: PX1 - 2, y: yU(6) + 14, class: 'sc-txt', 'text-anchor': 'end' }, g); setSub(t6, 'U_дв = 6 В');
   const ann = $('#w6ann'), pu = $('#w6u'), pi = $('#w6i');
   function model(kind) {
     const U = [], I = [];
@@ -2727,7 +2768,7 @@ const W3R = { ib: 0, ic: 0 };
   }
   function note(lines) {
     ann.innerHTML = '';
-    for (const [x, y, txt, col] of lines) { const t = el('text', { x, y, class: 'sc-txt', style: col ? `fill:${col}` : '' }, ann); t.textContent = txt; }
+    for (const [x, y, txt, col] of lines) { const t = el('text', { x, y, class: 'sc-txt', style: col ? `fill:${col}` : '' }, ann); setSub(t, txt); }
   }
   function paint() {
     pressSeg($('#w6diode'), S.diode);
@@ -2764,12 +2805,12 @@ const W3R = { ib: 0, ic: 0 };
   }
   function turnOn() {
     if (S.broken) { $('#w6out').innerHTML = 'Транзистор пробито: колектор–емітер замкнені назавжди, мотор уже не вимикається. Натисніть «Замінити транзистор».'; return; }
-    if (S.on) { $('#w6out').textContent = 'Транзистор уже відкритий: мотор крутиться, U_К ≈ 0,2 В.'; return; }
+    if (S.on) { $('#w6out').innerHTML = subHTML('Транзистор уже відкритий: мотор крутиться, U_К ≈ 0,2 В.'); return; }
     S.on = true; paint();
     if (S.flip && S.diode !== 'none') { play('short'); shortFx(); S.on = false; paint(); return; }
     note([[PX0 + 120, yU(0.2) - 8, 'U_К ≈ 0,2 В: транзистор відкритий'], [PX0 + 120, yI(0.85) - 6, 'струм котушки наростає (L/R)', 'var(--scope-ch2)']]);
     play('on');
-    $('#w6out').textContent = 'Транзистор відкрився: U_К впала майже до нуля, струм котушки наростає плавно — котушка «не любить» різких змін. ' + (S.diode !== 'none' ? 'Діод закритий і не заважає.' : 'Діода немає — подивимось, що буде при вимкненні.');
+    $('#w6out').innerHTML = subHTML('Транзистор відкрився: U_К впала майже до нуля, струм котушки наростає плавно — котушка «не любить» різких змін. ' + (S.diode !== 'none' ? 'Діод закритий і не заважає.' : 'Діода немає — подивимось, що буде при вимкненні.'));
   }
   function turnOff() {
     if (S.broken) { turnOn(); return; }
@@ -2782,10 +2823,10 @@ const W3R = { ib: 0, ic: 0 };
       $('#w6out').innerHTML = (S.flip ? 'Перевернутий діод не захищає. ' : '') + `Струм котушки обірвався майже миттєво, і U = −L·di/dt підкинула колектор далеко вище 6 В. Вимкнень без захисту: ${S.kicks + 1} з 3.`;
     } else if (kind === 'diode') {
       note([[PX0 + 70, yU(6.85) - 8, 'U_К ≈ 6,7–7 В = U_дв + 0,7…1 В [24]'], [PX0 + 70, yI(0.45), 'струм плавно згасає за мілісекунди', 'var(--scope-ch2)']]);
-      $('#w6out').textContent = 'Струм котушки не зник: він пішов по колу «котушка → діод → котушка» (підсвічено) і згас за мілісекунди. На колекторі лише U_дв + 0,7…1 В.';
+      $('#w6out').innerHTML = subHTML('Струм котушки не зник: він пішов по колу «котушка → діод → котушка» (підсвічено) і згас за мілісекунди. На колекторі лише U_дв + 0,7…1 В.');
     } else {
       note([[PX0 + 70, yU(14.9) - 8, 'U_К ≈ U_дв + U_z + 0,7 ≈ 14,9 В (U_z = 8,2 В)'], [PX0 + 70, yI(0.5), 'струм спадає швидше', 'var(--scope-ch2)']]);
-      $('#w6out').textContent = 'Зі стабілітроном струм спадає швидше — реле відпускає швидше, але транзистор має витримати вищу напругу U_дв + U_z + 0,7 В [29].';
+      $('#w6out').innerHTML = subHTML('Зі стабілітроном струм спадає швидше — реле відпускає швидше, але транзистор має витримати вищу напругу U_дв + U_z + 0,7 В [29].');
     }
     const d = play(kind, () => {
       if (kind === 'none') {
@@ -3262,7 +3303,7 @@ const W3R = { ib: 0, ic: 0 };
   function show(i, focus) {
     cur = i; const q = QS[i], a = ans[i];
     box.innerHTML = `<p style="margin:0 0 10px;font-weight:600;font-size:1.05rem">${i < 12 ? `<span class="mono v-mut">${i + 1} / 12</span>` : ''} ${q.q}</p>` +
-      `<div class="opts" role="group" aria-label="Варіанти відповіді">${q.o.map((o, j) => `<button type="button" class="opt${a == null ? '' : j === q.ok ? ' right' : j === a ? ' wrong' : ''}" data-j="${j}"${a != null ? ' aria-disabled="true"' : ''}>${'абв'[j]}) ${o[0]}</button>`).join('')}</div>` +
+      `<div class="opts lettered" role="group" aria-label="Варіанти відповіді">${q.o.map((o, j) => `<button type="button" class="opt${a == null ? '' : j === q.ok ? ' right' : j === a ? ' wrong' : ''}" data-j="${j}"${a != null ? ' aria-disabled="true"' : ''}>${'абв'[j]}) ${o[0]}</button>`).join('')}</div>` +
       `<div class="qfb" aria-live="polite" id="qzFb"></div>`;
     if (a != null) fb(i);
     $('#qzPrev').disabled = i === 0; $('#qzNext').textContent = i === QS.length - 1 ? 'До першого' : 'Далі →';
@@ -3300,5 +3341,6 @@ const W3R = { ib: 0, ic: 0 };
 linkCites($('.wrap'));
 requestAnimationFrame(frame);
 </script>
+<script src="../assets/course.js" defer></script><script src="../assets/site-nav.js" defer></script>
 </body>
 </html>

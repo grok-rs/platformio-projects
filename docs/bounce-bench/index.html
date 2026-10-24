@@ -12,7 +12,7 @@
 <meta name="description" content="Конспект уроку модуля 1.5 на реальному стенді: брязкіт кнопки на GPIO21 ESP32-S3, 190 справжніх подій у віртуальному логічному аналізаторі, чому переривання губить фронти, маркери BOUNCE і LABEL для Logic 2, домашнє завдання з відповідями.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
 /* Lecture notes on the real bench. Tokens and components follow ../bounce-lab/ (same design system).
    Order: bounce anatomy (animated contact) → the bench → analyzer viewer over 190 real events →
@@ -26,8 +26,8 @@
   --s-press: #1d6fd8; --s-release: #c45f00; --s-glitch: #8b5cd6;
   /* analyzer traces on the dark scope surface (same in both themes) */
   --tr-btn: #4fb3ff; --tr-mark: #5ad17a; --tr-lbl: #ffae2b; --tr-bad: #ff6b6b;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Literata", Georgia, "Times New Roman", serif;
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -103,7 +103,9 @@ section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--l
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
 .ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
 .ph h3 { font-size: .95rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.ph .note { font-size: 12.5px; color: var(--muted); }
+.ph .note { font-size: 13px; color: var(--muted); }
+/* provenance chip: modelled / reconstructed data, not a bench recording */
+.model-chip { display: inline-block; vertical-align: middle; padding: 1px 8px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .04em; white-space: nowrap; }
 .pb { padding: 12px; }
 .prose p, .prose li { max-width: 72ch; }
 .prose p { margin: 0 0 10px; }
@@ -134,8 +136,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); border-top: 1px solid var(--line); }
 .stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
 .stat:last-child { border-right: 0; }
-.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.stat .v { font: 600 1.12rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .k { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.stat .v { font: 600 1.12rem var(--f-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .stat .v.hi { color: var(--hi); } .stat .v.ok { color: var(--ok); } .stat .v.bad { color: var(--bad); } .stat .v.acc { color: var(--accent); }
 .badge { display: inline-flex; align-items: center; gap: 5px; font: 600 11.5px var(--f-mono); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .badge.bad { color: var(--bad); border-color: var(--bad); }
@@ -160,6 +162,7 @@ svg text { font-family: var(--f-mono); }
 .scope-grid line { stroke: var(--scope-grid); }
 .scope-t { fill: var(--scope-text); font-size: 11px; }
 .tr { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.an-chip { margin: 2px 0 4px 4px; color: #ffcf7a; border-color: #ffcf7a; background: transparent; } /* sits on the dark scope in both themes */
 
 /* ---------- 2. bench ---------- */
 .conn { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -178,26 +181,32 @@ svg text { font-family: var(--f-mono); }
 .schem.dim [data-ch].on { opacity: 1; }
 .schem [data-ch].on .sc-w, .schem .sc-w[data-ch].on { stroke-width: 4; }
 .photo { display: block; width: 100%; height: auto; border-radius: 0 0 8px 8px; background: #fff; }
+/* the light breadboard photo would glare in dark mode */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .photo { filter: brightness(.88); border: 1px solid var(--sheet); } }
+:root[data-theme="dark"] .photo { filter: brightness(.88); border: 1px solid var(--sheet); }
+/* touch screens have no Space bar to hold */
+@media (pointer: coarse) { .stat.kbd-only { display: none; } }
 
 /* ---------- 3. viewer ---------- */
 .vbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
 .vbar .grp { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .ev-title { font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; }
-.ev-title .kind { padding: 1px 8px; border-radius: 4px; color: #fff; margin-right: 6px; }
+/* the chip fill is the event colour darkened 30 %, so white text stays >= 4.5:1 in both themes */
+.ev-title .kind { padding: 1px 8px; border-radius: 4px; color: #fff; margin-right: 6px; background: color-mix(in srgb, var(--k) 70%, #000); }
 .map { padding: 6px 12px 2px; border-bottom: 1px solid var(--line); }
 .map svg { width: 100%; height: 62px; display: block; cursor: pointer; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); padding: 2px 0 6px; }
 .map-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 .la { background: var(--scope); }
 .la svg { width: 100%; height: auto; display: block; cursor: crosshair; touch-action: pan-y; }
-.la .lane-name { fill: var(--scope-text); font-size: 12px; font-weight: 600; }
-.la .lane-sub { fill: var(--scope-text); font-size: 10px; opacity: .75; }
-.la .axis { fill: var(--scope-text); font-size: 10.5px; }
-.la .gap-t { fill: #dbe7ef; font-size: 10.5px; }
+.la .lane-name { fill: var(--scope-text); font-size: 13px; font-weight: 600; }
+.la .lane-sub { fill: var(--scope-text); font-size: 12px; opacity: .85; }
+.la .axis { fill: var(--scope-text); font-size: 12px; }
+.la .gap-t { fill: #dbe7ef; font-size: 12px; }
 .la .hair { stroke: #ffffffaa; stroke-width: 1; }
 .la .cur { stroke-width: 1.5; stroke-dasharray: 4 3; }
 .la .bubble rect { fill: #3a2a0c; stroke: var(--tr-lbl); }
-.la .bubble text { fill: #ffd9a0; font-size: 11px; }
+.la .bubble text { fill: #ffd9a0; font-size: 12px; }
 .readout { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 500 12.5px var(--f-mono); color: var(--muted); padding: 6px 12px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .readout b { color: var(--ink); }
 
@@ -208,9 +217,9 @@ svg text { font-family: var(--f-mono); }
 /* ---------- 5. stats ---------- */
 .chart svg { width: 100%; height: auto; display: block; }
 .chart .gridl { stroke: var(--line); stroke-width: 1; }
-.chart .axis-t { fill: var(--muted); font-size: 11px; }
+.chart .axis-t { fill: var(--muted); font-size: 12px; }
 .chart .row-t { fill: var(--ink); font-size: 12px; font-weight: 600; }
-.chart .row-s { fill: var(--muted); font-size: 11px; }
+.chart .row-s { fill: var(--muted); font-size: 12px; }
 .chart .dot { stroke: var(--panel); stroke-width: 2; }
 .chart .hit { fill: transparent; cursor: pointer; }
 .chart .hit:hover + .dot, .chart .hit:focus + .dot { stroke: var(--ink); }
@@ -284,25 +293,28 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
 /* phones: wide plots keep a readable scale and scroll sideways instead of shrinking */
 @media (max-width: 720px) {
   .la, .hscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .la svg, .hscroll svg { min-width: 760px; }
+  /* 1000 px = the viewBox width, so 12-unit labels render at 12 px */
+  .hscroll svg { min-width: 1000px; }
+  #lgSvg { min-width: 600px; }
+  .schem-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .schem-scroll svg { min-width: 700px; }
+  .scope-t { font-size: 22px; }
   .hint-scroll { display: block; }
 }
-.hint-scroll { display: none; font-size: 12px; color: var(--muted); padding: 4px 12px 0; }
+.hint-scroll { display: none; font-size: 13px; color: var(--muted); padding: 4px 12px 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
+<!-- design bridge: shared tokens, fonts and background override this page's own token block -->
+<link rel="stylesheet" href="../assets/theme.css">
 </head>
 <body>
-<nav class="site-nav" aria-label="Навігація сайтом">
-  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Усі матеріали</a>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.3–1.4</span><a href="../pull-resistors/">Підтяжка входу</a><a href="../lab/">Стенд ESP32-S3</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.5</span><a href="../scope-signals/">Теорія: осцилограф</a><a href="../bounce-lab/">ДЗ: брязкіт</a><a href="../bounce-bench/" aria-current="page">Брязкіт на стенді</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.6</span><a href="../adc-light/">Теорія: АЦП</a><a href="../ldr-lab/">ДЗ: люксметр</a></span>
-  <span class="sn-group"><span class="sn-mod">Міні-проєкт 1</span><a href="../twilight-relay/">Сутінковий перемикач</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 2.2</span><a href="../power-loads/">Потужне навантаження</a></span>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="bounce-bench">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
 </nav>
+<p class="from-lesson" style="max-width:1240px;margin:8px auto 0;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font:500 14px/1.45 var(--f-body,system-ui,sans-serif)">Частина <a href="../lessons/1-5/">уроку 1.5 · Осцилограф, кнопка і брязкіт</a> · також до <a href="../lessons/2-4/">уроку 2.4</a></p>
 <div class="wrap">
   <header class="masthead">
-    <div class="eyebrow">Модуль 1.5 · конспект уроку · реальний стенд YD-ESP32-S3</div>
+    <div class="eyebrow">Модуль 1 · Урок 1.5 · Глибше · реальний стенд</div>
     <h1>Брязкіт на <span>стенді</span></h1>
     <p>Конспект на справжніх даних: кнопка на GPIO21, логічний аналізатор і 190 подій, які записав ESP32-S3 на уроці. Натисніть кнопку в анімації, перегляньте кожну подію у віртуальному аналізаторі, з'ясуйте, чому переривання губить фронти, і виберіть антибрязкіт для <em>своєї</em> кнопки.</p>
     <nav class="toc" aria-label="Розділи">
@@ -349,11 +361,12 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
           </svg>
         </div>
         <div class="scope-wrap">
+          <span class="model-chip an-chip">анімація, не запис</span>
           <svg viewBox="0 0 640 220" id="anScope" role="img" aria-label="Осцилограма GPIO21 у реальному часі анімації: HIGH — контакт розімкнений, LOW — замкнений">
             <g class="scope-grid" id="anGrid"></g>
-            <text class="scope-t" x="8" y="48">HIGH 3.3 В</text>
-            <text class="scope-t" x="8" y="168">LOW 0 В</text>
-            <text class="scope-t" x="632" y="14" text-anchor="end">GPIO21 → CH1</text>
+            <text class="scope-t" x="8" y="34">HIGH 3,3 В</text>
+            <text class="scope-t" x="8" y="186">LOW 0 В</text>
+            <text class="scope-t" x="632" y="14" text-anchor="end">GPIO21 (модель)</text>
             <polyline class="tr" id="anTrace" points="" stroke="var(--tr-btn)"/>
           </svg>
         </div>
@@ -367,7 +380,7 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
         <div class="stat"><div class="k">Остання дія</div><div class="v acc" id="anAct">—</div></div>
         <div class="stat"><div class="k">Фронтів у ній</div><div class="v hi" id="anEdges">—</div></div>
         <div class="stat"><div class="k">Мало бути</div><div class="v ok">1</div></div>
-        <div class="stat"><div class="k">Клавіатура</div><div class="v" style="font-size:.95rem">утримуйте <kbd>Пробіл</kbd></div></div>
+        <div class="stat kbd-only"><div class="k">Клавіатура</div><div class="v" style="font-size:.95rem">утримуйте <kbd>Пробіл</kbd></div></div>
       </div>
     </div>
     <p class="callout">Головне: <b>натискання людини триває ~100 мс, а брязкіт — мікросекунди–мілісекунди</b>. Око цього не бачить, а переривання ESP32 бачить: кожне розмикання — це ще один фронт і ще одне спрацювання.</p>
@@ -382,7 +395,8 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
     <div class="grid2">
       <div class="panel">
         <div class="ph"><h3>Принципова схема</h3><span class="note">наведіть на рядок таблиці — підсвітиться провід</span></div>
-        <div class="pb schem" id="schem">
+        <span class="hint-scroll">↔ схема прокручується вбік</span>
+        <div class="pb schem schem-scroll" id="schem">
           <svg viewBox="0 0 640 300" role="img" aria-label="ESP32-S3: GPIO21 через кнопку на GND, CH1 аналізатора на GPIO21, CH2 на GPIO40, CH3 на GPIO41, спільна земля">
             <rect class="sc-box" x="20" y="30" width="170" height="240" rx="10"/>
             <text class="sc-t" x="36" y="56" style="font-weight:600">ESP32-S3</text>
@@ -444,6 +458,7 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
       <p>Кожна подія відновлена з часів фронтів, які записало переривання ESP32 на уроці (11:40, мікросекунди). Виберіть подію на мінікарті, кнопками або <kbd>←</kbd> <kbd>→</kbd>. Клацніть по осцилограмі двічі — отримаєте курсори A/B і Δt.</p>
     </div>
     <div class="panel" id="vPanel">
+      <div class="ph"><h3>Осцилограма події</h3><span class="model-chip" title="Відновлено з часів переривання ESP32, а не записано аналізатором">реконструкція, не запис CH1</span></div>
       <div class="vbar">
         <div class="grp">
           <div class="seg" role="group" aria-label="Фільтр подій" id="vFilter">
@@ -471,8 +486,7 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
           <span>висота стовпчика = кількість фронтів</span>
         </div>
       </div>
-      <span class="hint-scroll">↔ осцилограма прокручується вбік</span>
-      <div class="la"><svg id="vLa" viewBox="0 0 1000 300" role="img" aria-label="Осцилограма вибраної події: BUTTON, BOUNCE, LABEL"></svg></div>
+      <div class="la"><svg id="vLa" viewBox="0 0 1000 300" role="img" aria-label="Реконструкція вибраної події з часів переривання (не запис CH1): BUTTON, BOUNCE, LABEL"></svg></div>
       <div class="readout" id="vRead"><span>курсор: <b id="vCur">—</b></span><span>A: <b id="vA">—</b></span><span>B: <b id="vB">—</b></span><span>Δt: <b id="vD">—</b></span></div>
       <div class="controls">
         <div class="ctl"><label for="vZoom">Збільшення <b id="vZoomV"></b></label><input type="range" id="vZoom" min="0" max="4" step="0.05" value="0"></div>
@@ -641,14 +655,14 @@ uint32_t last_count = <span class="t-n">0</span>;
     <details class="qa">
       <summary>3. Яка середня тривалість брязкоту вашої кнопки?</summary>
       <div class="ans">
-        <p>Серед подій з брязкотом (без двох аномалій &gt; 10 мс): <b>середня ≈ 0.46 мс</b>, медіана ≈ 0.18 мс, 90 % — коротші за 1.27 мс, максимум — <b>3.56 мс</b> (відпускання, 6 фронтів). Натискання: брязкіт лише 1 раз із 91 (10 мкс).</p>
-        <p>Аномалії 27.9 мс і 51.7 мс — не брязкіт контакту, а повторний дотик/ковзання пальця: між фронтами там десятки мілісекунд.</p>
+        <p>Серед подій з брязкотом (без двох аномалій &gt; 10 мс): <b>середня ≈ 0,46 мс</b>, медіана ≈ 0,18 мс, 90 % — коротші за 1,27 мс, максимум — <b>3,56 мс</b> (відпускання, 6 фронтів). Натискання: брязкіт лише 1 раз із 91 (10 мкс).</p>
+        <p>Аномалії 27,9 мс і 51,7 мс — не брязкіт контакту, а повторний дотик/ковзання пальця: між фронтами там десятки мілісекунд.</p>
       </div>
     </details>
     <details class="qa">
       <summary>4. Який мінімальний debounce був би достатній?</summary>
       <div class="ans">
-        <p>Найдовший брязкіт — 3.6 мс. З запасом ×3 (нова кнопка зноситься, інша партія брязкотить довше) — <b>≈ 10 мс — мінімум</b>, на практиці беруть <b>20–30 мс</b>: людина не помітить затримки менше ~50 мс. Перевірте в розділі 5: при 10 мс усі звичайні події вміщаються у вікно.</p>
+        <p>Найдовший брязкіт — 3,6 мс. З запасом ×3 (нова кнопка зноситься, інша партія брязкотить довше) — <b>≈ 10 мс — мінімум</b>, на практиці беруть <b>20–30 мс</b>: людина не помітить затримки менше ~50 мс. Перевірте в розділі 5: при 10 мс усі звичайні події вміщаються у вікно.</p>
         <p>Важливо <b>як</b> фільтрувати: не «ігнорувати 30 мс після першого фронту», а «прийняти рівень, якщо він стабільний 30 мс» (так зроблено в <code>esp32-s3-led-button</code>, <code>kDebounceMs = 30</code>). Такий фільтр ловить і брязкіт відпускання, і «блимання» під час утримання.</p>
       </div>
     </details>
@@ -690,7 +704,7 @@ uint32_t last_count = <span class="t-n">0</span>;
 
   <footer>
     Дані: <code>esp32-s3-bounce-test/docs/bench-11-40.serial.txt</code> — 190 подій, записаних прошивкою <code>lab</code> (переривання CHANGE, <code>micros()</code>) на YD-ESP32-S3, кнопка 6×6 на GPIO21, 17.10.2026. Тип події визначено за рівнем після 50 мс тиші; «загублено» — парність фронтів не відповідає зміні рівня.
-    Код: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bounce-test" target="_blank" rel="noopener">esp32-s3-bounce-test ↗</a> · теорія: <a href="../scope-signals/">Осцилограф і кнопка</a> · симуляція: <a href="../bounce-lab/">Лабораторія брязкоту</a>.
+    Код: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bounce-test" target="_blank" rel="noopener">esp32-s3-bounce-test ↗</a> · теорія: <a href="../scope-signals/">Осцилограф і кнопка</a> · модель: <a href="../bounce-lab/">Лабораторія брязкоту</a>.
   </footer>
 </div>
 <div class="tip" id="tip" hidden></div>
@@ -787,7 +801,7 @@ const hideTip = () => { tip.hidden = true; };
   const N = 320, buf = new Array(N).fill(1);
   let y = 1, v = 0, pressed = false, phase = 'idle', peel = 0, edges = 0, last = 1, action = null;
   const TRAVEL = 60; // px between open and closed
-  function setLabels() { $('#anEv').textContent = (+eIn.value).toFixed(2); $('#anFv').textContent = ['', 'легко', 'помірно', 'звичайно', 'сильно', 'різко'][fIn.value]; }
+  function setLabels() { $('#anEv').textContent = (+eIn.value).toFixed(2).replace('.', ','); $('#anFv').textContent = ['', 'легко', 'помірно', 'звичайно', 'сильно', 'різко'][fIn.value]; }
   eIn.oninput = fIn.oninput = setLabels; setLabels();
   function press(on) {
     if (on === pressed) return;
@@ -856,12 +870,29 @@ const hideTip = () => { tip.hidden = true; };
 // =====================================================================
 const viewer = (function () {
   const svg = $('#vLa'), map = $('#vMap');
-  const W = 1000, X0 = 112, X1 = 985;
-  const LANES = [
-    { key: 'btn', name: 'BUTTON', sub: 'CH1 · GPIO21', y: 30, h: 70, col: 'var(--tr-btn)' },
-    { key: 'mark', name: 'BOUNCE', sub: 'CH2 · GPIO40', y: 130, h: 34, col: 'var(--tr-mark)' },
-    { key: 'lbl', name: 'LABEL', sub: 'CH3 · GPIO41', y: 194, h: 34, col: 'var(--tr-lbl)' },
+  let W = 1000, X0 = 112, X1 = 985, H = 300, PH = false;
+  const LANES_WIDE = [
+    // sub: lines under the lane name; BUTTON is rebuilt from the ISR timestamps, BOUNCE/LABEL from the firmware logic
+    { key: 'btn', name: 'BUTTON', sub: ['GPIO21 ·', 'відновлено', 'з ISR-часів'], y: 30, h: 70, col: 'var(--tr-btn)' },
+    { key: 'mark', name: 'BOUNCE', sub: ['GPIO40 ·', 'з прошивки'], y: 130, h: 34, col: 'var(--tr-mark)' },
+    { key: 'lbl', name: 'LABEL', sub: ['GPIO41 ·', 'з прошивки'], y: 194, h: 34, col: 'var(--tr-lbl)' },
   ];
+  // phones: the whole event fits the screen width (viewBox = CSS px, so 12-unit labels stay 12 px); each lane's
+  // name sits on its own line above the lane instead of in a left column
+  const LANES_PHONE = [
+    { ...LANES_WIDE[0], sub: ['GPIO21 · відновлено з ISR-часів'], y: 46, h: 62 },
+    { ...LANES_WIDE[1], sub: ['GPIO40 · з прошивки'], y: 170, h: 30 },
+    { ...LANES_WIDE[2], sub: ['GPIO41 · з прошивки'], y: 244, h: 30 },
+  ];
+  let LANES = LANES_WIDE;
+  function layout() {
+    const cw = svg.parentElement.clientWidth;
+    PH = cw > 0 && cw < 600;
+    if (PH) { W = Math.round(cw); X0 = 8; X1 = W - 8; H = 344; LANES = LANES_PHONE; }
+    else { W = 1000; X0 = 112; X1 = 985; H = 300; LANES = LANES_WIDE; }
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  }
+  window.addEventListener('resize', () => { const was = PH, w0 = W; layout(); if (was !== PH || (PH && W !== w0)) render(); });
   let filter = 'bounce', list = [], pos = 0, zoom = 0, pan = 0.5, curA = null, curB = null, play = 0;
   const match = {
     all: () => true, bounce: v => v.e > 1, R: v => v.k === 'R', G: v => v.k === 'G', missed: v => v.missed,
@@ -912,25 +943,28 @@ const viewer = (function () {
 
   function render() {
     if (!list.length) { svg.replaceChildren(); $('#vTitle').textContent = 'немає подій'; return; }
+    layout();
     const v = list[pos];
     sel.setAttribute('x', v.i * bw - 1);
     // title
     const tt = $('#vTitle'); tt.replaceChildren();
-    const kb = document.createElement('span'); kb.className = 'kind'; kb.style.background = KCOL[v.k]; kb.textContent = `${KIND[v.k]} #${v.n}`;
+    const kb = document.createElement('span'); kb.className = 'kind'; kb.style.setProperty('--k', KCOL[v.k]); kb.textContent = `${KIND[v.k]} #${v.n}`;
     tt.append(kb, document.createTextNode(`${pos + 1} / ${list.length}`));
     const [t0, t1] = window_(v);
     const X = t => X0 + (t - t0) / (t1 - t0) * (X1 - X0);
     svg.replaceChildren();
     // grid + axis
-    const stp = niceStep(t1 - t0);
+    const stp = niceStep((t1 - t0) * (PH ? 2 : 1)), yAx = PH ? 304 : 266, yG = PH ? 286 : 248;
     for (let t = Math.ceil(t0 / stp) * stp; t <= t1; t += stp) {
-      el('line', { x1: X(t), y1: 14, x2: X(t), y2: 248, stroke: 'var(--scope-grid)' }, svg);
-      txt(svg, X(t), 266, fmtT(Math.abs(t) < 1e-9 ? 0 : t), { class: 'axis', 'text-anchor': 'middle' });
+      el('line', { x1: X(t), y1: 14, x2: X(t), y2: yG, stroke: 'var(--scope-grid)' }, svg);
+      if (!PH || (X(t) > X0 + 16 && X(t) < X1 - 16)) txt(svg, X(t), yAx, fmtT(Math.abs(t) < 1e-9 ? 0 : t), { class: 'axis', 'text-anchor': 'middle' });
     }
-    txt(svg, X1, 290, 'час від першого фронту', { class: 'axis', 'text-anchor': 'end', opacity: .7 });
+    txt(svg, X1, yAx + 24, 'час від першого фронту', { class: 'axis', 'text-anchor': 'end', opacity: .7 });
     for (const L of LANES) {
-      txt(svg, 10, L.y + L.h / 2, L.name, { class: 'lane-name' });
-      txt(svg, 10, L.y + L.h / 2 + 15, L.sub, { class: 'lane-sub' });
+      if (PH) { const t = txt(svg, X0, L.y - 14, L.name + ' ', { class: 'lane-name' }); const ts = el('tspan', { class: 'lane-sub' }, t); ts.textContent = L.sub[0]; continue; }
+      const y0 = L.y + L.h / 2 - 7 * (L.sub.length - 1);
+      txt(svg, 10, y0, L.name, { class: 'lane-name' });
+      L.sub.forEach((s, k) => txt(svg, 10, y0 + 14 * (k + 1), s, { class: 'lane-sub' }));
     }
     // BUTTON trace
     const B = LANES[0], yH = B.y + 6, yL = B.y + B.h - 6;
@@ -957,8 +991,11 @@ const viewer = (function () {
     if (v.missed) {
       const x = Math.min(X1 - 4, X(v.dur));
       const g = el('g', {}, svg);
-      el('rect', { x: x - 3, y: B.y - 8, width: 6, height: B.h + 4, fill: 'var(--tr-bad)', opacity: .35 }, g);
-      txt(g, Math.min(x + 8, X1 - 150), B.y - 10, 'тут ISR загубила фронт', { fill: 'var(--tr-bad)', 'font-size': 11 });
+      // hatched band: the lost edge sits somewhere in here; the real CH1 would show it
+      const pat = el('pattern', { id: 'vLost', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, el('defs', {}, g));
+      el('rect', { width: 2.5, height: 6, fill: 'var(--tr-bad)' }, pat);
+      el('rect', { x: x - 9, y: B.y - 8, width: 18, height: B.h + 4, fill: 'url(#vLost)', stroke: 'var(--tr-bad)', 'stroke-width': 1 }, g);
+      txt(g, Math.max(X0, Math.min(x + 8, X1 - (PH ? 168 : 150))), PH ? B.y + B.h + 30 : B.y - 10, 'тут ISR загубила фронт', { fill: 'var(--tr-bad)', 'font-size': 12 });
     }
     // BOUNCE marker: HIGH from the 2nd edge until the event ends (+50 ms, off-screen)
     const M = LANES[1], mH = M.y + 4, mL = M.y + M.h - 4;
@@ -975,16 +1012,16 @@ const viewer = (function () {
     el('line', { x1: X0, y1: lH, x2: X1, y2: lH, stroke: Lb.col, 'stroke-width': 2 }, svg);
     const label = `${v.k === 'P' ? 'PRESS' : v.k === 'R' ? 'RELEASE' : 'GLITCH'}#${v.n} e=${v.e} ${v.dur}us${v.missed ? ' MISSED' : ''}`;
     const bub = el('g', { class: 'bubble' }, svg);
-    const bwid = (label.length + 12) * 6.7 + 18;
+    const bwid = (label.length + 12) * (PH ? 7.4 : 6.7) + 18;
     el('rect', { x: X1 - bwid, y: Lb.y + 10, width: bwid, height: 22, rx: 4 }, bub);
     txt(bub, X1 - bwid + 8, Lb.y + 25, `+50 мс → «${label}»`);
     // cursors
     for (const [c, col, nm] of [[curA, '#7fd4ff', 'A'], [curB, '#ffd27f', 'B']]) {
       if (c == null || c < t0 || c > t1) continue;
-      el('line', { x1: X(c), y1: 14, x2: X(c), y2: 248, class: 'cur', stroke: col }, svg);
+      el('line', { x1: X(c), y1: 14, x2: X(c), y2: yG, class: 'cur', stroke: col }, svg);
       txt(svg, X(c) + 4, 24, nm, { fill: col, 'font-size': 12, 'font-weight': 700 });
     }
-    const hair = el('line', { x1: -10, y1: 14, x2: -10, y2: 248, class: 'hair' }, svg);
+    const hair = el('line', { x1: -10, y1: 14, x2: -10, y2: yG, class: 'hair' }, svg);
     svg._map = { t0, t1, X0, X1, hair };
     // stats
     $('#vsE').textContent = v.e;
@@ -1083,7 +1120,7 @@ const viewer = (function () {
       const x = X(f.t), w = Math.max(2, X(f.t + lat) - x);
       el('rect', { x, y: 120, width: w, height: 40, fill: f.merged ? 'var(--tr-bad)' : 'var(--tr-mark)', opacity: .28 }, svg);
       el('line', { x1: x, y1: 112, x2: x, y2: 168, stroke: f.merged ? 'var(--tr-bad)' : 'var(--tr-mark)', 'stroke-width': 2 }, svg);
-      txt(svg, x + 3, 184, f.merged ? `+1 (злито ${f.merged + 1})` : '+1', { fill: f.merged ? 'var(--tr-bad)' : 'var(--tr-mark)', 'font-size': 11, 'font-weight': 600 });
+      txt(svg, x + 3, 184, f.merged ? `+1 (злито ${f.merged + 1})` : '+1', { fill: f.merged ? 'var(--tr-bad)' : 'var(--tr-mark)', 'font-size': 12, 'font-weight': 600 });
     }
     txt(svg, X1, 204, 'смуга = затримка ISR: фронти в ній зливаються', { class: 'lane-sub', 'text-anchor': 'end' });
     const lost = typed - fired.length;
@@ -1263,7 +1300,7 @@ const viewer = (function () {
     { q: 'Кнопка на INPUT_PULLUP. Який рівень на піні, коли її відпущено?', o: ['LOW', 'HIGH', 'Випадковий'], a: 1, w: 'Підтяжка ≈45 кОм тримає вхід у 3.3 В, поки кнопка не замкне його на GND.' },
     { q: `Лічильник з ДЗ (FALLING) показав би ≈${fallTotal} на 91 натискання. Звідки зайві?`, o: ['Із брязкоту натискання', 'Із брязкоту відпускання й імпульсів під час утримання', 'З наводок на USB'], a: 1, w: 'Натискання у цієї кнопки майже завжди чисті; кожне повторне замикання під час відпускання — ще один спадаючий фронт.' },
     { q: 'Чому аналізатор бачить більше фронтів, ніж переривання?', o: ['Аналізатор чутливіший до напруги', 'ISR стартує із затримкою ~мкс і зливає короткі імпульси', 'ESP32 рахує лише кожен другий фронт'], a: 1, w: 'На 24 MS/s аналізатор розрізняє ~42 нс, а переривання — кілька мікросекунд.' },
-    { q: 'Найдовший брязкіт кнопки — 3.6 мс. Яке вікно антибрязкоту розумне?', o: ['1 мс', '20–30 мс', '500 мс'], a: 1, w: '1 мс замало, 500 мс помітно людині. 20–30 мс дають запас у кілька разів і непомітні.' },
+    { q: 'Найдовший брязкіт кнопки — 3,6 мс. Яке вікно антибрязкоту розумне?', o: ['1 мс', '20–30 мс', '500 мс'], a: 1, w: '1 мс замало, 500 мс помітно людині. 20–30 мс дають запас у кілька разів і непомітні.' },
   ];
   const box = $('#quizBox');
   Q.forEach((it, qi) => {
@@ -1285,5 +1322,6 @@ const viewer = (function () {
   });
 })();
 </script>
+<script src="../assets/course.js" defer></script><script src="../assets/site-nav.js" defer></script>
 </body>
 </html>

@@ -9,30 +9,30 @@
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../site-nav.css">
 <script src="../site-theme.js"></script>
-<meta name="description" content="Домашнє завдання модуля 1.5: брязкіт контактів кнопки на GPIO16 ESP32-S3 — логічний аналізатор проти апаратних переривань. Реальний запис Wokwi з 10 натискань, живі натискання, модель переривань, код, Serial, таблиця результатів і антибрязкіт.">
+<meta name="description" content="Домашнє завдання модуля 1.5: брязкіт контактів кнопки на GPIO16 ESP32-S3 — логічний аналізатор проти апаратних переривань. Запис моделі брязкоту з 10 натискань, живі натискання, модель переривань, код, Serial, таблиця результатів і антибрязкіт.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
 /* Layout: lab bench on graph paper. Task checklist → bench with analyzer → logic-analyzer viewer → what the ESP32 sees →
    code → Serial → results table → debounce → answers → real hardware. Shared tokens and components follow ../ldr-lab/. */
 :root {
   --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --panel-2: #f1f5f8;
   --ink: #13212c; --muted: #566875; --line: #c6d2db; --accent: #0a6a86; --accent-ink: #ffffff;
-  --hi: #d97f00; --lo: #8a9aa6; --z: #8b5cd6; --pwr: #c2410c; --gnd: #2a3945; --flow: #f59e0b;
+  --hi: #d97f00; --lo: #8a9aa6; --z: #8b5cd6; --z-ink: #6f45c0; --pwr: #c2410c; --gnd: #2a3945; --flow: #f59e0b;
   --ok: #15803d; --warn: #b45309; --bad: #c62828; --hot: 217, 127, 0;
   --bb: #f5f2ea; --bb-edge: #d9d3c4; --hole: #8f887a; --rail-p: #d6453d; --rail-n: #2f6fd1;
   --pcb: #18232d; --pcb-ink: #c9d4dc; --shield: #c9d0d6; --pin: #d4a93a;
   --scope: #0f1a22; --scope-grid: rgba(150, 200, 230, .12); --scope-text: #9fb4c3;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Literata", Georgia, "Times New Roman", serif;
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
     --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
-    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+    --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --z-ink: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
     --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
     --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
     --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
@@ -43,7 +43,7 @@
 :root[data-theme="dark"] {
   --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --panel-2: #0f1921;
   --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --accent-ink: #062530;
-  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
+  --hi: #ffae2b; --lo: #56697a; --z: #b28cf5; --z-ink: #b28cf5; --pwr: #fb8a5a; --gnd: #a9b8c4; --flow: #ffc34d;
   --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --hot: 255, 174, 43;
   --bb: #26313a; --bb-edge: #34424e; --hole: #0d141a; --rail-p: #f0675f; --rail-n: #5b95f0;
   --pcb: #0b1117; --pcb-ink: #9fb0bd; --shield: #8b969f; --pin: #c9a03a;
@@ -122,6 +122,8 @@ section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--l
 .ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); }
 .ph h3 { font-size: .95rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .ph .note { font-size: 12.5px; color: var(--muted); }
+/* provenance: modelled numbers, not a bench measurement */
+.model-chip { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 1px 7px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 .pb { padding: 12px; }
 .prose p, .prose li { max-width: 70ch; }
 .prose p { margin: 0 0 10px; }
@@ -147,10 +149,15 @@ section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--l
 /* ---------- bench (breadboard) ---------- */
 .bench svg, .schem svg, .sar svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
 .bench svg { touch-action: pan-x pan-y; }
+/* phones: dense drawings keep a readable scale (labels ≥ 11 px) and scroll sideways; the page itself does not */
+.svg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll-hint { display: none; margin: 0; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) { .scroll-hint { display: block; } }
+
 .bench .lamp { touch-action: none; }
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   #benchSvg { overflow-x: auto; }
-  #benchSvg svg { width: 700px; max-width: none; }
+  #benchSvg svg { width: 1100px; max-width: none; }
   .bar { gap: 6px 10px; padding: 6px 8px; }
   .bar .lbl-sm { display: none; }
   section.sec { scroll-margin-top: 140px; }
@@ -158,16 +165,19 @@ section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--l
 .bb-body { fill: var(--bb); stroke: var(--bb-edge); stroke-width: 1.5; }
 .bb-chan { fill: var(--bb-edge); opacity: .55; }
 .bb-holes { fill: var(--hole); }
-.bb-num { fill: var(--muted); font: 500 7px var(--f-mono); text-anchor: middle; }
+.bb-num { fill: var(--muted); font: 500 10px var(--f-mono); text-anchor: middle; }
 .rail-p { stroke: var(--rail-p); stroke-width: 1.6; } .rail-n { stroke: var(--rail-n); stroke-width: 1.6; }
 .rail-t { font: 700 11px var(--f-mono); }
 .pcb { fill: var(--pcb); }
 .pcb-t { fill: var(--pcb-ink); font: 600 6.3px var(--f-mono); text-anchor: middle; }
+/* pins in use: ≥ 12 px rendered on the 1100 px phone drawing; the other header numbers only on wider screens */
+.pcb-t.pin-key { font-size: 10.5px; font-weight: 700; fill: var(--hi); }
+@media (max-width: 640px) { .pcb-t.pin-other { display: none; } }
 .pcb-big { fill: var(--pcb-ink); font: 700 10px var(--f-display); letter-spacing: .06em; }
 .hdr-pin { fill: var(--pin); stroke: #00000055; stroke-width: .6; }
 .hdr-pin.key { stroke: var(--hi); stroke-width: 1.6; }
 .shield { fill: var(--shield); stroke: #0004; }
-.shield-t { fill: #2b3640; font: 700 9px var(--f-mono); text-anchor: middle; }
+.shield-t { fill: #2b3640; font: 700 10px var(--f-mono); text-anchor: middle; }
 .usb { fill: #a9b2b9; stroke: #5a656e; }
 .jw-o { fill: none; stroke: #0000004d; stroke-width: 6.2; stroke-linecap: round; stroke-linejoin: round; }
 .jw { fill: none; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
@@ -223,14 +233,14 @@ input[type="range"]:disabled { opacity: .4; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); border-top: 1px solid var(--line); }
 .stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
 .stat:last-child { border-right: 0; }
-.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat .k { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .stat .v { font: 600 1.12rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stat .v.hi { color: var(--hi); } .stat .v.ok { color: var(--ok); } .stat .v.bad { color: var(--bad); } .stat .v.acc { color: var(--accent); }
 
 /* ---------- code + flowchart ---------- */
 .code { font: 12.5px/1.6 var(--f-mono); overflow: auto; max-height: 620px; padding: 6px 0; }
 .ln { display: grid; grid-template-columns: 4ch 1.4ch minmax(0, 1fr); gap: 0 6px; padding: 0 12px 0 6px; white-space: pre; background: rgba(var(--hot), calc(var(--heat, 0) * .28)); }
-.ln .no { color: var(--muted); text-align: right; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
+.ln .no { color: var(--muted); text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
 .ln .cur { color: var(--hi); visibility: hidden; }
 .ln.is-cur .cur { visibility: visible; }
 .ln.is-cur { box-shadow: inset 3px 0 0 var(--hi); background: rgba(var(--hot), .3); }
@@ -275,7 +285,10 @@ input[type="range"]:disabled { opacity: .4; }
 .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
 
 /* ---------- serial ---------- */
-.serial { font: 12px/1.5 var(--f-mono); background: var(--panel-2); height: 330px; overflow: auto; padding: 8px 12px; white-space: pre; }
+.serial { font: 13px/20px var(--f-mono); background: var(--panel-2); height: 336px; overflow: auto; padding: 0 12px; border-block: 8px solid var(--panel-2); white-space: pre; scroll-snap-type: y proximity; }
+/* whole lines only: height = 2 × 8 px border (does not scroll, so no half line peeks in) + n·20 px rows, rows snap to the top; a fade on the right means the line goes on */
+.serial > div { scroll-snap-align: start; }
+.serial.ovx { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .serial .sim { color: var(--z); font-style: italic; white-space: pre-wrap; }
 .serial .log { color: var(--muted); }
 .serial .sum { color: var(--ok); font-weight: 600; }
@@ -294,7 +307,7 @@ input[type="range"]:disabled { opacity: .4; }
 .cols3 .col { padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
 .cols3 .col:first-child { border-left: 0; }
 @media (max-width: 980px) { .cols3 .col { border-left: 0; border-top: 1px solid var(--line); } .cols3 .col:first-child { border-top: 0; } }
-.cols3 h4 { font-size: 1.1rem; margin-bottom: 6px; }
+.cols3 h3 { font-size: 1.1rem; margin-bottom: 6px; }
 .cols3 p, .cols3 li { font-size: 13.8px; }
 .cols3 ul, .cols3 ol { padding-left: 18px; margin: 6px 0; }
 pre.cmd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; overflow-x: auto; margin: 6px 0; white-space: pre; }
@@ -321,14 +334,16 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 86ch
 .hold[aria-pressed="true"] .dot { background: var(--hi); }
 .hold.big { font-size: 16px; padding: 12px 26px; }
 .btn.small { padding: 3px 8px; font-size: 12px; }
+/* touch: the small icon buttons and the «слідкувати» toggle still give a 44 px target */
+@media (pointer: coarse) { .btn.small, label.toggle { min-height: 44px; min-width: 44px; justify-content: center; } }
 .bench svg { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
-@media (max-width: 600px) { #benchSvg { overflow-x: auto; } #benchSvg svg { width: 720px; max-width: none; } }
+
 .btn-body { fill: #2b2f33; stroke: #0b0d0f; stroke-width: 1.2; }
 .btn-cap { fill: #3aa655; stroke: #1d5b2c; stroke-width: 1.2; transition: transform .08s; transform-box: fill-box; transform-origin: center; }
 .btn-cap.down { transform: scale(.82); fill: #2f8a46; }
 .la-body { fill: #1d2a35; stroke: #0a1218; stroke-width: 1.4; }
 .la-t { fill: #c9d4dc; font: 700 10px var(--f-mono); }
-.la-s { fill: #8fa2b0; font: 500 7.5px var(--f-mono); text-anchor: middle; }
+.la-s { fill: #8fa2b0; font: 500 10px var(--f-mono); text-anchor: middle; }
 .la-pin { fill: var(--pin); stroke: #0006; }
 .led { fill: #3a2a12; transition: fill .05s; }
 .led.on { fill: #ffb12b; }
@@ -352,9 +367,12 @@ footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 86ch
 @keyframes leafShakeUp { 0% { transform: rotate(0deg); } 12% { transform: rotate(5deg); } 24% { transform: rotate(0deg); } 36% { transform: rotate(3deg); } 48% { transform: rotate(0deg); } 60% { transform: rotate(1.5deg); } 100% { transform: rotate(0deg); } }
 #plungerG { transition: transform .08s; }
 #plungerG.down { transform: translateY(7px); }
-.lvl-badge rect { stroke-width: 1.5; }
-.lvl-hi rect { fill: color-mix(in srgb, var(--accent) 18%, var(--panel)); stroke: var(--accent); }
-.lvl-lo rect { fill: color-mix(in srgb, var(--hi) 22%, var(--panel)); stroke: var(--hi); }
+/* GPIO16 level pill: HTML under the drawing, so it keeps its size on phones */
+.bench-under { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }
+.lvl-badge { display: inline-block; font: 600 14px var(--f-mono); color: var(--ink); border: 1.5px solid; border-radius: 999px; padding: 4px 14px; }
+.lvl-hi { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border-color: var(--accent); }
+.lvl-lo { background: color-mix(in srgb, var(--hi) 22%, var(--panel)); border-color: var(--hi); }
+#benchSvg:focus-visible { outline: 2.5px solid var(--focus, var(--accent)); outline-offset: 2px; }
 .la-view { position: relative; }
 .la-view canvas { display: block; width: 100%; background: var(--scope); touch-action: none; cursor: grab; }
 .la-view canvas:active { cursor: grabbing; }
@@ -413,21 +431,19 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
   #leafG.shake, #leafG.shake-up, .cnt .v.bump, table.res tr.new td, .serial .row-new { animation: none; }
 }
 </style>
+<!-- design bridge: shared tokens, fonts and background override this page's own token block -->
+<link rel="stylesheet" href="../assets/theme.css">
 </head>
 <body>
-<nav class="site-nav" aria-label="Навігація сайтом">
-  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Усі матеріали</a>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.3–1.4</span><a href="../pull-resistors/">Підтяжка входу</a><a href="../lab/">Стенд ESP32-S3</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.5</span><a href="../scope-signals/">Теорія: осцилограф</a><a href="../bounce-lab/" aria-current="page">ДЗ: брязкіт</a><a href="../bounce-bench/">Брязкіт на стенді</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.6</span><a href="../adc-light/">Теорія: АЦП</a><a href="../ldr-lab/">ДЗ: люксметр</a></span>
-  <span class="sn-group"><span class="sn-mod">Міні-проєкт 1</span><a href="../twilight-relay/">Сутінковий перемикач</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 2.2</span><a href="../power-loads/">Потужне навантаження</a></span>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="bounce-lab">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
 </nav>
+<p class="from-lesson" style="max-width:1240px;margin:8px auto 0;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font:500 14px/1.45 var(--f-body,system-ui,sans-serif)">Частина <a href="../lessons/1-5/">уроку 1.5 · Осцилограф, кнопка і брязкіт</a> · також до <a href="../lessons/2-4/">уроку 2.4</a></p>
 <div class="wrap">
   <header class="masthead">
-    <div class="eyebrow">Модуль 1.5 · домашнє завдання · YD-ESP32-S3</div>
+    <div class="eyebrow">Модуль 1 · Урок 1.5 · Глибше · домашнє завдання</div>
     <h1>Лабораторія <span>брязкоту</span></h1>
-    <p>Одне натискання кнопки — це не один фронт, а десятки. Логічний аналізатор бачить їх усі, а ESP32-S3 через переривання — лише частину. Відтворіть справжній запис із Wokwi (10 натискань, ті самі прошивки, що в репозиторії) або натискайте самі. Порівняйте числа й підберіть антибрязкіт.</p>
+    <p>Одне натискання кнопки — це не один фронт, а десятки. Логічний аналізатор бачить їх усі, а ESP32-S3 через переривання — лише частину. Відтворіть запис моделі брязкоту (10 натискань, ті самі прошивки, що в репозиторії) або натискайте самі. Порівняйте числа й підберіть антибрязкіт. Записи справжньої кнопки зі стенду — на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>.</p>
     <nav class="toc" aria-label="Розділи">
       <a href="#task"><span>1</span>Завдання</a>
       <a href="#bench"><span>2</span>Стенд</a>
@@ -457,7 +473,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
     </div>
     <div class="grp">
       <div class="seg" role="group" aria-label="Джерело даних" id="srcSeg">
-        <button type="button" data-src="real" aria-pressed="true">Запис Wokwi</button>
+        <button type="button" data-src="real" aria-pressed="true">Запис моделі</button>
         <button type="button" data-src="live" aria-pressed="false">Мої натискання</button>
       </div>
       <div class="seg" role="group" aria-label="Прошивка" id="fwSeg">
@@ -477,7 +493,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       <ol class="tasks" id="tasks">
         <li data-go="bench" data-task="wire"><span class="box"></span><div><b>Зібрати схему</b><small>Кнопка між GPIO16 і GND (<code>INPUT_PULLUP</code>), канал 1 аналізатора — на GPIO16, GND — на GND.</small></div></li>
         <li data-go="code" data-task="flash"><span class="box"></span><div><b>Прошити код, що рахує імпульси</b><small>Код з умови (<code>FALLING</code>) або лабораторний (<code>CHANGE</code> + час кожного фронту).</small></div></li>
-        <li data-go="bench" data-task="press10"><span class="box"></span><div><b>Натиснути кнопку 10 разів</b><small>Повільно і швидко, слабко і сильно. Або відтворіть запис Wokwi до кінця.</small></div></li>
+        <li data-go="bench" data-task="press10"><span class="box"></span><div><b>Натиснути кнопку 10 разів</b><small>Повільно і швидко, слабко і сильно. Або відтворіть запис моделі до кінця.</small></div></li>
         <li data-go="la" data-task="record"><span class="box"></span><div><b>Записати кожне натискання аналізатором</b><small>Наблизьте одну подію до мікросекунд, поставте курсори.</small></div></li>
         <li data-go="table" data-task="measure"><span class="box"></span><div><b>Порахувати імпульси й тривалість</b><small>Для кожного натискання: скільки фронтів насправді і скільки мс триває брязкіт.</small></div></li>
         <li data-go="mcu" data-task="compare"><span class="box"></span><div><b>Порівняти аналізатор і ESP32</b><small>Подивіться повільне відтворення однієї події до кінця.</small></div></li>
@@ -494,10 +510,12 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       <p>Кнопка S1 стоїть поперек жолобка макетки і з'єднує GPIO16 з GND. Канал 1 (CH1) аналізатора під'єднано до того самого ряду, що й GPIO16. Канал 2 — до GPIO17: лабораторна прошивка тримає його у HIGH, поки виконується обробник переривання. Утримуйте кнопку нижче (або Пробіл) і дивіться, як «дзвенить» пружний контакт.</p>
     </div>
     <div class="panel bench" id="benchPanel">
-      <div class="ph"><h3>Макетна плата · аналізатор · ноутбук</h3>
+      <div class="ph"><h3>Макетна плата · аналізатор · ноутбук <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></h3>
         <button type="button" class="btn" id="asmBtn" aria-pressed="false">🔧 Збираємо крок за кроком</button>
       </div>
-      <div id="benchSvg"></div>
+      <p class="scroll-hint" aria-hidden="true">↔ гортайте стенд вбік</p>
+      <div id="benchSvg" tabindex="0" role="region" aria-label="Стенд: макетка, аналізатор, ноутбук (гортайте вбік)"></div>
+      <div class="bench-under"><span id="lvlBadge" class="lvl-badge lvl-hi"><span id="lvlText">GPIO16 = HIGH (відпущена)</span></span></div>
       <div class="asm-bar" id="asmBar" hidden>
         <button type="button" class="btn" id="asmPrev">◀</button>
         <p id="asmText"></p>
@@ -509,12 +527,12 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
         <div class="ctl"><label for="force">Сила натискання <b id="forceV">середня</b></label><input type="range" id="force" min="0" max="1" step="0.01" value="0.5"></div>
         <div class="ctl"><label for="speedK">Швидкість руху пальця <b id="speedKV">середня</b></label><input type="range" id="speedK" min="0" max="1" step="0.01" value="0.5"></div>
       </div>
-      <div class="stats" id="benchStats">
-        <div class="stat"><div class="k">GPIO16</div><div class="v" id="stLvl">HIGH</div></div>
-        <div class="stat"><div class="k">Остання подія</div><div class="v" id="stEv">—</div></div>
+      <div class="stats" id="benchStats" role="status">
+        <div class="stat" aria-hidden="true"><div class="k">GPIO16</div><div class="v" id="stLvl">HIGH</div></div>
+        <div class="stat"><div class="k">Остання подія <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></div><div class="v" id="stEv">—</div></div>
         <div class="stat"><div class="k">Фронтів (аналізатор)</div><div class="v acc" id="stEdges">—</div></div>
         <div class="stat"><div class="k">Брязкіт</div><div class="v hi" id="stBounce">—</div></div>
-        <div class="stat"><div class="k">ISR (ESP32)</div><div class="v" id="stIsr" style="color:var(--z)">—</div></div>
+        <div class="stat"><div class="k">ISR (ESP32)</div><div class="v" id="stIsr" style="color:var(--z-ink)">—</div></div>
       </div>
     </div>
   </section>
@@ -526,11 +544,11 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       <p>Як у PulseView: колесо або щипок — масштаб, перетягування — зсув, курсори A і B — вимір часу. Перемикач частоти дискретизації показує, що запише дешевший або повільніший аналізатор. Короткі імпульси брязкоту зникають, коли між вибірками проходить більше часу, ніж триває імпульс.</p>
     </div>
     <div class="panel">
-      <div class="ph"><h3>Захоплення · <span id="laSrcName">запис Wokwi</span></h3>
+      <div class="ph"><h3>Захоплення · <span id="laSrcName">запис моделі</span> <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></h3>
         <div class="grp" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <span class="lbl-sm">Частота вибірок:</span>
           <div class="seg" role="group" aria-label="Частота дискретизації" id="fsSeg">
-            <button type="button" data-fs="0" aria-pressed="false">справжній</button>
+            <button type="button" data-fs="0" aria-pressed="false">∞ (ідеал)</button>
             <button type="button" data-fs="24" aria-pressed="true">24 МГц</button>
             <button type="button" data-fs="4" aria-pressed="false">4 МГц</button>
             <button type="button" data-fs="1" aria-pressed="false">1 МГц</button>
@@ -552,14 +570,14 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
         <span class="lbl-sm" id="laSpan">—</span>
       </div>
       <div class="stats">
-        <div class="stat"><div class="k">Δt = B − A</div><div class="v acc" id="laDt">—</div></div>
+        <div class="stat"><div class="k">Δt = B − A <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></div><div class="v acc" id="laDt">—</div></div>
         <div class="stat"><div class="k">1 / Δt</div><div class="v" id="laF">—</div></div>
         <div class="stat"><div class="k">Фронтів між A і B</div><div class="v hi" id="laN">—</div></div>
         <div class="stat"><div class="k">Записано на цій частоті</div><div class="v" id="laNs">—</div></div>
-        <div class="stat"><div class="k">ISR між A і B</div><div class="v" id="laNi" style="color:var(--z)">—</div></div>
+        <div class="stat"><div class="k">ISR між A і B</div><div class="v" id="laNi" style="color:var(--z-ink)">—</div></div>
         <div class="stat"><div class="k">Найкоротший імпульс у вікні</div><div class="v" id="laMin">—</div></div>
       </div>
-      <p class="explain" id="laExplain">Частота 24 МГц — це вибірка кожні 42 нс. Найкоротший імпульс у записі Wokwi — 0.1 мкс (100 нс), тож він ще потрапляє хоча б у дві вибірки.</p>
+      <p class="explain" id="laExplain">Частота 24 МГц — це вибірка кожні 42 нс. Найкоротший імпульс у записі моделі — 0,1 мкс (100 нс), тож він ще потрапляє хоча б у дві вибірки.</p>
     </div>
   </section>
 
@@ -595,7 +613,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
           <button type="button" data-r="5" aria-pressed="false">5 мкс/с</button>
           <button type="button" data-r="25" aria-pressed="true">25 мкс/с</button>
           <button type="button" data-r="250" aria-pressed="false">250 мкс/с</button>
-          <button type="button" data-r="2500" aria-pressed="false">2.5 мс/с</button>
+          <button type="button" data-r="2500" aria-pressed="false">2,5 мс/с</button>
         </div>
       </div>
       <div class="counters">
@@ -610,9 +628,9 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
           <button type="button" data-mode="FALLING" aria-pressed="false">діаграма: FALLING</button>
         </div>
         <div class="ctl"><label for="lat">Затримка входу в ISR <b id="latV">14 мкс</b></label><input type="range" id="lat" min="0.5" max="20" step="0.1" value="14"></div>
-        <div class="ctl"><label for="dur">Тривалість ISR <b id="durV">0.3 мкс</b></label><input type="range" id="dur" min="0.1" max="3" step="0.05" value="0.3"></div>
+        <div class="ctl"><label for="dur">Тривалість ISR <b id="durV">0,3 мкс</b></label><input type="range" id="dur" min="0.1" max="3" step="0.05" value="0.3"></div>
         <div class="chips">
-          <button type="button" class="chip-btn" data-preset="wokwi" aria-pressed="true">Як у Wokwi: 14 мкс</button>
+          <button type="button" class="chip-btn" data-preset="sim" aria-pressed="true">Як у модельному записі: 14 мкс</button>
           <button type="button" class="chip-btn" data-preset="real" aria-pressed="false">Справжній S3: ~3 мкс (оцінка)</button>
         </div>
       </div>
@@ -626,7 +644,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       </div>
       <p class="explain" id="mcuExplain">Натисніть «▶ Повільно». Одна мікросекунда розтягнеться на 40 мілісекунд вашого часу.</p>
     </div>
-    <div class="callout warn">Затримку 14 мкс виміряно в Wokwi маркером GPIO17 (медіана; <code>tools/vcd_bounce.py</code>). Справжній ESP32-S3 з Arduino-<code>attachInterrupt</code> зазвичай швидший, кілька мікросекунд. Перевірте своїм аналізатором через маркер GPIO17 на каналі 2: це і є затримка вашої плати.</div>
+    <div class="callout warn">14 мкс — затримка входу в ISR у збереженому модельному записі на цій сторінці (медіана за маркером GPIO17). Справжній ESP32-S3 з Arduino-<code>attachInterrupt</code> зазвичай швидший, кілька мікросекунд. Перевірте своїм аналізатором через маркер GPIO17 на каналі 2: це і є затримка вашої плати.</div>
   </section>
 
   <!-- 5. CODE -->
@@ -664,18 +682,18 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
   <section class="sec" id="serial">
     <div class="sec-head">
       <h2><span class="n">06</span>Serial-монітор</h2>
-      <p>Рядок у рядок, як друкує прошивка (<code>pio device monitor</code>, 115200). Для запису Wokwi з лабораторною прошивкою це справжній вивід із того самого прогону. Код з умови у Wokwi не записувався, тож його вивід рахує модель переривань із розділу 4.</p>
+      <p>Рядок у рядок, як друкує прошивка (<code>pio device monitor</code>, 115200). Для модельного запису це вивід лабораторної прошивки з того самого прогону. Прошивку з умови в цьому прогоні не запускали, тож її вивід рахує модель переривань із розділу 4.</p>
     </div>
     <div class="grid2">
       <div class="panel">
-        <div class="ph"><h3>Serial · 115200 · <span id="serFw">bounce-lab</span></h3>
+        <div class="ph"><h3>Serial · 115200 · <span id="serFw">bounce-lab</span> <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></h3>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button type="button" class="btn" id="serPause" aria-pressed="false">❚❚ Заморозити</button>
             <button type="button" class="btn" id="serClear">Очистити</button>
             <button type="button" class="btn" id="serCopy">Копіювати</button>
           </div>
         </div>
-        <div class="serial" id="serialBox" tabindex="0" aria-label="Вивід Serial" style="height:380px"></div>
+        <div class="serial" id="serialBox" tabindex="0" aria-label="Вивід Serial" style="height:376px"></div>
       </div>
       <div class="panel">
         <div class="ph"><h3>Як читати рядок звіту</h3></div>
@@ -686,7 +704,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
             <li><b>edges</b>: скільки разів спрацював ISR. Аналізатор у цій самій події бачив 83 фронти.</li>
             <li><b>fall / rise</b>: який рівень ISR <i>прочитав</i> з піна. Це не завжди напрямок фронту!</li>
             <li><b>bounce,us</b>: від першого до останнього ISR, мкс.</li>
-            <li><b>min gap,us</b>: найкоротша пауза між двома ISR. Вона не буває меншою за затримку + тривалість ISR.</li>
+            <li><b>min gap,us</b>: найкоротша пауза між двома запусками ISR (мітки <code>micros()</code> з обробника, цілі мкс); менша за тривалість ISR + вихід/вхід бути не може. Затримка входу на неї не впливає: прапорець уже стоїть, поки триває попередній ISR. Тому в записі є й 1–2 мкс при затримці 14 мкс.</li>
             <li><b>v0 v49 …</b>: перші 12 ISR: прочитаний рівень (v = LOW, ^ = HIGH) і мкс від першого. Два <code>v</code> поспіль означають, що між ними був фронт угору, який ISR «проспав».</li>
           </ul>
         </div>
@@ -698,10 +716,10 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
   <section class="sec" id="table">
     <div class="sec-head">
       <h2><span class="n">07</span>Таблиця результатів</h2>
-      <p>Таку таблицю просить умова: для кожного з 10 натискань — скільки імпульсів насправді і скільки зареєстрував мікроконтролер, і тривалість брязкоту. Рядки додаються, коли подія закінчилась. Завантажте CSV або скопіюйте Markdown у звіт.</p>
+      <p>Таку таблицю просить умова: для кожного з 10 натискань — скільки імпульсів насправді і скільки зареєстрував мікроконтролер, і тривалість брязкоту. Рядки додаються, коли подія закінчилась. Це вихід моделі — для порівняння з вашим виміром, не замість нього: у звіт ідуть ваші числа з аналізатора. CSV і Markdown теж позначені як дані моделі.</p>
     </div>
     <div class="panel">
-      <div class="ph"><h3>Натискання · <span id="tblSrc">запис Wokwi</span></h3>
+      <div class="ph"><h3>Натискання · <span id="tblSrc">запис моделі</span> <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></h3>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button type="button" class="btn" id="tblAll">⏩ Весь запис</button>
           <button type="button" class="btn" id="tblCsv">⤓ CSV</button>
@@ -710,6 +728,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       </div>
       <div class="tbl-wrap"><table class="res" id="resTable"></table></div>
       <p class="explain" id="tblNote"></p>
+      <p class="explain model-vs-bench">Порівняйте зі справжньою кнопкою на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>: там натискання брязкотіло лише 1 раз із 91 (10&nbsp;мкс), а серед подій з брязкотом медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс. Модель тут брязкотить навмисно на кожному натисканні, щоб було що вимірювати.</p>
     </div>
   </section>
 
@@ -753,7 +772,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       <details class="q"><summary>Чому відпускання теж додає до лічильника FALLING?</summary>
         <p>Під час відпускання контакт розмикається, але пружина ще кілька разів торкається, і рівень скаче HIGH→LOW→HIGH. Кожен перехід униз — це фронт FALLING. Переривання не знає, «натискають» чи «відпускають», воно бачить лише напрям фронту. Перемкніть діаграму розділу 4 на FALLING і відкрийте будь-яке <code>release</code>.</p></details>
       <details class="q"><summary>Як виміряти затримку ISR маркером GPIO17?</summary>
-        <p>Лабораторна прошивка першим рядком ISR ставить GPIO17 у HIGH, а останнім знімає. Підключіть канал 2 аналізатора до GPIO17. Відстань від фронту на CH1 до початку імпульсу на CH2 — це затримка входу в обробник. Ширина імпульсу — це час виконання ISR. <code>tools/vcd_bounce.py --isr D1</code> порахує медіану. У Wokwi вийшло 14.3 мкс і 0.27 мкс.</p></details>
+        <p>Лабораторна прошивка першим рядком ISR ставить GPIO17 у HIGH, а останнім знімає. Підключіть канал 2 аналізатора до GPIO17. Відстань від фронту на CH1 до початку імпульсу на CH2 — це затримка входу в обробник. Ширина імпульсу — це час виконання ISR. <code>tools/vcd_bounce.py --isr D1</code> порахує медіану. У записі моделі вийшло 14,3 мкс і 0,27 мкс; порівняйте зі своєю платою.</p></details>
       <details class="q"><summary>Що зміниться, якщо аналізатор пише на 1 МГц?</summary>
         <p>Вибірка раз на 1 мкс. Імпульси коротші за 1 мкс або пропадуть, або «прилипнуть» до сусідньої вибірки. У розділі 3 перемкніть частоту на 1 МГц і порівняйте «Фронтів між A і B» з «Записано на цій частоті». Правило: на найкоротший імпульс потрібно хоча б 4–10 вибірок.</p></details>
       <details class="q"><summary>Чи може ESP32 нарахувати БІЛЬШЕ, ніж аналізатор?</summary>
@@ -770,15 +789,15 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
     <div class="panel">
       <div class="cols3">
         <div class="col">
-          <h4>1. Схема</h4>
+          <h3>1. Схема</h3>
           <ol>
             <li>Кнопка 6×6 поперек жолобка. GPIO16 → одна ніжка, GND → <b>діагональна</b> ніжка.</li>
             <li>Підтяжка: <code>INPUT_PULLUP</code> (≈45 кОм усередині чипа). Зовнішній резистор не потрібен.</li>
             <li>Аналізатор: CH1 (D0) → ряд GPIO16, CH2 (D1) → GPIO17, <b>GND → GND</b>. Без спільної землі запис буде сміттям.</li>
             <li>USB аналізатора — в ноутбук, USB плати — теж (для Serial).</li>
           </ol>
-          <h4>2. Прошивка</h4>
-          <pre class="cmd">cd esp32-s3-button-bounce
+          <h3>2. Прошивка</h3>
+          <pre class="cmd">cd esp32-s3-button-bounce/cpp
 pio run -e homework-base -t upload   # код з умови
 pio device monitor
 
@@ -786,25 +805,21 @@ pio run -e bounce-lab -t upload      # лабораторна
 pio device monitor                   # s, r, h</pre>
         </div>
         <div class="col">
-          <h4>3. PulseView</h4>
+          <h3>3. PulseView</h3>
           <ol>
             <li>Пристрій: <i>fx2lafw (generic driver for FX2 based LAs)</i>. Linux: правила udev з пакета sigrok, Windows: драйвер через Zadig.</li>
-            <li>Частота: <b>4–24 МГц</b>; кількість вибірок: <b>5 M і більше</b> (на 24 МГц це ~0.2 с).</li>
+            <li>Частота: <b>4–24 МГц</b>; кількість вибірок: <b>5 M і більше</b> (на 24 МГц це ~0,2 с).</li>
             <li>Тригер: CH1 — <b>спадаючий фронт</b>. Запуск, потім натисніть кнопку.</li>
             <li>Наблизьте брязкіт, поставте курсори, порахуйте фронти. Повторіть 10 разів.</li>
             <li><i>File → Export → Value Change Dump</i> і далі:</li>
           </ol>
-          <pre class="cmd">python3 tools/vcd_bounce.py capture.vcd \
+          <pre class="cmd">python3 ../tools/vcd_bounce.py capture.vcd \
         --button D0 --isr D1</pre>
           <p>Скрипт друкує таку саму таблицю, як прошивка, плюс затримку ISR із маркера.</p>
         </div>
         <div class="col">
-          <h4>4. Без заліза: Wokwi</h4>
-          <pre class="cmd">pio run
-wokwi-cli . --scenario wokwi/scenarios/ten-presses.yaml \
-  --timeout 40000 --vcd-file bounce.vcd
-python3 tools/vcd_bounce.py bounce.vcd</pre>
-          <p>У VS Code: розширення Wokwi, F1 → <i>Start Simulator</i>, клавіша <kbd>1</kbd> — кнопка S1. Зупиніть симуляцію, і аналізатор збереже VCD.</p>
+          <h3>4. Без заліза</h3>
+          <p>Працюйте із записом моделі брязкоту на цій сторінці, а справжню кнопку подивіться на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>: там записи реального стенду. Порівняйте тривалість брязкоту й кількість фронтів.</p>
           <h4>5. Що здати</h4>
           <ul>
             <li>Фото схеми з аналізатором.</li>
@@ -820,7 +835,7 @@ python3 tools/vcd_bounce.py bounce.vcd</pre>
 
   <footer>
     <p><a href="../">← Усі матеріали</a> · <a href="../scope-signals/">Теорія: осцилограф і кнопка</a> · <a href="../pull-resistors/">Підтяжка входу і тригер Шмітта</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce">Код на GitHub</a></p>
-    <p>«Запис Wokwi» — це справжній прогін <code>wokwi/scenarios/ten-presses.yaml</code> з прошивкою <code>bounce-lab</code>: канали BUTTON і ISR з <code>docs/wokwi-10-presses.vcd</code> і Serial з того самого запуску. Модель переривань (прапорець + затримка + тривалість ISR) з параметрами Wokwi відтворює кількість запусків ISR у цьому записі з похибкою &lt; 1 %. «Мої натискання» генерує модель брязкоту в межах вимірів Ганссла (сер. ~1.6 мс, до 6 мс) і Wokwi.</p>
+    <p>«Запис моделі» — 10 модельних натискань із прошивкою <code>bounce-lab</code>: канали BUTTON та ISR і вивід Serial з одного прогону. Модель переривань (прапорець + затримка + тривалість ISR) з параметрами цього запису відтворює кількість запусків ISR у ньому з похибкою &lt; 1 %. «Мої натискання» генерує модель брязкоту в межах вимірів Ганссла (сер. ~1,6 мс, до 6 мс). Записи справжньої кнопки — на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>.</p>
   </footer>
 </div>
 
@@ -1188,17 +1203,23 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmtUs = us => {
   const a = Math.abs(us);
   if (a < 1e-6) return '0';
-  if (a >= 1e6) return (us / 1e6).toFixed(a >= 1e7 ? 1 : 2) + ' с';
-  if (a >= 1e3) return (us / 1e3).toFixed(a >= 1e5 ? 0 : a >= 1e4 ? 1 : 2) + ' мс';
-  if (a >= 1) return us.toFixed(a >= 100 ? 0 : 1) + ' мкс';
-  return (us * 1000).toFixed(0) + ' нс';
+  if (a >= 1e6) return fmt((us / 1e6), a >= 1e7 ? 1 : 2) + ' с';
+  if (a >= 1e3) return fmt((us / 1e3), a >= 1e5 ? 0 : a >= 1e4 ? 1 : 2) + ' мс';
+  if (a >= 1) return fmt(us, a >= 100 ? 0 : 1) + ' мкс';
+  return fmt((us * 1000), 0) + ' нс';
 };
-const fmtHz = hz => hz >= 1e6 ? (hz / 1e6).toFixed(2) + ' МГц' : hz >= 1e3 ? (hz / 1e3).toFixed(hz >= 1e5 ? 0 : 1) + ' кГц' : hz.toFixed(hz >= 100 ? 0 : 1) + ' Гц';
+// decimal comma in UI text; Serial lines and the CSV keep dots
+const fmt = (x, d) => x.toFixed(d).replace('.', ',');
+const fmtHz = hz => hz >= 1e6 ? fmt((hz / 1e6), 2) + ' МГц' : hz >= 1e3 ? fmt((hz / 1e3), hz >= 1e5 ? 0 : 1) + ' кГц' : fmt(hz, hz >= 100 ? 0 : 1) + ' Гц';
 const lowerBound = (arr, x) => { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < x) lo = m + 1; else hi = m; } return lo; };
 let TOK = {};
 function readTokens() {
   const cs = getComputedStyle(document.documentElement);
   for (const k of ['--scope', '--scope-grid', '--scope-text', '--accent', '--hi', '--z', '--bad', '--ok', '--line', '--muted', '--ink', '--panel']) TOK[k] = cs.getPropertyValue(k).trim();
+  // Every canvas here paints on the dark --scope screen, also in the light theme: take the dark-theme inks then,
+  // or light-theme green/brass sit at < 3:1 on it (text ≥ 4.5:1, traces ≥ 3:1 on #0f1a22 with these).
+  const m = TOK['--scope'].match(/^#(..)(..)(..)$/), lum = m ? (parseInt(m[1], 16) * .2126 + parseInt(m[2], 16) * .7152 + parseInt(m[3], 16) * .0722) / 255 : 0;
+  if (lum < .35) Object.assign(TOK, { '--accent': '#5ccfb0', '--ok': '#95d86a', '--hi': '#f2b84b', '--bad': '#ff8a7a', '--muted': '#b4a693', '--ink': '#f1e9dc', '--z': '#b28cf5' });
   dirtyAll();
 }
 function fitCanvas(c) {
@@ -1211,7 +1232,7 @@ function fitCanvas(c) {
 }
 
 /* =====================================================================
-   Data: the real Wokwi capture (docs/wokwi-10-presses.vcd) and its Serial log
+   Data: the simulated bounce capture (10 presses) and its Serial log
    Each event: t (ms, absolute), l0 = level after the first edge, b = BUTTON edge deltas (ns),
    i0 = ISR-marker level after its first transition, i = ISR transition deltas (ns, from the event's first edge).
    ===================================================================== */
@@ -1249,7 +1270,7 @@ const REAL_END = REAL[REAL.length - 1].fin + 120;
 // Interrupt hardware: a one-bit pending flag; the CPU enters the ISR L µs after the flag is set (or right after
 // the previous ISR); the flag is cleared and the pin level read at the end of the short ISR. Edges that arrive
 // while the flag is still set merge into the same run. With L = 14 µs, D = 0.3 µs this reproduces the ISR-marker
-// count of the Wokwi recording (1354 runs) within 1 %.
+// count of the simulated recording (1354 runs) within 1 %.
 function mcuRuns(ev, mode, L, D) {
   const E = ev.edges, runs = [], q = e => mode === 'CHANGE' || e.l === 0;
   let k = 0, lastEnd = -1e9, lvl = ev.lb, p = 0;
@@ -1384,7 +1405,7 @@ function tick(name) {
 $$('#tasks li').forEach(li => li.addEventListener('click', () => document.getElementById(li.dataset.go).scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })));
 
 /* =====================================================================
-   Bench SVG (geometry as wokwi/breadboard.py; board rows 1…22, J1 on top)
+   Bench SVG (full-size breadboard geometry; board rows 1…22, J1 on top)
    ===================================================================== */
 const P = 13.6, X0 = 34;
 const cx = r => +(X0 + (r - 1) * P).toFixed(2);
@@ -1409,8 +1430,9 @@ function benchSVG() {
   const lab = n => n.replace(/\.\d$/, '');
   const key = new Set(['16', '17', 'GND.1']);
   let pins = '';
-  J1.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin${key.has(p) ? ' key' : ''}" x="${x - 3}" y="${LY.b - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.b + 12}"${key.has(p) ? ' style="fill:var(--hi)"' : ''}>${lab(p)}</text>`; });
-  J3.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin" x="${x - 3}" y="${LY.i - 3}" width="6" height="6"/><text class="pcb-t" x="${x}" y="${LY.i - 7}">${lab(p)}</text>`; });
+  // pins in use get a big label (16/17 nudged apart so they do not touch); the rest are small and hidden on phones
+  J1.forEach((p, i) => { const x = cx(22 - i), k = key.has(p), dx = p === '16' ? -4 : p === '17' ? 4 : 0, anc = dx < 0 ? ' style="text-anchor:start"' : dx > 0 ? ' style="text-anchor:end"' : ''; pins += `<rect class="hdr-pin${k ? ' key' : ''}" x="${x - 3}" y="${LY.b - 3}" width="6" height="6"/><text class="pcb-t ${k ? 'pin-key' : 'pin-other'}" x="${x + dx}" y="${LY.b + (k ? 15 : 12)}"${anc}>${lab(p)}</text>`; });
+  J3.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin" x="${x - 3}" y="${LY.i - 3}" width="6" height="6"/><text class="pcb-t pin-other" x="${x}" y="${LY.i - 7}">${lab(p)}</text>`; });
   const r16 = rowOf('16'), r17 = rowOf('17');
   const arc = `M${cx(r16)} ${LY.a} V184 Q${cx(r16)} 174 ${cx(r16) + 10} 174 H${cx(48) - 10} Q${cx(48)} 174 ${cx(48)} 184 V${LY.a}`;
   // analyzer header pins: CH1..CH8, GND
@@ -1437,10 +1459,10 @@ function benchSVG() {
     <rect class="pcb" x="25" y="${LY.b - 8}" width="304" height="${LY.i - LY.b + 16}" rx="6"/>
     ${pins}
     <rect class="shield" x="150" y="281" width="142" height="82" rx="3"/>
-    <text class="shield-t" x="221" y="318">ESP32-S3</text><text class="shield-t" x="221" y="331" style="font-size:7px;font-weight:500">WROOM-1 · N16R8</text>
-    <rect x="52" y="292" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="311">BOOT</text>
-    <rect x="52" y="334" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t" x="59" y="353">RST</text>
-    <text class="pcb-big" x="82" y="338">YD-ESP32-S3</text>
+    <text class="shield-t" x="221" y="318">ESP32-S3</text><text class="shield-t" x="221" y="333" style="font-size:9px;font-weight:500">WROOM-1 · N16R8</text>
+    <rect x="52" y="292" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t pin-other" x="59" y="311">BOOT</text>
+    <rect x="52" y="334" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t pin-other" x="59" y="353">RST</text>
+    <text class="pcb-big" x="144" y="338" text-anchor="end">YD-ESP32-S3</text>
   </g>
   ${wire(`M${cx(1)} ${LY.a} V${RY.tn}`, COL.black, 2)}
   <g data-asm="3" id="btnG">
@@ -1457,7 +1479,7 @@ function benchSVG() {
     <circle id="ledPwr" class="led g on" cx="${LAX + 18}" cy="${LAY + 38}" r="4"/><text class="la-s" x="${LAX + 18}" y="${LAY + 52}">PWR</text>
     <circle id="ledCh1" class="led" cx="${LAX + 48}" cy="${LAY + 38}" r="4"/><text class="la-s" x="${LAX + 48}" y="${LAY + 52}">CH1</text>
     <circle id="ledCh2" class="led" cx="${LAX + 78}" cy="${LAY + 38}" r="4"/><text class="la-s" x="${LAX + 78}" y="${LAY + 52}">CH2</text>
-    <text class="la-s" x="${LAX + 150}" y="${LAY + 42}" style="font-size:9px" id="laCount">0 фронтів</text>
+    <text class="la-s" x="${LAX + 150}" y="${LAY + 42}" style="font-size:11px" id="laCount">0 фронтів</text>
     ${laPins}
   </g>
   ${wire(ch1, COL.orange, 5, 'wCh1')}
@@ -1483,17 +1505,13 @@ function benchSVG() {
     <text class="inset-t" x="206" y="500" style="font-weight:500">Пружна пластина вдаряє в контакт</text>
     <text class="inset-t" x="206" y="515" style="font-weight:500">і відскакує: десятки разів за 1–6 мс.</text>
     <text class="inset-t" x="206" y="530" style="font-weight:500">Іскор тут немає: це механіка.</text>
-    <g id="lvlBadge" class="lvl-badge lvl-hi" transform="translate(300 554)">
-      <rect x="-94" y="-12" width="188" height="20" rx="6"/>
-      <text class="inset-k" id="lvlText" x="0" y="3" text-anchor="middle">GPIO16 = HIGH (відпущена)</text>
-    </g>
   </g>
   <g transform="translate(460 466)" id="edgeBox">
     <rect class="inset-box" x="0" y="-4" width="450" height="104" rx="8"/>
     <text class="inset-t" x="12" y="14">Остання подія: що побачив кожен</text>
     <text class="inset-k" x="12" y="40">Аналізатор:</text><text class="inset-k" id="ebA" x="170" y="40" style="fill:var(--accent)">—</text>
-    <text class="inset-k" x="12" y="60">ESP32 (CHANGE):</text><text class="inset-k" id="ebC" x="170" y="60" style="fill:var(--z)">—</text>
-    <text class="inset-k" x="12" y="80">button_counter +=</text><text class="inset-k" id="ebD" x="170" y="80" style="fill:var(--hi)">—</text>
+    <text class="inset-k" x="12" y="60">ESP32 (CHANGE):</text><text class="inset-k" id="ebC" x="170" y="60" style="fill:var(--z-ink)">—</text>
+    <text class="inset-k" x="12" y="80">button_counter +=</text><text class="inset-k" id="ebD" x="170" y="80" style="fill:var(--hi-ink, var(--hi))">—</text>
     <text class="inset-t" id="ebB" x="438" y="14" text-anchor="end">—</text>
   </g>
 </svg>`;
@@ -1556,7 +1574,7 @@ function benchUpdate(now) {
   const badge = $('#lvlBadge');
   badge.classList.toggle('lvl-hi', lvl === 1); badge.classList.toggle('lvl-lo', lvl === 0);
   $('#lvlText').textContent = lvl ? 'GPIO16 = HIGH (відпущена)' : 'GPIO16 = LOW (натиснута)';
-  $('#stLvl').textContent = lvl ? 'HIGH' : 'LOW';
+  if ($('#stLvl').textContent !== (lvl ? 'HIGH' : 'LOW')) $('#stLvl').textContent = lvl ? 'HIGH' : 'LOW';
   if (ev !== lastBenchEv) {
     lastBenchEv = ev;
     if (ev) {
@@ -1604,7 +1622,7 @@ function setSrc(src) {
   app.sel = null; app.selUser = false; resetMcuAnim();
   app.playing = false; updatePlayBtn();
   lastBenchEv = null; serialState.key = '';
-  $('#laSrcName').textContent = $('#tblSrc').textContent = src === 'real' ? 'запис Wokwi' : 'мої натискання';
+  $('#laSrcName').textContent = $('#tblSrc').textContent = src === 'real' ? 'запис моделі' : 'мої натискання';
   dirtyAll();
 }
 function pressDown() {
@@ -1729,22 +1747,27 @@ function drawLA() {
   g.fillStyle = TOK['--scope']; g.fillRect(0, 0, w, h);
   // time grid
   const step = niceStep(span / Math.max(3, Math.floor(w / 110)));
-  g.strokeStyle = TOK['--scope-grid']; g.lineWidth = 1; g.fillStyle = TOK['--scope-text']; g.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  g.strokeStyle = TOK['--scope-grid']; g.lineWidth = 1; g.fillStyle = TOK['--scope-text']; g.font = '13px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
   // zoomed in: label time from the start of the nearest event (absolute seconds would all read «3.14 с»)
   let base = 0, baseEv = null;
   if (span < 200000 && d.evs.length) {
     const mid = (a + b) / 2; baseEv = d.evs.reduce((p, e) => Math.abs(e.t0 * 1000 - mid) < Math.abs(p.t0 * 1000 - mid) ? e : p);
     base = baseEv.t0 * 1000;
   }
+  // phones: «0 = подія N» sits at the right end of the axis row; tick labels that would run into it are skipped
+  const zeroTxt = baseEv && w < 640 ? `0 = подія ${d.evs.indexOf(baseEv) + 1}` : '';
+  const axisEnd = zeroTxt ? w - 14 - g.measureText(zeroTxt).width : w;
   for (let t = base + Math.ceil((a - base) / step) * step; t <= b; t += step) {
     const x = Math.round(X(t)) + .5; g.beginPath(); g.moveTo(x, 18); g.lineTo(x, h); g.stroke();
-    g.fillText(baseEv ? (t - base >= 0 ? '+' : '') + fmtUs(t - base) : fmtUs(t), x + 3, 12);
+    const txt = baseEv ? (t - base >= 0 ? '+' : '') + fmtUs(t - base) : fmtUs(t);
+    if (x + 3 + g.measureText(txt).width < axisEnd) g.fillText(txt, x + 3, 12);
   }
-  if (baseEv) { g.textAlign = 'right'; g.fillText(w < 640 ? `0 = подія ${d.evs.indexOf(baseEv) + 1}` : `0 = перший фронт події ${d.evs.indexOf(baseEv) + 1} (t = ${(baseEv.t0).toFixed(1)} мс)`, w - 6, w < 640 ? 160 : 228); g.textAlign = 'left'; }
+  if (zeroTxt) { g.textAlign = 'right'; g.fillText(zeroTxt, w - 6, 12); g.textAlign = 'left'; }
+  else if (baseEv) { g.textAlign = 'right'; g.fillText(`0 = перший фронт події ${d.evs.indexOf(baseEv) + 1} (t = ${fmt((baseEv.t0), 1)} мс)`, w - 6, 228); g.textAlign = 'left'; }
   // lanes
   const lanes = [
-    { y: 34, name: 'D0 BUTTON · справжній', color: TOK['--muted'], t: d.bt, l: d.bl, thin: true },
-    { y: 96, name: app.fs ? `D0 BUTTON · записано на ${app.fs >= 1 ? app.fs + ' МГц' : app.fs * 1000 + ' кГц'}` : 'D0 BUTTON', color: TOK['--accent'], t: app.fs ? s.st : d.bt, l: app.fs ? s.sl : d.bl },
+    { y: 34, name: w < 640 ? 'D0 · ідеальний сигнал' : 'D0 BUTTON · ідеальний (без дискретизації)', color: TOK['--muted'], t: d.bt, l: d.bl, thin: true },
+    { y: 96, name: app.fs ? `${w < 640 ? 'D0' : 'D0 BUTTON'} · модель запису ${app.fs >= 1 ? app.fs + ' МГц' : app.fs * 1000 + ' кГц'}` : 'D0 BUTTON', color: TOK['--accent'], t: app.fs ? s.st : d.bt, l: app.fs ? s.sl : d.bl },
   ];
   const H = 38;
   for (const ln of lanes) {
@@ -1753,7 +1776,7 @@ function drawLA() {
   }
   // ISR lane
   const yI = 166;
-  g.fillStyle = TOK['--scope-text']; g.fillText(app.src === 'real' ? 'D1 ISR · маркер GPIO17 (справжній)' : 'D1 ISR · модель', 6, yI - 4);
+  g.fillStyle = TOK['--scope-text']; g.fillText(app.src === 'real' ? 'D1 ISR · маркер GPIO17 (модель)' : 'D1 ISR · модель', 6, yI - 4);
   g.strokeStyle = TOK['--z']; g.lineWidth = 1.6; g.beginPath();
   g.moveTo(0, yI + H);
   let i0 = lowerBound(d.ie, a);
@@ -1764,7 +1787,7 @@ function drawLA() {
   }
   g.lineTo(w, yI + H); g.stroke();
   // event labels
-  g.font = '10.5px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
+  g.font = '13px ' + getComputedStyle(document.body).getPropertyValue('--f-mono');
   for (const ev of d.evs) {
     const x = X(ev.t0 * 1000); if (x < -60 || x > w) continue;
     g.fillStyle = ev.kind === 'PRESS' ? TOK['--hi'] : TOK['--ok'];
@@ -1813,8 +1836,8 @@ function laReadouts(d, s) {
   $('#laMin').textContent = mg < Infinity ? fmtUs(mg) : '—';
   const per = app.fs ? 1 / app.fs : 0;
   $('#laExplain').innerHTML = !app.fs
-    ? 'Справжній сигнал без дискретизації — так його бачить лише симулятор. Справжній аналізатор завжди записує вибірки.'
-    : `Вибірка кожні <b>${fmtUs(per)}</b>. ${mg < Infinity ? `Найкоротший імпульс у вікні — <b>${fmtUs(mg)}</b>, це ${(mg / per).toFixed(mg / per < 1 ? 2 : mg / per < 10 ? 1 : 0)} вибірки${mg < per ? ': такий імпульс може взагалі не потрапити між двома вибірками' : ''}. ` : ''}${ns < n ? `Аналізатор на цій частоті <b>загубив ${n - ns}</b> з ${n} фронтів. ` : 'Усі фронти записано. '}Правило: на найкоротший імпульс потрібно хоча б 4–10 вибірок.`;
+    ? 'Справжній сигнал без дискретизації — так його бачить лише ідеальна модель. Справжній аналізатор завжди записує вибірки.'
+    : `Вибірка кожні <b>${fmtUs(per)}</b>. ${mg < Infinity ? `Найкоротший імпульс у вікні — <b>${fmtUs(mg)}</b>, це ${fmt((mg / per), mg / per < 1 ? 2 : mg / per < 10 ? 1 : 0)} вибірки${mg < per ? ': такий імпульс може взагалі не потрапити між двома вибірками' : ''}. ` : ''}${ns < n ? `Аналізатор на цій частоті <b>загубив ${n - ns}</b> з ${n} фронтів. ` : 'Усі фронти записано. '}Правило: на найкоротший імпульс потрібно хоча б 4–10 вибірок.`;
 }
 // zoom / pan / cursors
 let drag = null; const ptrs = new Map();
@@ -2001,7 +2024,7 @@ function drawMCU(dt) {
   for (const e of fin) { tA += e.edges.length; tB += e.fall; const mm = evModel(e); tC += mm.change.length; tD += mm.falling.length; tCr += mcuCount(e); }
   $('#cAs').textContent = `усього: ${tA}`;
   $('#cBs').textContent = `усього: ${tB}`;
-  $('#cCs').textContent = app.src === 'real' ? `модель: ${tC} · Wokwi: ${tCr}` : `усього: ${tC}`;
+  $('#cCs').textContent = app.src === 'real' ? `модель: ${tC} · запис: ${tCr}` : `усього: ${tC}`;
   $('#cDs').textContent = `усього: ${tD} за ${fin.filter(e => e.kind === 'PRESS').length} натискань`;
   // flow blocks
   const fl = $$('#flowMini .fb');
@@ -2048,13 +2071,13 @@ $$('#modeSeg button').forEach(b => b.addEventListener('click', () => { app.mcuMo
 function setParams(L, D, preset) {
   app.L = L; app.D = D;
   $('#lat').value = L; $('#dur').value = D;
-  $('#latV').textContent = L.toFixed(L < 10 ? 1 : 0) + ' мкс'; $('#durV').textContent = D.toFixed(2).replace(/0$/, '') + ' мкс';
+  $('#latV').textContent = fmt(L, L < 10 ? 1 : 0) + ' мкс'; $('#durV').textContent = fmt(D, 2).replace(/0$/, '') + ' мкс';
   $$('[data-preset]').forEach(c => c.setAttribute('aria-pressed', c.dataset.preset === preset));
   serialState.key = ''; dirtyAll();
 }
 $('#lat').addEventListener('input', e => setParams(+e.target.value, app.D, ''));
 $('#dur').addEventListener('input', e => setParams(app.L, +e.target.value, ''));
-$$('[data-preset]').forEach(c => c.addEventListener('click', () => c.dataset.preset === 'wokwi' ? setParams(14, 0.3, 'wokwi') : setParams(3, 1.5, 'real')));
+$$('[data-preset]').forEach(c => c.addEventListener('click', () => c.dataset.preset === 'sim' ? setParams(14, 0.3, 'sim') : setParams(3, 1.5, 'real')));
 
 /* =====================================================================
    Code panel
@@ -2147,7 +2170,7 @@ function labLines(evs) {
 function hwLines(evs) {
   // homework_base.cpp: ISR counts FALLING runs; loop() prints the counter every 10 ms when it changed
   const out = [{ t: 0.05, text: '(код з умови нічого не друкує при старті — лише «Button Pressed! Count: N», коли лічильник змінився)', cls: 'sim' }];
-  if (app.src === 'real') out.push({ t: 0.05, text: '(у Wokwi записувалась лабораторна прошивка; лічильник тут рахує модель переривань з розділу 4)', cls: 'sim' });
+  if (app.src === 'real') out.push({ t: 0.05, text: '(модель прогнала лабораторну прошивку; лічильник тут рахує модель переривань з розділу 4)', cls: 'sim' });
   const starts = [];
   for (const ev of evs) for (const r of evModel(ev).falling) starts.push(ev.t0 + r.s / 1000);
   starts.sort((a, b) => a - b);
@@ -2161,7 +2184,7 @@ function hwLines(evs) {
   return out;
 }
 function realLabLines() {
-  // the real Serial log of the Wokwi run, scheduled at each event's end
+  // the Serial log of the simulated run, scheduled at each event's end
   const out = [], rows = [];
   SERIAL_REAL.forEach((l, i) => { if (/^\s*\d+\s+(PRESS|release|glitch)\s/.test(l)) rows.push(i); });
   const fin = REAL.map(e => { const r = e.isr; return e.t0 + (r.length ? r[r.length - 1][0] : e.bounce) / 1000 + QUIET_MS; });
@@ -2194,11 +2217,15 @@ function renderSerial() {
     const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
     box.insertAdjacentHTML('beforeend', html); serialState.shown = n;
     if (atBottom || n < 40) box.scrollTop = box.scrollHeight;
+    serialFade();
   }
   $('#serFw').textContent = app.fw === 'hw' ? 'homework-base' : 'bounce-lab';
 }
 $('#serPause').addEventListener('click', e => { app.serialFrozen = !app.serialFrozen; e.currentTarget.setAttribute('aria-pressed', app.serialFrozen); e.currentTarget.textContent = app.serialFrozen ? '▶ Продовжити' : '❚❚ Заморозити'; });
-$('#serClear').addEventListener('click', () => { $('#serialBox').innerHTML = ''; });
+$('#serClear').addEventListener('click', () => { $('#serialBox').innerHTML = ''; serialFade(); });
+function serialFade() { const b = $('#serialBox'); b.classList.toggle('ovx', b.scrollWidth - b.clientWidth - b.scrollLeft > 2); }
+$('#serialBox').addEventListener('scroll', serialFade, { passive: true });
+addEventListener('resize', serialFade);
 $('#serCopy').addEventListener('click', () => copyText($('#serialBox').innerText, $('#serCopy')));
 function copyText(text, btn) {
   const done = () => { const o = btn.textContent; btn.textContent = '✓ Скопійовано'; setTimeout(() => btn.textContent = o, 1400); };
@@ -2236,7 +2263,7 @@ function tableData() {
 let tblRows = 0;
 function renderTable() {
   const rows = tableData(), tbl = $('#resTable');
-  const f = (v, d = 0) => v === null || v === undefined || !isFinite(v) ? '—' : v.toFixed(d);
+  const f = (v, d = 0) => v === null || v === undefined || !isFinite(v) ? '—' : fmt(v, d);
   let html = `<thead><tr><th rowspan="2">#</th><th class="grp" colspan="5">Натискання</th><th class="grp" colspan="4">Відпускання</th><th rowspan="2">button_counter після пари</th></tr>
   <tr><th>фронтів (аналізатор)</th><th>ESP32 CHANGE</th><th>FALLING (умова)</th><th>брязкіт, мс</th><th>найкоротший імпульс, мкс</th><th>фронтів</th><th>ESP32 CHANGE</th><th>FALLING (умова)</th><th>брязкіт, мс</th></tr></thead><tbody>`;
   let cum = 0;
@@ -2249,7 +2276,7 @@ function renderTable() {
     const max = k => Math.max(...rows.map(r => r[k]).filter(x => x !== null));
     html += `<tr class="avg"><td>сер.</td><td>${f(avg('pA'), 1)}</td><td>${f(avg('pC'), 1)}</td><td>${f(avg('pD'), 1)}</td><td>${f(avg('pB'), 2)}</td><td>${f(Math.min(...rows.map(r => r.pMin)), 1)} (мін.)</td><td>${f(avg('rA'), 1)}</td><td>${f(avg('rC'), 1)}</td><td>${f(avg('rD'), 1)}</td><td>${f(avg('rB'), 2)}</td><td></td></tr>`;
     const worst = Math.max(max('pB'), rows.some(r => r.rB !== null) ? max('rB') : 0);
-    $('#tblNote').innerHTML = `Найдовший брязкіт — <b>${worst.toFixed(2)} мс</b>. Рекомендований debounce ≥ <b>${Math.max(1, Math.ceil(worst * 1.5))} мс</b> (×1.5, округлено вгору; так само рахує прошивка). Стовпці «ESP32 CHANGE» ${app.src === 'real' ? 'взято з маркера ISR у записі Wokwi' : 'пораховано моделлю переривань'}, «FALLING (умова)» — моделлю з розділу 4 (L = ${app.L} мкс).`;
+    $('#tblNote').innerHTML = `Найдовший брязкіт — <b>${fmt(worst, 2)} мс</b>. Рекомендований debounce ≥ <b>${Math.max(1, Math.ceil(worst * 1.5))} мс</b> (×1,5, округлено вгору; так само рахує прошивка). Стовпці «ESP32 CHANGE» ${app.src === 'real' ? 'взято з маркера ISR у записі моделі' : 'пораховано моделлю переривань'}, «FALLING (умова)» — моделлю з розділу 4 (L = ${app.L} мкс).`;
     if (vis.table === true) tick('measure');
   } else {
     html += `<tr><td colspan="11" style="text-align:left;color:var(--muted)">Поки порожньо. Натисніть «⏩ Весь запис», «▶ Відтворити» або утримуйте кнопку S1.</td></tr>`;
@@ -2263,17 +2290,18 @@ let playedFull = false;
 function csv() {
   const rows = tableData();
   const head = 'press,press_edges_analyzer,press_isr_change,press_falling_counter,press_bounce_ms,press_shortest_pulse_us,release_edges_analyzer,release_isr_change,release_falling_counter,release_bounce_ms';
-  return head + '\n' + rows.map(r => [r.n, r.pA, r.pC, r.pD, r.pB.toFixed(3), isFinite(r.pMin) ? r.pMin.toFixed(2) : '', r.rA ?? '', r.rC ?? '', r.rD ?? '', r.rB !== null ? r.rB.toFixed(3) : ''].join(',')).join('\n') + '\n';
+  const src = app.src === 'real' ? '# source: browser model record (model output), not a bench measurement' : '# source: your presses in the browser model, not a bench measurement';
+  return src + '\n' + head + '\n' + rows.map(r => [r.n, r.pA, r.pC, r.pD, r.pB.toFixed(3), isFinite(r.pMin) ? r.pMin.toFixed(2) : '', r.rA ?? '', r.rC ?? '', r.rD ?? '', r.rB !== null ? r.rB.toFixed(3) : ''].join(',')).join('\n') + '\n';
 }
 function markdown() {
   const rows = tableData();
-  let s = '| # | фронтів (аналізатор) | ESP32 CHANGE | FALLING (умова) | брязкіт натиск., мс | найкоротший імпульс, мкс | фронтів відпуск. | брязкіт відпуск., мс |\n|---|---|---|---|---|---|---|---|\n';
-  for (const r of rows) s += `| ${r.n} | ${r.pA} | ${r.pC} | ${r.pD} | ${r.pB.toFixed(2)} | ${isFinite(r.pMin) ? r.pMin.toFixed(1) : '—'} | ${r.rA ?? '—'} | ${r.rB !== null ? r.rB.toFixed(2) : '—'} |\n`;
+  let s = 'Дані: модель у браузері (не вимір на стенді)\n\n| # | фронтів (модель аналізатора) | ESP32 CHANGE | FALLING (умова) | брязкіт натиск., мс | найкоротший імпульс, мкс | фронтів відпуск. | брязкіт відпуск., мс |\n|---|---|---|---|---|---|---|---|\n';
+  for (const r of rows) s += `| ${r.n} | ${r.pA} | ${r.pC} | ${r.pD} | ${fmt(r.pB, 2)} | ${isFinite(r.pMin) ? fmt(r.pMin, 1) : '—'} | ${r.rA ?? '—'} | ${r.rB !== null ? fmt(r.rB, 2) : '—'} |\n`;
   return s;
 }
 $('#tblCsv').addEventListener('click', () => {
   const blob = new Blob([csv()], { type: 'text/csv' }), a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = app.src === 'real' ? 'bounce-wokwi-10-presses.csv' : 'bounce-my-presses.csv';
+  a.href = URL.createObjectURL(blob); a.download = app.src === 'real' ? 'bounce-MODEL-10-presses.csv' : 'bounce-model-my-presses.csv';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 });
 $('#tblMd').addEventListener('click', e => copyText(markdown(), e.currentTarget));
@@ -2292,7 +2320,7 @@ function renderDB() {
   const evs = finished(), s = app.db, N = app.dbN;
   $('#dbCtl').style.visibility = s === 'glitch' ? 'hidden' : 'visible';
   $('#dbNLabel').textContent = s === 'rc' ? 'Стала часу τ = R·C' : s === 'lock' ? 'Блокування N' : 'Стабільність N';
-  $('#dbNV').textContent = N.toFixed(N < 10 ? 1 : 0) + ' мс';
+  $('#dbNV').textContent = fmt(N, N < 10 ? 1 : 0) + ' мс';
   dbOutCache = evs.map(ev => debounce(ev, s, N));
   let ok = 0, extra = 0, latSum = 0, latN = 0;
   const cells = evs.map((ev, i) => {
@@ -2315,7 +2343,7 @@ function renderDB() {
   $('#dbGap').textContent = gap < Infinity ? fmtUs(gap) : '—';
   const warn = s !== 'glitch' && gap < Infinity && (s === 'rc' ? N * 2 : N) * 1000 > gap ? ` <b style="color:var(--bad)">Увага:</b> N більший за найкоротшу паузу між подіями (${fmtUs(gap)}). Швидке подвійне натискання буде втрачено.` : '';
   const human = s !== 'glitch' && latN && latSum / latN > 100000 ? ' Затримка понад 100 мс уже помітна людині.' : '';
-  $('#dbExplain').innerHTML = DB_TEXT[s](N.toFixed(N < 10 ? 1 : 0)) + warn + human;
+  $('#dbExplain').innerHTML = DB_TEXT[s](fmt(N, N < 10 ? 1 : 0)) + warn + human;
   drawDbBig(evs[app.dbSel] || evs[0], dbOutCache[app.dbSel] || dbOutCache[0]);
 }
 function drawTrace(g, ev, out, x0, w, y, H, span, rawColor, outColor, lw) {
@@ -2380,11 +2408,11 @@ function renderAnswers() {
   const card = (k, title, body) => `<details class="q" data-k="${k}"${open.has(k) ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
   box.innerHTML =
     card('1', '1. Чи співпадає кількість імпульсів аналізатора і лічильника мікроконтролера?',
-      `<p>Ні. За ${n(presses.length)} натискань і ${n(rels.length)} відпускань аналізатор бачив ${n(A)} фронтів. ESP32 у режимі CHANGE запустив ISR ${n(C)} разів (${n(Math.round(C / A * 100) + ' %')})${app.src === 'real' ? ', це справжнє число з маркера GPIO17 у Wokwi' : ''}. Код з умови (FALLING) нарахував би ${n(D)}, хоча людина натиснула лише ${n(presses.length)} разів.</p><p>Тобто ані «скільки фронтів», ані «скільки натискань» лічильник не показує.</p>`) +
+      `<p>Ні. За ${n(presses.length)} натискань і ${n(rels.length)} відпускань аналізатор бачив ${n(A)} фронтів. ESP32 у режимі CHANGE запустив ISR ${n(C)} разів (${n(Math.round(C / A * 100) + ' %')})${app.src === 'real' ? ', це число з маркера GPIO17 у записі моделі' : ''}. Код з умови (FALLING) нарахував би ${n(D)}, хоча людина натиснула лише ${n(presses.length)} разів.</p><p>Тобто ані «скільки фронтів», ані «скільки натискань» лічильник не показує.</p>`) +
     card('2', '2. Коли мікроконтролер пропускає брязкіт, а коли рахує зайве?',
       `<p><b>Пропускає:</b> коли фронти йдуть щільніше, ніж ISR встигає. Прапорець переривання — один біт, тож фронти за ті ${n(app.L + ' мкс')} до входу в обробник зливаються. У ваших даних злилося ${n(mergedN)} фронтів (модель), найкоротший імпульс — ${n(isFinite(minPulse) ? fmtUs(minPulse) : '—')}. А ${n(flips)} разів ISR прочитав той самий рівень двічі поспіль: між ними був фронт, який він «проспав».</p><p><b>Рахує зайве:</b> з погляду «одне натискання = +1» лічильник FALLING завжди рахує зайве. Брязкіт дає десятки фронтів униз, і ${n(Drel)} з ${n(D)} прийшли під час <i>відпускання</i>. Ще зайве рахують завади на довгому дроті без підтяжки (див. «Підтяжка входу»).</p>`) +
     card('3', '3. Яка середня тривалість брязкоту для вашої кнопки?',
-      `<p>Натискання: ${n(fmtUs(avg(presses)))} у середньому, відпускання: ${n(fmtUs(avg(rels)))}, найдовший — ${n(fmtUs(maxB))}. ${app.src === 'real' ? 'Кнопка Wokwi брязкотить ~2 мс завжди. Справжня 6×6 кнопка дає від десятків мкс до кількох мс і по-різному від сили натискання.' : 'Порівняйте з виміром Ганссла: у середньому 1.6 мс, максимум 6.2 мс у 16 кнопок.'}</p>`) +
+      `<p>Натискання: ${n(fmtUs(avg(presses)))} у середньому, відпускання: ${n(fmtUs(avg(rels)))}, найдовший — ${n(fmtUs(maxB))}. ${app.src === 'real' ? 'Модель кнопки брязкотить ~2 мс завжди. Справжня 6×6 кнопка дає від десятків мкс до кількох мс і по-різному від сили натискання (див. «Брязкіт на стенді»).' : 'Порівняйте з виміром Ганссла: у середньому 1.6 мс, максимум 6.2 мс у 16 кнопок.'}</p>`) +
     card('4', '4. Який мінімальний debounce був би достатній?',
       `<p>Найдовший брязкіт ${n(fmtUs(maxB))} × запас 1.5 → ${n('≥ ' + dms + ' мс')}. Зі способом «чекати стабільності ${dms} мс» правильно відпрацювали ${n(stableOk + ' / ' + fin.length)} подій. Перевірте в розділі 8.</p><p>Запас потрібен, бо 10 натискань — мала вибірка, а кнопка старіє. Верхня межа: debounce має бути набагато коротшим за найшвидше подвійне натискання (~50–100 мс) і за поріг помітної затримки (~100 мс).</p>`);
   $$('details', box).forEach(d => d.addEventListener('toggle', () => { if (d.open) tick('questions'); }));
@@ -2430,9 +2458,10 @@ addEventListener('themechange', readTokens); // ручний перемикач 
 new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 window.addEventListener('resize', dirtyAll);
 showTab('lab');
-setParams(14, 0.3, 'wokwi');
+setParams(14, 0.3, 'sim');
 updatePlayBtn();
 requestAnimationFrame(frame);
 </script>
+<script src="../assets/course.js" defer></script><script src="../assets/site-nav.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Розбір міні-проєкту 1</title>
+<meta name="description" content="Розбір сутінкового перемикача: музей помилок, чек-лист рев'ю, рубрика взаємного рев'ю з калібруванням, перемішане повторення модуля 1, ретро і голосування за тему гнучкого слоту.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.exhibit { margin: 0 0 16px; }
+.exhibit .tag { color: var(--bad); }
+.checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.checklist label { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
+.checklist input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--ok); }
+.checklist label:has(input:checked) { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 7%, var(--panel)); }
+.checklist small { display: block; color: var(--muted); font-size: 14px; }
+.cl-score { font: 600 15px var(--f-mono); margin: 10px 0 0; }
+.rub { width: 100%; border-collapse: collapse; font-size: 15px; }
+.rub th, .rub td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.rub th { font: 600 13px var(--f-mono); color: var(--muted); }
+.rub .pts { display: inline-flex; gap: 4px; }
+.rub .pts button { min-width: 40px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+@media (pointer: coarse) { .rub .pts button { min-width: 44px; min-height: 44px; } } /* desktop keeps the compact size above */
+.rub .pts button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.rub .ref { display: none; color: var(--muted); font-size: 14px; margin-top: 4px; }
+.rub.reveal .ref { display: block; }
+.rub .ref b { color: var(--ink); }
+.rub .cmp { display: none; margin-left: 6px; font: 600 14px var(--f-mono); }
+.rub.reveal .cmp { display: inline; }
+.rub .cmp.ok { color: var(--ok); } .rub .cmp.bad { color: var(--bad); }
+.retro { display: grid; gap: 12px; }
+@media (min-width: 720px) { .retro { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.retro label { display: grid; gap: 6px; font-weight: 600; }
+.retro textarea { width: 100%; min-height: 96px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 15px/1.45 var(--f-body); resize: vertical; }
+.topics { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.topics button { width: 100%; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 48px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 15px var(--f-body); cursor: pointer; }
+.topics button .rank { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1.5px dashed var(--line); font: 600 14px var(--f-mono); color: var(--muted); }
+.topics button[data-rank] { border-color: var(--accent); }
+.topics button[data-rank] .rank { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.topics small { display: block; color: var(--muted); font-size: 14px; }
+pre { white-space: pre; }
+</style>
+</head>
+<body data-lesson="mp1-review">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:mp1-review">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Розбір міні-проєкту 1 · ср 23.09 · гнучкий слот сб 26.09</p>
+    <h1>Розбір перемикача: <span>помилки, рев'ю, наступний крок</span></h1>
+    <p class="lead">Чужа помилка — найдешевший урок. Розберемо справжні поломки, навчимося оцінювати рішення за однією рубрикою і разом виберемо тему суботи.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 15 хв читання</span></li>
+      <li><a class="chip" href="#checklist">Потрібно: ваш перемикач і його код</a></li>
+      <li><a class="chip" href="../mp1/">Спершу: міні-проєкт 1</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">До перемішаного повторення</a>
+    </div>
+  </header>
+
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>На роботі ваш код читатимуть інші люди, а ви — їхній. Рев'ю — це не «знайти, до чого причепитися», а перевірити рішення за спільними правилами, які всі знають наперед. А розбір помилок групи вчить швидше за власні: за один вечір ви побачите десять поломок, які інакше ловили б місяць.</p>
+  </section>
+
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>назвати</b> п'ять найчастіших поломок перемикача і перший вимір для кожної;</li>
+      <li><b>оцінити</b> своє і чуже рішення за рубрикою 4 × 0–2 так само, як оцінює група;</li>
+      <li><b>вибрати</b> одне покращення для свого проєкту і записати його;</li>
+      <li><b>проголосувати</b> за тему гнучкого слоту, спираючись на свої «найменш зрозумілі» місця.</li>
+    </ul>
+  </section>
+
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ museum -->
+  <section class="hs" id="museum">
+    <h2><span class="n">04</span> Музей помилок</h2>
+    <p>Кожен експонат — справжня поломка цього проєкту. Спершу вгадайте причину, потім прочитайте, яким виміром її знаходять. Ваші експонати (фото, симптом, причина, як знайшли, як виправили) — у Discussions → «Музей помилок»; найкращі потраплять сюди.</p>
+
+    <div class="predict exhibit" id="ex-never-off" data-ok="1" data-why="Serial каже OFF, отже код і поріг ні до чого — проблема після GPIO. Багатьом 5-вольтовим модулям потрібен майже 5-вольтовий HIGH на IN, щоб вимкнутися. Якщо R4 підтягнутий до 3,3 В (або GPIO з'єднаний з IN напряму), IN ніколи не піднімається вище 3,3 В. Вимір: IN відносно GND при GPIO2 = LOW — має бути ≈5 В.">
+      <span class="tag">Експонат 1 · «Реле не вимикається ніколи»</span>
+      <p>Удень і вночі реле ввімкнене, світлодіод модуля світиться. Serial чесно пише <code>relay=OFF</code>. Найімовірніша причина?</p>
+      <div class="opts">
+        <button class="opt">Пороги DARK і LIGHT у коді переставлені місцями</button>
+        <button class="opt">R4 підтягнутий до шини 3,3 В замість 5 В</button>
+        <button class="opt">Фоторезистор згорів і показує обрив</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+
+    <div class="predict exhibit" id="ex-silent" data-ok="0" data-why="Живлення є (5 В на VCC), GPIO2 перемикається, а транзистор не реагує: струм бази не має шляху назад до ESP32 — немає дроту GND–GND. Схожий симптом дає і VT1, вставлений з переставленими E і C, тому другий вимір — напрям транзистора. Вимір: прозвонка GND плати ↔ «−» шини 5 В; напруга база–емітер при HIGH має бути ≈0,7 В.">
+      <span class="tag">Експонат 2 · «Мовчить»</span>
+      <p>Мультиметр на GPIO2 показує то 3,3&nbsp;В, то 0&nbsp;В, як і має бути, а на VCC модуля — 5&nbsp;В. Але реле не клацає жодного разу, світлодіод стану модуля не світиться. ESP32 — від ноутбука, реле — від модуля живлення.</p>
+      <div class="opts">
+        <button class="opt">Немає дроту між GND плати і GND макетки</button>
+        <button class="opt">Виводу GPIO2 не вистачає струму для бази</button>
+        <button class="opt">У коді забули <code>pinMode(2, OUTPUT)</code></button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+
+    <div class="predict exhibit" id="ex-4095" data-ok="2" data-why="Якщо нижній резистор дільника не з'єднаний з GND, вхід АЦП через LDR підтягнутий до 3,3 В і показує максимум за будь-якого світла. Вимір: напруга на GPIO4 і прозвонка R2 до шини GND.">
+      <span class="tag">Експонат 3 · «Завжди 4095»</span>
+      <p>Serial пише <code>adc=4095</code>, хоч накривай LDR, хоч світи ліхтариком.</p>
+      <div class="opts">
+        <button class="opt">АЦП згорів від 5 В</button>
+        <button class="opt">Неправильне ослаблення АЦП</button>
+        <button class="opt">R2 не з'єднаний з GND</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+
+    <div class="predict exhibit" id="ex-chatter" data-ok="1" data-why="Реле вмикає лампу, лампа освітлює LDR, стає «світло», реле вимикається, стає темно… Це петля зворотного зв'язку через світло, а не шум АЦП. Гістерезис рятує, лише поки підсвітка від лампи менша за мертву зону; лампа, що світить просто на LDR, зазвичай дає більше — тоді потрібен екран. Надійні ліки — екран між лампою і LDR або LDR, спрямований убік. Вимір: накрийте лампу — клацання зникають?">
+      <span class="tag">Експонат 4 · «Кулемет»</span>
+      <p>Пороги 500 / 600, мертва зона 100. У сутінках реле клацає раз на секунду, а коли лампу накрили коробкою — заспокоюється.</p>
+      <div class="opts">
+        <button class="opt">Шум АЦП більший за 100</button>
+        <button class="opt">Лампа світить на LDR: перемикач сам себе «будить»</button>
+        <button class="opt">Реле бракований</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+
+    <div class="predict exhibit" id="ex-reboot" data-ok="0" data-why="У момент клацання на спільне живлення разом лягають котушка (≈71 мА), пусковий струм навантаження і перешкоди від контактів. Слабкий USB-порт і довгі тонкі дроти макетки дають просідання напруги, і плата скидається (brownout). Ліки: реле й навантаження — від окремого модуля живлення, конденсатор на шину 5 В, короткі товсті дроти GND, спільна лише земля. Вимір: Serial покаже рядок перезапуску одразу після «relay=ON».">
+      <span class="tag">Експонат 5 · «Перезавантаження на клацанні»</span>
+      <p>Щоразу, коли реле вмикається, у Serial з'являються рядки завантаження, ніби плату перезапустили.</p>
+      <div class="opts">
+        <button class="opt">Реле і лампа живляться від того самого USB</button>
+        <button class="opt">Змінна <code>adc</code> переповнюється при клацанні</button>
+        <button class="opt">Модуль реле надсилає платі сигнал скидання</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+
+    <div class="predict exhibit" id="ex-wifi" data-ok="2" data-why="Канали АЦП2 (GPIO11–20) не можна використовувати одночасно з Wi-Fi. Для датчиків беріть АЦП1 — GPIO1–10. У нашому проєкті LDR на GPIO4 (АЦП1), тож Wi-Fi можна додавати спокійно; пастка — лише якщо перенести LDR на GPIO11–20.">
+      <span class="tag">Експонат 6 · «Wi-Fi зламав АЦП»</span>
+      <p>Хтось додав Wi-Fi, щоб надсилати стан у телефон, і LDR на GPIO14 перестав читатися.</p>
+      <div class="opts">
+        <button class="opt">Wi-Fi перевантажує живлення 3,3 В плати</button>
+        <button class="opt">Треба збільшити ослаблення АЦП</button>
+        <button class="opt">GPIO14 належить АЦП2, а він зайнятий Wi-Fi</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <p class="small muted">До експоната 6: АЦП1 — GPIO1–10<sup class="cite" data-fact="s3-adc1-pins"></sup>, АЦП2 — GPIO11–20 і конфліктує з Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>. До експоната 1: поведінка модуля при 3,3&nbsp;В на IN залежить від плати<sup class="cite" data-fact="relay-module-active-low"></sup>. До експоната 2: VCC модуля — це сходинка «живлення», вона вже пройдена. До експоната 5: котушка SRD бере ≈71&nbsp;мА<sup class="cite" data-fact="relay-srd05-coil-sl"></sup>.</p>
+  </section>
+
+  <!-- ============================================================ checklist -->
+  <section class="hs" id="checklist">
+    <h2><span class="n">05</span> Чек-лист рев'ю</h2>
+    <p>Пройдіть його для <b>свого</b> проєкту до заняття, а на занятті — для проєкту партнера. Галочки зберігаються лише у вашому браузері.</p>
+    <ul class="checklist" id="cl">
+      <li><label><input type="checkbox" data-k="consts"><span>Пороги — названі константи, а не «магічні числа»<small><code>kThresholdDark = 500</code>, а не <code>if (v &lt; 500)</code> посеред коду.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="hyst"><span>Є гістерезис: два пороги, DARK &lt; LIGHT, і між ними стан не змінюється<small>Мертва зона ширша за тремтіння, яке ви бачили в Serial.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="nodelay"><span>Немає блокуючого <code>delay()</code> на шляху рішення<small>Період опитування — через <code>millis()</code>; плата не «глухне» на секунду.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="pins"><span>Піни вибрано безпечно<small>АЦП — канал АЦП1 (GPIO1–10)<sup class="cite" data-fact="s3-adc1-pins"></sup>; не strapping (0, 3, 45, 46)<sup class="cite" data-fact="s3-strapping-pins"></sup>, не flash/PSRAM (26–37)<sup class="cite" data-fact="s3-flash-pins"></sup><sup class="cite" data-fact="wroom-octal-psram-pins"></sup>, не USB (19/20)<sup class="cite" data-fact="s3-usb-pins"></sup>.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="schem"><span>Схема збігається з макеткою<small>Кожен дріт на фото можна знайти на схемі, і навпаки. R4 — до 5&nbsp;В.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="gnd"><span>Спільна земля<small>GND плати, модуля живлення і модуля реле — один провід. Прозвонка пищить.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="table"><span>Є таблиця вимірювань день/ніч<small>Прогноз, виміряно, різниця і «чому» — з міні-лаби уроку МП1.</small></span></label></li>
+      <li><label><input type="checkbox" data-k="why"><span>Коментарі пояснюють «чому», а не «що»<small><code>// HIGH → VT1 відкритий → IN ≈ 0 В → реле ON</code>, а не <code>// пишемо HIGH</code>.</small></span></label></li>
+    </ul>
+    <p class="cl-score" id="cl-score" aria-live="polite"></p>
+  </section>
+
+  <!-- ============================================================ rubric -->
+  <section class="hs" id="rubric">
+    <h2><span class="n">06</span> Рубрика взаємного рев'ю</h2>
+    <p>Чотири критерії по 0–2 бали. Щоб усі оцінювали однаково, спершу <b>калібрований приклад</b>: оцініть рішення нижче самі, потім порівняйте з еталонною оцінкою групи.</p>
+    <div class="panel">
+      <div class="ph"><h3>Приклад для калібрування</h3><span class="small">вигаданий студент, справжні типові рішення</span></div>
+      <div class="pb">
+<pre><code>void loop() {
+  int v = analogRead(4);
+  if (v &lt; 550) digitalWrite(2, HIGH);
+  else digitalWrite(2, LOW);
+  delay(1000);
+}</code></pre>
+        <p>До коду: фото макетки, на якому видно дріт GND–GND і R4 до шини 5&nbsp;В. Супровідний текст: «Працює! Увечері трохи клацає, але це нормально». Таблиці вимірювань немає.</p>
+        <div class="tbl">
+        <table class="rub" id="rub">
+          <thead><tr><th>Критерій</th><th>0 · 1 · 2</th></tr></thead>
+          <tbody>
+            <tr data-c="work"><td><b>Працює</b>: вмикає вночі, вимикає вдень, не брязкотить<div class="ref">Еталон: <b>1</b>. Вмикає і вимикає, але в сутінках клацає — «нормально» тут не є нормою.</div></td><td><span class="pts" role="group" aria-label="Працює"><button type="button">0</button><button type="button">1</button><button type="button">2</button></span></td></tr>
+            <tr data-c="hw"><td><b>Залізо</b>: схема = макетка, спільна GND, R4 до 5&nbsp;В, безпечні піни<div class="ref">Еталон: <b>2</b>. На фото все, що треба; GPIO4 і GPIO2 — безпечні.</div></td><td><span class="pts" role="group" aria-label="Залізо"><button type="button">0</button><button type="button">1</button><button type="button">2</button></span></td></tr>
+            <tr data-c="code"><td><b>Код</b>: названі константи, гістерезис, без блокуючого <code>delay</code><div class="ref">Еталон: <b>0</b>. Магічні числа 4, 2, 550; один поріг; <code>delay(1000)</code> — три пункти чек-листа не виконано.</div></td><td><span class="pts" role="group" aria-label="Код"><button type="button">0</button><button type="button">1</button><button type="button">2</button></span></td></tr>
+            <tr data-c="proof"><td><b>Докази</b>: таблиця вимірювань і пояснення «чому»<div class="ref">Еталон: <b>0</b>. «Працює!» — не доказ; немає жодного виміряного числа.</div></td><td><span class="pts" role="group" aria-label="Докази"><button type="button">0</button><button type="button">1</button><button type="button">2</button></span></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="row" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px">
+          <button type="button" class="btn primary" id="rub-go">Порівняти з еталоном</button>
+          <span class="out" id="rub-out" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+    <div class="note tip"><p>Як писати відгук: <b>одна сильна сторона, одне найважливіше покращення, одне питання</b>. Посилайтеся на пункт чек-листа: «Пункт 3: <code>delay(1000)</code> блокує — спробуйте <code>millis()</code>».</p></div>
+  </section>
+
+  <!-- ============================================================ interleaved review -->
+  <section class="hs" id="check">
+    <h2><span class="n">07</span> Перемішане повторення модуля 1</h2>
+    <p>Дванадцять питань з уроків 1.1–1.6 і міні-проєкту впереміш, по одному на екран: так пам'ять тренує <b>вибір</b> методу, а не лише сам метод. Набір змінюється щодня.</p>
+    <div class="quiz" id="mix-quiz" data-manual data-mode="mixed" data-src="1-1,1-2,1-3,1-4,1-5,1-6,mp1" data-n="12" data-title="Модуль 1 впереміш: 12 питань"></div>
+    <p><a class="btn" href="../../cards/">Повторити картки модуля 1 у тренажері →</a></p>
+  </section>
+
+  <!-- ============================================================ retro -->
+  <section class="hs" id="retro">
+    <h2><span class="n">08</span> Ретро: залишити · змінити · спробувати</h2>
+    <p>По одному рядку в кожне поле. На занятті вставте текст на дошку у фрейм «Ретро», підписавши ім'ям.</p>
+    <div class="retro" id="retro-form">
+      <label>Залишити<textarea data-k="keep" placeholder="Що в модулі 1 спрацювало для вас?"></textarea></label>
+      <label>Змінити<textarea data-k="change" placeholder="Що заважало вчитися?"></textarea></label>
+      <label>Спробувати<textarea data-k="try" placeholder="Що спробувати в модулі 2?"></textarea></label>
+    </div>
+    <p style="margin-top:12px"><button type="button" class="btn" id="retro-copy">Скопіювати для дошки</button></p>
+    <p><b>Моє одне покращення проєкту:</b> оберіть один пункт чек-листа, який ви не позначили, і виправте його до суботи.</p>
+  </section>
+
+  <!-- ============================================================ flex slot -->
+  <section class="hs" id="flex">
+    <h2><span class="n">09</span> Гнучкий слот: голосуємо</h2>
+    <p>У суботу 26.09 немає нової теми: група сама вирішує, що розібрати глибше. Кандидати нижче зібрані з типових «найменш зрозумілих» місць модуля 1; викладач доповнить їх відповідями з ваших квитків на вихід. Позначте <b>три</b> теми в порядку важливості, скопіюйте і проголосуйте на дошці (фрейм «Стіна прогнозів» → «Гнучкий слот»).</p>
+    <ul class="topics" id="topics">
+      <li><button type="button" data-t="Транзистор як ключ: насичення і розрахунок бази"><span class="rank"></span><span>Транзистор як ключ<small>чому I<sub>B</sub> ≈ I<sub>C</sub>/10, а не I<sub>C</sub>/h<sub>FE</sub></small></span></button></li>
+      <li><button type="button" data-t="Дільник напруги і точність АЦП"><span class="rank"></span><span>Дільник і точність АЦП<small>чому сире число «гуляє», калібрування, <code>analogReadMilliVolts()</code></small></span></button></li>
+      <li><button type="button" data-t="millis() замість delay(): кілька справ одночасно"><span class="rank"></span><span><code>millis()</code> замість <code>delay()</code><small>місток до суперциклу (урок 2.3)</small></span></button></li>
+      <li><button type="button" data-t="Налагоджувач: точки зупинки, watch, крок за кроком"><span class="rank"></span><span>Налагоджувач на практиці<small>точки зупинки, умовні зупинки, змінні</small></span></button></li>
+      <li><button type="button" data-t="Як читати даташит: таблиці, умови, мін/тип/макс"><span class="rank"></span><span>Як читати даташит<small>мін / типово / макс і умови вимірювання</small></span></button></li>
+      <li><button type="button" data-t="Осцилограф і логічний аналізатор: що й коли"><span class="rank"></span><span>Осцилограф і логічний аналізатор<small>як побачити брязкіт і клацання реле в часі</small></span></button></li>
+    </ul>
+    <p style="margin-top:12px"><button type="button" class="btn" id="topics-copy">Скопіювати мій вибір</button> <button type="button" class="btn ghost" id="topics-clear">Скинути</button></p>
+    <p class="small muted">Свою тему, якої немає в списку, напишіть у квиток на вихід (поле «Що було найменш зрозуміло?») або в Slack #help.</p>
+  </section>
+
+  <!-- ============================================================ in call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">10</span> На занятті</h2>
+    <p><b>Підготуйте до дзвінка:</b> фото своєї макетки і посилання на код (GitHub або фрагмент у Slack), пройдений чек-лист і свою оцінку прикладу з рубрики.</p>
+    <div class="tnote">
+      <p><b>Середа 23.09 — розбір.</b></p>
+      <table class="tbl-plain rubric">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Як</th></tr></thead>
+        <tbody>
+          <tr><td>3–11</td><td>Розминка</td><td>розділ 07 у режимі «показ» або <code>warmup/</code></td></tr>
+          <tr><td>15–35</td><td>Галерея на дошці</td><td>кожна команда — фото збірок у своєму фреймі; усі ставлять ✓ на «спільну GND» там, де її видно</td></tr>
+          <tr><td>35–55</td><td>Музей помилок</td><td>експонати 1–6: голосування «причина?» → «що міряємо першим?» → розкриття</td></tr>
+          <tr><td>62–80</td><td>Калібрування рубрики</td><td>опитування по кожному критерію прикладу</td></tr>
+          <tr><td>80–105</td><td>Рев'ю в парах (без кімнат)</td><td>партнер з іншої команди; відгук у Discussions за формулою «сильна сторона · покращення · питання»</td></tr>
+          <tr><td>108–116</td><td>Квиток + голос за тему</td><td>розділи 09 і 11</td></tr>
+        </tbody>
+      </table>
+      <p><b>Калібрування, очікуваний розподіл:</b></p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>«Працює» — 50&nbsp;% ставлять 2, 50&nbsp;% ставлять 1 (еталон 1; аргумент: брязкіт = несправність). «Код» — 40&nbsp;% ставлять 1 (еталон 0).</p></details>
+      <p>Якщо розкид по критерію ширший за 1 бал, обговоріть і переголосуйте.</p>
+      <p><b>ConcepTest:</b> «Експонат 2: що міряти першим?» А — 5&nbsp;В на VCC модуля, Б — прозвонку GND–GND, В — напругу GPIO2, Г — код.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікування ≈30 / 35 / 25 / 10&nbsp;%. Правильно Б: за сходами «живлення → земля → сигнали → код» живлення (5&nbsp;В на VCC) і GPIO2 у симптомі вже виміряно, тож наступна неперевірена сходинка — земля. Хто вибрав А, той правильно пам'ятає порядок — підкресліть, що сходинку можна пропустити лише тоді, коли її вже виміряли.</p></details>
+      <p><b>Субота 26.09 — гнучкий слот:</b> зведіть голоси з дошки і квитків (3 бали за 1-ше місце, 2 — за 2-ге, 1 — за 3-тє). Візьміть першу тему на 60 хв і другу на 25 хв; решту часу — ретро модуля і переформування команд.</p>
+    </div>
+  </section>
+
+  <section class="hs" id="exit">
+    <h2><span class="n">11</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Назвіть одним реченням помилку з музею, яку ви тепер знайдете за одну хвилину, і перший вимір для неї."></form>
+  </section>
+
+  <section class="hs" id="more">
+    <h2><span class="n">12</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip" href="../mp1/">Міні-проєкт 1: хаб уроку</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/#build">Збирання і перевірка перемикача</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/#debug">Налагоджувач</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s88aop2081360bppxkr">Розбір і оптимізація мініпроєкту</a> і <a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s8baop60813v1ny8y1z">Гнучкий слот</a> (потрібен вхід). Обидва уроки в LMS — лише короткий опис формату, без відео.</li>
+      <li>Записи занять — у LMS; розділи запису — у Slack #recordings.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul><li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay">esp32-s3-twilight-relay</a> — еталонне рішення (C++ і Rust).</li></ul>
+    <h3>Що виправлено порівняно з LMS</h3>
+    <p>Тексти уроків 20 і 21 у LMS описують лише формат заняття і не містять технічних тверджень, тож виправляти нічого. Технічні уточнення до самого проєкту — на <a href="../mp1/#more">сторінці МП1</a>.</p>
+    <details class="more">
+      <summary>Джерела: звідки кожне число на сторінці</summary>
+      <div id="sources"><h3>Джерела</h3></div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <section class="hs" id="talk">
+    <h2><span class="n">13</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  const KEY = 'mp1-review.v1';
+  const saved = Study.store.get(KEY, {}) || {};
+  const save = () => Study.store.set(KEY, saved);
+
+  document.addEventListener('click', (e) => { if (e.target.closest('.cite')) { const d = $('#sources').closest('details'); if (d) d.open = true; } });
+
+  /* interleaved review: one question per screen; a mixed set keeps no per-lesson score by design */
+  const mq = $('#mix-quiz');
+  if (window.StudyQuiz && mq) {
+    StudyQuiz.mount(mq, { mode: 'stepper', src: mq.dataset.src, n: mq.dataset.n, title: mq.dataset.title, shuffle: true })
+      .catch((e) => console.error('mix-quiz:', e));
+  }
+
+  /* checklist */
+  saved.cl = saved.cl || {};
+  const boxes = $$('#cl input');
+  const score = () => { const n = boxes.filter((b) => b.checked).length; $('#cl-score').textContent = `Виконано ${n} з ${boxes.length}${n === boxes.length ? ' — готово до рев\'ю ✓' : ''}`; };
+  boxes.forEach((b) => {
+    b.checked = !!saved.cl[b.dataset.k];
+    b.addEventListener('change', () => { saved.cl[b.dataset.k] = b.checked; save(); score(); });
+  });
+  score();
+
+  /* rubric calibration */
+  const REF = { work: 1, hw: 2, code: 0, proof: 0 };
+  saved.rub = saved.rub || {};
+  const compare = () => {
+    const keys = Object.keys(REF);
+    const missing = keys.filter((k) => saved.rub[k] == null);
+    if (missing.length) { $('#rub-out').textContent = `Спершу оцініть усі 4 критерії (бракує ${missing.length}).`; return; }
+    $('#rub').classList.add('reveal');
+    $$('#rub tr[data-c]').forEach((tr) => {
+      const k = tr.dataset.c, same = saved.rub[k] === REF[k];
+      const out = $('.cmp', tr);
+      out.className = `cmp ${same ? 'ok' : 'bad'}`;
+      out.textContent = same ? '✓ як еталон' : `✗ еталон ${REF[k]}`;
+    });
+    const mine = keys.reduce((s, k) => s + saved.rub[k], 0);
+    const off = keys.filter((k) => saved.rub[k] !== REF[k]).length;
+    $('#rub-out').textContent = `Ваша сума ${mine} / 8, еталон 3 / 8. Розбіжностей: ${off}. ${off <= 1 ? 'Ви відкалібровані.' : 'Перечитайте пояснення під критеріями.'}`;
+  };
+  $$('#rub tr[data-c]').forEach((tr) => {
+    const c = tr.dataset.c, btns = $$('.pts button', tr);
+    const set = (v) => { btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === v))); };
+    Study.$('.pts', tr).insertAdjacentHTML('afterend', '<span class="cmp"></span>');
+    if (saved.rub[c] != null) set(saved.rub[c]);
+    // After the reveal, a changed score recomputes the comparison (no stale totals).
+    btns.forEach((b, i) => b.addEventListener('click', () => { saved.rub[c] = i; save(); set(i); if ($('#rub').classList.contains('reveal')) compare(); }));
+  });
+  $('#rub-go').addEventListener('click', compare);
+
+  /* retro */
+  saved.retro = saved.retro || {};
+  const tas = $$('#retro-form textarea');
+  tas.forEach((t) => { t.value = saved.retro[t.dataset.k] || ''; t.addEventListener('input', () => { saved.retro[t.dataset.k] = t.value; save(); }); });
+  $('#retro-copy').addEventListener('click', () => {
+    const v = (k) => (saved.retro[k] || '—').trim();
+    Study.copy(`Ретро модуля 1\nЗалишити: ${v('keep')}\nЗмінити: ${v('change')}\nСпробувати: ${v('try')}`);
+  });
+
+  /* flex-slot vote: pick up to 3 in order */
+  saved.topics = Array.isArray(saved.topics) ? saved.topics : [];
+  const tbtns = $$('#topics button');
+  const render = () => tbtns.forEach((b) => {
+    const r = saved.topics.indexOf(b.dataset.t);
+    if (r >= 0) { b.dataset.rank = r + 1; b.setAttribute('aria-pressed', 'true'); } else { delete b.dataset.rank; b.setAttribute('aria-pressed', 'false'); }
+    $('.rank', b).textContent = r >= 0 ? String(r + 1) : '';
+  });
+  tbtns.forEach((b) => b.addEventListener('click', () => {
+    const t = b.dataset.t, i = saved.topics.indexOf(t);
+    if (i >= 0) saved.topics.splice(i, 1);
+    else if (saved.topics.length < 3) saved.topics.push(t);
+    else { Study.toast('Можна вибрати лише три теми: зніміть одну.', 'bad'); return; }
+    save(); render();
+  }));
+  $('#topics-copy').addEventListener('click', () => {
+    if (!saved.topics.length) { Study.toast('Спершу виберіть теми.', 'bad'); return; }
+    Study.copy('Гнучкий слот, мій вибір:\n' + saved.topics.map((t, i) => `${i + 1}. ${t}`).join('\n'));
+  });
+  $('#topics-clear').addEventListener('click', () => { saved.topics = []; save(); render(); });
+  render();
+});
+</script>
+</body>
+</html>

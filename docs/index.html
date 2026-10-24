@@ -3,232 +3,746 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ESP32-S3 · навчальні матеріали</title>
+<title>Карта курсу · Embedded на ESP32-S3</title>
+<meta name="description" content="Карта курсу Embedded на ESP32-S3: уроки за модулями й датами, що вчимо цього тижня, картки, самоперевірка, інтерактивні сторінки й проєкти з репозиторію.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="site-nav.css">
-<script src="site-theme.js"></script>
-<meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): осцилограф і брязкіт кнопки, АЦП і фоторезистор, транзисторний ключ для потужного навантаження, стенд проєктів, підтяжка входів, проєкти Wokwi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="assets/study.css">
+<link rel="stylesheet" href="site-nav.css">
+<script src="site-theme.js"></script>
 <style>
-/* Layout: short index on graph paper — one section per course module: theory, homework, code / Wokwi. */
-:root {
-  --paper: #eaf0f4; --grid: rgba(28, 74, 110, .07); --panel: #fbfcfd; --ink: #13212c; --muted: #566875;
-  --line: #c6d2db; --accent: #0a6a86; --hi: #d97f00;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+/* Course map: tokens, base, chips and buttons come from study.css (+ theme.css). Only the map's own layout lives here. */
+:root { --hero: url("assets/hero-circuit-light.svg"); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hero: url("assets/hero-circuit-dark.svg"); } }
+:root[data-theme="dark"] { --hero: url("assets/hero-circuit-dark.svg"); }
+
+.map { max-width: 1080px; margin: 0 auto; }
+.topbar {
+  display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap;
+  padding: 12px 0 10px; border-bottom: 1px solid var(--line); font: 500 13px/1.3 var(--f-mono);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --hi: #ffae2b; color-scheme: dark; }
+.topbar a { color: var(--ink); text-decoration: none; padding: 6px 4px; border-radius: 8px; }
+.topbar a:hover { color: var(--accent); }
+.topbar .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding-left: 0; letter-spacing: .02em; }
+.topbar .brand img { width: 20px; height: 20px; }
+@media (pointer: coarse) { .topbar a { display: inline-flex; align-items: center; } }
+@media (max-width: 640px) { .topbar .jl { display: none; } }
+
+/* Hero: title + lead on the left, "your first circuit" drawn in the site's own schematic language on the right. */
+.map-head { padding: clamp(28px, 5vw, 56px) 0 8px; }
+@media (min-width: 860px) {
+  .map-head { display: grid; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 48px; align-items: center; }
+  .map-head > * { grid-column: 1; }
+  .map-head::after {
+    content: ""; grid-column: 2; grid-row: 1 / span 3; aspect-ratio: 3 / 2;
+    background: var(--hero) center / contain no-repeat;
+  }
 }
-:root[data-theme="dark"] { --paper: #0d151c; --grid: rgba(120, 170, 210, .05); --panel: #131e27; --ink: #e2eaf0; --muted: #8fa2b0; --line: #26384a; --accent: #45bfdc; --hi: #ffae2b; color-scheme: dark; }
-* { box-sizing: border-box; }
-body {
-  margin: 0; color: var(--ink); font: 16px/1.6 var(--f-body);
-  background-color: var(--paper);
-  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 24px 24px;
-  padding-inline: 16px; padding-block: 40px 56px;
+.map-head h1 { font-size: clamp(2.5rem, 1.4rem + 5vw, 4.4rem); font-weight: 720; line-height: 1; letter-spacing: -.025em; margin: 0 0 16px; }
+.map-head h1 span {
+  color: var(--copper);
+  text-decoration: underline; text-decoration-color: var(--copper-hi); text-decoration-thickness: .07em;
+  text-underline-offset: .16em; text-decoration-skip-ink: auto;
 }
-.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 28px; }
-.eyebrow { font: 500 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-h1 { font: 700 clamp(2.4rem, 6vw, 3.6rem)/1.05 var(--f-display); margin: 6px 0 8px; text-wrap: balance; }
-h1 span { color: var(--accent); }
-h2 { font: 600 1rem var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
-p { margin: 0; max-width: 66ch; color: var(--muted); }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.map-head .lead { margin-bottom: 0; font-size: clamp(1.08rem, 1rem + .4vw, 1.25rem); max-width: 56ch; }
+
+.blk { margin-top: clamp(40px, 6vw, 64px); scroll-margin-top: 12px; }
+.blk-h { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 16px; }
+.blk-h h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem); font-weight: 680; letter-spacing: -.015em; }
+.blk-h .side { font: 500 13px var(--f-mono); color: var(--muted); }
+
+/* «Цього тижня»: one expanded card (today, else the next call) plus compact rows for the other calls of the week;
+   today's card wears registration corners (the one "you are here" mark). */
+.week { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 860px) { .week.has-focus { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.week-note { margin: -4px 0 14px; font-size: 15px; color: var(--muted); max-width: 68ch; }
+.wcard {
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 18px 20px 16px; box-shadow: var(--shadow);
+  transition: transform var(--t2) var(--ease), box-shadow var(--t2) var(--ease);
+}
+.wcard:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.wcard.today { border: 2px solid var(--accent); padding: 17px 19px 15px; }
+.wcard.today::before {
+  content: ""; position: absolute; inset: -9px; pointer-events: none;
+  --c: var(--copper); --l: 16px; --t: 2px;
+  background:
+    linear-gradient(var(--c), var(--c)) 0 0 / var(--l) var(--t), linear-gradient(var(--c), var(--c)) 0 0 / var(--t) var(--l),
+    linear-gradient(var(--c), var(--c)) 100% 0 / var(--l) var(--t), linear-gradient(var(--c), var(--c)) 100% 0 / var(--t) var(--l),
+    linear-gradient(var(--c), var(--c)) 0 100% / var(--l) var(--t), linear-gradient(var(--c), var(--c)) 0 100% / var(--t) var(--l),
+    linear-gradient(var(--c), var(--c)) 100% 100% / var(--l) var(--t), linear-gradient(var(--c), var(--c)) 100% 100% / var(--t) var(--l);
+  background-repeat: no-repeat;
+}
+.wcard .when { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: 600 13px var(--f-mono); color: var(--muted); }
+.wcard h3 { margin: 0; font-size: 1.45rem; line-height: 1.15; font-weight: 680; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.wcard h3 .n { color: var(--copper); margin-right: 8px; font: 700 .8em var(--f-mono); }
+.wcard h3 a { color: inherit; text-decoration: none; }
+.wcard h3 a:hover { color: var(--accent); }
+.wcard .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 6px; }
+/* compact rows: date · status · title · Розминка */
+ol.wrows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.wrow {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; margin: 0;
+  padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.wrow .when { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font: 600 13px var(--f-mono); color: var(--muted); }
+.wrow .wr-t { grid-column: 1; font: 650 1.05rem/1.3 var(--f-display); color: var(--ink); text-decoration: none; }
+.wrow .wr-t .n { color: var(--copper); font: 700 .85em var(--f-mono); margin-right: 6px; }
+.wrow a.wr-t:hover { color: var(--accent); text-decoration: underline; }
+.wrow .btn { grid-column: 2; grid-row: 1 / span 2; }
+/* «Сьогодні ввечері»: three short next steps from data the map already has */
+.tonight { margin-top: 18px; padding: 14px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.tonight h3 { margin: 0 0 6px; font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+.tonight ul { list-style: none; margin: 0; padding: 0; }
+.tonight li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; margin: 0; padding: 8px 0; border-top: 1px dashed var(--line); }
+.tonight li:first-child { border-top: 0; }
+.tonight .k { display: block; font: 600 13px var(--f-mono); color: var(--muted); }
+.tonight .v { font-weight: 600; }
+/* nothing due: the cards row reads as done (a ✓ chip), its button turns into a secondary «Ще тренування» */
+.tonight .done { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; padding: 1px 10px; border-radius: var(--r-pill); border: 1.5px solid var(--ok); color: var(--ok); font: 600 13px/1.5 var(--f-mono); }
+/* status = an LED + a word: lit (today), amber (next), hollow dashed (past) */
+.st-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 2px 10px 2px 8px; border-radius: var(--r-pill);
+  font: 600 13px/1.5 var(--f-mono); border: 1.5px solid currentColor; white-space: nowrap;
+}
+.st-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.st-chip.today { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.st-chip.today::before { background: var(--accent-ink); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-ink) 30%, transparent); }
+.st-chip.next { color: var(--hi-ink); }
+.st-chip.next::before { background: var(--hi); box-shadow: 0 0 6px var(--hi); }
+.st-chip.past { color: var(--muted); border-style: dashed; }
+.st-chip.past::before { background: transparent; border: 1.5px solid currentColor; box-sizing: border-box; }
+
+/* «Почніть тут» tiles */
+.tiles { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+a.tile {
+  position: relative; display: grid; gap: 6px; align-content: start; padding: 18px 44px 18px 20px; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow);
+  transition: transform var(--t2) var(--ease), box-shadow var(--t2) var(--ease), border-color var(--t1);
+}
+a.tile::before { content: ""; position: absolute; left: 20px; top: 0; width: 36px; height: 3px; border-radius: 0 0 3px 3px; background: var(--copper-hi); }
+a.tile::after { content: "→"; position: absolute; right: 18px; top: 18px; font: 600 18px var(--f-mono); color: var(--accent); transition: transform var(--t2) var(--ease); }
+a.tile:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+a.tile:hover::after { transform: translateX(3px); }
+a.tile b { font: 680 1.3rem/1.2 var(--f-display); }
+a.tile span { font-size: 14.5px; color: var(--muted); }
+a.tile .due { font: 600 15px var(--f-mono); color: var(--copper); }
+
+/* Timeline: one section per module with a vertical rail of status LEDs */
+.mod { margin-top: 36px; }
+.mod-h { display: grid; gap: 2px; margin-bottom: 12px; }
+.mod-h .k { font: 700 14px var(--f-mono); color: var(--copper); letter-spacing: .1em; text-transform: uppercase; }
+.mod-h h3 { margin: 0; font-size: 1.5rem; line-height: 1.2; font-weight: 650; }
+.legend { margin: -6px 0 4px; font: 500 13px var(--f-mono); color: var(--muted); }
+/* Folds. A future module with no dates and no lessons on the site is one summary row («Модуль 4 · 7 занять · матеріали в LMS»);
+   a finished module folds its rail on phones (open on desktop, where its summary is hidden). */
+.mod-fold > summary { list-style: none; cursor: pointer; }
+.mod-fold > summary::-webkit-details-marker { display: none; }
+.mod-fold > summary::before { content: "+"; display: inline-block; width: 1.2ch; font: 700 15px var(--f-mono); color: var(--accent); transition: transform var(--t2) var(--ease); }
+.mod-fold[open] > summary::before { transform: rotate(45deg); }
+.mod-later > .mod-fold > summary {
+  display: grid; grid-template-columns: 1.4ch minmax(0, 1fr); align-items: baseline; gap: 2px 6px; min-height: 44px; padding: 10px 14px;
+  background: var(--panel); border: 1px dashed var(--line-2); border-radius: var(--radius);
+}
+.mod-later > .mod-fold > summary:hover { border-color: var(--accent); }
+.mod-later .mf-k { font: 700 14px var(--f-mono); color: var(--copper); letter-spacing: .1em; text-transform: uppercase; }
+.mod-later .mf-t { font: 650 1.1rem/1.25 var(--f-display); color: var(--ink); margin: 0; }
+.mod-later > .mod-fold > summary > * { grid-column: 2; }
+.mod-later > .mod-fold > summary::before { grid-row: 1; }
+.mod-later .mf-sub { font-size: 14px; color: var(--muted); }
+.mod-later[open] .rail, .mod-later .mod-fold[open] > .rail { margin-top: 10px; }
+.mod-past > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px dashed var(--line-2); border-radius: var(--r-pill); font: 600 13px var(--f-mono); color: var(--muted); }
+.mod-past[open] > summary { margin-bottom: 6px; }
+@media (min-width: 561px) { .mod-past > summary { display: none; } }
+.mod-h .sub { font-size: 14px; color: var(--muted); }
+ol.rail { list-style: none; margin: 0; padding: 0 0 0 30px; position: relative; }
+ol.rail::before { content: ""; position: absolute; left: 9px; top: 12px; bottom: 12px; width: 2px; background: repeating-linear-gradient(180deg, var(--line-2) 0 6px, transparent 6px 10px); }
+.rail > li { position: relative; margin: 0; padding: 12px 0 14px; border-bottom: 1px dashed var(--line); }
+.rail > li:last-child { border-bottom: 0; }
+/* Rail LED: shape + fill carry the status together with the text (never colour alone):
+   lit = ready, half = draft, dashed ring = planned, big ring = today / next. */
+.rail > li::before {
+  content: ""; position: absolute; left: -28px; top: 18px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--paper); border: 2px solid var(--line-strong); box-sizing: border-box;
+}
+.rail > li.s-ready::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px var(--paper), 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+.rail > li.s-draft::before { background: linear-gradient(90deg, var(--accent) 50%, var(--paper) 50%); border-color: var(--accent); }
+.rail > li.s-planned::before { border-style: dashed; }
+.rail > li.is-today::before { width: 22px; height: 22px; left: -31px; top: 15px; border: 3px solid var(--copper); box-shadow: 0 0 0 4px color-mix(in srgb, var(--copper) 22%, transparent); }
+/* Row head: number | title | meta (date, past/today/next, content status, LMS) in its own right-hand column. */
+.l-top { display: grid; grid-template-columns: 3.3em minmax(0, 1fr); align-items: baseline; gap: 4px 10px; }
+.l-num { font: 700 15px var(--f-mono); color: var(--copper); }
+/* the review call and the flex slot have no number of their own: a word instead of a second «МП1» or a «—» */
+.l-num.word { font-size: 13px; letter-spacing: -.01em; white-space: nowrap; }
+.l-title { font: 650 1.22rem/1.25 var(--f-display); color: var(--ink); text-decoration: none; min-width: 0; }
+.l-meta { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+/* Desktop: the meta is a fixed-width grid (date | time status | content status | LMS), so its columns line up row to row. */
+@media (min-width: 761px) {
+  .l-top { grid-template-columns: 3.3em minmax(0, 1fr) auto; }
+  .l-meta { grid-column: 3; display: grid; grid-template-columns: 9ch 12ch 9ch minmax(0, 1fr); width: 22rem; font: 500 13px var(--f-mono); }
+  .l-meta .lms { justify-self: end; flex-wrap: wrap; justify-content: flex-end; row-gap: 2px; }
+  .l-meta .st-chip { justify-self: start; }
+}
+a.l-title:hover { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1.5px; }
+.l-date { font: 500 13px var(--f-mono); color: var(--muted); white-space: nowrap; }
+.l-st { font: 600 13px var(--f-mono); color: var(--muted); white-space: nowrap; }
+.l-st.draft { color: var(--hi-ink); }
+.l-st.ready { color: var(--ok); }
+.l-meta .st-chip { padding: 0 8px 0 6px; }
+.l-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; padding-left: calc(3.3em + 10px); }
+.l-links .chip { min-height: 36px; font-size: 14px; padding: 4px 12px; }
+/* «Урок» is the primary action of every row: filled; the rest stay outlined. */
+.l-links > a.chip:first-child { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; padding-inline: 16px; box-shadow: 0 2px 0 var(--accent-deep); }
+.l-links > a.chip:first-child::after { content: "→"; font-family: var(--f-mono); }
+.l-links > a.chip:first-child:hover { background: var(--accent); filter: brightness(1.06); }
+/* «Глибше»: a label on its own line above its chips (open on desktop), a collapsed «Глибше · N» on phones */
+.l-deep { flex: 1 1 100%; }
+.l-deep > summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; font: 600 13px var(--f-mono); color: var(--muted); padding: 2px 0; }
+.l-deep > summary::-webkit-details-marker { display: none; }
+.l-deep > summary::before { content: "+"; display: inline-block; width: 1ch; transition: transform var(--t2) var(--ease); }
+.l-deep[open] > summary::before { transform: rotate(45deg); }
+.l-deep .chips-d { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+@media (min-width: 561px) { .l-deep > summary { cursor: default; } .l-deep > summary::before { display: none; } .l-deep > summary::after { content: ":"; margin-left: -6px; } .l-deep .d-n { display: none; } }
+.l-links .chip.score { border-color: var(--ok); color: var(--ok); font-family: var(--f-mono); }
+/* LMS: secondary, with a lock glyph; «потрібен вхід» is shown once per page and kept for screen readers elsewhere */
+.lms { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.lms .chip { color: var(--muted); border-color: var(--line-2); border-style: dashed; }
+.lms .chip::before {
+  content: ""; width: 11px; height: 12px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 12'%3E%3Cpath d='M2 5V3.5a3.5 3.5 0 0 1 7 0V5h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1.6 0h3.8V3.5a1.9 1.9 0 0 0-3.8 0z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 12'%3E%3Cpath d='M2 5V3.5a3.5 3.5 0 0 1 7 0V5h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1.6 0h3.8V3.5a1.9 1.9 0 0 0-3.8 0z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.lms .chip:hover { color: var(--accent); border-style: solid; }
+.lms-note { font: 500 13px var(--f-mono); color: var(--muted); }
+.mod ~ .mod .lms-note, .rail > li:not(:first-child) .lms-note {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.l-top .lms .chip { min-height: 32px; font-size: 14px; padding: 2px 11px; }
+.rail > li.s-planned { padding: 10px 0; }
+.rail > li.s-planned::before { top: 16px; }
+.rail > li.s-planned.is-today::before { top: 13px; background: var(--paper); border-style: solid; }
+.rail > li.s-planned .l-title, .rail > li.s-planned .l-num { color: var(--muted); }
+.rail > li.s-planned .l-title { font-weight: 600; }
+@media (max-width: 760px) {
+  /* phone rows: line 1 number + title, line 2 «date · when · status» with the LMS chip at its end, actions under the title */
+  .l-meta { font: 500 13px var(--f-mono); gap: 4px 8px; }
+  .l-meta > span:empty { display: none; }
+  .l-meta .lms { margin-left: auto; }
+}
+@media (max-width: 560px) {
+  .l-links { gap: 6px; }
+  .l-links .chip { min-height: 44px; padding-inline: 11px; }
+  .l-links > a.chip:first-child { padding-inline: 13px; }
+  .l-deep:not([open]) { flex: 0 0 auto; }
+  .l-top { grid-template-columns: 2.9em minmax(0, 1fr); column-gap: 8px; }
+  .l-links { padding-left: calc(2.9em + 8px); }
+  .l-deep > summary { min-height: 44px; padding: 0 11px; border: 1px dashed var(--line-2); border-radius: var(--r-pill); }
+}
+/* touch: every target in a row and the top bar is 44 px (the page-local 32/36 px rules above would beat the core one) */
+@media (pointer: coarse) {
+  .l-top .lms .chip, .l-links .chip, .topbar .brand, .topbar .theme-btn, .l-title, .l-deep > summary { min-height: 44px; }
+  a.l-title { display: flex; align-items: center; }
+}
+
+/* «Довідка» and deep pages: fixed column counts, so no lone card is left on a row */
+.grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 560px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (min-width: 960px) {
+  .grid.ref { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid.deep { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid > :last-child:nth-child(odd) { grid-column: auto; }
+  .grid > a.card.slim { grid-column: 1 / -1; }
+}
+/* «Для викладача»: one slim full-width row under the student reference cards */
+a.card.slim { grid-column: 1 / -1; }
+@media (min-width: 560px) { a.card.slim { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 16px; padding-block: 12px; } }
+.nw { white-space: nowrap; }
+a.card .nw { font: inherit; color: inherit; }
 a.card {
-  display: grid; gap: 6px; text-decoration: none; color: var(--ink);
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px;
+  display: grid; gap: 6px; align-content: start; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow);
+  transition: transform var(--t2) var(--ease), box-shadow var(--t2) var(--ease), border-color var(--t1);
 }
-a.card:hover { border-color: var(--accent); }
-a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.card h3 { font: 700 1.5rem/1.1 var(--f-display); margin: 0; }
-.card p { font-size: 14.5px; }
-.card .go { font: 500 13px var(--f-mono); color: var(--accent); }
-.card .tag { font: 500 12px var(--f-mono); color: var(--hi); }
-.jump { display: flex; flex-wrap: wrap; gap: 8px; }
-.jump a {
-  font: 500 13px var(--f-mono); text-decoration: none; color: var(--ink);
-  border: 1px solid var(--line); background: var(--panel); padding: 6px 12px; border-radius: 999px;
-}
-.jump a:hover { border-color: var(--accent); }
-.module { display: grid; gap: 10px; scroll-margin-top: 16px; padding-top: 22px; border-top: 1px solid var(--line); }
-.mod-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.mod-num { font: 500 13px var(--f-mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
-.module h2 { font: 700 clamp(1.6rem, 4vw, 2.1rem)/1.1 var(--f-display); letter-spacing: 0; text-transform: none; color: var(--ink); margin: 0; }
-.module .lead { font-size: 15px; }
-a.card.ext { background: transparent; }
-footer { font-size: 14px; color: var(--muted); }
-footer a { color: var(--accent); }
+a.card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+a.card b { font: 650 1.2rem/1.2 var(--f-display); }
+a.card span { font-size: 14.5px; color: var(--muted); }
+a.card .tag { font-size: 13px; color: var(--copper); }
+.sub-h { display: flex; align-items: center; gap: 10px; font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); margin: 28px 0 12px; }
+.sub-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* Repository projects */
+.projects { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.proj { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow); }
+.proj code { align-self: flex-start; font-size: 13px; background: var(--sunk); border: 1px solid var(--line); padding: 1px 7px; color: var(--muted); overflow-wrap: anywhere; }
+.proj h3 { margin: 2px 0 0; font-size: 1.25rem; font-weight: 650; }
+.proj p { margin: 0; font-size: 14.5px; color: var(--muted); }
+.proj .links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: auto; padding-top: 6px; }
+/* the newest project leads as one full-width card, so the other nine fill a 3 × 3 grid with no orphan */
+.proj.feat { grid-column: 1 / -1; border: 1.5px solid var(--copper-hi); }
+.proj.feat .new { align-self: flex-start; font: 600 13px var(--f-mono); color: var(--copper); letter-spacing: .08em; text-transform: uppercase; }
+.proj.feat p { max-width: 68ch; }
+@media (min-width: 640px) and (max-width: 959px) { .projects { grid-template-columns: repeat(2, minmax(0, 1fr)); } .proj:last-child:nth-child(even) { grid-column: 1 / -1; } }
+@media (min-width: 960px) { .projects { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.proj .links .chip { min-height: 36px; font-size: 14px; padding: 4px 12px; }
+@media (pointer: coarse) { .proj .links .chip { min-height: 44px; } }
+
+footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.nojs { margin-top: 24px; }
+.nojs ul { columns: 2 260px; }
+@media (prefers-reduced-motion: reduce) { .wcard:hover, a.tile:hover, a.card:hover { transform: none; } .l-deep > summary::before, .mod-fold > summary::before { transition: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="eyebrow">Embedded Development · YD-ESP32-S3 · PlatformIO</div>
-    <h1>ESP32-S3: <span>дивимося, як це працює</span></h1>
-    <p>Інтерактивні сторінки до лабораторних із репозиторію. Код, схеми та тести лежать поруч у тих самих папках проєктів.</p>
-  </header>
-
-  <nav class="jump" aria-label="Модулі" data-theme-slot>
-    <a href="#m1-4">1.3–1.4 · GPIO і кнопки</a>
-    <a href="#m1-5">1.5 · Сигнали та кнопка</a>
-    <a href="#m1-6">1.6 · АЦП і світло</a>
-    <a href="#mp1">Міні-проєкт · сутінковий перемикач</a>
-    <a href="#m2-2">2.2 · Потужне навантаження</a>
+<a class="skip" href="#course">До карти курсу</a>
+<div class="map">
+  <nav class="topbar" aria-label="Розділи карти" data-theme-slot>
+    <a class="brand" href="./"><img src="favicon.svg" alt="">ESP32-S3</a>
+    <a class="jl" href="#week">Цього тижня</a>
+    <a class="jl" href="#course">Модулі</a>
+    <a class="jl" href="#ref">Довідка</a>
+    <a class="jl" href="#projects">Проєкти</a>
   </nav>
 
-  <section class="module" id="m1-4">
-    <div class="mod-head">
-      <span class="mod-num">Модуль 1.3–1.4</span>
-      <h2>GPIO, світлодіоди й кнопки</h2>
-    </div>
-    <p class="lead">Перші прошивки: миготіння, входи з підтяжкою, кнопки й режими.</p>
-    <div class="grid">
-      <a class="card" href="pull-resistors/">
-        <span class="tag">Теорія</span>
-        <h3>Підтяжка входу</h3>
-        <p>Вхід, що висить, pull-up і pull-down, R·C і герци, тригер Шмітта, брязкіт контактів. Живі осцилографи й тест.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="lab/">
-        <span class="tag">Симуляція проєктів</span>
-        <h3>Стенд ESP32-S3</h3>
-        <p>Схема з рівнями й струмом, рядки коду, що виконуються, змінні, логічний аналізатор і Serial для всіх трьох прошивок.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card ext" href="https://wokwi.com/projects/476609614353588225" target="_blank" rel="noopener">
-        <span class="tag">Wokwi · esp32-s3-two-buttons</span>
-        <h3>Дві кнопки</h3>
-        <p>D1/D2 на GPIO15/16, зовнішня S1 на GPIO21 (клавіша 1), BOOT на платі (клавіша 2).</p>
-        <span class="go">wokwi.com ↗</span>
-      </a>
-      <a class="card ext" href="https://wokwi.com/projects/476610317583371265" target="_blank" rel="noopener">
-        <span class="tag">Wokwi · esp32-s3-led-blink</span>
-        <h3>Миготіння LED</h3>
-        <p>Червоний, синій і зелений на GPIO4/5/6, патерни й швидкості, BOOT (клавіша B), команди Serial.</p>
-        <span class="go">wokwi.com ↗</span>
-      </a>
-      <a class="card ext" href="https://wokwi.com/projects/476610461509906433" target="_blank" rel="noopener">
-        <span class="tag">Wokwi · single-gpio</span>
-        <h3>Один GPIO</h3>
-        <p>Два світлодіоди на GPIO7: HIGH, LOW і Hi-Z, мультиплекс для кадру «обидва разом».</p>
-        <span class="go">wokwi.com ↗</span>
-      </a>
-    </div>
+  <header class="map-head">
+    <p class="eyebrow">Embedded на ESP32-S3 · група Beetroot</p>
+    <h1>Карта <span>курсу</span></h1>
+    <p class="lead">Усі заняття за датами: короткий урок для телефону, картки й самоперевірка, а для охочих — великі інтерактивні сторінки й код у репозиторії.</p>
+  </header>
+
+  <section class="blk" id="week" aria-labelledby="week-h" hidden>
+    <div class="blk-h"><h2 id="week-h">Цього тижня</h2><span class="side" id="week-range"></span></div>
+    <div id="week-cards"></div>
   </section>
 
-  <section class="module" id="m1-5">
-    <div class="mod-head">
-      <span class="mod-num">Модуль 1.5</span>
-      <h2>Сигнали та кнопка</h2>
-    </div>
-    <p class="lead">Що бачать осцилограф і логічний аналізатор, коли натискаєш кнопку, і скільки з цього помічає переривання.</p>
-    <div class="grid">
-      <a class="card" href="scope-signals/">
-        <span class="tag">Теорія</span>
-        <h3>Осцилограф і кнопка</h3>
-        <p>Віртуальний осцилограф і генератор, шкали, тригер, фронти, період і заповнення, брязкіт, логічний аналізатор, конспекти відео, питання для обговорення.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="bounce-lab/">
-        <span class="tag">Домашнє завдання</span>
-        <h3>Лабораторія брязкоту</h3>
-        <p>Справжній запис 10 натискань у переглядачі аналізатора, що бачить переривання ESP32, таблиця результатів і стратегії debounce.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="bounce-bench/">
-        <span class="tag">Конспект · реальний стенд</span>
-        <h3>Брязкіт на стенді</h3>
-        <p>190 справжніх подій з уроку у віртуальному аналізаторі, анімація контакту, чому переривання губить фронти, статистика й вибір антибрязкоту, маркери BOUNCE/LABEL для Logic 2, ДЗ з відповідями.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce" target="_blank" rel="noopener">
-        <span class="tag">Код · esp32-s3-button-bounce</span>
-        <h3>Прошивки й інструменти</h3>
-        <p>Код з умови і лабораторна прошивка, vcd_bounce.py для запису аналізатора, Wokwi з аналізатором.</p>
-        <span class="go">GitHub ↗</span>
-      </a>
-    </div>
+  <section class="blk" id="start" aria-labelledby="start-h" hidden>
+    <div class="blk-h"><h2 id="start-h">Почніть тут</h2></div>
+    <div class="tiles" id="start-tiles"></div>
   </section>
 
-  <section class="module" id="m1-6">
-    <div class="mod-head">
-      <span class="mod-num">Модуль 1.6</span>
-      <h2>АЦП: як «читати» світло</h2>
-    </div>
-    <p class="lead">Аналоговий вхід: подільник напруги з фоторезистором, 4096 сходинок АЦП і звідки береться похибка.</p>
-    <div class="grid">
-      <a class="card" href="adc-light/">
-        <span class="tag">Теорія</span>
-        <h3>АЦП і світло</h3>
-        <p>Аналог і цифра, квантування, АЦП як лінійка на 4096 поділок, фоторезистор у подільнику, піни ADC1/ADC2, ослаблення, шум. Тест.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card" href="ldr-lab/">
-        <span class="tag">Домашнє завдання</span>
-        <h3>Люксметр на ESP32-S3</h3>
-        <p>Макетка з ліхтариком, як АЦП шукає число, код і блок-схема крок за кроком, Serial-таблиця, графік і звідки береться похибка.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc" target="_blank" rel="noopener">
-        <span class="tag">Код · esp32-s3-ldr-adc</span>
-        <h3>Прошивка й симуляція</h3>
-        <p>analogRead і analogReadMilliVolts, похибка, власний чип «LDR + 10 кОм» для Wokwi.</p>
-        <span class="go">GitHub ↗</span>
-      </a>
-    </div>
+  <section class="blk" id="course" aria-labelledby="course-h">
+    <div class="blk-h"><h2 id="course-h">Модулі й уроки</h2></div>
+    <p class="legend" id="course-legend"></p>
+    <div id="modules"></div>
   </section>
 
-  <section class="module" id="mp1">
-    <div class="mod-head">
-      <span class="mod-num">Міні-проєкт 1 · урок 18</span>
-      <h2>Датчик + актуатор: сутінковий перемикач</h2>
-    </div>
-    <p class="lead">Фоторезистор → АЦП → гістерезис → транзисторний ключ BC547B → модуль реле 5 В → лампа. Модуль живлення Type-C на макетці.</p>
-    <div class="grid">
-      <a class="card" href="twilight-relay/">
-        <span class="tag">Міні-проєкт</span>
-        <h3>Сутінковий перемикач</h3>
-        <p>Жива макетка й схема з анімацією електронів, пастка «3,3 В → модуль 5 В», петля гістерезису й код, деталі з попередніх уроків, правила креслення, збирання крок за кроком, відладчик і тест.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay" target="_blank" rel="noopener">
-        <span class="tag">Код · esp32-s3-twilight-relay</span>
-        <h3>Прошивка</h3>
-        <p>АЦП → два пороги з гістерезисом → GPIO2. PlatformIO для YD-ESP32-S3 з налаштованим вбудованим відладчиком USB-JTAG.</p>
-        <span class="go">GitHub ↗</span>
-      </a>
-    </div>
+  <section class="blk" id="ref" aria-labelledby="ref-h" hidden>
+    <div class="blk-h"><h2 id="ref-h">Довідка</h2></div>
+    <div class="grid ref" id="ref-grid"></div>
+    <p class="sub-h">Великі інтерактивні сторінки</p>
+    <div class="grid deep" id="deep-grid"></div>
   </section>
 
-  <section class="module" id="m2-2">
-    <div class="mod-head">
-      <span class="mod-num">Модуль 2.2</span>
-      <h2>Пасивні й активні: як підключити потужне навантаження</h2>
-    </div>
-    <p class="lead">Чому мотор не можна вішати на пін, транзисторний ключ і резистор бази, вибір BJT чи логічного MOSFET, захисний діод, конденсатори, brownout і спільна земля.</p>
-    <div class="grid">
-      <a class="card" href="power-loads/">
-        <span class="tag">Теорія + ДЗ</span>
-        <h3>Потужне навантаження</h3>
-        <p>Сортувальник компонентів, бюджет струму піна, живий NPN-ключ, калькулятор R<sub>Б</sub>, підбір ключа, осцилограф викиду з діодом і без, brownout, спільна земля, «знайди помилку», часова діаграма реле, ШІМ з UART і LEDC, тест і режим викладача.</p>
-        <span class="go">Відкрити →</span>
-      </a>
-      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bright-module" target="_blank" rel="noopener">
-        <span class="tag">Код · esp32-s3-bright-module</span>
-        <h3>ТЗ-A «Яскравий модуль»</h3>
-        <p>2N2222 вмикає LED з живлення MB-102, ШІМ LEDC на GPIO5, кнопка GPIO6 з чотирма рівнями. Прошивка на кожен етап ТЗ, C++ і Rust, тести й порівняння з програмним ШІМ.</p>
-        <span class="go">GitHub ↗</span>
-      </a>
-    </div>
+  <section class="blk" id="projects" aria-labelledby="proj-h" hidden>
+    <div class="blk-h"><h2 id="proj-h">Проєкти в репозиторії</h2><span class="side">кожен — на C++ і на Rust</span></div>
+    <div class="projects" id="proj-grid"></div>
   </section>
-  <footer>Код і документація: <a href="https://github.com/grok-rs/platformio-projects">github.com/grok-rs/platformio-projects</a></footer>
+
+  <noscript>
+    <div class="nojs">
+<!-- NOSCRIPT:BEGIN (generated from assets/course.js) -->
+      <p>Для інтерактивної карти увімкніть JavaScript. Усі сторінки курсу:</p>
+      <h3>Модуль 1 · Електроніка і перша прошивка</h3>
+      <ul>
+        <li><a href="lessons/1-1/">1.1 · Мультиметр і закон Ома</a> (пн 07.09)</li>
+        <li><a href="lessons/1-2/">1.2 · Чи можна спалити світлодіод? Розрахунок резистора</a> (ср 09.09)</li>
+        <li><a href="lessons/1-3/">1.3 · ESP32-S3 і перша прошивка Blink</a> (сб 12.09) — глибше: <a href="lab/#led-blink">Стенд ESP32-S3 (інтерактивна модель)</a></li>
+        <li><a href="lessons/1-4/">1.4 · GPIO і розпіновка</a> (пн 14.09) — глибше: <a href="pull-resistors/">Теорія: підтяжка входу (інтерактив)</a>, <a href="lab/#two-buttons">Стенд ESP32-S3 (інтерактивна модель)</a></li>
+        <li><a href="lessons/1-5/">1.5 · Осцилограф, кнопка і брязкіт</a> (ср 16.09) — глибше: <a href="scope-signals/">Теорія: осцилограф</a>, <a href="bounce-lab/">Лаба: брязкіт</a>, <a href="bounce-bench/">Наші дані: 190 подій брязкоту</a></li>
+        <li><a href="lessons/1-6/">1.6 · АЦП: як мікроконтролер «бачить» світло</a> (сб 19.09) — глибше: <a href="adc-light/">Теорія: АЦП і світло</a>, <a href="ldr-lab/">Лаба: люксметр</a></li>
+        <li><a href="lessons/mp1/">МП1 · Міні-проєкт 1: сутінковий перемикач</a> (пн 21.09) — глибше: <a href="twilight-relay/">Міні-проєкт: сутінковий перемикач</a></li>
+        <li><a href="lessons/mp1-review/">МП1 · Розбір міні-проєкту і гнучкий слот</a> (ср 23.09)</li>
+        <li><a href="lessons/mp1-review/#flex">— · Гнучкий слот: поглиблення теми</a> (сб 26.09)</li>
+      </ul>
+      <h3>Модуль 2 · Програмування MCU і силові навантаження</h3>
+      <ul>
+        <li><a href="lessons/2-1/">2.1 · C++ для мікроконтролера: обмеження і звички</a> (пн 28.09)</li>
+        <li><a href="lessons/2-2/">2.2 · Пасивні й активні: потужне навантаження</a> (ср 30.09) — глибше: <a href="power-loads/">Теорія + ДЗ: потужне навантаження</a>, <a href="twilight-relay/">Міні-проєкт: сутінковий перемикач</a></li>
+        <li><a href="lessons/2-3/">2.3 · Суперцикл: кілька справ одночасно</a> (сб 03.10) — глибше: <a href="lab/#two-buttons">Стенд ESP32-S3 (блокувальна прошивка)</a></li>
+        <li><a href="lessons/2-4/">2.4 · Апаратні переривання</a> (пн 05.10) — глибше: <a href="bounce-lab/#mcu">Лаба: що бачить ISR</a>, <a href="bounce-bench/#isr">Наші дані: що бачить переривання</a>, <a href="scope-signals/#bounce">Осцилограф: брязкіт і аналізатор</a></li>
+        <li>2.5 · Таймери (ср 07.10)</li>
+        <li>2.6 · Debounce (сб 10.10)</li>
+        <li>МП2 · Міні-проєкт 2 (пн 12.10)</li>
+        <li>МП2 · Розбір міні-проєкту 2 (ср 14.10)</li>
+        <li>— · Гнучкий слот (сб 17.10)</li>
+      </ul>
+      <h3>Модуль 3 · Аналогові сигнали, ШІМ і приводи</h3>
+      <ul>
+        <li>3.1 · Аналогові сигнали (пн 19.10)</li>
+        <li>3.2 · Сирі дані ADC → фізичні величини (ср 21.10)</li>
+        <li>3.3 · Керування потужністю і швидкістю (PWM) (сб 24.10)</li>
+        <li>3.4 · DAC (пн 26.10)</li>
+        <li>3.5 · Серво (ср 28.10)</li>
+        <li>3.6 · Енкодер (сб 31.10)</li>
+      </ul>
+      <h3>Модуль 4 · Інтерфейси: UART, I²C, SPI</h3>
+      <ul>
+        <li>4.1 · UART</li>
+        <li>4.2 · I²C</li>
+        <li>4.3 · I²C: регістри</li>
+        <li>4.4 · SPI</li>
+        <li>4.5 · SPI: датчик BME280</li>
+        <li>4.6 · DMA</li>
+        <li>4.7 · JTAG/SWD</li>
+      </ul>
+      <h3>Модуль 5 · Друкована плата, фільтри і регулятори</h3>
+      <ul>
+        <li>5.1 · KiCad: схема</li>
+        <li>5.2 · KiCad: трасування</li>
+        <li>5.3 · Gerber і виготовлення плати</li>
+        <li>5.4 · RC-фільтри</li>
+        <li>5.5 · Програмні фільтри</li>
+        <li>5.6 · PID-регулятор</li>
+      </ul>
+      <h3>Довідка</h3>
+      <ul>
+        <li><a href="start/">Як ми вчимося</a></li>
+        <li><a href="cards/">Картки</a></li>
+        <li><a href="warmup/">Розминка</a></li>
+        <li><a href="team/">Командні виклики</a></li>
+        <li><a href="atlas/">Атлас компонентів</a></li>
+        <li><a href="schematics/">Як читати схеми</a></li>
+        <li><a href="bugs/">Знайди помилку</a></li>
+        <li><a href="glossary/">Глосарій</a></li>
+        <li><a href="teacher/">Для викладача</a></li>
+      </ul>
+      <h3>Проєкти в репозиторії</h3>
+      <ul>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-led-blink">esp32-s3-led-blink</a> — Миготіння світлодіодів</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-led-pwm">esp32-s3-led-pwm</a> — Яскравість через ШІМ</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-led-button">esp32-s3-led-button</a> — Світлодіод і кнопка</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-two-buttons">esp32-s3-two-buttons</a> — Дві кнопки</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce">esp32-s3-button-bounce</a> — Брязкіт кнопки</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bounce-test">esp32-s3-bounce-test</a> — Тест брязкоту з перериванням</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc">esp32-s3-ldr-adc</a> — Фоторезистор і АЦП</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay">esp32-s3-twilight-relay</a> — Сутінковий перемикач</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-embedded-cpp">esp32-s3-embedded-cpp</a> — Embedded C++</li>
+        <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bright-module">esp32-s3-bright-module</a> — ТЗ-A «Яскравий модуль»</li>
+      </ul>
+<!-- NOSCRIPT:END -->
+    </div>
+  </noscript>
+
+  <footer class="foot">
+    <span>Власні тексти й схеми — <a href="https://creativecommons.org/licenses/by/4.0/deed.uk" rel="license">CC BY 4.0</a></span>
+    <a href="https://github.com/grok-rs/platformio-projects/blob/main/docs/THIRD_PARTY.md">Сторонні ліцензії</a>
+    <a href="https://github.com/grok-rs/platformio-projects">Код на GitHub</a>
+    <span id="verified">Перевірено 24.10.2026</span>
+  </footer>
 </div>
+
+<script src="assets/course.js"></script>
+<!-- flashcards.js only counts the cards waiting today (reviews + new), the same number the trainer shows -->
+<script src="assets/flashcards.js"></script>
+<script>
+// Course map: everything below is rendered from window.COURSE (assets/course.js); the <noscript> list is the fallback.
+(() => {
+  'use strict';
+  const C = window.COURSE;
+  if (!C) return;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Storage is optional: blocked localStorage just means no scores and no due count.
+  const read = (key) => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } };
+
+  // Local-date helpers. ?today=YYYY-MM-DD overrides the date (for checking the «Цього тижня» strip).
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const parse = (s) => new Date(s + 'T12:00:00');
+  const q = new URLSearchParams(location.search).get('today');
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(q || '') ? q : iso(new Date());
+  const ddmm = (s) => s.slice(8, 10) + '.' + s.slice(5, 7);
+  const ddmmyyyy = (s) => ddmm(s) + '.' + s.slice(0, 4);
+  // Call times (brief §0): Mon and Wed evening, Sat morning.
+  const TIME = { 'пн': '19:00', 'ср': '19:00', 'сб': '10:00' };
+
+  const lessons = C.modules.flatMap((m) => m.lessons.map((l) => ({ ...l, module: m })));
+  const hasHub = (l) => l.status === 'ready' || l.status === 'draft';
+  // Same rule as flashcards.js: a lesson deck exists once COURSE gives it a card count (or the hub is ready),
+  // so the map never links to a deck file that is not published yet.
+  const hasDeck = (l) => hasHub(l) && !l.hub && l.deck !== false && (typeof l.cards === 'number' ? l.cards > 0 : l.status === 'ready');
+  const hubHref = (l) => l.hub || `lessons/${l.id}/`;
+  const lmsHref = (l) => C.lmsBase + (l.lms || '');
+  const nextLesson = lessons.find((l) => l.date && l.date >= today);
+
+  // Best self-check score per lesson (quiz.js writes study.quiz.v1 = {lesson: {best, total, …}}).
+  const scores = read('study.quiz.v1') || {};
+  const scoreRaw = (id) => {
+    const s = scores && typeof scores === 'object' ? scores[id] : null;
+    return s && Number.isFinite(s.best) && Number.isFinite(s.total) && s.total > 0 ? s : null;
+  };
+  const scoreOf = (id) => { const s = scoreRaw(id); return s ? `${s.best}/${s.total}` : null; };
+  // «урок 1.3», but «МП1» (no «урок» before a mini-project id) and words for the review / flex slots.
+  const numWord = (l) => (/-review$/.test(l.id) ? 'розбір' : /^flex/.test(l.id) ? 'слот' : null);
+  const lessonRef = (l) => (/^\d/.test(l.n) ? `урок ${l.n}` : numWord(l) ? `${numWord(l)} ${l.n === '—' ? '' : l.n}`.trim() : l.n);
+
+  // Cards due today. flashcards.js keeps per-card state {r, i, e, d, l} in study.cards.v1; the map is read
+  // defensively (either the states directly or under .cards/.state) so a format tweak only hides the number.
+  function dueCount() {
+    if (window.StudyCards && StudyCards.stats) { try { return StudyCards.stats().due; } catch { /* fall back */ } }
+    const raw = read('study.cards.v1');
+    if (!raw || typeof raw !== 'object') return 0;
+    const states = raw.s || raw.cards || raw.state || raw;
+    return Object.values(states).filter((s) => s && typeof s.d === 'string' && s.d <= today).length;
+  }
+
+  // Cards waiting today = due reviews + new cards for today, exactly what the trainer (cards/) offers.
+  // The decks load in the background; until then the line says «рахуємо…».
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  const cardsText = (n) => (n > 0 ? `${n} ${plural(n, 'картка чекає', 'картки чекають', 'карток чекають')} · ≈${Math.max(1, Math.round(n * 0.4))} хв` : 'На сьогодні все ✓');
+  const paintCards = (n) => {
+    document.querySelectorAll('[data-cards-line]').forEach((e) => { e.textContent = cardsText(n); });
+    // «Сьогодні»: nothing due → a ✓ chip and a secondary «Ще тренування» (cram: one pass, no schedule change).
+    document.querySelectorAll('[data-cards-row]').forEach((li) => {
+      const v = li.querySelector('.v'), a = li.querySelector('a.btn');
+      if (n > 0) { v.textContent = cardsText(n); a.className = 'btn sm primary'; a.href = 'cards/'; a.textContent = 'Почати'; return; }
+      v.innerHTML = '<span class="done">✓ на сьогодні все</span>';
+      a.className = 'btn sm ghost'; a.href = 'cards/?mode=cram'; a.textContent = 'Ще тренування';
+    });
+  };
+  async function countCards() {
+    const SC = window.StudyCards;
+    if (!SC || !SC.load || !SC.decks) { paintCards(dueCount()); return; }
+    try {
+      const ids = SC.decks().map((d) => d.id);
+      await SC.load(ids);
+      const st = SC.stats(ids);
+      paintCards(st.due + st.newAvail);
+    } catch { paintCards(dueCount()); }
+  }
+
+  // Content status (what exists on the site), not the student's progress. The date column adds the time status.
+  const STATUS = { ready: 'урок на сайті', draft: 'чернетка', planned: 'лише в LMS' };
+  // Time status in the LED language of «Цього тижня»: lit «сьогодні», amber «наступне», hollow dashed «було».
+  const whenOf = (l) => (!l.date ? null : l.date === today ? 'today' : l.date < today ? 'past' : 'next');
+  const whenChip = (l) => {
+    const w = whenOf(l);
+    if (w === 'today') return '<span class="st-chip today">сьогодні</span>';
+    if (w === 'past') return '<span class="st-chip past">було</span>';
+    return w && nextLesson && nextLesson.id === l.id ? '<span class="st-chip next">наступне</span>' : '';
+  };
+
+  // ---------------------------------------------------------------- «Цього тижня»
+  function weekLessons() {
+    const t = parse(today);
+    const mon = new Date(t); mon.setDate(t.getDate() - ((t.getDay() + 6) % 7));
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const [a, b] = [iso(mon), iso(sun)];
+    let list = lessons.filter((l) => l.date && l.date >= a && l.date <= b);
+    let label = `${ddmm(a)} – ${ddmm(b)}`;
+    // A week without calls (holidays, before the course): show the next three instead.
+    if (!list.length) {
+      list = lessons.filter((l) => l.date && l.date > today).slice(0, 3);
+      label = list.length ? 'найближчі заняття' : '';
+    }
+    return { list, label };
+  }
+
+  const weekChip = (l) => {
+    const state = whenOf(l);
+    const word = state === 'today' ? 'сьогодні' : state === 'past' ? 'було' : l.id === (nextLesson && nextLesson.id) ? 'наступне' : 'далі';
+    return `<span class="st-chip ${state}">${word}</span>`;
+  };
+  const whenTxt = (l) => `${l.day} ${ddmm(l.date)}${TIME[l.day] ? ' · ' + TIME[l.day] : ''}`;
+  const warmupBtn = (l) => `<a class="btn sm" href="warmup/?current=${encodeURIComponent(l.id)}&amp;mode=self" aria-label="Розминка: ${esc(lessonRef(l))}">Розминка</a>`;
+
+  // The expanded card: today's call (or the next one).
+  function weekCard(l) {
+    const state = whenOf(l);
+    const main = hasHub(l) ? hubHref(l) : lmsHref(l);
+    const acts = [];
+    if (hasHub(l)) acts.push(`<a class="btn sm primary" href="${hubHref(l)}">Урок</a>`);
+    acts.push(warmupBtn(l));
+    if (hasDeck(l)) acts.push(`<a class="btn sm" href="cards/?deck=${encodeURIComponent(l.id)}">Картки</a>`);
+    acts.push(`<a class="btn sm ghost" href="${lmsHref(l)}" target="_blank" rel="noopener">LMS ↗</a>`);
+    return `<article class="wcard${state === 'today' ? ' today' : ''}">
+      <div class="when"><span>${whenTxt(l)}</span>${weekChip(l)}</div>
+      <h3><a href="${main}"><span class="n">${esc(l.n)}</span>${esc(l.title)}</a></h3>
+      <div class="acts">${acts.join('')}</div></article>`;
+  }
+  // The other calls of the week: one compact row each (date · status · title · Розминка).
+  function weekRow(l) {
+    const main = hasHub(l) ? hubHref(l) : lmsHref(l);
+    return `<li class="wrow"><span class="when"><span>${whenTxt(l)}</span>${weekChip(l)}</span>
+      <a class="wr-t" href="${main}"><span class="n">${esc(l.n)}</span>${esc(l.title)}</a>${warmupBtn(l)}</li>`;
+  }
+
+  // «Сьогодні»: cards waiting, one self-check that is worth doing, a deep page of this week if COURSE has one.
+  // Self-check: the most recent ready lesson never taken; else the weakest best score under 80 %; else no row.
+  function selfCheckPick() {
+    const done = lessons.filter((l) => l.status === 'ready' && !l.hub && l.deck !== false && l.quiz && l.date && l.date <= today);
+    const fresh = done.filter((l) => !scoreRaw(l.id)).pop();
+    if (fresh) return fresh;
+    const weak = done.map((l) => ({ l, r: scoreRaw(l.id).best / scoreRaw(l.id).total })).filter((x) => x.r < 0.8).sort((a, b) => a.r - b.r)[0];
+    return weak ? weak.l : null;
+  }
+  function tonight(list) {
+    const rows = [`<li data-cards-row><span><span class="k">Картки</span><span class="v">рахуємо…</span></span><a class="btn sm primary" href="cards/">Почати</a></li>`];
+    const pick = selfCheckPick();
+    if (pick) {
+      const s = scoreOf(pick.id);
+      rows.push(`<li><span><span class="k">Самоперевірка${s ? ` · найкраще ${s}` : ' · ще не пройдена'}</span><span class="v">${esc(pick.n)} · ${esc(pick.title)}</span></span><a class="btn sm" href="${hubHref(pick)}#check" aria-label="Пройти самоперевірку: ${esc(lessonRef(pick))}">Пройти</a></li>`);
+    }
+    const deep = list.flatMap((l) => l.deep || [])[0];
+    if (deep) rows.push(`<li><span><span class="k">Глибше</span><span class="v">${esc(deep.label)}</span></span><a class="btn sm" href="${deep.href}">Відкрити</a></li>`);
+    // By the clock of the call day: «Сьогодні» until 15:00, «Сьогодні ввечері» after (calls are at 19:00 on weekdays).
+    const title = new Date().getHours() >= 15 ? 'Сьогодні ввечері' : 'Сьогодні';
+    return `<section class="tonight" aria-labelledby="tn-h"><h3 id="tn-h">${title}</h3><ul>${rows.join('')}</ul></section>`;
+  }
+
+  function renderWeek() {
+    const { list, label } = weekLessons();
+    if (!list.length) return;
+    $('#week-range').textContent = label;
+    const focus = list.find((l) => l.date === today) || list.find((l) => nextLesson && l.id === nextLesson.id) || null;
+    const rest = list.filter((l) => l !== focus);
+    // Said once for the whole week, not on every card.
+    const noHub = list.filter((l) => !hasHub(l));
+    const note = !noHub.length ? ''
+      : `<p class="week-note">${noHub.length === list.length ? 'Короткий урок на сайті ще готується' : `Для ${noHub.map((l) => esc(l.n)).join(', ')} короткий урок на сайті ще готується`}; матеріали — в LMS (потрібен вхід).</p>`;
+    $('#week-cards').innerHTML = note +
+      `<div class="week${focus ? ' has-focus' : ''}">${focus ? weekCard(focus) : ''}${rest.length ? `<ol class="wrows">${rest.map(weekRow).join('')}</ol>` : ''}</div>` +
+      tonight(list);
+    $('#week').hidden = false;
+  }
+
+  // ---------------------------------------------------------------- «Почніть тут»
+  function renderStart() {
+    const g = Object.fromEntries((C.globals || []).map((x) => [x.key, x]));
+    const tiles = [];
+    if (g.start) tiles.push(`<a class="tile" href="${g.start.href}"><b>${esc(g.start.title)}</b><span>${esc(g.start.desc)}</span></a>`);
+    if (g.cards) tiles.push(`<a class="tile" href="${g.cards.href}"><b>Картки</b><span class="due" data-cards-line>рахуємо…</span><span>Десять хвилин на день — і пам’ять тримає вчорашній урок.</span></a>`);
+    if (g.team) tiles.push(`<a class="tile" href="${g.team.href}"><b>${esc(g.team.title)}</b><span>${esc(g.team.desc)}</span></a>`);
+    $('#start-tiles').innerHTML = tiles.join('');
+    $('#start').hidden = !tiles.length;
+  }
+
+  // ---------------------------------------------------------------- timeline
+  // Deep links: open on desktop (a label line above the chips), collapsed on phones.
+  const wideRows = window.matchMedia('(min-width: 561px)');
+  function lessonRow(l) {
+    const isToday = nextLesson && nextLesson.id === l.id;
+    const cls = `s-${l.status}${isToday ? ' is-today' : ''}`;
+    const date = `<span class="l-date">${l.date ? `${l.day} ${ddmm(l.date)}` : ''}</span>`;
+    const ref = lessonRef(l);
+    const title = hasHub(l)
+      ? `<a class="l-title" href="${hubHref(l)}">${esc(l.title)}</a>`
+      : `<span class="l-title">${esc(l.title)}</span>`;
+    const lms = `<span class="lms"><a class="chip" href="${lmsHref(l)}" target="_blank" rel="noopener" aria-label="LMS: ${esc(ref)}">LMS</a><span class="lms-note">потрібен вхід</span></span>`;
+    // Right-hand meta column: date · сьогодні/наступне (було only where there is no lesson link) · content status · LMS.
+    // The status word is said only where the row does not already say it: «чернетка». A lesson on the site shows
+    // its «Урок →» chip, an LMS-only row shows only the LMS chip; the legend explains both.
+    const when = hasHub(l) && whenOf(l) === 'past' ? '' : whenChip(l);
+    const st = l.status === 'draft' ? STATUS.draft : '';
+    const num = numWord(l) ? `<span class="l-num word" title="${esc(l.n)}">${numWord(l)}</span>` : `<span class="l-num">${esc(l.n)}</span>`;
+    const top = `<div class="l-top">${num}${title}<span class="l-meta">${date}${when || '<span></span>'}<span class="l-st ${l.status}">${st}</span>${lms}</span></div>`;
+    const cur = isToday ? ' aria-current="date"' : '';
+    // Planned rows stay on one line: there is nothing to link yet except the LMS.
+    if (!hasHub(l)) return `<li class="${cls}"${cur}>${top}</li>`;
+    const links = [`<a class="chip" href="${hubHref(l)}" aria-label="${esc(ref[0].toUpperCase() + ref.slice(1))} — ${esc(l.title)}">Урок</a>`];
+    if (!l.hub && l.deck !== false) {
+      // No count here: COURSE.cards counts notes, the trainer counts cards (a cloze note gives several), so the two would disagree.
+      if (hasDeck(l)) links.push(`<a class="chip" href="cards/?deck=${encodeURIComponent(l.id)}" aria-label="Картки: ${esc(ref)}">Картки</a>`);
+      const s = scoreOf(l.id);
+      links.push(s
+        ? `<a class="chip score" href="${hubHref(l)}#check" aria-label="Самоперевірка: ${esc(ref)}, найкраще ${s}">Самоперевірка: найкраще ${s}</a>`
+        : `<a class="chip" href="${hubHref(l)}#check" aria-label="Самоперевірка: ${esc(ref)}">Самоперевірка</a>`);
+    }
+    if (l.deep && l.deep.length) {
+      links.push(`<details class="l-deep"${wideRows.matches ? ' open' : ''}><summary>Глибше<span class="d-n"> · ${l.deep.length}</span></summary><div class="chips-d">${
+        l.deep.map((d) => `<a class="chip" href="${d.href}">${esc(d.label)}</a>`).join('')}</div></details>`);
+    }
+    return `<li class="${cls}"${cur}>${top}
+      <div class="l-links">${links.join('')}</div></li>`;
+  }
+
+  const lessonsWord = (n) => `${n} ${plural(n, 'заняття', 'заняття', 'занять')}`;
+  function moduleBlock(m) {
+    const dated = m.lessons.filter((l) => l.date);
+    const range = dated.length ? `${ddmm(dated[0].date)} – ${ddmm(dated[dated.length - 1].date)}`
+      : m.starts ? `з ${ddmm(m.starts)}, дати уроків уточнимо` : 'дати уточнимо';
+    const hubs = m.lessons.filter((l) => hasHub(l) && !l.hub).length;
+    const [k, ...rest] = m.title.split(' · ');
+    const name = esc(rest.join(' · ') || m.title);
+    const rail = `<ol class="rail">${m.lessons.map(lessonRow).join('')}</ol>`;
+    // A later module with no dates and nothing on the site yet: one expandable summary row.
+    if (!dated.length && !m.lessons.some(hasHub)) {
+      return `<section class="mod mod-later" id="m${m.id}" aria-labelledby="m${m.id}-h"><details class="mod-fold">
+        <summary><span class="mf-k">${esc(k)}</span><h3 class="mf-t" id="m${m.id}-h">${name}</h3>
+        <span class="mf-sub">${lessonsWord(m.lessons.length)} · матеріали в LMS · ${range}</span></summary>${rail}</details></section>`;
+    }
+    // A finished module (every dated call is behind us): its rail folds on phones, stays open on desktop.
+    const past = dated.length === m.lessons.length && dated[dated.length - 1].date < today;
+    const body = past
+      ? `<details class="mod-fold mod-past"${wideRows.matches ? ' open' : ''}><summary>Заняття модуля · ${m.lessons.length}</summary>${rail}</details>`
+      : rail;
+    return `<section class="mod" id="m${m.id}" aria-labelledby="m${m.id}-h">
+      <div class="mod-h"><span class="k">${esc(k)}</span><h3 id="m${m.id}-h">${name}</h3>
+      <span class="sub">${range} · занять: ${m.lessons.length}${hubs ? ` · уроків на сайті: ${hubs}` : ''}</span></div>
+      ${body}</section>`;
+  }
+
+  function renderTimeline() {
+    $('#modules').innerHTML = C.modules.map(moduleBlock).join('');
+    $('#course-legend').textContent = '● урок на сайті · ◐ чернетка · ○ лише в LMS · дата: було / сьогодні / наступне';
+    // Crossing the phone breakpoint opens or folds every «Глибше» group to match.
+    wideRows.addEventListener('change', (e) => document.querySelectorAll('.l-deep, .mod-past').forEach((d) => { d.open = e.matches; }));
+  }
+
+  // ---------------------------------------------------------------- «Довідка», deep pages, projects
+  // One line per deep page: what you do there (from each page's own description).
+  const DEEP_DESC = {
+    'pull-resistors': 'Вхід, що висить, pull-up і pull-down, RC і тригер Шмітта — з живими осцилограмами.',
+    'lab': 'Натискайте кнопки на схемі й дивіться рівні напруги, рядки коду й логічний аналізатор.',
+    'scope-signals': 'Вольти й секунди на поділку, тригер, період і заповнення — інтерактивний конспект.',
+    'bounce-lab': 'Брязкіт кнопки: логічний аналізатор проти апаратних переривань, живі натискання.',
+    'bounce-bench': '190 справжніх подій брязкоту зі стенда і чому переривання губить фронти.',
+    'adc-light': 'АЦП на 4096 сходинок, фоторезистор і подільник, шум і ковзне середнє.',
+    'ldr-lab': 'Фоторезистор у подільнику, analogRead() і analogReadMilliVolts(), похибка.',
+    'twilight-relay': 'Від фоторезистора через АЦП і гістерезис до транзистора й реле 5 В.',
+    'power-loads': 'Чому мотор не можна вішати на пін: транзисторний ключ, MOSFET, захисний діод.',
+  };
+  // «ESP32-S3» never breaks at its hyphen (the fonts have no U+2011 glyph, so a nowrap span instead).
+  const nb = (s) => esc(s).replace(/ESP32-S3/g, '<span class="nw">ESP32-S3</span>');
+  function renderRef() {
+    const refs = (C.globals || []).filter((g) => g.ref);
+    $('#ref-grid').innerHTML = refs.map((g) => `<a class="card${g.key === 'teacher' ? ' slim' : ''}" href="${g.href}"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></a>`).join('');
+    const byId = Object.fromEntries(lessons.map((l) => [l.id, l]));
+    const order = (id) => { const i = lessons.findIndex((l) => l.id === id); return i < 0 ? 1e9 : i; };
+    $('#deep-grid').innerHTML = Object.entries(C.deepPages || {}).map(([key, d]) => {
+      const tag = [...d.lessons].sort((a, b) => order(a) - order(b)).map((id) => byId[id] ? lessonRef(byId[id]) : id).join(' · ');
+      return `<a class="card" href="${key}/"><span class="tag">${esc(tag)}</span><b>${nb(d.title)}</b>${DEEP_DESC[key] ? `<span>${nb(DEEP_DESC[key])}</span>` : ''}</a>`;
+    }).join('');
+    $('#ref').hidden = false;
+  }
+
+  function renderProjects() {
+    const byId = Object.fromEntries(lessons.map((l) => [l.id, l]));
+    // The newest project (last in COURSE.projects) leads as a full-width card.
+    const list = C.projects || [];
+    const ordered = list.length > 1 ? [list[list.length - 1], ...list.slice(0, -1)] : list;
+    $('#proj-grid').innerHTML = ordered.map((p, i) => {
+      const ls = (p.lessons || []).map((id) => byId[id] ? lessonRef(byId[id]) : id).join(' · ');
+      const feat = i === 0 && ordered.length > 1;
+      return `<article class="proj${feat ? ' feat' : ''}">${feat ? '<span class="new">найновіший</span>' : ''}<code>${esc(p.folder)}</code><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p>
+        <div class="links"><a class="chip" href="${C.repo}/tree/main/${p.folder}" target="_blank" rel="noopener" aria-label="GitHub: ${esc(p.title)}">GitHub</a>
+        ${ls ? `<span class="lms-note">${esc(ls)}</span>` : ''}</div></article>`;
+    }).join('');
+    $('#projects').hidden = false;
+  }
+
+  const steps = [renderWeek, renderStart, renderTimeline, renderRef, renderProjects];
+  for (const fn of steps) { try { fn(); } catch (e) { console.error('Course map:', e); } }
+  countCards();
+  if (C.verified) $('#verified').textContent = 'Перевірено ' + ddmmyyyy(C.verified);
+})();
+</script>
 </body>
 </html>

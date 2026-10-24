@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 1.2 · Резистор для світлодіода</title>
+<meta name="description" content="Чому світлодіод без резистора згорає: крива струм–напруга, розрахунок R = (Vs − Vf) / I з округленням до ряду E12, потужність резистора, нагрів кристала і пряма напруга різних кольорів.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. LED body colours are physical colours (always labelled). */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+@media (pointer: coarse) { .seg button { min-height: 44px; } } /* desktop keeps the compact size above */
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.ctl-row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; margin: 0 0 12px; }
+.ctl-row .ctl { flex: 1 1 220px; }
+.ctl-k { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 16px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.status { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); font-weight: 600; }
+.status[data-s="ok"] { border-color: var(--ok); color: var(--ok); }
+.status[data-s="warn"] { border-color: var(--warn); color: var(--warn); }
+.status[data-s="bad"] { border-color: var(--bad); color: var(--bad); }
+.iv-wrap { display: grid; gap: 12px; }
+@media (min-width: 720px) { .iv-wrap { grid-template-columns: minmax(0, 720px) 150px; align-items: start; } }
+.iv-side { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: 14px; color: var(--muted); }
+.iv-side svg { width: 110px; height: auto; }
+.cv { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.small-note { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+/* colour comparison rows */
+.vf-rows { display: grid; gap: 10px; margin-top: 8px; }
+.vf-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+.vf-row .dot { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,.45); }
+.vf-row .nm { font-weight: 600; }
+.vf-row .nm small { font: 500 13px var(--f-mono); color: var(--muted); margin-left: 6px; }
+.vf-row .bars { grid-column: 2; display: grid; gap: 3px; }
+.bar { position: relative; height: 16px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+.bar > i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); opacity: .85; }
+.bar > i.band { background: var(--hi); opacity: .45; }
+.bar > i.core { background: var(--hi); opacity: 1; }
+.vf-row .txt { font: 500 13px var(--f-mono); color: var(--muted); }
+.vf-row .txt b { color: var(--ink); }
+.vf-row .txt .w { color: var(--warn); font-weight: 600; }
+/* burn test */
+.burn { display: grid; gap: 12px; }
+@media (min-width: 720px) { .burn { grid-template-columns: 130px minmax(0, 1fr); align-items: start; } }
+.burn svg.thermo { width: 120px; height: auto; margin: 0 auto; display: block; }
+.btn-row2 { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+/* calculator */
+.calc-grid { display: grid; gap: 10px 14px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.calc-grid label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.calc-grid input, .calc-grid select { width: 100%; font: 500 16px var(--f-mono); }
+.calc-out { margin: 12px 0 0; padding-left: 22px; }
+.calc-out li { margin-bottom: 6px; }
+.calc-out .formula { white-space: normal; }
+.warn-line { color: var(--warn); font-weight: 600; }
+.bad-line { color: var(--bad); font-weight: 600; }
+.ok-line { color: var(--ok); font-weight: 600; }
+figure.plain { margin: 14px 0; }
+figure.why-pair { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; }
+figure.plain.why-pair svg { flex: 1 1 260px; max-width: 320px; margin: 0; }
+figure.plain svg { display: block; width: 100%; height: auto; max-width: 620px; margin: 0 auto; }
+/* 360-unit sheet: at 400 px its 15-unit headings render ≈ 16.7 px, on the figure-label scale */
+figure.plain.par-led svg { max-width: 400px; }
+figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted); margin-top: 6px; }
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-ok { fill: var(--ok); font: 700 15px var(--f-body); }
+.svg-bad { fill: var(--bad); font: 700 15px var(--f-body); }
+.ax { stroke: var(--muted); stroke-width: 1.2; fill: none; }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.vid { margin: 0 0 10px; }
+.vid b { display: block; }
+@media (prefers-reduced-motion: reduce) { .glow { transition: none !important; } }
+.glow { transition: opacity .25s ease; }
+</style>
+</head>
+<body data-lesson="1-2">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:1-2">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Урок 1.2 · ср 09.09</p>
+    <h1>Чи можна спалити світлодіод? <span>Розрахунок резистора</span></h1>
+    <p class="lead">Світлодіод не обмежує струм сам. Розберемося, чому, порахуємо резистор, перевіримо його потужність і подивимося, як гріється кристал.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: модуль MB-102, LED різних кольорів, 220&nbsp;Ом і 1&nbsp;кОм, мультиметр</a></li>
+      <li><a class="chip" href="../1-1/">Спершу: урок 1.1, закон Ома</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Ви вставили світлодіод просто в шини 5&nbsp;В модуля живлення. Спалах, ледь чутне «цик», і він більше не світить. Інший сценарій підступніший: синій світлодіод на виводі плати без резистора працює, але через тиждень помітно тьмяніший.</p>
+    <p>В обох випадках код ні до чого. Винна одна формула, яку не застосували, і один рядок даташита, який не прочитали. Сьогодні ви навчитеся обирати резистор за хвилину і пояснювати, <i>чому</i> саме такий.</p>
+    <figure class="plain why-pair">
+      <svg viewBox="0 0 300 140" role="img" aria-label="Світлодіод напряму від 5 вольт: струм нічим не обмежений, сотні міліампер, перегрів за частки секунди.">
+        <text class="svg-bad" x="6" y="20">✗ напряму</text>
+        <path class="sch-w net-5v" d="M26 40H120"/>
+        <text class="svg-m" x="26" y="34">+5 В</text>
+        <use class="sch-sym" href="#led" x="120" y="40" transform="rotate(90 120 40)"/>
+        <path class="sch-w net-gnd" d="M120 100V118H26"/>
+        <text class="svg-m" x="26" y="134">GND</text>
+        <text class="svg-t" x="168" y="62">сотні мА</text>
+        <text class="svg-t" x="168" y="80">перегрів</text>
+        <text class="svg-m" x="168" y="98">за частки</text>
+        <text class="svg-m" x="168" y="114">секунди</text>
+      </svg>
+      <svg viewBox="0 0 300 140" role="img" aria-label="Світлодіод від 5 вольт через резистор 1 кілоом: близько 3 міліампер, світить і живе роками.">
+        <text class="svg-ok" x="6" y="20">✓ через резистор</text>
+        <path class="sch-w net-5v" d="M26 40H46"/>
+        <text class="svg-m" x="6" y="34">+5 В</text>
+        <use class="sch-sym" href="#res" x="46" y="40"/>
+        <text class="sch-val" x="76" y="64" text-anchor="middle">1 кОм</text>
+        <path class="sch-w net-sig" d="M106 40H136"/>
+        <use class="sch-sym" href="#led" x="136" y="40" transform="rotate(90 136 40)"/>
+        <path class="sch-w net-gnd" d="M136 100V118H26"/>
+        <text class="svg-m" x="26" y="134">GND</text>
+        <text class="svg-t" x="184" y="72">≈ 3 мА</text>
+        <text class="svg-m" x="184" y="90">світить</text>
+        <text class="svg-m" x="184" y="106">роками</text>
+      </svg>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b> за графіком струм–напруга, чому світлодіоду потрібен обмежувальний резистор;</li>
+      <li><b>розрахувати</b> R = (V<sub>s</sub> − V<sub>f</sub>) / I і <b>обрати</b> найближчий більший номінал з ряду E12;</li>
+      <li><b>перевірити</b> потужність резистора й оцінити нагрів кристала світлодіода;</li>
+      <li><b>знайти в даташиті</b> V<sub>f</sub>, умову тесту, абсолютний максимум струму й зворотну напругу;</li>
+      <li><b>виміряти</b> V<sub>f</sub> світлодіодів різних кольорів і пояснити різницю.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <p class="small-note">Три питання з попередніх уроків. Спершу відповідайте з пам'яті, а вже потім дивіться пояснення.</p>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Світлодіод — не резистор: після «коліна» струм злітає</h3>
+      <p>У резистора струм росте рівно пропорційно напрузі: подвоїли напругу — подвоївся струм. У світлодіода все інакше. До певної напруги струму майже немає, а після «коліна» біля V<sub>f</sub> кожні додаткові 0,1–0,2&nbsp;В подвоюють струм.</p>
+      <p>Тому «подати рівно 2&nbsp;В» не вийде: невелика похибка джерела, розкид між екземплярами чи нагрів, і струм уже в рази інший.</p>
+      <figure>
+        <svg viewBox="0 -16 260 206" role="img" aria-label="Графік струм від напруги. Пряма лінія резистора рівномірно росте від нуля. Крива світлодіода лежить на нулі до приблизно 1,7 вольта, а далі майже вертикально злітає. Позначка: плюс 0,2 вольта — струм удвічі.">
+          <path class="ax" d="M30 8V150H250"/>
+          <path d="M250 150l-7 -3.5v7zM30 6l-3.5 7h7z" fill="var(--muted)"/>
+          <text class="svg-m" x="250" y="141" text-anchor="end">U, В</text>
+          <text class="svg-m" x="38" y="-3">I, мА</text>
+          <!-- 3,25 units per mA, the same scale as the curve below (10 мА at 1,9 В) -->
+          <path d="M26 117.5h4M26 85h4M26 52.5h4" class="ax"/>
+          <text class="svg-m" x="23" y="122" text-anchor="end">10</text>
+          <text class="svg-m" x="23" y="89" text-anchor="end">20</text>
+          <text class="svg-m" x="23" y="57" text-anchor="end">30</text>
+          <text class="svg-m" x="110" y="168" text-anchor="middle">1</text>
+          <text class="svg-m" x="190" y="168" text-anchor="middle">2</text>
+          <path d="M110 150v4M190 150v4" class="ax"/>
+          <path d="M30 150L230 20" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+          <text class="svg-m" x="70" y="114" transform="rotate(-33 70 114)">резистор</text>
+          <path d="M30 150L153.2 150L159.1 149.7L163.2 149L168 146.8L171.1 143.5L174.9 137L178.8 127.3L182 117.5L186.7 101.3L190.9 85L194.9 68.8L198.8 52.5L202.5 36.2L206.2 20" stroke="var(--bad)" stroke-width="3" fill="none"/>
+          <text class="svg-t" x="216" y="56" style="fill:var(--bad)">LED</text>
+          <circle cx="190" cy="88" r="4" fill="var(--hi)"/><circle cx="206" cy="21" r="4" fill="var(--hi)"/>
+          <text class="svg-m" x="198" y="104">2,0 В</text>
+          <text class="svg-m" x="198" y="16" text-anchor="end">2,2 В: струм ×2</text>
+          <path d="M150 132L165 145" stroke="var(--muted)" stroke-width="1"/>
+          <text class="svg-m" x="148" y="132" text-anchor="end">«коліно»</text>
+        </svg>
+        <figcaption>Крива червоного LED за спрощеною моделлю, прив'язаною до даташита (V<sub>f</sub>&nbsp;=&nbsp;1,9&nbsp;В при 10&nbsp;мА<sup class="cite" data-fact="led-red-3mm-vf"></sup>).</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Струм світлодіода задає не він сам, а те, що стоїть з ним послідовно.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Резистор забирає «зайву» напругу і цим задає струм</h3>
+      <p>Згадайте мотузку-петлю з уроку 1.1. Світлодіод — як затискач: поки тяга помітно менша за V<sub>f</sub>, він майже не пускає мотузку, а біля V<sub>f</sub> «відпускає» і далі майже не опирається. Без руки, що гальмує, мотузка розганяється. Резистор і є тією рукою.</p>
+      <p>Напруги в послідовному колі складаються. LED бере собі приблизно V<sub>f</sub>, решту бере резистор. Струм рахуємо за законом Ома для резистора, бо для нього він простий.</p>
+      <figure>
+        <svg viewBox="0 0 260 170" role="img" aria-label="Стовпчик напруги 5 вольт розділений на дві частини: верхня 3,1 вольта на резисторі, нижня 1,9 вольта на світлодіоді. Під ним формула R дорівнює 5 мінус 1,9, поділити на струм.">
+          <rect x="30" y="14" width="56" height="128" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+          <rect x="30" y="14" width="56" height="79" fill="var(--n5)" opacity=".22"/>
+          <rect x="30" y="93" width="56" height="49" fill="var(--bad)" opacity=".5"/>
+          <text class="svg-m" x="22" y="18" text-anchor="end">5 В</text>
+          <text class="svg-m" x="22" y="146" text-anchor="end">0</text>
+          <path d="M92 16v74M92 96v44" stroke="var(--ink)" stroke-width="1.5"/>
+          <text class="svg-t" x="100" y="50">U<tspan baseline-shift="sub" font-size="75%">R</tspan> = 3,1 В</text>
+          <text class="svg-m" x="100" y="68">«зайва» напруга</text>
+          <text class="svg-t" x="100" y="116">V<tspan baseline-shift="sub" font-size="0.8em">f</tspan> ≈ 1,9 В</text>
+          <text class="svg-m" x="100" y="134">червоний LED</text>
+          <text class="svg-t" x="130" y="164" text-anchor="middle">R = (V<tspan baseline-shift="sub" font-size="0.8em">s</tspan> − V<tspan baseline-shift="sub" font-size="0.8em">f</tspan>) / I</text>
+        </svg>
+        <figcaption>5&nbsp;В = 3,1&nbsp;В на резисторі + 1,9&nbsp;В на LED.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>R&nbsp;=&nbsp;(V<sub>s</sub>&nbsp;−&nbsp;V<sub>f</sub>)&nbsp;/&nbsp;I. Результат округлюйте <b>вгору</b> до стандартного номіналу, тоді струм стане трохи меншим, а не більшим.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Струм гріє: P = U·I; «20 мА» — не мета</h3>
+      <p>Кожен елемент кола гріється: P&nbsp;=&nbsp;U·I. Крихітний кристал червоного LED нагрівається на 680&nbsp;°C на кожен ват<sup class="cite" data-fact="led-red-3mm-rth"></sup>, а межа температури переходу в нього 125&nbsp;°C<sup class="cite" data-fact="led-red-3mm-tj-max"></sup>. В інших кольорів межа нижча: 110&nbsp;°C у жовтого й зеленого, 115&nbsp;°C у синього й білого<sup class="cite" data-fact="led-3mm-tj-by-colour"></sup>. Резистор розрахований на 0,25&nbsp;Вт<sup class="cite" data-fact="res-axial-quarter-watt"></sup>, тож беріть запас приблизно вдвічі.</p>
+      <p>«20&nbsp;мА» біля V<sub>f</sub> у даташиті — лише умова вимірювання (у червоного навіть 10&nbsp;мА)<sup class="cite" data-fact="led-test-current-vs-rating"></sup>. Межа стоїть у таблиці <i>Absolute Maximum Ratings</i>: 30&nbsp;мА для червоного<sup class="cite" data-fact="led-red-3mm-abs-max"></sup> і лише 25&nbsp;мА для зеленого<sup class="cite" data-fact="led-green-3mm-vf"></sup>. Це межа, а не робочий режим.</p>
+      <details class="more"><summary>Термометр кристала: як оцінити нагрів</summary>
+      <figure>
+        <svg viewBox="0 0 260 170" role="img" aria-label="Термометр кристала червоного світлодіода. Позначки: 25 градусів — кімната; приблизно 68 градусів — при 30 міліамперах; 125 градусів — межа даташита. Формула: нагрів дорівнює потужність помножити на тепловий опір.">
+          <rect x="40" y="10" width="22" height="126" rx="11" fill="var(--panel-2)" stroke="var(--line)" stroke-width="1.5"/>
+          <circle cx="51" cy="146" r="17" fill="var(--bad)" opacity=".85"/>
+          <rect x="45" y="88" width="12" height="58" fill="var(--bad)" opacity=".85"/>
+          <path d="M66 126H80M66 88H80M66 34H80" stroke="var(--ink)" stroke-width="1.5"/>
+          <text class="svg-m" x="86" y="130">25 °C · кімната</text>
+          <text class="svg-m" x="86" y="92">≈ 68 °C · 30 мА</text>
+          <text class="svg-t" x="86" y="38" style="fill:var(--bad)">125 °C · межа Tj</text>
+          <text class="svg-t" x="86" y="160">ΔT ≈ P · Rth</text>
+        </svg>
+        <figcaption>Червоний LED: 30&nbsp;мА × 2,1&nbsp;В ≈ 63&nbsp;мВт → +43&nbsp;°C до кімнатних 25&nbsp;°C.</figcaption>
+      </figure>
+      </details>
+      <p class="key"><b>Головне</b>Плануйте 5–15&nbsp;мА: і кристал, і резистор лишаться холодними, а до абсолютного максимуму буде запас.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Колір = матеріал = своя V<sub>f</sub></h3>
+      <p>Колір світла визначає напівпровідник кристала, а від нього залежить і пряма напруга. Типова V<sub>f</sub> червоного й жовтого ≈&nbsp;1,9–2&nbsp;В (при тестовому струмі 10&nbsp;мА), зеленого 2,2&nbsp;В, а синього й білого аж 3,3&nbsp;В (при 20&nbsp;мА), причому з великим розкидом, до 4,0&nbsp;В.</p>
+      <p>Від 3,3&nbsp;В плати синьому майже не лишається «зайвої» напруги для резистора. Його струм стає малим і погано передбачуваним.</p>
+      <figure>
+        <svg viewBox="0 0 260 180" role="img" aria-label="Діаграма Vf за кольорами: червоний 1,9 вольта, максимум 2,3; жовтий 1,95, максимум 2,4; зелений 2,2, максимум 2,5; синій 3,3, максимум 4,0; білий 3,3, максимум 4,0. Вертикальні лінії: 3,3 вольта плати і 5 вольт модуля.">
+          <path class="ax" d="M70 12V150"/>
+          <path d="M70 150H250" class="ax"/>
+          <g class="svg-m"><text x="70" y="168" text-anchor="middle">0</text><text x="158" y="168" text-anchor="middle">3,3</text><text x="242" y="168" text-anchor="middle">5 В</text></g>
+          <path d="M158 12V150" stroke="var(--n33)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M242 12V150" stroke="var(--n5)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <g id="vfbars"></g>
+        </svg>
+        <figcaption>Суцільна смуга — типова V<sub>f</sub>, тонкий «вус» — максимум за даташитом<sup class="cite" data-fact="led-red-3mm-vf"></sup><sup class="cite" data-fact="led-yellow-3mm-vf"></sup><sup class="cite" data-fact="led-green-3mm-vf"></sup><sup class="cite" data-fact="led-blue-3mm-vf"></sup><sup class="cite" data-fact="led-white-3mm-vf"></sup>.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Різниця V<sub>s</sub>&nbsp;−&nbsp;V<sub>f</sub> — це «запас», з якого резистор робить стабільний струм. Малий запас означає нестабільний струм.</p>
+    </article>
+
+    <div class="predict" data-ok="1" data-gate="w-vf"
+         data-why="Струм задає «зайва» напруга на резисторі: (3,3 − 1,9) / 220 ≈ 6,4 мА для червоного, а для синього за формулою (3,3 − 3,3) / 220 ≈ 0. Насправді через синій тече ≈ 2 мА, бо при малому струмі його Vf нижча за 3,3 В, але цей струм утричі менший і погано передбачуваний. Струм — не яскравість: синій кристал набагато ефективніший, тож і 2 мА синього можуть виглядати яскравіше за 6 мА червоного.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Червоний і синій світлодіоди підключили від 3,3&nbsp;В, кожен через свій резистор 220&nbsp;Ом. Через який тече <b>більший струм</b>?</p>
+      <div class="opts">
+        <button class="opt">Однаково: резистори однакові, отже й струми</button>
+        <button class="opt">Через червоний: на його резисторі більша «зайва» напруга</button>
+        <button class="opt">Через синій: у нього вища V<sub>f</sub>, отже більша потужність</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-vf">
+      <div class="ph"><h3>Колір і струм</h3><span class="small">однакове джерело й резистор, різні V<sub>f</sub></span></div>
+      <div class="pb">
+        <div class="ctl-row">
+          <div><span class="ctl-k">Джерело</span>
+            <div class="seg" role="group" aria-label="Напруга джерела" id="vf-vs">
+              <button type="button" data-v="3.3" aria-pressed="true">3,3 В</button>
+              <button type="button" data-v="5" aria-pressed="false">5 В</button>
+            </div></div>
+          <div><span class="ctl-k">Резистор</span>
+            <div class="seg" role="group" aria-label="Опір резистора" id="vf-r">
+              <button type="button" data-r="100" aria-pressed="false">100 Ом</button>
+              <button type="button" data-r="220" aria-pressed="true">220 Ом</button>
+              <button type="button" data-r="1000" aria-pressed="false">1 кОм</button>
+            </div></div>
+        </div>
+        <div class="vf-rows" id="vf-rows" aria-live="polite" data-answer></div>
+        <p class="small-note">Смуга показує струм I&nbsp;=&nbsp;(V<sub>s</sub>&nbsp;−&nbsp;V<sub>f</sub>)&nbsp;/&nbsp;R: суцільна частина — гарантований мінімум (V<sub>f</sub> максимальна за даташитом), напівпрозора тягнеться до типового значення. Шкала до 35&nbsp;мА.</p>
+        <details class="more"><summary>Чому синій тут «0», а в «Робочій точці» ≈&nbsp;2&nbsp;мА? І чи світить він тьмяніше?</summary><p>Тут у кожного LED свій резистор. Синій при 3,3&nbsp;В показано за формулою з типовою V<sub>f</sub> («запас 0&nbsp;В»); у «Робочій точці» нижче модель кривої дає йому ≈&nbsp;2&nbsp;мА — обидва кажуть одне: струм малий і непередбачуваний. І пам'ятайте: струм — не яскравість. Сила світла синього за даташитом ≈&nbsp;2300&nbsp;мкд при 20&nbsp;мА, червоного ≈&nbsp;50&nbsp;мкд при 10&nbsp;мА<sup class="cite" data-fact="led-iv-red-vs-blue"></sup> (у синього прозорий корпус і вужчий промінь), тож навіть 2&nbsp;мА синього можуть здаватися яскравішими.</p></details>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>Детальніше: обмежена аналогія з водою і формула Шоклі</summary>
+      <p><b>Обмежена аналогія.</b> Часто кажуть, що світлодіод — «вузька труба, яку рве тиск». Вона ламається там, де ми найбільше потребуємо точності: справжня труба має опір, і потік у ній росте плавно. У світлодіода до порогу струму майже немає, а після нього майже нічого не гальмує. Тому в курсі ми лишаємося з мотузкою.</p>
+      <p><b>Звідки експонента.</b> Струм p-n переходу описує рівняння Шоклі: I&nbsp;≈&nbsp;I<sub>s</sub>·e<sup>U/(n·U<sub>T</sub>)</sup>, де U<sub>T</sub>&nbsp;≈&nbsp;26&nbsp;мВ при кімнатній температурі. Віджети на цій сторінці використовують спрощену модель: експоненту плюс невеликий внутрішній опір кристала, підібрані так, щоб при тестовому струмі виходила типова V<sub>f</sub> з даташита. Модель показує форму залежності, а точну V<sub>f</sub> вашого екземпляра показує тільки мультиметр.</p>
+      <p><b>Чому V<sub>f</sub> «гуляє» з нагрівом.</b> У червоного LED V<sub>f</sub> падає приблизно на 1,9&nbsp;мВ на кожен градус<sup class="cite" data-fact="led-red-vf-tempco"></sup>. Гарячий світлодіод на тій самій напрузі бере більший струм і гріється ще сильніше. Резистор розриває це коло: зайвий струм одразу дає більше падіння напруги на ньому.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="1" data-gate="w-iv"
+         data-why="Після «коліна» світлодіод майже не опирається струму. Без резистора струм обмежують лише крихітний внутрішній опір кристала й можливості джерела, тобто сотні міліампер замість 10–20.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Червоний світлодіод (V<sub>f</sub> ≈ 1,9&nbsp;В) підключили до 5&nbsp;В <b>без резистора</b>. Який струм потече?</p>
+      <div class="opts">
+        <button class="opt">≈ 20 мА: світлодіод сам бере свій номінальний струм</button>
+        <button class="opt">Сотні міліампер: після V<sub>f</sub> струм нічим не обмежений</button>
+        <button class="opt">0: 5 В «не підходить» світлодіоду, розрахованому на 1,9 В</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-iv">
+      <div class="ph"><h3>Робоча точка LED</h3><span class="small">крива LED × пряма резистора</span></div>
+      <div class="pb">
+        <div class="ctl-row">
+          <div><span class="ctl-k">Колір</span>
+            <div class="seg" role="group" aria-label="Колір світлодіода" id="iv-col">
+              <button type="button" data-c="red" aria-pressed="true">червоний</button>
+              <button type="button" data-c="yellow" aria-pressed="false">жовтий</button>
+              <button type="button" data-c="green" aria-pressed="false">зелений</button>
+              <button type="button" data-c="blue" aria-pressed="false">синій</button>
+              <button type="button" data-c="white" aria-pressed="false">білий</button>
+            </div></div>
+          <div><span class="ctl-k">Джерело V<sub>s</sub></span>
+            <div class="seg" role="group" aria-label="Напруга джерела" id="iv-vs">
+              <button type="button" data-v="3.3" aria-pressed="false">3,3 В</button>
+              <button type="button" data-v="5" aria-pressed="true">5 В</button>
+              <button type="button" data-v="12" aria-pressed="false">12 В</button>
+            </div></div>
+          <div><span class="ctl-k">Екземпляр LED</span>
+            <div class="seg" role="group" aria-label="Пряма напруга екземпляра" id="iv-dv">
+              <button type="button" data-d="lo" aria-pressed="false">V<sub>f</sub> −0,1 В</button>
+              <button type="button" data-d="typ" aria-pressed="true">типовий</button>
+              <button type="button" data-d="max" aria-pressed="false">V<sub>f</sub> макс.</button>
+            </div></div>
+          <label class="ctl"><span>Резистор R <b id="iv-rv">0 Ом</b></span>
+            <input type="range" id="iv-r" min="0" max="14" step="1" value="0" aria-label="Опір резистора"></label>
+        </div>
+        <div class="iv-wrap">
+          <canvas class="cv" id="iv-cv" width="640" height="400" role="img" aria-label="Графік: крива струм–напруга світлодіода, пряма резистора і їх перетин — робоча точка."></canvas>
+          <div class="iv-side">
+            <svg viewBox="0 0 110 130" role="img" aria-label="Світлодіод, яскравість якого відповідає струму" id="iv-led">
+              <circle class="glow" id="iv-halo" cx="55" cy="46" r="44" fill="#e5392f" opacity="0"/>
+              <path id="iv-dome" d="M40 76V40A15 15 0 0 1 70 40V76Z" fill="#e5392f" fill-opacity=".9" stroke="rgba(0,0,0,.5)"/>
+              <rect x="36" y="74" width="38" height="7" rx="1" fill="#e5392f" stroke="rgba(0,0,0,.5)" id="iv-rim"/>
+              <path d="M47 81V124M63 81V112" stroke="#6f7980" stroke-width="3"/>
+              <text id="iv-x" x="55" y="56" text-anchor="middle" font-size="34" font-weight="700" fill="var(--bad)" display="none">✕</text>
+            </svg>
+            <span id="iv-ledtxt" data-answer>—</span>
+          </div>
+        </div>
+        <div class="readout" aria-live="polite">
+          <span>I <b id="iv-i">—</b></span>
+          <span>U<sub>LED</sub> <b id="iv-vl">—</b></span>
+          <span>U<sub>R</sub> <b id="iv-vr">—</b></span>
+          <span>P<sub>LED</sub> <b id="iv-pl">—</b></span>
+          <span>P<sub>R</sub> <b id="iv-pr">—</b></span>
+        </div>
+        <p class="status" id="iv-st" data-s="" data-answer>—</p>
+        <p class="small-note">Спробуйте: R&nbsp;=&nbsp;0 і R&nbsp;=&nbsp;220&nbsp;Ом при 5&nbsp;В. Потім синій при 3,3&nbsp;В без резистора: перемикайте «Екземпляр» і порівняйте струм. «V<sub>f</sub> макс.» — найгірший екземпляр за даташитом<sup class="cite" data-fact="led-blue-3mm-vf"></sup>. Статус «Перегрів» означає, що усталена температура кристала перевищує межу Tj для цього кольору<sup class="cite" data-fact="led-3mm-tj-by-colour"></sup>. Модель спрощена: форма кривої правильна, а точну V<sub>f</sub> вашого екземпляра показує лише мультиметр.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-burn"
+         data-why="При ≈ 29 мА світлодіод розсіює ≈ 61 мВт, і кристал нагрівається приблизно на 41 °C, до ≈ 66 °C. Це ще нижче за межу 125 °C, тож він не згорить, але працює на межі абсолютного максимуму струму, а значить швидше старіє. Згорає він, коли струм у рази більший.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Тест на згоряння. Червоний LED від 5&nbsp;В через <b>100&nbsp;Ом</b>: це ≈&nbsp;29&nbsp;мА, майже абсолютний максимум. Що буде за 20&nbsp;секунд роботи?</p>
+      <div class="opts">
+        <button class="opt">Згорить за секунду: це ж максимум</button>
+        <button class="opt">Кристал ≈ 60–70 °C: живий, але старіє швидше</button>
+        <button class="opt">Нічого: сам LED обмежить струм до 20 мА</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-burn">
+      <div class="ph"><h3>Тест на згоряння</h3><span class="small">червоний LED, джерело 5 В</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Резистор послідовно зі світлодіодом" id="burn-r">
+          <button type="button" data-r="1000" aria-pressed="false">1 кОм</button>
+          <button type="button" data-r="220" aria-pressed="false">220</button>
+          <button type="button" data-r="100" aria-pressed="true">100</button>
+          <button type="button" data-r="47" aria-pressed="false">47</button>
+          <button type="button" data-r="22" aria-pressed="false">22</button>
+          <button type="button" data-r="0" aria-pressed="false">без R</button>
+        </div>
+        <div class="btn-row2">
+          <button type="button" class="btn primary" id="burn-go">▶ Увімкнути на 20 с</button>
+          <button type="button" class="btn ghost" id="burn-reset">Скинути</button>
+        </div>
+        <div class="burn" style="margin-top:12px">
+          <svg class="thermo" viewBox="0 0 120 230" role="img" aria-label="Термометр температури кристала і світлодіод" id="burn-svg">
+            <circle class="glow" id="b-halo" cx="88" cy="40" r="30" fill="#e5392f" opacity="0"/>
+            <path id="b-dome" d="M78 62V36A10 10 0 0 1 98 36V62Z" fill="#e5392f" fill-opacity=".9" stroke="rgba(0,0,0,.5)"/>
+            <path d="M83 62V90M93 62V84" stroke="#6f7980" stroke-width="2.5"/>
+            <text id="b-x" x="88" y="50" text-anchor="middle" font-size="24" font-weight="700" fill="var(--bad)" display="none">✕</text>
+            <rect x="16" y="14" width="22" height="180" rx="11" fill="var(--panel-2)" stroke="var(--line)" stroke-width="1.5"/>
+            <circle cx="27" cy="206" r="16" fill="var(--bad)"/>
+            <rect id="b-fill" x="21" y="190" width="12" height="16" fill="var(--bad)"/>
+            <path id="b-max" d="M10 0H44" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 2"/>
+            <text id="b-maxt" class="svg-m" x="48" y="0">125 °C</text>
+            <text id="b-tnow" class="svg-t" x="48" y="226" data-answer>25 °C</text>
+          </svg>
+          <div>
+            <canvas class="cv" id="burn-cv" width="640" height="300" role="img" aria-label="Графік температури кристала від часу за 20 секунд, з лінією межі 125 градусів."></canvas>
+            <div class="readout" aria-live="polite">
+              <span>I <b id="b-i">—</b></span>
+              <span>P<sub>LED</sub> <b id="b-p">—</b></span>
+              <span>Tj усталена <b id="b-ts">—</b></span>
+            </div>
+            <p class="status" id="b-st" data-s="" data-answer>Оберіть резистор і натисніть «Увімкнути».</p>
+          </div>
+        </div>
+        <p class="small-note">Усталена температура рахується за даташитом: Tj&nbsp;=&nbsp;25&nbsp;°C&nbsp;+&nbsp;P·680&nbsp;°C/Вт<sup class="cite" data-fact="led-red-3mm-rth"></sup>, межа Tj червоного&nbsp;=&nbsp;125&nbsp;°C<sup class="cite" data-fact="led-red-3mm-tj-max"></sup>. Статус «понад абсолютний максимум» з'являється, коли струм більший за 30&nbsp;мА або потужність LED більша за 75&nbsp;мВт<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>. Швидкість нагріву (≈&nbsp;3&nbsp;с) і момент руйнування в моделі <b>умовні</b>: вони показують тенденцію, а не точний час.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Задача:</b> білий світлодіод від бортових 12&nbsp;В, хочемо 10&nbsp;мА.<br><b>Відомо:</b> V<sub>s</sub>&nbsp;=&nbsp;12&nbsp;В, V<sub>f</sub>&nbsp;=&nbsp;3,3&nbsp;В (типова для білого<sup class="cite" data-fact="led-white-3mm-vf"></sup>), I&nbsp;=&nbsp;10&nbsp;мА&nbsp;=&nbsp;0,01&nbsp;А.<span class="why">чому: формулі потрібні три числа; струм одразу переводимо в ампери.</span></li>
+      <li><b>«Зайва» напруга:</b> <span class="formula">U<sub>R</sub> = 12 − 3,3 = 8,7 В</span><span class="why">чому: напруги в послідовному колі складаються, LED бере свою V<sub>f</sub>.</span></li>
+      <li><b>Опір:</b> <span class="formula">R = 8,7 В / 0,01 А = 870 Ом</span><span class="why">чому: закон Ома для резистора, через який тече той самий струм.</span></li>
+      <li><b>Номінал:</b> у ряду E12 після 820 іде 1000, тож беремо <b>1&nbsp;кОм</b><sup class="cite" data-fact="iec-e12"></sup>. В E24 є 910&nbsp;Ом<sup class="cite" data-fact="iec-e24"></sup>.<span class="why">чому: округлюємо вгору, тоді струм буде трохи меншим за 10&nbsp;мА: (12 − 3,3)/1000 ≈ 8,7&nbsp;мА.</span></li>
+      <li><b>Потужність резистора:</b> <span class="formula">P = 8,7 В · 8,7 мА ≈ 0,076 Вт</span> — у 3 рази менше за 0,25&nbsp;Вт<sup class="cite" data-fact="res-axial-quarter-watt"></sup>.<span class="why">чому: запас більший за двократний, тож звичайний резистор підходить.</span></li>
+    </ol>
+
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> зелений світлодіод від 5&nbsp;В, хочемо 15&nbsp;мА.<br><b>Відомо:</b> V<sub>s</sub>&nbsp;=&nbsp;5&nbsp;В, V<sub>f</sub>&nbsp;=&nbsp;2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>, I&nbsp;=&nbsp;0,015&nbsp;А.</li>
+      <li><b>«Зайва» напруга:</b> <span class="formula">U<sub>R</sub> = 5 − 2,2 = 2,8 В</span></li>
+      <li>
+        <div class="try" data-ans="186.7" data-tol="0.02" data-unit="Ом" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Розрахунковий опір, Ом?</p>
+          <details><summary>Підказка</summary>R = U<sub>R</sub> / I = 2,8 В / 0,015 А.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="220" data-tol="0.001" data-unit="Ом" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Який номінал з ряду E12 ви поставите?</p>
+          <details><summary>Підказка</summary>E12 біля цього значення: …, 150, 180, 220, 270… Округлюйте вгору.</details>
+        </div>
+      </li>
+    </ol>
+
+    <div class="try" data-ans="330" data-tol="0.001" data-unit="Ом" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Червоний індикатор на виводі ESP32-S3 (3,3&nbsp;В), хочемо ≈&nbsp;5&nbsp;мА. Який резистор з ряду E12?</h4>
+      <details><summary>Підказка</summary>V<sub>f</sub> червоного ≈ 1,9&nbsp;В. Порахуйте R, потім знайдіть у E12 найближче <i>більше</i> значення.</details>
+    </div>
+
+    <details class="more" id="calc-more">
+      <summary>Калькулятор резистора: перевірте свої відповіді</summary>
+    <div class="panel" id="calc">
+      <div class="ph"><h3>Калькулятор резистора</h3><span class="small">для перевірки, а не замість розрахунку</span></div>
+      <div class="pb">
+        <div class="calc-grid">
+          <label>Джерело V<sub>s</sub>, В<input id="c-vs" value="5" inputmode="decimal" autocomplete="off"></label>
+          <label>Світлодіод<select id="c-col">
+            <option value="red">червоний</option><option value="yellow">жовтий</option><option value="green">зелений</option>
+            <option value="blue">синій</option><option value="white">білий</option><option value="custom">своя Vf</option></select></label>
+          <label>V<sub>f</sub>, В<input id="c-vf" value="1,9" inputmode="decimal" autocomplete="off"></label>
+          <label>Бажаний струм, мА<input id="c-i" value="10" inputmode="decimal" autocomplete="off"></label>
+          <label>Ряд<select id="c-ser"><option value="12">E12</option><option value="24">E24</option></select></label>
+        </div>
+        <ol class="calc-out" id="c-out" aria-live="polite"></ol>
+      </div>
+    </div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myth" data-mc="M3">
+      <p class="seems">Резистор захищає, лише якщо стоїть <i>перед</i> світлодіодом, з боку плюса.</p>
+      <p class="truth">У послідовному колі струм однаковий у кожній точці. Резистор обмежує його однаково, хоч до, хоч після LED.</p>
+      <p class="test">Поміняйте їх місцями на макетці: яскравість і показ амперметра не зміняться.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">Синій LED має V<sub>f</sub>&nbsp;=&nbsp;3,3&nbsp;В, тож від 3,3&nbsp;В його можна вмикати без резистора.</p>
+      <p class="truth">3,3&nbsp;В — <i>типова</i> V<sub>f</sub> при 20&nbsp;мА; в екземпляра вона може бути до 4,0&nbsp;В<sup class="cite" data-fact="led-blue-3mm-vf"></sup> або нижчою, і з нагрівом падає. Без резистора струм задає випадковий розкид V<sub>f</sub> і нагрів, а не ви. Вихід GPIO — не обмежувач струму: такий струм може перевищити безпечний і для виводу, і для LED.</p>
+      <p class="test">У віджеті «Робоча точка» оберіть синій, 3,3&nbsp;В, R&nbsp;=&nbsp;0 і перемикайте «Екземпляр»: V<sub>f</sub> −0,1&nbsp;В, типовий, V<sub>f</sub> макс. Струм стрибає від ≈&nbsp;26&nbsp;мА до майже нуля.</p>
+    </div>
+    <details class="more">
+      <summary>Ще три помилки: спільний резистор, «опір світлодіода», округлення вниз</summary>
+    <div class="myth">
+      <p class="seems">Три світлодіоди паралельно можна підключити через один спільний резистор.</p>
+      <p class="truth">V<sub>f</sub> різниться від екземпляра до екземпляра: у червоного за даташитом від типової 1,9 до максимальної 2,3&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>. Більшу частину струму забере той, у кого V<sub>f</sub> найменша. Він гріється, його V<sub>f</sub> падає ще більше, і він забирає ще більше струму. Кожному LED потрібен свій резистор.</p>
+      <p class="test">Спільний резистор на червоний і синій: синій навіть не засвітиться, бо червоний «притисне» напругу до ≈&nbsp;2&nbsp;В.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">У світлодіода є свій опір, тож струм можна порахувати як I&nbsp;=&nbsp;U&nbsp;/&nbsp;R<sub>LED</sub>.</p>
+      <p class="truth">«Опір» світлодіода не сталий: при 1&nbsp;мА він великий, при 30&nbsp;мА крихітний. Закон Ома застосовують до резистора, а для LED беруть V<sub>f</sub>.</p>
+      <p class="test">Виміряйте V<sub>f</sub> з резистором 1&nbsp;кОм і з 220&nbsp;Ом: струм зміниться в кілька разів, а V<sub>f</sub> лише на десяті вольта.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">Вийшло 186&nbsp;Ом: ставлю найближчі 180&nbsp;Ом, різниця ж копійчана.</p>
+      <p class="truth">Округлення вниз дає <i>більший</i> струм, ніж ви розрахували. Для обмежувального резистора правило одне: найближчий більший номінал.</p>
+      <p class="test">Порахуйте струм для 180 і 220&nbsp;Ом при 5&nbsp;В і зеленому LED у калькуляторі вище.</p>
+    </div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 08 dual figure -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Коло для міні-лаби: шина 5&nbsp;В модуля MB-102<sup class="cite" data-fact="mb102-module"></sup> → R1 1&nbsp;кОм → LED1 → GND.</p>
+    <figure class="dual wide" id="dual-led" data-nets="v5=+5 В; led_a=Анод LED; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 -20 340 200" role="img" aria-label="Схема: джерело 5 вольт, через резистор R1 1 кілоом до анода світлодіода LED1, катод на GND. На резисторі близько 3,2 вольта, на світлодіоді близько 1,8 вольта, струм близько 3,2 міліампера.">
+          <use class="sch-sym" href="#vsrc" x="40" y="60" transform="rotate(90 40 60)"/>
+          <text class="sch-ref" x="66" y="82">G1</text>
+          <text class="sch-val" x="66" y="100">5 В · MB-102</text>
+          <path class="sch-w net-5v" data-net="v5" id="w-v5" d="M40 60V30H100"/>
+          <use class="sch-sym" href="#res" x="100" y="30"/>
+          <text class="sch-ref" x="130" y="16" text-anchor="middle">R1</text>
+          <text class="sch-val" x="130" y="52" text-anchor="middle">1 кОм</text>
+          <text class="svg-m" x="130" y="-4" text-anchor="middle" style="fill:var(--hi-ink)">U<tspan baseline-shift="sub" font-size="75%">R</tspan> ≈ 3,2 В</text>
+          <path class="sch-w net-sig" data-net="led_a" id="w-la" d="M160 30H240V45"/>
+          <use class="sch-sym" href="#led" x="240" y="45" transform="rotate(90 240 45)"/>
+          <text class="sch-ref" x="224" y="72" text-anchor="end">LED1</text>
+          <text class="sch-val" x="224" y="88" text-anchor="end">червоний</text>
+          <!-- voltage across LED1: bracket from anode (+) to cathode (−) -->
+          <path d="M270 47H275V103H270" fill="none" stroke="var(--hi-ink)" stroke-width="1.5"/>
+          <text class="svg-m" x="280" y="58" style="fill:var(--hi-ink)">+</text>
+          <text class="svg-m" x="281" y="80" style="fill:var(--hi-ink)">≈ 1,8 В</text>
+          <text class="svg-m" x="280" y="106" style="fill:var(--hi-ink)">−</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-gnd" d="M240 105V140H40V120"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="140" y="140"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-led" viewBox="0 0 252 222" role="img" aria-label="Макетка: модуль живлення подає 5 вольт на верхню шину плюс і GND на шину мінус. Дріт з шини плюс у стовпчик 3, резистор зі стовпчика 3 у стовпчик 8, світлодіод анодом у стовпчик 8 і катодом у 11, дріт зі стовпчика 11 на шину мінус."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Довга ніжка LED — анод (+); з боку катода на ободку корпусу плоский зріз.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <button type="button" class="btn" id="flow-btn" aria-pressed="false">Показати струм</button>
+      <a class="btn ghost" id="falstad" target="_blank" rel="noopener" href="https://www.falstad.com/circuit/circuitjs.html">Відкрити у Falstad ↗</a>
+      <span class="out" id="flow-out" aria-live="polite"></span>
+    </div>
+
+    <figure class="plain par-led">
+      <svg viewBox="0 0 360 200" role="img" aria-label="Два способи підключити два світлодіоди паралельно. Ліворуч, правильно: у кожного світлодіода свій резистор. Праворуч, неправильно: один резистор на два світлодіоди, струм іде переважно через той, у якого менша Vf.">
+        <text class="svg-ok" x="10" y="18">✓ так: кожному свій R</text>
+        <path class="sch-w net-5v" d="M20 34H150"/>
+        <text class="svg-m" x="20" y="50">+5 В</text>
+        <use class="sch-sym" href="#res" x="60" y="34" transform="rotate(90 60 34)"/>
+        <use class="sch-sym" href="#res" x="125" y="34" transform="rotate(90 125 34)"/>
+        <use class="sch-sym" href="#led" x="60" y="94" transform="rotate(90 60 94)"/>
+        <use class="sch-sym" href="#led" x="125" y="94" transform="rotate(90 125 94)"/>
+        <path class="sch-w net-gnd" d="M60 154V168H125V154"/>
+        <text class="svg-t" x="14" y="190">кожен LED — свій I</text>
+        <g transform="translate(190 0)">
+          <text class="svg-bad" x="0" y="18">✗ ні: один R на двох</text>
+          <path class="sch-w net-5v" d="M10 34H65"/>
+          <use class="sch-sym" href="#res" x="65" y="34" transform="rotate(90 65 34)"/>
+          <path class="sch-w net-sig" d="M65 94V100M30 100H100"/>
+          <use class="sch-sym" href="#led" x="30" y="100" transform="rotate(90 30 100)"/>
+          <use class="sch-sym" href="#led" x="100" y="100" transform="rotate(90 100 100)"/>
+          <path class="sch-w net-gnd" d="M30 160V172H100V160"/>
+          <text class="svg-t" x="0" y="190">струм забирає менша V<tspan baseline-shift="sub" font-size="0.8em">f</tspan></text>
+        </g>
+      </svg>
+      <figcaption>Паралельні світлодіоди: правильно (ліворуч) і неправильно (праворуч).</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома: палітра V<sub>f</sub></h2>
+    <p><b>Набір:</b> MB-102 (шина 5&nbsp;В), 1&nbsp;кОм, LED 3&nbsp;мм усіх кольорів, що маєте, мультиметр UT136C+.</p>
+    <div class="note danger">Ніколи не вмикайте світлодіод у шини живлення без резистора. Зворотна напруга світлодіода — лише 5&nbsp;В<sup class="cite" data-fact="led-reverse-voltage"></sup>, тож не перевертайте його на джерелах понад 5&nbsp;В.</div>
+    <ol>
+      <li>Виміряйте мультиметром напругу шини U<sub>шини</sub> і запишіть її: від USB це часто 4,7–5,1&nbsp;В, а перемички модуля бувають різні.</li>
+      <li>Зберіть коло з розділу 08: 5&nbsp;В → 1&nbsp;кОм → анод (довга ніжка) → катод → GND. Переплутали ніжки — LED просто не світить: у зворотному напрямку перехід закритий, і до 5&nbsp;В це безпечно<sup class="cite" data-fact="led-reverse-voltage"></sup>.</li>
+      <li>Запишіть у таблицю <b>прогноз</b> V<sub>f</sub> для кожного кольору з ідеї «Колір = матеріал».</li>
+      <li>Мультиметр у режимі V⎓, щупи на виводи світлодіода. Запишіть <b>виміряне</b> U<sub>LED</sub>.</li>
+      <li>Повторіть з іншими кольорами. Порахуйте струм: I&nbsp;=&nbsp;(U<sub>шини</sub>&nbsp;−&nbsp;U<sub>LED</sub>)&nbsp;/&nbsp;1000. У стовпчику «Чому так?» поясніть різницю з прогнозом: у даташиті V<sub>f</sub> дано при 10–20&nbsp;мА, а у вас ≈&nbsp;3&nbsp;мА.</li>
+    </ol>
+    <table class="measure" data-key="1-2-vf" data-calc="diff">
+      <caption>V<sub>f</sub> при ≈ 3 мА (5 В, 1 кОм)</caption>
+      <thead><tr><th>Колір</th><th>Прогноз V<sub>f</sub>, В</th><th>Виміряно, В</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>червоний</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>жовтий</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>зелений</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>синій</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>білий</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <div class="note warn" data-label="! Тест на згоряння">Його показує викладач на камері, в окулярах. Удома він необов'язковий: якщо робите, то тільки із запасним LED, від 5&nbsp;В, в окулярах і не тримаючи його пальцями.</div>
+    <details class="more">
+      <summary>Розширення: що якщо…</summary>
+      <ul>
+        <li>…замінити 1&nbsp;кОм на 220&nbsp;Ом? Спрогнозуйте, у скільки разів зросте струм і на скільки зміниться V<sub>f</sub>, потім виміряйте.</li>
+        <li>…виміряти V<sub>f</sub> у режимі перевірки діода? Прилад дає ≈&nbsp;1&nbsp;мА від джерела до 3&nbsp;В<sup class="cite" data-fact="ut136-diode-test"></sup>. Червоний і зелений ледь засвітяться, а синій і білий можуть показати «OL»: перевірте цей прогноз<sup class="cite" data-fact="ut136-diode-mode-leds"></sup>.</li>
+        <li>…поставити резистор після світлодіода (між катодом і GND)? Яскравість не зміниться: перевірте це.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="1-2" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="1-2" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Палітра V<sub>f</sub></h3>
+      <dl>
+        <dt>Мета</dt><dd>Кожен учасник удома міряє V<sub>f</sub> своїх кольорів; команда зводить їх в одну таблицю всіх кольорів, які є в команді, і для кожного кольору підібрати резистор на 3,3&nbsp;В і 5&nbsp;мА.</dd>
+        <dt>Здати</dt><dd>Таблицю (колір, виміряна V<sub>f</sub>, I, розрахований R, номінал E12, фактичний струм = (3,3&nbsp;−&nbsp;V<sub>f</sub>)&nbsp;/&nbsp;номінал), фото одного кола з вимірюванням і два речення висновку: у яких кольорів найменший запас напруги від 3,3&nbsp;В і що з цього випливає.</dd>
+        <dt>Ролі й критерії</dt><dd><details class="more"><summary>Хто що робить і як оцінюємо (0–2 за кожен пункт)</summary><ul>
+          <li><b>Збирач</b> показує своє коло з розділу 08 на камеру (міряють усі, кожен свої кольори);</li>
+          <li><b>Вимірювач</b> веде таблицю «прогноз / виміряно»;</li>
+          <li><b>Доповідач</b> переносить таблицю на командний фрейм tldraw і публікує результат;</li>
+          <li><b>Скептик</b> перевіряє полярність, одиниці (мА чи А?) і що всі номінали округлено вгору.</li></ul>
+          <table class="rubric">
+            <tr><th>Вимірювання</th><td>0 — немає · 1 — частина кольорів · 2 — усі наявні, з одиницями</td></tr>
+            <tr><th>Розрахунок R</th><td>0 — помилки · 1 — без E12 · 2 — E12 вгору і фактичний струм</td></tr>
+            <tr><th>Висновок</th><td>0 — немає · 1 — опис · 2 — пояснення через запас V<sub>s</sub> − V<sub>f</sub></td></tr>
+            <tr><th>Оформлення</th><td>0 — хаотично · 1 — таблиця · 2 — таблиця, фото і підписи</td></tr>
+          </table></details></dd>
+        <dt>Ускладнення</dt><dd><details class="more"><summary>Люксметр: чи росте яскравість пропорційно струму?</summary>Порівняйте яскравість при 1, 3 і 10&nbsp;мА застосунком-люксметром на телефоні. Порівняння буде грубе й відносне, але чи росте яскравість пропорційно струму?</details></dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions, категорія «Командні виклики» (або Slack #show-and-tell, якщо команда без GitHub).</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p><b>Підготуйте до дзвінка:</b> макетку з модулем MB-102 (перемичка на 5&nbsp;В), USB-кабель живлення модуля, 2–3 червоні LED і по одному інших кольорів, резистори 220&nbsp;Ом, 1&nbsp;кОм і 10&nbsp;кОм, мультиметр з робочою батареєю. Прочитайте розділи 01–05 і зробіть усі три прогнози.</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1 (M3).</b> «Резистор до LED чи після: де LED світить яскравіше?» А — до; Б — після; В — однаково.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуваний розподіл: А ≈ 35&nbsp;%, Б ≈ 10&nbsp;%, В ≈ 55&nbsp;%. Якщо правильних 30–70&nbsp;%, двоє з різними відповідями сперечаються 60&nbsp;с, потім переголосування. Розв'язка — мотузка-петля: рука гальмує всю петлю, хоч де за неї вхопитися.</p></details>
+      <p><b>ConcepTest 2.</b> «Червоний і синій паралельно через один резистор 220&nbsp;Ом від 5&nbsp;В. Що світить?» А — обидва однаково; Б — тільки червоний; В — тільки синій.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікування: А ≈ 50&nbsp;%, Б ≈ 35&nbsp;%, В ≈ 15&nbsp;%. Покажіть рисунок «✗ ні: один R на двох» у розділі 08, потім віджет «Робоча точка»: червоний, 5&nbsp;В, 220&nbsp;Ом дає U<sub>LED</sub> ≈ 1,95&nbsp;В. На синьому паралельно та сама напруга, а при ≈&nbsp;2&nbsp;В його струм практично нульовий.</p></details>
+      <p><b>POE-демо «Тест на згоряння»</b> (окуляри, запасний червоний LED, модуль 5&nbsp;В, мультиметр як амперметр на 10A). Спершу опитування «При якому струмі згорить?» (варіанти: 20 / 30 / 100 / сотні мА). Далі по черзі 1&nbsp;кОм → 220 → 100 → 47&nbsp;Ом з прогнозом перед кожним кроком, і лише в кінці «без R». Після кожного кроку показуйте той самий режим на віджеті розділу 05.</p>
+      <p><b>Дошка (90–95 хв).</b> Кожен у своєму фреймі малює коло 3,3&nbsp;В → R → LED → GND і підписує U<sub>R</sub>, V<sub>f</sub>, I для свого кольору.</p>
+      <table class="rubric">
+        <tr><th>Хв</th><th>Що</th><th>На екрані</th></tr>
+        <tr><td>22–34</td><td>Ідеї 1–2 + ConcepTest 1</td><td>розділ 04, перша ілюстрація</td></tr>
+        <tr><td>34–46</td><td>POE: LED без резистора</td><td>віджет «Робоча точка», R&nbsp;=&nbsp;0</td></tr>
+        <tr><td>46–55</td><td>Ідеї 3–5 + ConcepTest 2</td><td>«Колір і струм»</td></tr>
+        <tr><td>55–62</td><td>Перерва / запас часу на питання</td><td>—</td></tr>
+        <tr><td>62–90</td><td>Збираємо коло міні-лаби, V<sub>f</sub> за кольорами</td><td>розділ 08 + таблиця 09</td></tr>
+        <tr><td>90–95</td><td>Дошка: кожен своє коло 3,3&nbsp;В → R → LED</td><td>фрейми tldraw</td></tr>
+        <tr><td>95–108</td><td>Тест на згоряння, видача виклику «Палітра V<sub>f</sub>»</td><td>«Тест на згоряння», розділ 12</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому світлодіоду потрібен резистор навіть тоді, коли джерело дає майже рівно його Vf."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../schematics/">Як читати схеми: E12, позначення</a></li>
+      <li><a class="chip deep" href="../../lab/">Стенд ESP32-S3: струм LED за кольорами</a></li>
+      <li><a class="chip deep" href="../../power-loads/">Потужне навантаження (урок 2.2)</a></li>
+      <li><a class="chip" href="../../cards/">Тренажер карток</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <p><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7maooe0813cjt0dvmg" target="_blank" rel="noopener">Урок 1.2 у LMS</a> (потрібен вхід).</p>
+    <details class="more">
+      <summary>Чотири відео уроку і на що в них дивитися</summary>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=OEkw3F7RZ3w" target="_blank" rel="noopener">При якому струмі перегорає LED (англ.)</a></b>Експеримент зі струмом до згоряння. Порівняйте їхній «струм смерті» з абсолютним максимумом 30&nbsp;мА і з віджетом «Тест на згоряння».</div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=Q2i6rvkCVKM" target="_blank" rel="noopener">Як розрахувати резистор для світлодіода</a></b>Та сама формула R&nbsp;=&nbsp;(V<sub>s</sub>&nbsp;−&nbsp;V<sub>f</sub>)&nbsp;/&nbsp;I. Перевірте, чи округлюють там номінал угору.</div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=w9NQyhpKA2g" target="_blank" rel="noopener">LED без резистора: ремонт лампи</a></b>Як перевищений струм скорочує життя світлодіода. Знайдіть у відео момент, коли яскравість росте разом із нагрівом.</div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=xGifaK0BZfo" target="_blank" rel="noopener">Світлодіод: розрахунок опору резистора</a></b>Історія й будова LED. Звірте числа прикладу з даташитом свого світлодіода.</div>
+    </details>
+    <h3>Код у репозиторії</h3>
+    <p><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-led-button" target="_blank" rel="noopener">esp32-s3-led-button</a> (cpp/ і rust/): LED на GPIO15 через 220&nbsp;Ом. Порахуйте струм: (3,3&nbsp;−&nbsp;1,9)&nbsp;/&nbsp;220&nbsp;≈&nbsp;6,4&nbsp;мА.</p>
+    <details class="more" id="src-more">
+      <summary>Джерела: даташити й стандарти для кожного числа на сторінці</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+    <h3>Що виправлено порівняно з LMS</h3>
+    <ul>
+      <li>LMS: «за 150&nbsp;°C напівпровідник деградує». Даташит нашого червоного LED дає межу температури переходу 125&nbsp;°C<sup class="cite" data-fact="led-red-3mm-tj-max"></sup>.</li>
+      <li>LMS називає 20&nbsp;мА «максимальним номінальним (робочим) струмом». У даташитах Kingbright 20&nbsp;мА — це лише умова, за якої вимірюють V<sub>f</sub> (у червоного навіть 10&nbsp;мА). Межа задана як абсолютний максимум постійного струму<sup class="cite" data-fact="led-test-current-vs-rating"></sup>.</li>
+      <li>LMS: «30&nbsp;мА — абсолютний максимум для стандартних LED». Для червоного, жовтого, синього й білого це так, а для зеленого WP710A10SGC межа 25&nbsp;мА<sup class="cite" data-fact="led-green-3mm-vf"></sup>.</li>
+      <li>LMS визначає V<sub>f</sub> як «напругу, потрібну для початку провідності». Насправді струм з'являється раніше й росте експоненційно, а V<sub>f</sub> у даташиті — напруга при конкретному тестовому струмі<sup class="cite" data-fact="led-red-3mm-vf"></sup>.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+
+  /* ---------- LED data (facts: led-*-3mm-vf, led-yellow-3mm-vf, led-test-current-vs-rating) ---------- */
+  // vf/vmax at test current `at` (A); imax = DC absolute maximum (A). n, rs: shape of the simplified model.
+  // pd = power dissipation abs. max (W), tj = junction max (°C), rth = junction–ambient (°C/W) — fact led-3mm-tj-by-colour.
+  // The white WP7104QWC/D datasheet gives no Rth: we reuse the blue (same InGaN die family) as an estimate.
+  const LED = {
+    red:    { nm: 'червоний', vf: 1.9,  vmax: 2.3, at: 0.010, imax: 0.030, pd: 0.075,  tj: 125, rth: 680, n: 0.045, rs: 8,  hex: '#e5392f' },
+    yellow: { nm: 'жовтий',   vf: 1.95, vmax: 2.4, at: 0.010, imax: 0.030, pd: 0.075,  tj: 110, rth: 690, n: 0.045, rs: 8,  hex: '#f2c21b' },
+    green:  { nm: 'зелений',  vf: 2.2,  vmax: 2.5, at: 0.020, imax: 0.025, pd: 0.0625, tj: 110, rth: 680, n: 0.05,  rs: 10, hex: '#2fb84a' },
+    blue:   { nm: 'синій',    vf: 3.3,  vmax: 4.0, at: 0.020, imax: 0.030, pd: 0.120,  tj: 115, rth: 640, n: 0.09,  rs: 12, hex: '#2f6fe5' },
+    white:  { nm: 'білий',    vf: 3.3,  vmax: 4.0, at: 0.020, imax: 0.030, pd: 0.120,  tj: 115, rth: 640, n: 0.09,  rs: 12, hex: '#eef2f5' },
+  };
+  const vOf = (m, I) => m.vf + (m.dv || 0) + m.n * Math.log(I / m.at) + m.rs * (I - m.at);
+  // Operating point: Vs = V_LED(I) + R·I, solved by bisection on a log scale.
+  function opPoint(m, vs, R) {
+    let lo = 1e-12, hi = 5;
+    for (let k = 0; k < 120; k++) { const mid = Math.sqrt(lo * hi); if (vOf(m, mid) + R * mid > vs) hi = mid; else lo = mid; }
+    return lo;
+  }
+  const mA = (I) => (I >= 0.1 ? fmt.num(I * 1000, 0) : fmt.num(I * 1000, I < 0.001 ? 2 : 1)) + ' мА';
+  const mW = (P) => (P >= 1 ? fmt.num(P, 2) + ' Вт' : fmt.num(P * 1000, P < 0.01 ? 1 : 0) + ' мВт');
+  const V = (u) => fmt.num(u, 2) + ' В';
+  // One verdict for both widgets: «bad» only when the steady junction temperature exceeds Tj max;
+  // above the DC current or power abs. max → warn; near the current limit → warn.
+  function judge(m, I, P) {
+    const Tss = 25 + P * m.rth, ma = fmt.num(m.imax * 1000, 0), mw = fmt.num(m.pd * 1000, 1);
+    if (Tss > m.tj) return { s: 'bad', Tss, txt: `Перегрів: за розрахунком кристал вийшов би на ${Tss > 300 ? 'понад 300' : '≈\u00a0' + fmt.num(Tss, 0)}\u00a0°C, а межа Tj для цього кольору ${m.tj}\u00a0°C. Згорить або швидко деградує.` };
+    if (I > m.imax || P > m.pd) {
+      const why = [I > m.imax ? `струм ${mA(I)} > ${ma} мА` : '', P > m.pd ? `потужність ${mW(P)} > ${mw} мВт` : ''].filter(Boolean).join(', ');
+      return { s: 'warn', Tss, txt: `Понад абсолютний максимум (${why}): кристал ще нижче межі Tj, але виробник нічого не гарантує, LED швидко старіє.` };
+    }
+    if (I > 0.8 * m.imax) return { s: 'warn', Tss, txt: `Біля абсолютного максимуму ${ma} мА: світить, але без запасу, ресурс скорочується.` };
+    if (I < 0.0002) return { s: '', Tss, txt: 'Практично темний: струм менший за 0,2 мА.' };
+    if (I < 0.001) return { s: '', Tss, txt: 'Ледь жевріє: струм менший за 1 мА.' };
+    if (I < 0.005) return { s: 'ok', Tss, txt: 'Світить як індикатор: кілька міліампер.' };
+    return { s: 'ok', Tss, txt: 'Яскраво й у межах даташита.' };
+  }
+  const press = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+
+  /* ---------- idea 5: Vf bars ---------- */
+  const g = $('#vfbars');
+  const X = (v) => 70 + v / 5 * 172;
+  Object.values(LED).forEach((m, i) => {
+    const y = 22 + i * 26;
+    S.svg('text', { class: 'svg-m', x: 64, y: y + 5, 'text-anchor': 'end' }, g).textContent = m.nm;
+    S.svg('rect', { x: 70, y: y - 6, width: X(m.vf) - 70, height: 12, fill: m.hex, stroke: 'rgba(0,0,0,.45)', 'stroke-width': 1 }, g);
+    S.svg('path', { d: `M${X(m.vf)} ${y}H${X(m.vmax)}M${X(m.vmax)} ${y - 5}V${y + 5}`, stroke: 'var(--ink)', 'stroke-width': 1.5 }, g);
+  });
+
+  /* ---------- gated: colour vs current ---------- */
+  let vfVs = 3.3, vfR = 220;
+  function drawVf() {
+    const max = 0.035;
+    $('#vf-rows').innerHTML = Object.values(LED).map((m) => {
+      const head = vfVs - m.vf;
+      const iT = Math.max(0, head / vfR), iW = Math.max(0, (vfVs - m.vmax) / vfR);
+      const w = (i) => Math.min(100, i / max * 100).toFixed(1);
+      const over = iT > m.imax;
+      let msg = `≈ <b>${mA(iT)}</b>` + (iW < iT ? ` (гірший випадок ${mA(iW)})` : '');
+      if (head < 0.5) msg = `запас ${V(Math.max(0, head))}: <span class="w">струм малий і непередбачуваний</span>`;
+      if (over) msg += ` · <span class="w">понад абс. макс. ${fmt.num(m.imax * 1000, 0)} мА</span>`;
+      return `<div class="vf-row"><span class="dot" style="background:${m.hex}" aria-hidden="true"></span>
+        <span class="nm">${m.nm}<small>Vf ${fmt.num(m.vf, 2)}…${fmt.num(m.vmax, 1)} В</small></span>
+        <div class="bars"><div class="bar" aria-hidden="true"><i class="band" style="width:${w(iT)}%"></i><i class="core" style="width:${w(iW)}%"></i></div>
+        <span class="txt">${msg}</span></div></div>`;
+    }).join('');
+  }
+  $$('#vf-vs button').forEach((b) => b.addEventListener('click', () => { vfVs = +b.dataset.v; press($('#vf-vs'), b); drawVf(); }));
+  $$('#vf-r button').forEach((b) => b.addEventListener('click', () => { vfR = +b.dataset.r; press($('#vf-r'), b); drawVf(); }));
+  drawVf();
+
+  /* ---------- POE 1: I–V explorer ---------- */
+  const RS = [0, 10, 22, 47, 68, 100, 150, 220, 330, 470, 680, 1000, 2200, 4700, 10000];
+  let ivCol = 'red', ivVs = 5, ivR = 0, ivDv = 'typ';
+  const cv = $('#iv-cv');
+  function drawIV() {
+    const base = LED[ivCol];
+    const m = { ...base, dv: ivDv === 'lo' ? -0.1 : ivDv === 'max' ? base.vmax - base.vf : 0 };
+    const I = opPoint(m, ivVs, ivR), vl = vOf(m, I) > ivVs ? ivVs : Math.max(0, vOf(m, I)), vr = I * ivR;
+    $('#iv-rv').textContent = fmt.si(ivR, 'Ом') || '0 Ом';
+    if (ivR === 0) $('#iv-rv').textContent = '0 Ом (без резистора)';
+    $('#iv-i').textContent = mA(I);
+    $('#iv-vl').textContent = V(vl);
+    $('#iv-vr').textContent = V(vr);
+    $('#iv-pl').textContent = mW(vl * I);
+    $('#iv-pr').textContent = mW(vr * I);
+    // status
+    const st = $('#iv-st');
+    const j = judge(m, I, vl * I);
+    let s = j.s, txt = j.txt;
+    if (ivR === 0 && s !== 'bad') {
+      s = 'warn';
+      txt = `Без резистора: ${mA(I)} тут випадковість, а не ваш вибір. Струм задає лише Vf цього екземпляра й джерело — перемкніть «Екземпляр» і подивіться, як він стрибає.`;
+    }
+    st.dataset.s = s; st.textContent = txt;
+    // LED picture
+    const dead = s === 'bad';
+    $('#iv-halo').setAttribute('fill', m.hex);
+    $('#iv-dome').setAttribute('fill', dead ? '#5a3a30' : m.hex);
+    $('#iv-rim').setAttribute('fill', dead ? '#5a3a30' : m.hex);
+    $('#iv-halo').setAttribute('opacity', dead ? 0 : Math.min(0.75, Math.sqrt(I / 0.02) * 0.6).toFixed(2));
+    $('#iv-x').setAttribute('display', dead ? 'inline' : 'none');
+    $('#iv-ledtxt').textContent = dead ? 'перегрів' : I < 0.0002 ? 'темний' : I < 0.001 ? 'ледь жевріє' : 'світить';
+    plotIV(m, I);
+  }
+  function plotIV(m, Iop) {
+    const t = Study.tokens();
+    const ctx = Study.fitCanvas(cv);
+    const W = ctx.w, H = ctx.h, L = 46, R = 12, T = 24, B = 34, narrow = W < 480;
+    const xmax = ivVs <= 3.3 ? 4.5 : ivVs <= 5 ? 5.5 : 12.5, ymax = 0.04;
+    const px = (v) => L + v / xmax * (W - L - R), py = (i) => H - B - i / ymax * (H - T - B);
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = `13px ${t['f-mono'] || 'monospace'}`;
+    // red zone above imax
+    ctx.fillStyle = t.bad; ctx.globalAlpha = 0.1; ctx.fillRect(L, T, W - L - R, py(m.imax) - T); ctx.globalAlpha = 1;
+    // grid + axes
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.fillStyle = t.muted;
+    const step = xmax > 6 ? 2 : 1;
+    for (let v = 0; v <= xmax; v += step) { ctx.beginPath(); ctx.moveTo(px(v), T); ctx.lineTo(px(v), H - B); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillText(String(v), px(v), H - B + 16); }
+    for (let i = 0; i <= 0.04001; i += 0.01) { ctx.beginPath(); ctx.moveTo(L, py(i)); ctx.lineTo(W - R, py(i)); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(String(Math.round(i * 1000)), L - 6, py(i) + 4); }
+    ctx.textAlign = 'left'; ctx.fillText('I, мА', 4, 14); ctx.textAlign = 'right'; ctx.fillText('U, В', W - R, H - 4);
+    // curve x (px) at a given current, used to keep labels clear of the curve
+    const cx = (i) => px(Math.min(xmax, vOf(m, i)));
+    const lbl = (txt, x, y, align, color) => {
+      const w = ctx.measureText(txt).width;
+      let x0 = align === 'right' ? x - w : x;
+      x0 = Math.max(L + 2, Math.min(W - R - w - 2, x0));
+      ctx.fillStyle = t.panel; ctx.globalAlpha = 0.88; ctx.fillRect(x0 - 3, y - 12, w + 6, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.fillText(txt, x0, y);
+    };
+    ctx.save(); ctx.beginPath(); ctx.rect(L, T, W - L - R, H - T - B); ctx.clip();
+    // LED curve
+    const ledCol = m.hex === LED.white.hex ? t.ink : m.hex;
+    ctx.strokeStyle = ledCol; ctx.lineWidth = 3; ctx.beginPath();
+    let first = true;
+    for (let k = 0; k <= 160; k++) {
+      const I = 1e-6 * Math.pow(0.05 / 1e-6, k / 160), v = vOf(m, I);
+      if (first) { ctx.moveTo(px(Math.max(0, v - 0.6)), py(0)); first = false; }
+      ctx.lineTo(px(v), py(I));
+    }
+    ctx.stroke();
+    // load line
+    ctx.strokeStyle = t.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+    if (ivR === 0) { ctx.moveTo(px(ivVs), py(0)); ctx.lineTo(px(ivVs), T); }
+    else { ctx.moveTo(px(ivVs), py(0)); ctx.lineTo(px(0), py(ivVs / ivR)); }
+    ctx.stroke();
+    ctx.restore();
+    // labels on the picture (each on a small backing so lines never strike through them)
+    ctx.font = `13px ${t['f-mono'] || 'monospace'}`;
+    const xVs = px(ivVs);
+    // abs. max: inside the red zone, on the side of the curve with more room
+    const absTxt = `${fmt.num(m.imax * 1000, 0)} мА · абс. макс.`, absW = ctx.measureText(absTxt).width;
+    const xc1 = cx(m.imax);
+    const leftRoom = Math.min(xc1, ivR === 0 && xVs < xc1 ? xVs : xc1) - L - 14;
+    if (leftRoom > absW) lbl(absTxt, L + 6, py(m.imax) - 6, 'left', t.bad);
+    else lbl(absTxt, W - R - 4, py(m.imax) - 6, 'right', t.bad);
+    // LED label near the top of the curve, away from the vertical «без R» line
+    const xTop = cx(0.033), yTop = py(0.033);
+    const ledLeft = !(ivR === 0 && xVs < xTop && xVs > xTop - 60) && xTop - L > 50;
+    lbl('LED', ledLeft ? xTop - 8 : xTop + 8, yTop, ledLeft ? 'right' : 'left', ledCol);
+    // load-line label: just above the line, between the curve and the source voltage
+    if (ivR === 0) lbl('без R', xVs + 6, H - B - 8, 'left', t.accent);
+    else {
+      const txt = `пряма R = ${fmt.si(ivR, 'Ом')}`, w = ctx.measureText(txt).width;
+      const vCurve = vOf(m, Math.min(0.04, Math.max(1e-4, Iop)));
+      const room = (xVs - Math.max(px(vCurve) + 10, L)) - w;
+      const x0 = room > 0 ? px(vCurve) + 10 + room * 0.35 : L + 6;
+      const v0 = (x0 - L) / (W - L - R) * xmax;
+      const iLine = Math.max(0, (ivVs - v0) / ivR);
+      const y = Math.max(T + 30, Math.min(H - B - 22, py(Math.min(ymax, iLine)) - 8));
+      lbl(txt, x0, y, 'left', t.accent);
+    }
+    // operating point
+    ctx.fillStyle = t.hi; ctx.strokeStyle = t.ink; ctx.lineWidth = 1.5;
+    if (Iop <= ymax) {
+      const ox = px(vOf(m, Iop)), oy = py(Iop);
+      ctx.beginPath(); ctx.arc(ox, oy, 6, 0, 7); ctx.fill(); ctx.stroke();
+      // above-left of the point: the curve rises to the right and the load line falls to the right, so this corner is empty
+      const tw = ctx.measureText('робоча точка').width, xl = Math.max(L + 2, ox - 12 - tw);
+      const yLine = ivR === 0 ? oy : py(Math.max(0, (ivVs - (xl - L) / (W - L - R) * xmax) / ivR));
+      const ly = Math.max(T + 14, Math.min(oy - 12, yLine - 8));
+      if (oy - ly > 24) { ctx.strokeStyle = t.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox - 14, ly + 3); ctx.lineTo(ox - 5, oy - 5); ctx.stroke(); }
+      lbl('робоча точка', ox - 12, ly, 'right', t.ink);
+    } else {
+      const x = Math.min(xVs, W - R - 6);
+      ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x - 7, T + 12); ctx.lineTo(x + 7, T + 12); ctx.closePath(); ctx.fill(); ctx.stroke();
+      lbl(narrow ? `↑ ${mA(Iop)}` : `↑ ${mA(Iop)} — за межами графіка`, x - 12, T + 12, 'right', t.bad);
+    }
+  }
+  $$('#iv-col button').forEach((b) => b.addEventListener('click', () => { ivCol = b.dataset.c; press($('#iv-col'), b); drawIV(); }));
+  $$('#iv-vs button').forEach((b) => b.addEventListener('click', () => { ivVs = +b.dataset.v; press($('#iv-vs'), b); drawIV(); }));
+  $$('#iv-dv button').forEach((b) => b.addEventListener('click', () => { ivDv = b.dataset.d; press($('#iv-dv'), b); drawIV(); }));
+  $('#iv-r').addEventListener('input', (e) => { ivR = RS[+e.target.value]; drawIV(); });
+  Study.onTheme(() => { drawIV(); drawBurn(); });
+  addEventListener('resize', () => { drawIV(); drawBurn(); });
+  drawIV();
+
+  /* ---------- POE 2: burn test ---------- */
+  const RED = LED.red, RTH = 680, TJMAX = 125, TA = 25, TAU = 3, TBREAK = 300, TEND = 20;
+  const bcv = $('#burn-cv');
+  let bR = 100, bt = 0, bOn = false, broke = null, hist = [];
+  const bState = () => {
+    const I = opPoint(RED, 5, bR), v = Math.min(5, vOf(RED, I)), P = v * I;
+    return { I, P, Tss: TA + P * RTH };
+  };
+  function tempAt(t, st) {
+    if (broke !== null && t >= broke.t) return TA + (broke.T - TA) * Math.exp(-(t - broke.t) / TAU);
+    return TA + (st.Tss - TA) * (1 - Math.exp(-t / TAU));
+  }
+  const thermoY = (T) => 190 - Math.max(0, Math.min(TBREAK, T)) / TBREAK * 172;
+  $('#b-max').setAttribute('transform', `translate(0 ${thermoY(TJMAX)})`);
+  $('#b-maxt').setAttribute('y', thermoY(TJMAX) + 4);
+  function drawBurn() {
+    const st = bState();
+    const T = tempAt(bt, st);
+    const alive = broke === null;
+    const Inow = bOn || bt > 0 ? (alive ? st.I : 0) : 0;
+    $('#b-i').textContent = alive ? mA(st.I) : '0 мА';
+    $('#b-p').textContent = alive ? mW(st.P) : '0 мВт';
+    $('#b-ts').textContent = fmt.num(st.Tss, 0) + ' °C';
+    const y = thermoY(T);
+    const f = $('#b-fill'); f.setAttribute('y', y); f.setAttribute('height', 206 - y);
+    $('#b-tnow').textContent = fmt.num(T, 0) + ' °C';
+    $('#b-halo').setAttribute('opacity', Inow ? Math.min(0.8, Math.sqrt(Inow / 0.02) * 0.6).toFixed(2) : 0);
+    $('#b-dome').setAttribute('fill', alive ? RED.hex : '#5a3a30');
+    $('#b-x').setAttribute('display', alive ? 'none' : 'inline');
+    // status
+    const s = $('#b-st');
+    if (!alive) { s.dataset.s = 'bad'; s.textContent = `Пшик на ${fmt.num(broke.t, 1)} с: кристал або дріт усередині зруйновано (момент умовний). Струм тепер 0.`; }
+    else if (bt === 0 && !bOn) { s.dataset.s = ''; s.textContent = 'Оберіть резистор і натисніть «Увімкнути».'; }
+    else { const j = judge(RED, st.I, st.P); s.dataset.s = j.s; s.textContent = j.s === 'ok' ? `Кристал виходить на ≈ ${fmt.num(st.Tss, 0)} °C: у межах даташита.` : j.txt; }
+    plotBurn(st);
+  }
+  function plotBurn(st) {
+    const t = Study.tokens();
+    const ctx = Study.fitCanvas(bcv);
+    const W = ctx.w, H = ctx.h, L = 44, R = 10, T = 22, B = 30, ymax = 320;
+    const px = (s) => L + s / TEND * (W - L - R), py = (c) => H - B - Math.min(ymax, c) / ymax * (H - T - B);
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = `13px ${t['f-mono'] || 'monospace'}`;
+    ctx.strokeStyle = t.line; ctx.fillStyle = t.muted; ctx.lineWidth = 1;
+    for (let c = 0; c <= 300; c += 100) { ctx.beginPath(); ctx.moveTo(L, py(c)); ctx.lineTo(W - R, py(c)); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(String(c), L - 6, py(c) + 4); }
+    for (let s = 0; s <= TEND; s += 5) { ctx.textAlign = 'center'; ctx.fillText(String(s), px(s), H - B + 16); }
+    ctx.textAlign = 'left'; ctx.fillText('Tj, °C', 4, 13); ctx.textAlign = 'right'; ctx.fillText('t, с', W - R, H - 4);
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = t.bad; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(L, py(TJMAX)); ctx.lineTo(W - R, py(TJMAX)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = t.bad; ctx.textAlign = 'left'; ctx.fillText('Tj max 125 °C', L + 6, py(TJMAX) - 6);
+    if (bt > 0) {
+      ctx.strokeStyle = t.hi; ctx.lineWidth = 3; ctx.beginPath();
+      const n = 200;
+      for (let k = 0; k <= n; k++) { const s = bt * k / n; const c = tempAt(s, st); k ? ctx.lineTo(px(s), py(c)) : ctx.moveTo(px(s), py(c)); }
+      ctx.stroke();
+    }
+  }
+  const bsim = Study.sim(bcv, (dt) => {
+    if (!bOn) return;
+    const st = bState();
+    bt = Math.min(TEND, bt + dt);
+    if (broke === null && tempAt(bt, st) >= TBREAK) {
+      // find the crossing time analytically: Tss·(1−e^(−t/τ)) = TBREAK − TA
+      const tb = -TAU * Math.log(1 - (TBREAK - TA) / (st.Tss - TA));
+      broke = { t: tb, T: TBREAK };
+    }
+    if (bt >= TEND) { bOn = false; bsim.pause(); hush(); }
+    drawBurn();
+  });
+  bsim.pause();
+  // The run is driven by the buttons only: a tap on the chart must not silently pause it.
+  const hush = () => { bcv.removeAttribute('title'); };
+  bcv.removeAttribute('tabindex'); hush();
+  bcv.parentElement.addEventListener('click', (e) => { if (e.target === bcv) e.stopPropagation(); }, true);
+  bcv.parentElement.addEventListener('keydown', (e) => { if (e.target === bcv) e.stopPropagation(); }, true);
+  function burnReset() { bOn = false; bt = 0; broke = null; bsim.pause(); hush(); drawBurn(); }
+  $('#burn-go').addEventListener('click', () => {
+    burnReset();
+    bOn = true;
+    if (Study.reducedMotion()) {
+      // no animation: jump to the end of the run
+      const st = bState();
+      if (st.Tss >= TBREAK) broke = { t: -TAU * Math.log(1 - (TBREAK - TA) / (st.Tss - TA)), T: TBREAK };
+      bt = TEND; bOn = false; drawBurn();
+    } else { bsim.play(); hush(); }
+  });
+  $('#burn-reset').addEventListener('click', burnReset);
+  $$('#burn-r button').forEach((b) => b.addEventListener('click', () => { bR = +b.dataset.r; press($('#burn-r'), b); burnReset(); }));
+  drawBurn();
+
+  /* ---------- calculator ---------- */
+  function eUp(x, series) { return S.eSeries(x, { mode: 'up', series }); }
+  function calc() {
+    const out = $('#c-out');
+    const vs = Study.parseNum($('#c-vs').value), vf = Study.parseNum($('#c-vf').value);
+    // The field is in mA: a bare number is milliamps; «0,01 А» with an explicit amp unit is accepted too.
+    const rawI = $('#c-i').value.trim();
+    let i = Study.parseNum(rawI);
+    if (/^[\d\s.,]+$/.test(rawI)) i /= 1000;
+    const ser = +$('#c-ser').value;
+    const col = LED[$('#c-col').value];
+    if (![vs, vf, i].every(Number.isFinite) || i <= 0) { out.innerHTML = '<li class="warn-line">Введіть числа: напругу у вольтах, струм у міліамперах.</li>'; return; }
+    const ur = vs - vf;
+    if (ur <= 0) { out.innerHTML = `<li class="bad-line">Vs ≤ Vf: для резистора не лишається «зайвої» напруги: струм буде малим і непередбачуваним.</li>`; return; }
+    const r = ur / i, rn = eUp(r, ser), ia = ur / rn, pr = ur * ia, pl = vf * ia;
+    const lines = [
+      `U<sub>R</sub> = ${fmt.num(vs, 2)} − ${fmt.num(vf, 2)} = <b>${V(ur)}</b>`,
+      `R = ${V(ur)} / ${mA(i)} = <b>${fmt.si(r, 'Ом')}</b>`,
+      `E${ser} вгору: <b>${fmt.si(rn, 'Ом')}</b> → фактичний струм <b>${mA(ia)}</b>`,
+      `P<sub>R</sub> = ${V(ur)} · ${mA(ia)} = <b>${mW(pr)}</b> — ` + (pr <= 0.125 ? '<span class="ok-line">0,25 Вт із запасом ×2 вистачає</span>' : pr <= 0.25 ? '<span class="warn-line">0,25 Вт без запасу: краще 0,5 Вт</span>' : '<span class="bad-line">більше за 0,25 Вт: потрібен потужніший резистор</span>'),
+      `P<sub>LED</sub> ≈ ${mW(pl)}`,
+    ];
+    if (col && ia > col.imax) lines.push(`<span class="bad-line">Струм понад абсолютний максимум ${fmt.num(col.imax * 1000, 0)} мА для цього кольору.</span>`);
+    if (ur < 0.5) lines.push('<span class="warn-line">Запас Vs − Vf менший за 0,5 В: розкид Vf сильно змінить струм.</span>');
+    out.innerHTML = lines.map((l) => `<li>${l}</li>`).join('');
+  }
+  $('#c-col').addEventListener('change', (e) => { const m = LED[e.target.value]; if (m) $('#c-vf').value = fmt.num(m.vf, 2); calc(); });
+  ['#c-vs', '#c-vf', '#c-i', '#c-ser'].forEach((s) => $(s).addEventListener('input', () => {
+    if (s === '#c-vf') $('#c-col').value = 'custom';
+    calc();
+  }));
+  calc();
+
+  /* ---------- 08 dual figure: breadboard ---------- */
+  const bb = $('#bb-led');
+  const mg = S.svg('g', {}, bb);
+  S.svg('rect', { x: 2, y: 2, width: 48, height: 40, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, mg);
+  S.svg('text', { class: 'sch-pin', x: 6, y: 56 }, mg).textContent = 'MB-102';
+  S.svg('text', { class: 'sch-pin net-5v', 'data-net': 'v5', x: 6, y: 20 }, mg).textContent = '5V';
+  S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 6, y: 36 }, mg).textContent = 'GND';
+  const board = S.breadboard(bb, { cols: 14, rails: true, x: 66, y: 0, colLabels: 'bottom' });
+  board.markRail('top', '+', 'v5', 'net-5v');
+  board.markRail('top', '-', 'gnd', 'net-gnd');
+  board.mark(3, 'top', 'v5', 'net-5v');
+  board.mark(8, 'top', 'led_a', 'net-sig');
+  board.mark(11, 'top', 'gnd', 'net-gnd');
+  const j5 = S.part(bb, 'jumper', { from: { x: 44, y: 16 }, to: board.rail('top', '+', 2), net: 'v5', cls: 'net-5v', lift: 12, title: 'Модуль 5 В → шина плюс' });
+  const jG = S.part(bb, 'jumper', { from: { x: 44, y: 32 }, to: board.rail('top', '-', 2), net: 'gnd', cls: 'net-gnd', lift: 12, title: 'Модуль GND → шина мінус' });
+  const jA = S.part(bb, 'jumper', { from: board.rail('top', '+', 3), to: board.hole(3, 'c'), net: 'v5', cls: 'net-5v', lift: 10, title: 'Шина плюс → стовпчик 3' });
+  S.part(bb, 'res', { from: board.hole(3, 'a'), to: board.hole(8, 'a'), ohms: 1000, label: 'R1' });
+  // legs spread to columns 8 and 11 so the cathode jumper clears the LED body; partLabel puts LED1 in the channel
+  S.part(bb, 'led', { anode: board.hole(8, 'e'), cathode: board.hole(11, 'e'), color: 'red', label: 'LED1' });
+  const jK = S.part(bb, 'jumper', { from: board.hole(11, 'a'), to: board.rail('top', '-', 12), net: 'gnd', cls: 'net-gnd', lift: 10, title: 'Стовпчик 11 → шина мінус' });
+  const I1 = opPoint(RED, 5, 1000);
+  const wires = [[$('#w-v5'), 1], [$('#w-la'), 1], [$('#w-gnd'), 1], [j5, 1], [jA, 1], [jK, 1], [jG, -1]];
+  let flowOn = false;
+  $('#flow-btn').addEventListener('click', (e) => {
+    flowOn = !flowOn;
+    e.currentTarget.setAttribute('aria-pressed', String(flowOn));
+    e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
+    wires.forEach(([w, dir]) => S.flow(w, { mA: flowOn ? I1 * 1000 : 0, dir }));
+    $('#flow-out').textContent = flowOn ? `I ≈ (5 − 1,8) / 1000 ≈ ${mA(I1)} — однаковий на кожному дроті` : '';
+  });
+
+  /* ---------- sources live in a <details>: open it when a footnote is followed ---------- */
+  const srcMore = $('#src-more');
+  const openSrc = () => { if (location.hash.startsWith('#src-') || location.hash === '#sources') srcMore.open = true; };
+  openSrc();
+  document.addEventListener('click', (e) => { const a = e.target.closest('a[href^="#"]'); if (a && a.closest('sup.cite')) srcMore.open = true; });
+  addEventListener('hashchange', openSrc);
+
+  /* ---------- Falstad link: 5 V → 1 kΩ → LED, paused ---------- */
+  const cct = ['$ 1 0.000005 10.20027730826997 50 5 43 5e-11',
+    'v 112 368 112 48 0 0 40 5 0 0 0.5', 'r 112 48 304 48 0 1000',
+    '162 304 48 304 368 2 default-led 1 0 0 0.01', 'w 304 368 112 368 0'].join('\n');
+  $('#falstad').href = 'https://www.falstad.com/circuit/circuitjs.html?euroResistors=true&running=false&cct=' + encodeURIComponent(cct);
+
+});
+</script>
+</body>
+</html>

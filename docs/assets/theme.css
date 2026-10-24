@@ -1,0 +1,387 @@
+/* theme.css: the design foundation of the study site ("Bench Notebook").
+   Single source of truth for tokens, fonts, the page background and the global safety nets
+   (focus, reduced motion, forced colours, print). Used two ways:
+     1. study.css @imports it first, so every hub page gets it without a change to its HTML;
+     2. the nine older deep pages (pull-resistors, lab, scope-signals, bounce-lab, bounce-bench, adc-light, ldr-lab,
+        twilight-relay, power-loads) link it AFTER their own inline <style>: same selectors, later in the cascade,
+        so these tokens win over the page's own token block. Their own layout stays; only colours, fonts and the
+        background change. The "legacy bridge" block at the end is scoped to `.wrap`, the container that only those
+        pages use.
+   Fonts (Google Fonts, all with Cyrillic incl. і ї є ґ): Literata (display), Onest (text), JetBrains Mono (values, code).
+   Colour jobs: solder-mask green = you can press it; copper = wayfinding and emphasis (title word, section pads,
+   eyebrows, «Головне»); brass = try it / careful; probe blue = keyboard focus; inside a drawing only nets carry colour.
+   Every text pair is >= 4.5:1 and every control boundary >= 3:1 in both themes (table in SPEC.md). */
+
+/* ================================================================ tokens: light ("paper on the bench") */
+:root {
+  /* surfaces */
+  --paper: #f4f0e8; --panel: #fffdf8; --panel-2: #f8f4ec; --sunk: #eee8dc; --sheet: #fffefb;
+  /* ink */
+  --ink: #231d16; --muted: #615749;
+  /* lines: hairline / keycap edge / control boundary (>= 3:1 on every surface) */
+  --line: #e2d9c8; --line-2: #cfc2a9; --line-strong: #8c7d68;
+  /* interaction */
+  --accent: #17634d; --accent-ink: #ffffff; --accent-deep: #0c3f31; --focus: #1d5fa8;
+  /* brand and semantic */
+  --copper: #a3461f; --copper-hi: #c8693a;
+  --hi: #b07800; --brass: var(--hi); --hi-ink: #7c5200; --warn: #7c5200;
+  --ok: #2b6a12; --bad: #b3261e; --hl: #1d5fa8; --teach: #6c40b2;
+  /* nets: wires are >= 3:1 on --sheet; labels use the *-ink companions (>= 4.5:1). CVD-searched (SPEC.md). */
+  --n5: #c42a32; --n33: #d1682b; --n33-ink: #a25121; --ngnd: #3a3d40;
+  --nsig: #bf8a00; --nsig-ink: #876100; --nsig2: #1c4ab9; --nsig3: #177648;
+  --n5-ink: var(--n5); --ngnd-ink: var(--ngnd); --nsig2-ink: var(--nsig2); --nsig3-ink: var(--nsig3);
+  --flow: #c96f00; --electron: #1c4ab9;
+  --lvl-hi: var(--n5); --lvl-lo: #1c4ab9; --lvl-z: #615749;
+  /* teams. Ом is a crimson rose, well away from the copper brand accent (ΔE76 43) and the red +5 V net; Ампер is an
+     olive, not green: it must never read as the accent (link / primary button). Both >= 4.5:1 on --panel / --paper. */
+  --team-ohm: #b8205a; --team-volt: #1f5fc4; --team-amp: #535c00; --team-farad: #9b3790;
+  /* readout ink for the deep pages (legacy bridge): their bright instrument colours stay for strokes and dark
+     scope screens; these are the text-safe companions (>= 4.5:1 on --panel). */
+  --ro-sig: var(--nsig2); --ro-hi: var(--hi-ink); --ro-z: var(--teach);
+  /* page texture */
+  --grid: rgba(98, 76, 48, .07);
+  --dot: rgba(98, 76, 48, .17);
+  --wash: radial-gradient(120% 70% at 12% -12%, rgba(255, 253, 246, .9), transparent 62%),
+          radial-gradient(70% 45% at 100% -5%, rgba(200, 105, 58, .07), transparent 70%);
+  --sticky: #fbefc4; --sticky-edge: #e6d18c;
+  /* elevation */
+  --shadow: 0 1px 0 rgba(70, 45, 20, .04), 0 1px 2px rgba(70, 45, 20, .06), 0 12px 28px -20px rgba(70, 45, 20, .34);
+  --shadow-lift: 0 1px 0 rgba(70, 45, 20, .04), 0 2px 4px rgba(70, 45, 20, .07), 0 18px 34px -20px rgba(70, 45, 20, .42);
+  --shadow-key: 0 2px 0 var(--line-2);
+  --shadow-inset: inset 0 1px 2px rgba(70, 45, 20, .07);
+  /* type */
+  --f-display: "Literata", Georgia, "Times New Roman", serif;
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --fs-body: clamp(16px, 15.4px + .18vw, 17px);
+  --fs-lead: clamp(1.06rem, 1rem + .3vw, 1.18rem);
+  --fs-h1: clamp(1.75rem, 1.05rem + 3.1vw, 3.2rem);
+  --fs-h2: clamp(1.5rem, 1.2rem + 1.35vw, 2.1rem);
+  --fs-h3: clamp(1.22rem, 1.1rem + .5vw, 1.42rem);
+  --fs-h4: 1.1rem;
+  --fs-small: 14px; --fs-label: 13px;
+  /* space, shape, motion */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+  --r-sm: 8px; --radius: 12px; --r-lg: 16px; --r-pill: 999px;
+  --ease: cubic-bezier(.2, .7, .2, 1); --t1: .12s; --t2: .2s; --t3: .35s;
+  color-scheme: light;
+}
+
+/* ================================================================ tokens: dark ("the bench at night") */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14110e; --panel: #1f1a15; --panel-2: #191511; --sunk: #100d0a; --sheet: #1b1713;
+    --ink: #f1e9dc; --muted: #b4a693;
+    --line: #362e26; --line-2: #4a3f34; --line-strong: #86776a;
+    --accent: #5ccfb0; --accent-ink: #062a20; --accent-deep: #2b8a71; --focus: #7ab8ff;
+    --copper: #ec9a68; --copper-hi: #f3b48a;
+    --hi: #f2b84b; --hi-ink: #f2b84b; --warn: #f5c35a;
+    --ok: #95d86a; --bad: #ff8a7a; --hl: #7ab8ff; --teach: #c6a6ff;
+    --n5: #ed6364; --n33: #ee9245; --n33-ink: #ee9245; --ngnd: #93a7a7;
+    --nsig: #f2d93c; --nsig-ink: #f2d93c; --nsig2: #6a9ce6; --nsig3: #64e6a8;
+    --flow: #ffc34d; --electron: #6a9ce6;
+    --lvl-lo: #6a9ce6; --lvl-z: #b4a693;
+    --team-ohm: #ff5a8c; --team-volt: #7db4ff; --team-amp: #d0d67a; --team-farad: #f09ae0;
+    --ro-sig: var(--sig, var(--nsig2)); --ro-hi: var(--hi); --ro-z: var(--z, var(--teach));
+    --grid: rgba(236, 190, 140, .05);
+    --dot: rgba(236, 190, 140, .085);
+    --wash: radial-gradient(70% 520px at 50% -140px, rgba(236, 154, 104, .13), transparent 72%),
+            radial-gradient(120% 90% at 50% 120%, rgba(0, 0, 0, .35), transparent 60%);
+    --sticky: #29231c; --sticky-edge: #4f4335;
+    --shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 12px 28px -18px rgba(0, 0, 0, .85);
+    --shadow-lift: 0 1px 0 rgba(0, 0, 0, .35), 0 18px 34px -18px rgba(0, 0, 0, .95);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14110e; --panel: #1f1a15; --panel-2: #191511; --sunk: #100d0a; --sheet: #1b1713;
+  --ink: #f1e9dc; --muted: #b4a693;
+  --line: #362e26; --line-2: #4a3f34; --line-strong: #86776a;
+  --accent: #5ccfb0; --accent-ink: #062a20; --accent-deep: #2b8a71; --focus: #7ab8ff;
+  --copper: #ec9a68; --copper-hi: #f3b48a;
+  --hi: #f2b84b; --hi-ink: #f2b84b; --warn: #f5c35a;
+  --ok: #95d86a; --bad: #ff8a7a; --hl: #7ab8ff; --teach: #c6a6ff;
+  --n5: #ed6364; --n33: #ee9245; --n33-ink: #ee9245; --ngnd: #93a7a7;
+  --nsig: #f2d93c; --nsig-ink: #f2d93c; --nsig2: #6a9ce6; --nsig3: #64e6a8;
+  --flow: #ffc34d; --electron: #6a9ce6;
+  --lvl-lo: #6a9ce6; --lvl-z: #b4a693;
+  --team-ohm: #ff5a8c; --team-volt: #7db4ff; --team-amp: #d0d67a; --team-farad: #f09ae0;
+  --ro-sig: var(--sig, var(--nsig2)); --ro-hi: var(--hi); --ro-z: var(--z, var(--teach));
+  --grid: rgba(236, 190, 140, .05);
+  --dot: rgba(236, 190, 140, .085);
+  --wash: radial-gradient(70% 520px at 50% -140px, rgba(236, 154, 104, .13), transparent 72%),
+          radial-gradient(120% 90% at 50% 120%, rgba(0, 0, 0, .35), transparent 60%);
+  --sticky: #29231c; --sticky-edge: #4f4335;
+  --shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 12px 28px -18px rgba(0, 0, 0, .85);
+  --shadow-lift: 0 1px 0 rgba(0, 0, 0, .35), 0 18px 34px -18px rgba(0, 0, 0, .95);
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+}
+
+/* ================================================================ page background
+   Paper colour + a soft light wash (on body, so it scrolls with the page: the lamp stays at the top). The 22 px dot grid
+   is a fixed layer that fades to a quarter of its strength behind the reading column (--calm-c / --calm-w), so text
+   never sits on texture. Dots stay under 1.15:1 against the paper. */
+body {
+  background-color: var(--paper);
+  background-image: var(--wash);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  color: var(--ink);
+  font-family: var(--f-body);
+}
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  --calm-c: 50%; --calm-w: 400px;
+  background-image: radial-gradient(circle at 1px 1px, var(--dot) 1.15px, transparent 1.65px);
+  background-size: 22px 22px; background-position: 10px 10px;
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(var(--calm-c) - var(--calm-w) - 160px), rgba(0, 0, 0, .22) calc(var(--calm-c) - var(--calm-w)), rgba(0, 0, 0, .22) calc(var(--calm-c) + var(--calm-w)), #000 calc(var(--calm-c) + var(--calm-w) + 160px));
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(var(--calm-c) - var(--calm-w) - 160px), rgba(0, 0, 0, .22) calc(var(--calm-c) - var(--calm-w)), rgba(0, 0, 0, .22) calc(var(--calm-c) + var(--calm-w)), #000 calc(var(--calm-c) + var(--calm-w) + 160px));
+}
+/* code and values show exactly what to type: no programming ligatures (== != -> <=) wherever the mono face is used */
+:root :is(code, kbd, pre, samp, [class*="mono"], .lbl-sm, td, .watch, .num, .tab) { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+::selection { background: color-mix(in srgb, var(--copper-hi) 32%, transparent); color: var(--ink); }
+
+/* ================================================================ global safety nets */
+:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
+}
+/* Windows High Contrast / forced colours: textures go, every boundary becomes a real border, states keep a shape. */
+@media (forced-colors: active) {
+  body { background-image: none; }
+  body::before { display: none; }
+  :focus-visible { outline: 3px solid Highlight; }
+  /* the selected key of a segmented control or tab strip keeps a filled shape (hubs and deep pages) */
+  :root:not(#\#) :is(:is(.seg, .tabs) button[aria-pressed="true"], [role="tab"][aria-selected="true"]) {
+    background: Highlight; color: HighlightText; forced-color-adjust: none; outline: 2px solid CanvasText;
+  }
+}
+@media print {
+  body { background: #fff !important; color: #000; }
+  body::before { display: none; }
+  .wrap div.serial#w7ser { --sc-bg: #fff; color: #000; }
+}
+
+/* ================================================================ legacy bridge (only the nine deep pages use .wrap)
+   Their own layout stays. This block lifts their text to the new floor (16 px body, 13 px labels), gives their
+   headings the display face at a weight that suits Literata, and swaps the graph paper for the shared background. */
+body:has(> .wrap) { font-size: 16px; line-height: 1.65; }
+.wrap :is(h1, h2, h3, h4) { font-family: var(--f-display); font-weight: 680; letter-spacing: -.01em; font-optical-sizing: auto; }
+.wrap :is(h1 span, .masthead h1 span) {
+  color: var(--copper);
+  text-decoration: underline; text-decoration-color: var(--copper-hi); text-decoration-thickness: .075em;
+  text-underline-offset: .2em; text-decoration-skip-ink: auto;
+}
+.wrap .eyebrow { color: var(--copper); }
+.wrap :is(.pill, .lbl-sm, .seg button, nav.toc a span, .teach-banner) { font-size: 13px; }
+.wrap nav.toc a { font: 600 14px/1.3 var(--f-body); letter-spacing: 0; padding: 6px 12px; }
+.wrap :is(.goals h2, .card-h) { font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; }
+.wrap .btn.primary { box-shadow: 0 2px 0 var(--accent-deep); }
+.wrap :is(input[type="number"], input[type="text"], select, textarea) { border-color: var(--line-strong); }
+.wrap code { font-size: .88em; }
+
+/* ---------------------------------------------------------------- legacy bridge v2: the same components as the hubs
+   Selectors come from the nine pages' own <style>; .wrap X outranks their X because this file comes later.
+   (a) «Головне»: copper margin mark + mono label (lab's .key is a keyboard key and bounce-bench's i.key a swatch,
+   so only p.key). */
+.wrap p.key {
+  margin: 14px 0 0; padding: 12px 16px; border: 0; border-left: 3px solid var(--copper); border-radius: 4px 10px 10px 4px;
+  background: color-mix(in srgb, var(--copper) 7%, var(--panel));
+}
+.wrap p.key > b:first-child {
+  display: inline-block; margin-right: 8px; vertical-align: .08em;
+  font: 700 13px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper);
+}
+.wrap p.key > b:first-child::after { content: ":"; }
+/* (b) answer options: keycaps with a radio ring in a left gutter and a verdict pill after the text (study.css .opt).
+   The pages toggle .right / .wrong (the reader's wrong pick) and aria-pressed. */
+.wrap .opts > .opt {
+  display: block; position: relative; width: 100%; min-height: 48px; padding: 11px 14px 11px 46px; text-align: left;
+  border: 1px solid var(--line-2); border-radius: 12px; background: var(--panel-2); color: var(--ink);
+  font: 500 15px/1.45 var(--f-body); box-shadow: 0 1.5px 0 var(--line-2); cursor: pointer;
+  transition: border-color var(--t1), background-color var(--t1), transform var(--t1) var(--ease), box-shadow var(--t1);
+}
+.wrap .opts > .opt::before {
+  content: ""; position: absolute; left: 13px; top: calc(11px + .725em - 11px);
+  display: grid; place-items: center; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%;
+  border: 2px solid var(--line-strong); background: var(--panel); color: var(--panel); font: 800 13px/1 var(--f-body);
+}
+.wrap .opts > .opt:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 2.5px 0 var(--line-2); }
+.wrap .opts > .opt:hover:not(:disabled)::before { border-color: var(--accent); }
+.wrap .opts > .opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.wrap .opts > .opt[aria-pressed="true"]::before { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 4.5px, var(--panel) 5.5px); }
+.wrap .opts > .opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel)); box-shadow: inset 0 0 0 1px var(--ok); }
+.wrap .opts > .opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--panel)); box-shadow: inset 0 0 0 1px var(--bad); }
+.wrap .opts > .opt.right::before { content: "✓"; border-color: var(--ok); background: var(--ok); }
+.wrap .opts > .opt.wrong::before { content: "✗"; border-color: var(--bad); background: var(--bad); }
+.wrap .opts > .opt:is(.right, .wrong)::after {
+  display: inline-block; margin-left: 8px; padding: 0 9px; border: 1px solid currentColor; border-radius: var(--r-pill);
+  font: 600 13px/1.5 var(--f-mono); white-space: nowrap; vertical-align: 1px;
+}
+.wrap .opts > .opt.right::after { content: "правильна"; color: var(--ok); }
+.wrap .opts > .opt.wrong::after { content: "ваша відповідь"; color: var(--bad); }
+/* (c) section numbers: copper solder pads (SPEC §6), the same as hub h2 .n */
+.wrap :is(h2, h3) > .n {
+  flex: none; display: inline-grid; place-items: center; min-width: 2.5em; height: 2em; padding: 0 .4em; align-self: center;
+  font: 700 14px/1 var(--f-mono); letter-spacing: .02em; color: var(--copper);
+  background: color-mix(in srgb, var(--copper) 9%, var(--panel)); border: 1.5px solid color-mix(in srgb, var(--copper) 50%, var(--line));
+  border-radius: 8px; box-shadow: inset 0 0 0 2.5px var(--panel);
+}
+.wrap h3 > .n { font-size: 13px; }
+.wrap h3:has(> .n) { align-items: center; }
+/* a multi-line section title keeps its pad on the FIRST line (centred on it, not on the whole block) */
+.wrap h2:has(> .n) { align-items: flex-start; }
+.wrap h2 > .n { align-self: flex-start; margin-top: max(0px, (1.15 * clamp(24px, 3vw, 34px) - 2em) / 2); }
+/* (d) card headers: one mono eyebrow; (e) instrument labels: mono 600 caps instead of Literata at caption size
+   (Literata stays on h1/h2 and section titles; SVG silkscreen keeps its own face except .pcb-big) */
+.wrap :is(.goals h2, .card-h, .card > h3) {
+  font: 600 13px/1.35 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper);
+}
+.wrap .ph :is(h2, h3, h4) { font-size: 13px; letter-spacing: .08em; }
+.wrap :is(.ph h2, .ph h3, .ph h4, .fgroup, .lesson-fig b, .mode-ind,
+  :is(table.trouble, table.res, table.tbl, table.lv, table.t, table.att, table.cmp, table.la) th) {
+  font-family: var(--f-mono); font-weight: 600; letter-spacing: .06em;
+}
+.wrap .pcb-big { font-family: var(--f-mono); font-weight: 600; letter-spacing: .06em; }
+/* (f) code shows exactly what to type: no ligatures (lab rendered != as ≠ and -> as →) */
+.wrap :is(code, kbd, pre, samp, .code, .codeline, .serial, .ln, [class*="mono"]) {
+  font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0;
+}
+/* (g) measured values: mono, tabular digits */
+.wrap :is(.kpi .v, .stat .v, .cnt .v, .hero .v, td.num) { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+/* (h) code panes that scroll sideways get a right-edge scroll shadow (the cover scrolls with the content) */
+.wrap :is(pre.cmd, pre.code, .codeline, div.serial, div.code) {
+  --sc-bg: var(--panel-2);
+  background:
+    linear-gradient(270deg, var(--sc-bg) 40%, transparent) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--ink) 22%, transparent), transparent) right / 12px 100% no-repeat scroll,
+    var(--sc-bg);
+}
+.wrap div.code { --sc-bg: var(--panel); }
+/* power-loads' Serial Monitor is a dark scope screen with light text in both themes: keep its own screen colour */
+.wrap div.serial#w7ser { --sc-bg: var(--scope, #0f1a22); }
+/* (i) segmented controls on narrow phones: labels wrap instead of being clipped («INPUT_PULLDOWN», bounce-lab's
+   four strategies). Two keys share one row; three or more keys wrap by their label length and grow to fill each
+   row, so a key that does not fit takes the whole next row instead of being clipped or sitting alone at the left. */
+@media (max-width: 420px) {
+  .wrap .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); max-width: 100%; gap: 1px; background: var(--line); }
+  .wrap .seg:has(> button:nth-of-type(3)) { display: flex; flex-wrap: wrap; }
+  .wrap .seg:has(> button:nth-of-type(3)) > button { flex: 1 1 auto; }
+  .wrap .seg button { border-left: 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; text-wrap: balance; }
+}
+
+/* ---------------------------------------------------------------- legacy bridge: 13 px floor, touch, readout ink
+   Text floor: labels, captions and code never go below 13 px (sub/sup inside formulas excepted). */
+.wrap :is(.k, .l, .gl, .tag, .tag2, .lvl, .lvlq, .lbl, .lbl-sm, .honest, .meta, .btn.small, .cnt .s, small, th, .chip-btn,
+  span.hint, span.note, span.ts, span.chip, .qn, .badge, .ln .hits, .ln .no, ol.ts a, .legend span, .map-legend span,
+  .readout span, .meter span, .fb, .fback, .br, .tabs button, .qdots button, .part-list button, .lk .s, .ch .from, .wid,
+  .goal b, .ctl > span, .kbd-note, .cells button, .cell b, tr:is(.new, .avg) > td, .readouts span, .poe .steps, table.res) { font-size: 13px; }
+/* a formula line whose sub/sup sit on the 13 px floor is lifted, so the index still reads as smaller and offset */
+.wrap :is(.minirange, .formula) { font-size: 15px; }
+.wrap .tnote::before { font-size: 13px; }
+.wrap [style*="font:600 11px"], .wrap [style*="font-size:11px"] { font-size: 13px !important; } /* inline-styled 11 px labels */
+.wrap kbd { font-size: max(13px, .82em); }
+.wrap :is(sub, sup):not(.cite) { font-size: max(13px, .75em); line-height: 0; }
+.wrap :is(pre, .code, .code code, .ln, .serial, .codeline) { font-size: 13px; }
+.wrap code { font-size: max(13px, .88em); }
+.wrap :is(sup.cite, a.cite) { font-size: 13px; line-height: 0; }
+/* a.cite is an inline-block with a 24 px min-height on some pages: lift it with `top`, not vertical-align, so the
+   line keeps its leading; the hit area stays >= 24 px through ::after */
+.wrap a.cite { min-height: 0; vertical-align: baseline; position: relative; top: -.4em; }
+.wrap a.cite::after { content: ""; position: absolute; inset: -6px -2px; }
+@media (pointer: coarse) {
+  .wrap :is(button, .btn, .seg button, .chip-btn, .tabs button, nav.toc a, .opt, summary, select,
+    input:not([type="range"], [type="checkbox"], [type="radio"], [type="hidden"])) { min-height: 44px; }
+  /* page-local sizes (.btn.small at 30 px, 32 px keys) lose to this: id weight, layout untouched */
+  .wrap:not(#\#) :is(.btn, .btn.small, .seg button, summary, .chip-btn, .tabs button) { min-height: 44px; min-width: 44px; }
+  .wrap:not(#\#) label:is(.toggle, :has(> input[type="checkbox"]), :has(> input[type="radio"])) { display: flex; align-items: center; min-height: 44px; }
+  .wrap tr.pick { height: 44px; }
+  .wrap:not(#\#) input[type="range"] { height: 44px; }
+  .wrap input[type="checkbox"] { inline-size: 24px; block-size: 24px; }
+  .wrap :is(.seg, .btns, .controls, .btn-row) { flex-wrap: wrap; }
+}
+/* Readout ink: the pages' bright instrument colours (--sig, --hi, --z) are kept for strokes and scope screens; as
+   TEXT they use the --ro-* companions (>= 4.5:1 on --panel in light; the original values in dark). */
+.wrap :is(.v.sig, .stat .v.sig) { color: var(--ro-sig); }
+.wrap :is(.v.hi, .t-m, .chip.hi, .codeline .m, .formula .m, .live .m, .memout .m, .badge.warn, .try .tag, .predict .tag,
+  .stat.cur .k, .vid .warn b, .serial .chg) { color: var(--ro-hi); }
+.wrap :is(.t-t, .t-p, .v.z, .stat .v.z, .cnt.c .v, .lvl.d, .fmeasure > .fgroup, .explain .ff, .serial .sim, .tag2.en) { color: var(--ro-z); }
+.wrap .cnt.d .v { color: var(--ro-hi); }
+/* lab's watch table: long variable names may wrap on phones, so 13 px chips never push the table past the panel */
+@media (max-width: 640px) { .wrap .watch td:first-child { white-space: normal; overflow-wrap: anywhere; width: 42%; } }
+/* prose measure */
+.wrap :is(.sec-head p, footer p, li) { max-width: 72ch; }
+.wrap :is(.answers p, div.note, :is(div, p).callout) { max-width: 68ch; }
+/* p.explain is often a bordered readout strip (lab, bounce-lab, ldr-lab): the dashed rule spans the panel,
+   only the text keeps the 72ch measure */
+.wrap p.explain { max-width: none; padding-inline-end: max(12px, calc(100% - 72ch)); }
+
+/* ---------------------------------------------------------------- legacy bridge v3: the hub layout and components
+   (1) one main column of the hubs' wide measure, centred; the page's own widgets live inside it */
+.wrap { max-width: var(--measure-wide, 1080px); margin-inline: auto; }
+/* the «Частина уроку …» bar repeats the parent-lesson pill of the site nav; a bar that also links other lessons
+   («також до уроку 1.3») stays, as a quiet line */
+p.from-lesson:not(:has(a + a)) { display: none; }
+p.from-lesson { border-color: transparent !important; background: none !important; padding-inline: 0 !important; max-width: var(--measure-wide, 1080px) !important; }
+/* (2) section titles on the hub scale */
+.wrap :is(.sec-head h2, .explain h2, section.full h2, .lab-head h2) { font-size: clamp(24px, 3vw, 34px); line-height: 1.15; }
+/* (3) the section chips: one sideways row on phones and tablets (fading out at the right edge) instead of a wall */
+@media (max-width: 900px) {
+  .wrap nav.toc {
+    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding-block: 2px 8px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+  }
+  .wrap nav.toc a { flex: none; white-space: nowrap; display: inline-flex; align-items: center; }
+  .wrap nav.toc a:last-child { margin-right: 36px; }
+}
+@media (min-width: 901px) {
+  .wrap nav.toc { gap: 6px; }
+  .wrap nav.toc a { padding: 4px 11px; }
+}
+/* (4) predict blocks: the hub .predict (solid frame, brass eyebrow with an amber LED, keycap options, verdict pills) */
+.wrap :is(.predict, .poe) {
+  margin: 16px 0; padding: 16px 18px 18px; border: 1px solid var(--line-strong); border-radius: var(--r-lg); background: var(--panel);
+}
+.wrap :is(.predict > .tag, .poe > .k) {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--hi-ink);
+}
+.wrap :is(.predict > .tag, .poe > .k)::before {
+  content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--hi);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hi) 25%, transparent);
+}
+.wrap :is(.predict, .poe) > p { margin: 6px 0 12px; font-weight: 600; font-size: 1.04rem; line-height: 1.5; }
+.wrap :is(.predict, .poe) .opts { gap: 8px; }
+.wrap :is(.predict, .poe) .opts > .opt.wrong::after { content: "ваш прогноз"; }
+.wrap :is(.predict, .poe) .opts > .opt.right[aria-pressed="true"]::after { content: "ваш прогноз ✓"; }
+/* the verdict line and the explanation: the self-check callout (a panel strip with an ok / bad margin mark) */
+.wrap :is(.predict, .q) .fb:is(.ok, .no), .wrap .poe .exp:not([hidden]) {
+  margin-top: 12px; padding: 10px 14px; border-radius: 4px 10px 10px 4px; font-size: 15px; line-height: 1.5; color: var(--ink);
+  background: var(--sunk); border: 1px solid var(--line); border-left: 4px solid var(--ok);
+}
+.wrap :is(.predict, .q) .fb.no, .wrap .poe .exp:has(> .v-bad) { border-left-color: var(--bad); }
+/* (5) callouts on the three hub meanings: neutral note = a --line-strong margin mark; warning / safety = hazard tape */
+.wrap :is(div.note, div.callout, p.callout):not(.warn, .bad, .danger) {
+  padding: 10px 14px; border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: 4px 10px 10px 4px; background: var(--panel);
+}
+.wrap :is(div.note, div.callout, p.callout):is(.warn, .bad, .danger) {
+  padding: 10px 14px 10px 24px; border: 1px solid color-mix(in srgb, var(--hi) 45%, var(--line)); border-radius: 4px 10px 10px 4px;
+  background: repeating-linear-gradient(-45deg, var(--hi) 0 6px, #241c12 6px 12px) left top / 9px 100% no-repeat, color-mix(in srgb, var(--hi) 8%, var(--panel));
+}
+.wrap :is(div.note, div.callout, p.callout):is(.bad, .danger) {
+  border: 1.5px solid var(--bad);
+  background: repeating-linear-gradient(-45deg, var(--bad) 0 6px, #241c12 6px 12px) left top / 10px 100% no-repeat, color-mix(in srgb, var(--bad) 7%, var(--panel));
+}
+/* «Мета»: a mono eyebrow before the line, no coloured bar */
+.wrap p.goal { padding: 0; border: 0; background: none; border-radius: 0; }
+.wrap p.goal > b:first-child { font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+@media (forced-colors: active) {
+  .wrap :is(div.note, div.callout, p.callout):is(.warn, .bad, .danger) { background: Canvas; border-left: 8px solid CanvasText; }
+  .wrap :is(.predict > .tag, .poe > .k)::before { forced-color-adjust: none; background: CanvasText; box-shadow: none; }
+}

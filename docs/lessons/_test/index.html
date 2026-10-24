@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<!--
+  REFERENCE LESSON HUB (template). Copy this folder to docs/lessons/<id>/ and replace the content.
+  Shell = design brief §2.1, sections = §2.2, component classes = §2.3. Every component of the kit is used once here:
+    05 predict-gated widget (+ Schem.flow) · 03 warm-up quiz · 10 stepper quiz · 11 mini deck · 08 dual figure
+    (sprite symbols, Schem.breadboard/part, Schem.link, Schem.flow, Schem.setNetLevel) · 09 measure table ·
+    .cite → 15 #sources · 14 exit ticket · teacher mode (.tnote, .t-only) · 16 comments.
+  When you copy it: set <title>, description, body[data-lesson], nav[data-page], drop the robots meta and the
+  «_test» notes, point data-src / data-deck at your lesson id, and add the lesson's counts to assets/course.js.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 0.0 · Шаблон уроку</title>
+<meta name="description" content="Еталонна сторінка уроку: усі компоненти шаблону в робочому стані. Автори уроків копіюють її як основу.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page-specific widget styles only; colours come from study.css tokens, never redefine them here. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.loop-svg { display: block; width: 100%; max-width: 520px; margin: 10px auto 0; }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 17px var(--f-mono); color: var(--ink); }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+</style>
+</head>
+<body data-lesson="_test">
+<!-- site-nav.js fills the groups from COURSE; data-page="lesson:<id>" marks this hub as the current page. -->
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:_test">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 0 · Урок 0.0 · пн 07.09</p>
+    <h1>Шаблон уроку: <span>струм у колі з LED</span></h1>
+    <p class="lead">Еталонна сторінка для авторів уроків. Кожен блок працює на демо-даних, тож видно, як він виглядає й поводиться.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 20 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: макетка, LED, 220&nbsp;Ом, мультиметр</a></li>
+      <li><a class="chip" href="../../schematics/">Спершу: Як читати схеми</a></li>
+    </ul>
+    <!-- study.js appends «Режим викладача» to this .actions row (or binds your own [data-teacher-toggle]). -->
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Ви підключили світлодіод до виводу плати, а він ледь світить. Винен код, резистор чи сам LED? Якщо ви вмієте порахувати струм заздалегідь, причина знаходиться за хвилину, а не за вечір.</p>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>розрахувати</b> струм у послідовному колі з LED;</li>
+      <li><b>виміряти</b> струм мультиметром і порівняти з прогнозом;</li>
+      <li><b>пояснити</b>, чому струм однаковий у всіх точках кола.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up
+       Real hubs: <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div> picks warmup:true items
+       from earlier lessons in COURSE (only lessons whose `quiz` count is > 0 or status 'ready').
+       This page is not in COURSE, so it takes the warm-up items of the demo file instead. -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-src="_sample" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+    <article class="idea">
+      <h3>Струм однаковий у всьому послідовному колі</h3>
+      <p>Уявіть замкнену мотузку, яку протягують крізь руки: хоч де її схопити, вона рухається з тією самою швидкістю. Так і заряди в колі без розгалужень: скільки пройшло через резистор, стільки пройшло й через світлодіод.</p>
+      <figure>
+        <svg viewBox="0 0 240 120" role="img" aria-label="Петля-мотузка: стрілки показують однакову швидкість руху в кожній точці петлі.">
+          <rect x="30" y="20" width="180" height="80" rx="38" fill="none" stroke="var(--muted)" stroke-width="5"/>
+          <path d="M112 14 l12 6 -12 6 z M128 94 l-12 6 12 6 z" fill="var(--flow)"/>
+          <text x="120" y="66" text-anchor="middle" fill="var(--ink)" font-size="14">однакова швидкість</text>
+        </svg>
+        <figcaption>Мотузка-петля: одна аналогія на весь курс.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>У колі без розгалужень струм всюди однаковий; ділиться напруга, а не струм.</p>
+    </article>
+    <details class="more">
+      <summary>Детальніше: обмежена аналогія з водою</summary>
+      <p>Воду в трубах часто порівнюють зі струмом. Аналогія обмежена: вода може витекти, а заряди в колі не зникають.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE
+       .predict[data-gate] unlocks the .gated element with that id; the choice is saved in study.checks.v1
+       and restored on reload (the `predict` event then fires with detail.restored = true). -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+    <div class="predict" data-ok="1" data-gate="w-loop"
+         data-why="I = (3,3 − 1,9) В / R. Опір виріс з 220 до 470 Ом, тобто приблизно вдвічі, тому струм упав приблизно вдвічі: з 6,4 до 3,0 мА.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Замість 220&nbsp;Ом ставимо 470&nbsp;Ом. Що станеться зі струмом через світлодіод?</p>
+      <div class="opts">
+        <button class="opt">Зросте</button>
+        <button class="opt">Зменшиться приблизно вдвічі</button>
+        <button class="opt">Не зміниться: світлодіод бере стільки, скільки треба</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel" id="w-loop">
+      <div class="ph"><h3>Струм у колі</h3><span class="small">точки рухаються тим швидше, чим більший струм</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Опір резистора">
+          <button type="button" data-r="220" aria-pressed="true">220 Ом</button>
+          <button type="button" data-r="470" aria-pressed="false">470 Ом</button>
+          <button type="button" data-r="1000" aria-pressed="false">1 кОм</button>
+        </div>
+        <svg class="loop-svg" viewBox="0 0 300 150" role="img" aria-label="Коло: джерело 3,3 В, резистор R1 і світлодіод LED1 послідовно; анімовані точки показують струм.">
+          <path class="sch-w net-3v3" id="loop-a" d="M40 60V30H110"/>
+          <use class="sch-sym" href="#res" x="110" y="30"/>
+          <text class="sch-ref" x="140" y="18" text-anchor="middle">R1</text>
+          <text class="sch-val" id="loop-rval" x="140" y="56" text-anchor="middle">220 Ом</text>
+          <path class="sch-w net-sig" id="loop-b" d="M170 30H250V45"/>
+          <use class="sch-sym" href="#led" x="250" y="45" transform="rotate(90 250 45)"/>
+          <text class="sch-ref" x="236" y="85" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" id="loop-c" d="M250 105V125H40V120"/>
+          <use class="sch-sym" href="#vsrc" x="40" y="60" transform="rotate(90 40 60)"/>
+          <text class="sch-val" x="62" y="96">3,3 В</text>
+        </svg>
+        <div class="readout" aria-live="polite">
+          <span>Опір <b id="r-out">220 Ом</b></span>
+          <span>Струм <b id="i-out">6,4 мА</b></span>
+          <span>Напруга на LED <b>1,9 В</b><sup class="cite" data-fact="led-red-3mm-vf"></sup></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Запишіть, що відомо:</b> вихід 3,3&nbsp;В, на червоному LED падає 1,9&nbsp;В, R&nbsp;=&nbsp;220&nbsp;Ом.<span class="why">чому: без цих трьох чисел струм не порахувати.</span></li>
+      <li><b>Напруга на резисторі:</b> <span class="formula">U_R = 3,3 − 1,9 = 1,4 В</span><span class="why">чому: у послідовному колі напруги складаються.</span></li>
+      <li><b>Закон Ома:</b> <span class="formula">I = 1,4 В / 220 Ом ≈ 6,4 мА</span><span class="why">чому: той самий струм тече і через LED.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Відомо:</b> 3,3&nbsp;В, LED 1,9&nbsp;В, R&nbsp;=&nbsp;470&nbsp;Ом.</li>
+      <li><b>Напруга на резисторі:</b> <span class="formula">U_R = 1,4 В</span></li>
+      <li>
+        <!-- data-ans in the task unit, data-tol relative, data-dec = decimals shown in the feedback -->
+        <div class="try" data-ans="2.98" data-tol="0.03" data-unit="мА" data-dec="1">
+          <span class="tag">Ваша черга</span>
+          <p>Який струм? Відповідь у міліамперах.</p>
+          <details><summary>Підказка</summary>I = U_R / R = 1,4 В / 470 Ом.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="4700" data-tol="0.01" data-unit="Ом" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Резистор маркований «4k7». Скільки це ом? Можна ввести і «4k7», і «4,7 кОм».</h4>
+      <details><summary>Підказка</summary>Буква k стоїть на місці коми й означає «кіло», тобто × 1000.</details>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions (codes: brief §4.0) -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myth" data-mc="M1">
+      <p class="seems">Світлодіод «з’їдає» струм, тому після нього струм менший.</p>
+      <p class="truth">Струм однаковий до і після світлодіода. LED забирає частину напруги, а не струму.</p>
+      <p class="test">Увімкніть мультиметр як амперметр спершу перед LED, потім після нього: покази збігаються.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 08 dual figure
+       data-net on every wire/pin/label; .net-* classes colour them. data-nets gives legend names.
+       Schematic: <use href="#sym"> from assets/symbols.svg (schem.js inlines the sprite; never reuse its ids).
+       Breadboard: drawn in the page script with Schem.breadboard / Schem.part. Schem.link runs automatically
+       after study:ready handlers, so parts drawn there get net highlighting too. -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <figure class="dual wide" id="dual-led" data-nets="gpio13=GPIO13; led_a=Анод LED; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 260 185" role="img" aria-label="Схема: вивід GPIO13 плати U1 через резистор R1 220 ом до анода світлодіода LED1, катод на землю.">
+          <rect class="sch-w" x="10" y="44" width="60" height="110" rx="3"/>
+          <text class="sch-ref" x="10" y="34">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="80" transform="rotate(180 90 80)"/>
+          <text class="sch-pin net-sig" data-net="gpio13" x="62" y="85" text-anchor="end">GPIO13</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="130" transform="rotate(180 90 130)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="62" y="135" text-anchor="end">GND</text>
+          <path class="sch-w net-sig" data-net="gpio13" id="w-g13" d="M90 80H100"/>
+          <use class="sch-sym" href="#res" x="100" y="80"/>
+          <text class="sch-ref" x="130" y="66" text-anchor="middle">R1</text>
+          <text class="sch-val" x="130" y="104" text-anchor="middle">220 Ом</text>
+          <path class="sch-w net-sig2" data-net="led_a" id="w-la" d="M160 80H200"/>
+          <use class="sch-sym" href="#led" x="200" y="80" transform="rotate(90 200 80)"/>
+          <text class="sch-ref" x="186" y="124" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-k" d="M200 140V160"/>
+          <use class="sch-sym" href="#gnd" x="200" y="160" class="sch-sym net-gnd" data-net="gnd"/>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-gp" d="M90 130H120V150"/>
+          <use class="sch-sym" href="#gnd" x="120" y="150" class="sch-sym net-gnd" data-net="gnd"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-led" viewBox="0 0 262 222" role="img" aria-label="Макетка: дріт від GPIO13 у стовпчик 3, резистор зі стовпчика 3 у стовпчик 8, світлодіод анодом у стовпчик 8 і катодом у 9, дріт зі стовпчика 9 на шину мінус, з'єднану з GND плати."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <div class="seg" role="group" aria-label="Рівень на GPIO13" id="lvl">
+        <button type="button" data-l="hi" aria-pressed="true">GPIO13 = HIGH</button>
+        <button type="button" data-l="lo" aria-pressed="false">GPIO13 = LOW</button>
+      </div>
+      <button type="button" class="btn" id="flow-btn" aria-pressed="false">Показати струм</button>
+      <span class="out" id="flow-out" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <!-- ============================================================ 09 home lab: measure table (saved per data-key) -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <div class="note danger">Не вмикайте світлодіод у вивід без резистора: струм обмежить лише сам вивід, а це його перевантажує.</div>
+    <ol>
+      <li>Зберіть коло з розділу 08 з резистором 220&nbsp;Ом.</li>
+      <li>Запишіть прогноз струму в таблицю, потім виміряйте амперметром.</li>
+      <li>Повторіть з 470&nbsp;Ом і 1&nbsp;кОм.</li>
+    </ol>
+    <table class="measure" data-key="_test-led" data-calc="diff">
+      <caption>Струм через LED</caption>
+      <thead><tr><th>Резистор</th><th>Прогноз, мА</th><th>Виміряно, мА</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>220 Ом</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>470 Ом</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>1 кОм</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============================================================ 10 self-check: data/quiz/<lesson>.json -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="_sample" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards: data/cards/<lesson>.json -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="_sample" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge (data-team: ohm|volt|amp|farad) -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge" data-team="volt">
+      <span class="tag">Командний виклик</span>
+      <h3>Детективи напруги</h3>
+      <dl>
+        <dt>Мета</dt><dd>Знайти, де «зникає» напруга в колі з двома LED.</dd>
+        <dt>Здати</dt><dd>Фото кола, таблицю вимірювань і одне речення висновку.</dd>
+        <dt>Ролі</dt><dd><ul><li>Builder збирає коло;</li><li>Measurer вимірює;</li><li>Reporter пише висновок;</li><li>Skeptic шукає помилки.</li></ul></dd>
+        <dt>Критерії</dt><dd>Коло, вимірювання, пояснення, оформлення: 0–2 бали кожне.</dd>
+        <dt>Ускладнення</dt><dd>Додайте третій LED іншого кольору.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call: .tnote shows only in teacher mode -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: макетку, LED, резистори 220&nbsp;Ом і 470&nbsp;Ом, мультиметр.</p>
+    <div class="tnote">
+      <p>ConcepTest: «Який струм після LED?» Очікуваний розподіл голосів: 40&nbsp;% «менший», 60&nbsp;% «той самий».</p>
+      <p>Після голосування покажіть на екрані віджет із розділу 05.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket (fields are generated; data-q = question 1) -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому струм однаковий у послідовному колі."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials + #sources (filled from .cite) -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../power-loads/">Потужне навантаження</a></li>
+      <li><a class="chip deep" href="../../pull-resistors/">Підтяжка входу</a></li>
+    </ul>
+    <p>Струм виводу за замовчуванням обмежений силою виходу GPIO<sup class="cite" data-fact="s3-gpio-drive-default"></sup>.</p>
+    <!-- study.js numbers every .cite[data-fact] in page order and lists them here from data/facts.json. -->
+    <div id="sources">
+      <h3>Джерела</h3>
+    </div>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <!-- ============================================================ 16 discussion (giscus once COURSE.giscus.repoId is set) -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+/* Page widgets. Inline scripts ignore `defer`, so everything waits for study:ready: by then Study, StudyQuiz,
+   StudyCards and Schem exist. Schem.link and the sprite run right after these handlers. */
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const VF = 1.9; // red LED typical Vf: facts.json led-red-3mm-vf
+  const mA = (v, r) => Math.max(0, (v - VF) / r * 1000);
+
+  /* ==== 05 gated widget: R buttons change the dot speed (∝ current) ==== */
+  const loopWires = ['#loop-a', '#loop-b', '#loop-c'].map((s) => $(s));
+  let R = 220, loopOn = false;
+  function drawLoop() {
+    const i = mA(3.3, R);
+    $('#r-out').textContent = fmt.si(R, 'Ом');
+    $('#loop-rval').textContent = fmt.si(R, 'Ом');
+    $('#i-out').textContent = `${fmt.num(i, 1)} мА`;
+    // Dots only after the prediction is made, so the answer is not given away under the blur.
+    loopWires.forEach((w) => S.flow(w, { mA: loopOn ? i : 0 }));
+  }
+  $$('#w-loop .seg button').forEach((b) => b.addEventListener('click', () => {
+    R = +b.dataset.r;
+    $$('#w-loop .seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    drawLoop();
+  }));
+  $('#w-loop').addEventListener('predict', () => { loopOn = true; drawLoop(); });
+  drawLoop();
+
+  /* ==== 08 dual figure: breadboard view drawn with Schem ==== */
+  const bbSvg = $('#bb-led');
+  const g = S.svg('g', {}, bbSvg);
+  S.svg('rect', { x: 2, y: 50, width: 58, height: 86, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
+  S.svg('text', { class: 'sch-pin', x: 6, y: 42 }, g).textContent = 'плата';
+  S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 75 }, g).textContent = 'GND';
+  S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio13', x: 8, y: 115 }, g).textContent = '13';
+  const pinG13 = { x: 50, y: 110 }, pinGnd = { x: 50, y: 70 };
+  const bb = S.breadboard(bbSvg, { cols: 14, rails: true, x: 76, y: 0, colLabels: 'bottom' });
+  bb.mark(3, 'top', 'gpio13', 'net-sig');
+  bb.mark(8, 'top', 'led_a', 'net-sig2');
+  bb.mark(9, 'top', 'gnd', 'net-gnd');
+  bb.markRail('top', '-', 'gnd', 'net-gnd');
+  const jG13 = S.part(bbSvg, 'jumper', { from: pinG13, to: bb.hole(3, 'c'), net: 'gpio13', cls: 'net-sig', lift: 24, title: 'Дріт GPIO13 → стовпчик 3' });
+  S.part(bbSvg, 'res', { from: bb.hole(3, 'a'), to: bb.hole(8, 'a'), ohms: 220, label: 'R1' });
+  const led = S.part(bbSvg, 'led', { anode: bb.hole(8, 'e'), cathode: bb.hole(9, 'e'), color: 'red', label: 'LED1' });
+  const jK = S.part(bbSvg, 'jumper', { from: bb.hole(9, 'a'), to: bb.rail('top', '-', 9), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 9 → шина мінус' });
+  const jGnd = S.part(bbSvg, 'jumper', { from: pinGnd, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → шина мінус' });
+
+  /* ==== 08 logic level + current flow (same speed on every wire of the loop) ==== */
+  const dual = $('#dual-led');
+  const wires = [[$('#w-g13'), 1], [$('#w-la'), 1], [$('#w-k'), 1], [$('#w-gp'), -1], [jG13, 1], [jK, 1], [jGnd, -1]];
+  let level = 'hi', flowOn = false;
+  function updateCircuit() {
+    const i = level === 'hi' ? mA(3.3, 220) : 0;
+    S.setNetLevel(dual, 'gpio13', level);
+    led.style.opacity = level === 'hi' ? '1' : '.45';
+    wires.forEach(([w, dir]) => { if (flowOn) S.flow(w, { mA: i, dir }); else if (w._flow) w._flow.set(0); });
+    $('#flow-out').textContent = level === 'hi' ? `I = (3,3 − 1,9) / 220 ≈ ${fmt.num(i, 1)} мА` : 'GPIO13 = 0 В: струму немає.';
+  }
+  $$('#lvl button').forEach((b) => b.addEventListener('click', () => {
+    level = b.dataset.l;
+    $$('#lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    updateCircuit();
+  }));
+  $('#flow-btn').addEventListener('click', (e) => {
+    flowOn = !flowOn;
+    e.currentTarget.setAttribute('aria-pressed', String(flowOn));
+    e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
+    updateCircuit();
+  });
+  updateCircuit();
+});
+</script>
+</body>
+</html>

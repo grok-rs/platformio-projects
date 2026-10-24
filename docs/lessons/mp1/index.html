@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Міні-проєкт 1 · Сутінковий перемикач</title>
+<meta name="description" content="Міні-проєкт 1: фоторезистор, АЦП, гістерезис із двома порогами, транзисторний ключ BC547B і модуль реле active-LOW; системне налагодження і вбудований налагоджувач ESP32-S3.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: -4px; box-shadow: inset 0 0 0 5px var(--panel); }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 10px 0; }
+.ctl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 18px; margin: 12px 0; }
+.ctl input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+@media (pointer: coarse) { .seg button, .ctl input[type="range"] { min-height: 44px; } } /* desktop keeps the compact size above */
+.ctl[hidden] { display: none; }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 17px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.readout b.bad { color: var(--bad); }
+.readout b.ok { color: var(--ok); }
+canvas.hy { display: block; width: 100%; height: clamp(270px, 46vw, 340px); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
+.fig-svg { display: block; width: 100%; height: auto; }
+.fig-svg text { font-family: var(--f-body); font-size: 14px; fill: var(--ink); }
+.fig-svg .m { fill: var(--muted); }
+.idea .fig-svg text { font-size: 15px; } /* 300-unit viewBox in a ~265 px column: ≥ 13 px */
+.fig-svg .mono { font-family: var(--f-mono); }
+.fig-svg .box { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.5; }
+.fig-svg .acc { fill: var(--accent); }
+.fig-svg .arr { stroke: var(--muted); stroke-width: 2; fill: none; marker-end: url(#mp1-arrow); }
+/* chain widget */
+#chain-svg .node-badge { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
+#chain-svg .lit .node-badge { stroke: var(--accent); fill: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+#chain-svg .val { font: 600 14px var(--f-mono); }
+#chain-svg .faded { opacity: .25; }
+#chain-svg .lamp { transition: opacity .3s; }
+.chain-steps { margin: 12px 0 0; padding-left: 1.4em; }
+.chain-steps li { opacity: .25; transition: opacity .3s; margin: 2px 0; }
+.chain-steps li.on { opacity: 1; }
+.chain-steps li.bad { color: var(--bad); }
+@media (prefers-reduced-motion: reduce) { .chain-steps li, #chain-svg .lamp { transition: none; } }
+.bb-ic { fill: #2b2d30; stroke: #111; stroke-width: 1; }
+.bb-mod { fill: #1f5fa8; stroke: #123d6e; stroke-width: 1.5; }
+.bb-txt { font: 600 13px var(--f-mono); fill: #fff; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll-x > svg { min-width: 540px; }
+.scroll-hint { display: none; margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+@media (max-width: 599px) { .scroll-hint { display: block; } }
+#dual-mp1 .scroll-x > svg { display: block; width: 100%; height: auto; min-width: 0; }
+@media (max-width: 719px) { #dual-mp1 .scroll-x > svg { min-width: 560px; } #dual-mp1 .scroll-x > svg#bb-mp1 { min-width: 680px; } }
+/* Both sheets are dense (520 and 560 units wide): stack them so labels stay >= 13 px instead of two half-width views. */
+@media (min-width: 720px) { #dual-mp1 { grid-template-columns: minmax(0, 1fr); } #dual-mp1 .scroll-x > svg { max-width: 820px; margin-inline: auto; } }
+.ch-out { margin: 8px 0 0; font: 600 15px var(--f-mono); }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.tbl-plain { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tbl-plain th, .tbl-plain td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-plain th { font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .04em; }
+.lms-fix li { margin: 6px 0; }
+</style>
+</head>
+<body data-lesson="mp1">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:mp1">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Міні-проєкт 1 · пн 21.09</p>
+    <h1>Сутінковий перемикач: <span>сенсор → рішення → реле</span></h1>
+    <p class="lead">Стемніло — лампа ввімкнулася сама. Ви складете все з модуля 1 в одну систему і навчитеся шукати несправність не навмання, а за планом.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: LDR, 3 × 10&nbsp;кОм, 1&nbsp;кОм, BC547B, модуль реле 5&nbsp;В, LED + 220&nbsp;Ом, модуль живлення 5&nbsp;В, мультиметр</a></li>
+      <li><a class="chip" href="../1-6/">Спершу: урок 1.6 (АЦП)</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/">Інтерактивний стенд</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Вуличний ліхтар, що вмикається в сутінках, — це та сама задача, що й у будь-якому пристрої: <b>датчик → рішення → виконавчий пристрій</b>. Кожну ланку ви вже знаєте окремо: дільник і АЦП (1.6), GPIO (1.4), закон Ома (1.1). Тепер вони мають працювати разом, і з'являються нові питання: як 3,3-вольтовий пін керує 5-вольтовим реле? Чому реле у сутінках клацає, як кулемет? І що міряти першим, коли «нічого не працює»?</p>
+    <p>Цей проєкт — ваш перший досвід системного налагодження: несправність може бути в живленні, у дроті, у транзисторі або в коді, і вгадувати дорого.</p>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>зібрати</b> ланцюжок LDR → АЦП → логіка → GPIO → транзистор → модуль реле → навантаження;</li>
+      <li><b>пояснити</b>, чому HIGH на GPIO вмикає реле, хоча модуль вмикається низьким рівнем;</li>
+      <li><b>налаштувати</b> гістерезис: два пороги з мертвою зоною, ширшою за шум;</li>
+      <li><b>знайти</b> несправність за порядком «живлення → земля → сигнали → код» і зупинити програму в налагоджувачі.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Система — це ланцюжок перетворень сигналу</h3>
+      <p>Світло стає опором, опір — напругою, напруга — числом, число — рішенням «так/ні», рішення — рівнем 3,3&nbsp;В на піні, рівень — 5-вольтовим сигналом, а той — замкненим контактом. Кожна стрілка — місце, де щось може зламатися, і місце, де можна <b>виміряти</b>.</p>
+      <p>Тому налагодження — це пошук першої стрілки, після якої сигнал уже неправильний.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 326" role="img" aria-label="Блок-схема: дільник з LDR дає 0…3,3 В, АЦП перетворює на число 0…4095, логіка з порогами дає так або ні, GPIO2 видає 0 або 3,3 В, транзистор BC547 з R4 дає 5 або 0 В на IN, модуль реле active-LOW, контакти COM-NO вмикають лампу.">
+          <defs><marker id="mp1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="var(--muted)"/></marker></defs>
+          <g>
+            <rect class="box" x="4" y="4" width="292" height="28" rx="8"/><text x="16" y="23">Дільник LDR</text><text class="m mono" x="284" y="23" text-anchor="end">0…3,3 В</text>
+            <rect class="box" x="4" y="48" width="292" height="28" rx="8"/><text x="16" y="67">АЦП GPIO4</text><text class="m mono" x="284" y="67" text-anchor="end">0…4095</text>
+            <rect class="box" x="4" y="92" width="292" height="28" rx="8" style="stroke:var(--accent)"/><text x="16" y="111">Логіка</text><text class="m mono" x="284" y="111" text-anchor="end">2 пороги</text>
+            <rect class="box" x="4" y="162" width="292" height="28" rx="8"/><text x="16" y="181">GPIO2</text><text class="m mono" x="284" y="181" text-anchor="end">0 / 3,3 В</text>
+            <rect class="box" x="4" y="206" width="292" height="28" rx="8"/><text x="16" y="225">BC547+R4</text><text class="m mono" x="284" y="225" text-anchor="end">5 / 0 В</text>
+            <rect class="box" x="4" y="250" width="292" height="28" rx="8"/><text x="16" y="269">Модуль</text><text class="m mono" x="284" y="269" text-anchor="end">LOW = ON</text>
+            <rect class="box" x="4" y="294" width="292" height="28" rx="8"/><text x="16" y="313">Лампа</text><text class="m mono" x="284" y="313" text-anchor="end">COM–NO</text>
+            <path class="arr" d="M40 32V47"/><path class="arr" d="M40 76V91"/><path class="arr" d="M40 120V161"/>
+            <path class="arr" d="M40 190V205"/><path class="arr" d="M40 234V249"/><path class="arr" d="M40 278V293"/>
+            <text class="m" x="54" y="146">рішення: увімкнути?</text>
+          </g>
+        </svg>
+        <figcaption>Сім ланок — сім точок, де можна виміряти сигнал.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Шукайте першу ланку, після якої сигнал уже неправильний, а не «чому не працює все».</p>
+    </article>
+
+    <article class="idea">
+      <h3>Два нових знайомих: транзистор-кран і реле-магніт</h3>
+      <p><b>Транзистор NPN</b> (у нас BC547B) — кран із трьома виводами. Малий струм у <b>базу</b> (B) відкриває великий шлях <b>колектор → емітер</b> (C → E). I<sub>B</sub> = 0 — кран <b>закритий</b>. Дали базі струму із запасом — кран відкритий до кінця: це <b>насичення</b>, на C–E лишаються десяті частки вольта<sup class="cite" data-fact="bc547-vcesat"></sup>. h<sub>FE</sub> показує, у скільки разів I<sub>C</sub> може перевищити I<sub>B</sub>; для ключа базі дають більше, ніж «вистачило б» за h<sub>FE</sub>: I<sub>C</sub>/10…I<sub>C</sub>/20<sup class="cite" data-fact="bc547-sat-design-rule"></sup>.</p>
+      <p><b>Реле</b> — вимикач, який перемикає електромагніт. Струм у <b>котушці</b> перекидає рухомий контакт <b>COM</b> з <b>NC</b> (замкнений без струму) на <b>NO</b> (замкнений під струмом)<sup class="cite" data-fact="relay-srd05-contacts"></sup>. <b>Модуль реле</b> уже має власний ключ, діод і світлодіод. <b>Active-LOW</b> означає: модуль вмикає реле, коли на вході IN низький рівень, ≈0&nbsp;В<sup class="cite" data-fact="relay-module-active-low"></sup>.</p>
+      <figure>
+<svg class="fig-svg" viewBox="0 0 300 414" role="img" aria-label="Ліворуч: транзистор NPN з виводами база B, колектор C, емітер E; малий струм бази керує великим струмом колектора. Праворуч: реле — котушка і рухомий контакт COM, який без струму замкнений на NC, а під струмом — на NO.">
+          <g transform="translate(44 0)">
+            <text x="85" y="16" text-anchor="middle" style="font-weight:600">Транзистор = кран</text>
+            <path d="M18 105H60M90 75V34M90 135V176" stroke="var(--ink)" stroke-width="2" fill="none"/>
+            <use class="sch-sym" href="#npn" x="60" y="105"/>
+            <text x="4" y="96">база B</text>
+            <text x="98" y="42">C · колектор</text>
+            <text x="98" y="176">E · емітер</text>
+            <path class="arr" d="M20 116H52" style="stroke:var(--flow);stroke-width:1.5"/>
+            <text class="mono" x="4" y="152" style="fill:var(--flow)">малий I<tspan baseline-shift="sub" font-size="0.8em">B</tspan></text>
+            <path d="M140 54V148" stroke="var(--flow)" stroke-width="3" fill="none" marker-end="url(#mp1-arrow)"/>
+            <text class="mono" x="148" y="96" style="fill:var(--flow)">великий</text>
+            <text class="mono" x="148" y="116" style="fill:var(--flow)">I<tspan baseline-shift="sub" font-size="0.8em">C</tspan></text>
+          </g>
+          <g transform="translate(-140 196)">
+            <text x="290" y="16" text-anchor="middle" style="font-weight:600">Реле: магніт + контакт</text>
+            <use class="sch-sym" href="#relay-coil" x="214" y="44" transform="rotate(90 214 44)"/>
+            <text x="214" y="124" text-anchor="middle" class="m">котушка</text>
+            <path d="M228 74H312V112" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <path d="M290 150L343 84" stroke="var(--ink)" stroke-width="3" fill="none"/>
+            <circle cx="290" cy="150" r="4" fill="var(--ink)"/><circle cx="346" cy="80" r="4" fill="var(--ink)"/><circle cx="346" cy="122" r="4" fill="var(--ink)"/>
+            <text class="mono" x="354" y="85">NC</text>
+            <text class="mono" x="354" y="127">NO</text>
+            <text class="mono" x="290" y="172" text-anchor="middle">COM</text>
+            <text x="290" y="192" text-anchor="middle" class="m">без струму: COM–NC</text>
+            <text x="290" y="210" text-anchor="middle" class="m">під струмом: COM–NO</text>
+          </g>
+        </svg>
+        <figcaption>Малий струм бази керує великим струмом колектора; малий струм котушки перемикає окреме коло лампи.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Транзистор — кран для струму (закритий / насичений). Реле — контакт COM, який магніт перекидає з NC на NO.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Транзистор узгоджує 3,3&nbsp;В з 5&nbsp;В і перевертає рівень</h3>
+      <p>Вихід GPIO дає лише 3,3&nbsp;В<sup class="cite" data-fact="s3-voh"></sup>, а модулю реле на 5&nbsp;В може бути потрібен майже 5-вольтовий HIGH, щоб надійно вимкнутися (залежить від схеми входу модуля). Тому GPIO керує лише <b>базою</b> BC547B через R3. Рівень на вході IN задає колектор: R4 тягне його до 5&nbsp;В, а відкритий транзистор притискає до землі (лишається ≤&nbsp;0,25&nbsp;В<sup class="cite" data-fact="bc547-vcesat"></sup>).</p>
+      <p>Транзистор інвертує, і модуль active-LOW інвертує ще раз<sup class="cite" data-fact="relay-module-active-low"></sup>. Дві інверсії дають HIGH на GPIO = реле ON, як і хоче умова завдання.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 226" role="img" aria-label="Таблиця на малюнку: GPIO2 HIGH 3,3 В — транзистор відкритий — IN близько 0 В — реле увімкнене. GPIO2 LOW 0 В — транзистор закритий — IN 5 В — реле вимкнене.">
+          <text class="m mono" x="4" y="31">GPIO2</text>
+          <rect class="box" x="100" y="4" width="92" height="44" rx="8" style="stroke:var(--lvl-hi)"/><text x="146" y="23" text-anchor="middle">HIGH</text><text class="m mono" x="146" y="41" text-anchor="middle">3,3 В</text>
+          <rect class="box" x="204" y="4" width="92" height="44" rx="8" style="stroke:var(--lvl-lo)"/><text x="250" y="23" text-anchor="middle">LOW</text><text class="m mono" x="250" y="41" text-anchor="middle">0 В</text>
+          <path class="arr" d="M146 48V60"/><path class="arr" d="M250 48V60"/>
+          <text class="m mono" x="4" y="89">VT1, I<tspan baseline-shift="sub" font-size="0.8em">B</tspan></text>
+          <rect class="box" x="100" y="62" width="92" height="44" rx="8"/><text x="146" y="81" text-anchor="middle">відкр.</text><text class="m mono" x="146" y="99" text-anchor="middle">0,26 мА</text>
+          <rect class="box" x="204" y="62" width="92" height="44" rx="8"/><text x="250" y="81" text-anchor="middle">закр.</text><text class="m mono" x="250" y="99" text-anchor="middle">0 мА</text>
+          <path class="arr" d="M146 106V118"/><path class="arr" d="M250 106V118"/>
+          <text class="m mono" x="4" y="147">IN</text>
+          <rect class="box" x="100" y="120" width="92" height="44" rx="8" style="stroke:var(--lvl-lo)"/><text x="146" y="139" text-anchor="middle">LOW</text><text class="m mono" x="146" y="157" text-anchor="middle">≈ 0,1 В</text>
+          <rect class="box" x="204" y="120" width="92" height="44" rx="8" style="stroke:var(--lvl-hi)"/><text x="250" y="139" text-anchor="middle">HIGH</text><text class="m mono" x="250" y="157" text-anchor="middle">5 В</text>
+          <path class="arr" d="M146 164V176"/><path class="arr" d="M250 164V176"/>
+          <text class="m mono" x="4" y="205">реле</text>
+          <rect class="box" x="100" y="178" width="92" height="44" rx="8" style="stroke:var(--ok);stroke-width:2.5"/><text x="146" y="205" text-anchor="middle" style="fill:var(--ok);font-weight:600">ON</text>
+          <rect class="box" x="204" y="178" width="92" height="44" rx="8"/><text x="250" y="205" text-anchor="middle" class="m">OFF</text>
+        </svg>
+        <figcaption>Інверсія № 1 — транзистор, інверсія № 2 — модуль. Разом: HIGH = ON.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>GPIO керує базою, а напругу на IN задають R4 і 5&nbsp;В. Транзистор — і перетворювач рівнів, і інвертор.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Один поріг — брязкіт; два пороги — спокій</h3>
+      <p>АЦП ніколи не показує рівно одне число: сутінки настають повільно, а значення тремтить на кілька одиниць. З одним порогом кожне тремтіння через нього перемикає реле. Рішення — <b>гістерезис</b>: вмикаємо, коли значення впало нижче DARK, вимикаємо, коли піднялося вище LIGHT, а між ними нічого не змінюємо. Ця <b>мертва зона</b> має бути ширшою за шум.</p>
+      <p>Так працює термостат: гріє до 22&nbsp;°C, вимикається і чекає, поки стане 20&nbsp;°C, а не смикається біля 21.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 212" role="img" aria-label="Петля гістерезису: по горизонталі число АЦП, по вертикалі стан реле. Рухаючись у темряву, реле вмикається лише на порозі DARK 500; рухаючись у світло, вимикається лише на порозі LIGHT 600. Між порогами — мертва зона.">
+          <rect x="130" y="20" width="70" height="140" style="fill:color-mix(in srgb, var(--accent) 14%, transparent)"/>
+          <text x="165" y="40" text-anchor="middle" class="m">мертва</text><text x="165" y="56" text-anchor="middle" class="m">зона</text>
+          <path d="M36 160H296M36 160V14" stroke="var(--muted)" stroke-width="1.5" fill="none"/>
+          <text x="296" y="204" text-anchor="end" class="m">АЦП → світліше</text>
+          <text x="30" y="74" text-anchor="end" class="mono" style="fill:var(--ok)">ON</text>
+          <text x="30" y="144" text-anchor="end" class="mono m">OFF</text>
+          <path d="M130 140V80" stroke="var(--accent)" stroke-width="3" fill="none" marker-end="url(#mp1-arrow)"/>
+          <path d="M200 80V140" stroke="var(--accent)" stroke-width="3" fill="none" marker-end="url(#mp1-arrow)"/>
+          <path d="M288 140H132" stroke="var(--ink)" stroke-width="3" fill="none" marker-end="url(#mp1-arrow)"/>
+          <path d="M40 70H198" stroke="var(--ink)" stroke-width="3" fill="none" marker-end="url(#mp1-arrow)"/>
+          <text x="128" y="180" text-anchor="end" class="mono">DARK 500</text>
+          <text x="202" y="180" class="mono">LIGHT 600</text>
+          <text x="248" y="128" text-anchor="middle" class="m">темніє</text>
+          <text x="84" y="62" text-anchor="middle" class="m">світлішає</text>
+        </svg>
+        <figcaption>Пороги 500 / 600 — з проєкту в репозиторії<sup class="cite" data-fact="repo-twilight-config"></sup>; ваші будуть іншими.</figcaption>
+      </figure>
+      <details class="more">
+        <summary>Детальніше: ці три кроки в коді (ядро 2.0.17)</summary>
+<pre><code>const uint16_t adc = analogRead(kLdrPin);      // 1. зчитати: 0…4095
+if (adc &lt; kThresholdDark)       relayOn = true;  // 2. темно → увімкнути
+else if (adc &gt; kThresholdLight) relayOn = false; //    світло → вимкнути
+                                                //    між порогами — нічого
+digitalWrite(kRelayPin, relayOn ? HIGH : LOW);  // 3. HIGH → реле ON</code></pre>
+        <p>Стан <code>relayOn</code> — глобальна змінна: саме вона «пам'ятає», що було, коли значення в мертвій зоні. Ці виклики однакові в ядрі 2.0.17<sup class="cite" data-fact="core-arduino-version"></sup> і 3.x; константа <code>ADC_11db</code> в 3.x теж працює<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>.</p>
+      </details>
+      <p class="key"><b>Головне</b>Гістерезис = два пороги + пам'ять стану. Мертва зона ширша за шум — реле спокійне.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Спільна земля замикає мотузку</h3>
+      <p>Згадайте мотузку-петлю: струм тече лише по замкненому колу. Струм бази виходить з GPIO2, проходить R3, базу й емітер — і мусить <b>повернутися</b> в GND плати ESP32. Якщо ESP32 живиться від ноутбука, а транзистор і реле — від окремого модуля 5&nbsp;В, ця петля замикається лише дротом GND–GND.</p>
+      <p>Без нього «3,3&nbsp;В на GPIO2» — напруга відносно чужої землі, а для транзистора вона нічого не означає: струму бази немає, реле мовчить.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 206" role="img" aria-label="Мотузка-петля: від GPIO2 плати через R3 до бази, від емітера в GND макетки і назад у GND плати. Дріт спільної землі позначено: без нього петля розірвана.">
+          <rect class="box" x="4" y="30" width="80" height="130" rx="10"/>
+          <text x="44" y="54" text-anchor="middle">ESP32-S3</text>
+          <text x="78" y="86" text-anchor="end" class="mono net-sig2" style="fill:var(--nsig2)">GPIO2</text>
+          <text x="78" y="146" text-anchor="end" class="mono" style="fill:var(--ngnd)">GND</text>
+          <rect class="box" x="196" y="30" width="100" height="130" rx="10"/>
+          <text x="246" y="54" text-anchor="middle">VT1 +</text>
+          <text x="246" y="72" text-anchor="middle">модуль</text>
+          <text x="246" y="96" text-anchor="middle" class="m">живлення</text>
+          <text x="246" y="114" text-anchor="middle" class="m">5 В</text>
+          <path d="M84 82H160Q196 82 196 112V118Q196 142 160 142H84" fill="none" stroke="var(--flow)" stroke-width="9" stroke-linecap="round" opacity=".35"/>
+          <path d="M96 82H150" class="arr" style="stroke:var(--flow);stroke-width:3"/>
+          <path d="M150 142H96" class="arr" style="stroke:var(--flow);stroke-width:3"/>
+          <text x="136" y="108" text-anchor="middle" class="m">R3 → база</text>
+          <text x="136" y="124" text-anchor="middle" class="m">→ емітер</text>
+          <text x="150" y="182" text-anchor="middle" style="fill:var(--bad);font-weight:600">дріт GND–GND</text>
+          <text x="150" y="200" text-anchor="middle" class="m">без нього петля розірвана</text>
+        </svg>
+        <figcaption>Одна аналогія на весь курс: мотузка рухається лише по замкненому колу.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Усі GND — один провід: плата, модуль живлення, транзистор, модуль реле.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Налагодження — за планом: живлення → земля → сигнали → код</h3>
+      <p>Найчастіші причини — найпростіші: немає 5&nbsp;В на шині, немає спільної GND, транзистор вставлений задом наперед. Тому міряйте мультиметром у порядку, де кожен крок спирається на попередній. Код — <b>останній</b> підозрюваний; перевіряють його рядком у Serial (<code>adc=… relay=…</code>) або вбудованим налагоджувачем (дебагером).</p>
+      <p>ESP32-S3 має вбудований USB-JTAG: вистачає того самого кабелю в роз'єм «USB» (GPIO19/20)<sup class="cite" data-fact="s3-builtin-usb-jtag"></sup>. Налагоджувач зупиняє <b>код</b>, а не залізо: на паузі GPIO2 тримає свій рівень.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 196" role="img" aria-label="Сходи налагодження: 1 живлення — мультиметр на шинах 3,3 і 5 В; 2 земля — прозвонка GND плати і макетки; 3 сигнали — АЦП, база, IN; 4 код — Serial і налагоджувач.">
+          <g>
+            <rect class="box" x="4" y="146" width="132" height="46" rx="8" style="stroke:var(--accent)"/><text x="14" y="165">1 Живлення</text><text x="14" y="183" class="m mono">3,3 і 5 В?</text>
+            <rect class="box" x="58" y="100" width="132" height="46" rx="8"/><text x="68" y="119">2 Земля</text><text x="68" y="137" class="m mono">GND = GND?</text>
+            <rect class="box" x="112" y="54" width="132" height="46" rx="8"/><text x="122" y="73">3 Сигнали</text><text x="122" y="91" class="m mono">АЦП, база, IN</text>
+            <rect class="box" x="166" y="8" width="132" height="46" rx="8"/><text x="176" y="27">4 Код</text><text x="176" y="45" class="m mono">Serial, JTAG</text>
+          </g>
+        </svg>
+        <figcaption>Не переходьте на сходинку вище, доки нижня не перевірена вимірюванням.</figcaption>
+      </figure>
+      <details class="more">
+        <summary>Детальніше: як запустити налагоджувач у PlatformIO</summary>
+        <ol>
+          <li>У <code>platformio.ini</code> проєкту вже є <code>debug_tool = esp-builtin</code> і <code>debug_init_break = tbreak setup</code><sup class="cite" data-fact="repo-twilight-debug-ini"></sup>. Налагоджувальну версію PlatformIO збирає сам, коли ви запускаєте налагодження; вона ще трохи оптимізована (<code>-Og</code>)<sup class="cite" data-fact="pio-debug-build-flags"></sup>. Якщо змінна у «Watch» показує «optimized out», додайте <code>debug_build_flags = -O0 -g -ggdb</code>.</li>
+          <li>Кабель — у роз'єм <b>USB</b> (вбудований USB ESP32-S3), не в «COM»<sup class="cite" data-fact="s3-usb-pins"></sup>.</li>
+          <li><b>F5</b> або «Run and Debug → PIO Debug». Поставте точку зупинки на рядок <code>if (adc &lt; kThresholdDark)</code>, а в «Watch» додайте <code>adc</code> і <code>relayOn</code>.</li>
+          <li>Умовна точка зупинки <code>adc &lt; kThresholdDark &amp;&amp; !relayOn</code> зупинить програму саме в момент «стемніло», а не на кожному опитуванні в темряві.</li>
+        </ol>
+        <p>Не перепризначайте GPIO19/20 під свої сигнали: зникнуть і USB-JTAG, і Serial<sup class="cite" data-fact="s3-usb-pins-as-gpio"></sup>. Зовнішній JTAG-адаптер (GPIO39–42<sup class="cite" data-fact="s3-jtag-pins"></sup>) нам не потрібен.</p>
+      </details>
+      <p class="key"><b>Головне</b>Міряйте знизу вгору: живлення, земля, сигнали — і лише потім код.</p>
+    </article>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="2" data-gate="w-hyst"
+         data-why="Опитування кожні 100 мс — це 100 перевірок за 10 с. Коли значення стоїть просто на порозі, шум перетинає його в половині випадків, тож реле перемикається десятки разів. Два пороги з мертвою зоною, ширшою за шум, зводять це до нуля.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Код перевіряє АЦП кожні 100&nbsp;мс з <b>одним</b> порогом 550. Світло стоїть так, що АЦП ≈ 550 і тремтить на ±20. Скільки разів клацне реле за 10&nbsp;секунд?</p>
+      <div class="opts">
+        <button class="opt">0 — світло ж не змінюється</button>
+        <button class="opt">1–2 рази</button>
+        <button class="opt">Десятки разів</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel" id="w-hyst">
+      <div class="ph"><h3>Гра в гістерезис</h3><span class="small">остання 10 с, опитування кожні 100 мс; торкніться графіка — пауза</span></div>
+      <div class="pb">
+        <div class="row">
+          <div class="seg" role="group" aria-label="Кількість порогів" id="hy-mode">
+            <button type="button" data-m="1" aria-pressed="true">1 поріг</button>
+            <button type="button" data-m="2" aria-pressed="false">2 пороги</button>
+          </div>
+          <button type="button" class="btn sm" id="hy-dusk">Сутінки: повільно темніє</button>
+          <button type="button" class="btn sm ghost" id="hy-play">⏸ Пауза</button>
+          <button type="button" class="btn sm ghost" id="hy-step">+1 с</button>
+        </div>
+        <canvas class="hy" id="hy-cv" width="640" height="300" aria-label="Графік: число АЦП за останні 10 секунд, лінії порогів, смуга стану реле і позначки клацань."></canvas>
+        <div class="readout" aria-live="polite">
+          <span>Клацань за 10 с <b id="hy-c10">0</b></span>
+          <span>Якщо так триватиме годину: ≈&nbsp;<b id="hy-ch">—</b></span>
+          <span>Реле <b id="hy-st">OFF</b></span>
+        </div>
+        <div class="ctl-grid">
+          <div class="ctl"><label for="hy-base"><span>Світло (без шуму)</span><b id="hy-base-o">550</b></label><input type="range" id="hy-base" min="250" max="850" step="5" value="550"></div>
+          <div class="ctl"><label for="hy-noise"><span>Шум ±</span><b id="hy-noise-o">20</b></label><input type="range" id="hy-noise" min="0" max="60" step="1" value="20"></div>
+          <div class="ctl" id="hy-t-wrap"><label for="hy-t"><span>Поріг</span><b id="hy-t-o">550</b></label><input type="range" id="hy-t" min="300" max="800" step="5" value="550"></div>
+          <div class="ctl" id="hy-d-wrap" hidden><label for="hy-d"><span>DARK (увімкнути нижче)</span><b id="hy-d-o">500</b></label><input type="range" id="hy-d" min="300" max="800" step="5" value="500"></div>
+          <div class="ctl" id="hy-l-wrap" hidden><label for="hy-l"><span>LIGHT (вимкнути вище)</span><b id="hy-l-o">600</b></label><input type="range" id="hy-l" min="300" max="800" step="5" value="600"></div>
+        </div>
+        <p class="small muted" id="hy-hint">Спробуйте: увімкніть 2 пороги, а потім звузьте мертву зону, поки вона не стане вужчою за шум (±20 = 40 одиниць). Що повертається?</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="2" data-gate="w-chain"
+         data-why="Відкритий транзистор у насиченні з'єднує колектор з емітером майже накоротко: на ньому лишаються десяті частки вольта. R4 обмежує струм з 5 В, і майже вся напруга падає на ньому. Тому IN ≈ 0,1 В — це LOW, і модуль active-LOW вмикає реле.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>GPIO2 = HIGH (3,3&nbsp;В), транзистор відкритий. Яка напруга на вході IN модуля реле (колектор VT1)?</p>
+      <div class="opts">
+        <button class="opt">≈ 5 В — колектор підтягнутий до 5 В</button>
+        <button class="opt">≈ 3,3 В — як на GPIO</button>
+        <button class="opt">≈ 0,1 В — транзистор притискає IN до землі</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel" id="w-chain">
+      <div class="ph"><h3>Ланцюжок причин</h3><span class="small">перемкніть GPIO2 і подивіться, як зміна біжить по колу</span></div>
+      <div class="pb">
+        <div class="row">
+          <div class="seg" role="group" aria-label="Рівень GPIO2" id="ch-lvl">
+            <button type="button" data-l="hi" aria-pressed="true">GPIO2 = HIGH</button>
+            <button type="button" data-l="lo" aria-pressed="false">GPIO2 = LOW</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="seg" role="group" aria-label="Несправність" id="ch-fault">
+            <button type="button" data-f="ok" aria-pressed="true">Правильно</button>
+            <button type="button" data-f="nognd" aria-pressed="false">Без спільної GND</button>
+            <button type="button" data-f="r433" aria-pressed="false">R4 до 3,3 В</button>
+            <button type="button" data-f="direct" aria-pressed="false">GPIO прямо в IN</button>
+          </div>
+        </div>
+        <div class="scroll-x"><svg id="chain-svg" class="fig-svg" viewBox="0 0 620 300" role="img" aria-label="Каскад: GPIO2 через R3 на базу VT1, колектор через R4 до +5 В і на IN модуля реле; модуль вмикає котушку, контакт COM–NO подає +5 В через резистор 220 Ом на світлодіод-«лампу». Біля кожного вузла показано напругу.">
+          <rect class="box" x="6" y="88" width="78" height="64" rx="8"/>
+          <text x="45" y="108" text-anchor="middle">ESP32-S3</text>
+          <text x="45" y="128" text-anchor="middle" class="mono" style="fill:var(--nsig2)">GPIO2</text>
+          <path class="sch-w net-gnd" id="ch-gndA" d="M45 152V272H120"/>
+          <g id="ch-n1"><rect class="node-badge" x="8" y="52" width="76" height="26" rx="6"/><text class="val" x="46" y="70" text-anchor="middle" id="ch-v1">3,3 В</text></g>
+          <g id="ch-stage">
+            <path class="sch-w net-sig2" id="ch-w1" d="M84 120H110"/>
+            <use class="sch-sym" href="#res" x="110" y="120"/>
+            <text class="sch-ref" x="140" y="104" text-anchor="middle">R3</text>
+            <path class="sch-w net-sig3" id="ch-w2" d="M170 120H190"/>
+            <use class="sch-sym" href="#npn" x="190" y="120"/>
+            <text class="sch-ref" x="246" y="142">VT1</text>
+            <path class="sch-w net-gnd" id="ch-w3" d="M220 150V272"/>
+            <g id="ch-n2"><rect class="node-badge" x="112" y="138" width="88" height="26" rx="6"/><text class="val" x="156" y="156" text-anchor="middle" id="ch-v2">V_BE 0,7 В</text></g>
+          </g>
+          <use class="sch-sym net-5v" href="#vcc" x="220" y="24"/>
+          <text class="sch-pin" x="232" y="16" id="ch-r4lbl">+5 В</text>
+          <use class="sch-sym" href="#res" x="220" y="24" transform="rotate(90 220 24)"/>
+          <text class="sch-ref" x="230" y="58">R4</text>
+          <path class="sch-w" id="ch-w4" d="M220 84V90"/>
+          <use class="sch-sym" href="#dot" x="220" y="86"/>
+          <path class="sch-w" id="ch-w5" d="M220 86H330"/>
+          <path class="sch-w net-sig2" id="ch-direct" d="M84 120H96V206H238V86H330" style="stroke-dasharray:7 5;display:none"/>
+          <g id="ch-n3"><rect class="node-badge" x="246" y="94" width="78" height="26" rx="6"/><text class="val" x="285" y="112" text-anchor="middle" id="ch-v3">IN 0,1 В</text></g>
+          <rect class="box" x="330" y="40" width="140" height="170" rx="10"/>
+          <text x="400" y="30" text-anchor="middle" class="m">модуль реле</text>
+          <text x="338" y="90" class="mono m">IN</text>
+          <g id="ch-n4"><rect class="node-badge" x="362" y="70" width="100" height="30" rx="6"/><text class="val" x="412" y="90" text-anchor="middle" id="ch-v4">вхід: ON</text></g>
+          <use class="sch-sym" href="#relay-coil" x="350" y="140"/>
+          <path class="sch-w" d="M330 140H350M410 140H470"/>
+          <g id="ch-n5"><rect class="node-badge" x="350" y="164" width="104" height="26" rx="6"/><text class="val" x="402" y="182" text-anchor="middle" id="ch-v5">котушка ⚡</text></g>
+          <path d="M380 152V158H516V146" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <use class="sch-sym net-5v" href="#vcc" x="490" y="140"/>
+          <text class="sch-pin" x="490" y="110" text-anchor="middle">+5 В</text>
+          <path class="sch-w" d="M490 140H504"/>
+          <path class="sch-w" id="ch-lever" d="M504 140L526 126"/>
+          <path class="sch-w" d="M530 140H550V146"/>
+          <text class="sch-pin" x="497" y="180" text-anchor="middle">COM</text>
+          <text class="sch-pin" x="536" y="130">NO</text>
+          <use class="sch-sym" href="#res" x="550" y="146" transform="rotate(90 550 146)"/>
+          <text class="sch-val" x="562" y="182">220 Ом</text>
+          <use class="sch-sym" href="#led" x="550" y="206" transform="rotate(90 550 206)"/>
+          <circle class="lamp" id="ch-lamp" cx="580" cy="236" r="16" fill="var(--hi)" opacity="0"/>
+          <text class="sch-ref" x="580" y="292" text-anchor="middle">лампа</text>
+          <path class="sch-w net-gnd" d="M550 266V272"/>
+          <path class="sch-w net-gnd" d="M400 210V272"/>
+          <path class="sch-w net-gnd" d="M120 272H550"/>
+          <g id="ch-break" style="display:none"><path d="M108 262L132 282M132 262L108 282" stroke="var(--bad)" stroke-width="3"/><text x="140" y="294" style="fill:var(--bad);font-weight:600">немає дроту GND</text></g>
+        </svg></div>
+        <p class="scroll-hint" aria-hidden="true">← гортайте схему вбік →</p>
+        <p class="ch-out" id="ch-out" aria-live="polite"></p>
+        <ol class="chain-steps" id="ch-steps" aria-live="polite"></ol>
+        <p class="small muted">Числа: V<sub>BE</sub><sup class="cite" data-fact="bc547-vbe"></sup>, V<sub>CE(sat)</sub><sup class="cite" data-fact="bc547-vcesat"></sup>. Поведінка модуля при 3,3&nbsp;В на IN залежить від конкретної плати<sup class="cite" data-fact="relay-module-active-low"></sup>: перевірте свою (розділ 09).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад: чи насичується ключ?</span>
+    <ol class="worked">
+      <li><b>Відомо:</b> GPIO2 = 3,3&nbsp;В, R3 = 10&nbsp;кОм, V<sub>BE</sub> ≈ 0,7&nbsp;В<sup class="cite" data-fact="bc547-vbe"></sup>.<span class="why">чому: база–емітер — це p-n перехід, на ньому падає майже стала напруга, як на діоді.</span></li>
+      <li><b>Струм бази:</b> <span class="formula">I<sub>B</sub> = (3,3 − 0,7) / 10 000 = 0,26 мА</span><span class="why">чому: решта напруги лягає на R3, далі — закон Ома.</span></li>
+      <li><b>Струм колектора</b> — це струм через R4 плюс те, що бере вхід модуля: <span class="formula">(5 − 0,1) / 10 000 ≈ 0,49 мА</span> + кілька мА від модуля, разом ~5&nbsp;мА.<span class="why">чому: колектор «приймає» все, що тече в нього зверху; струм модуля залежить від плати — виміряйте свій.</span></li>
+      <li><b>Перевірка насичення:</b> <span class="formula">I<sub>C</sub> / I<sub>B</sub> ≈ 5 / 0,26 ≈ 19</span> — це ≤ 20, а h<sub>FE</sub> BC547B ≥ 200<sup class="cite" data-fact="bc547b-hfe"></sup>.<span class="why">чому: для гарантованого насичення беруть I<sub>B</sub> ≈ I<sub>C</sub>/10…I<sub>C</sub>/20<sup class="cite" data-fact="bc547-sat-design-rule"></sup>. Умова виконана, хоч і на межі.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі: напруга на АЦП</span>
+    <ol class="faded">
+      <li><b>Відомо:</b> LDR угорі (до 3,3&nbsp;В), R2 = 10&nbsp;кОм унизу. Увечері в тьмяній кімнаті LDR ≈ 50&nbsp;кОм (для порівняння: при 10&nbsp;лк — 10–20&nbsp;кОм<sup class="cite" data-fact="ldr-gl5528-light"></sup>).</li>
+      <li><b>Формула дільника:</b> <span class="formula">V = 3,3 · R2 / (R<sub>LDR</sub> + R2)</span><span class="why">чому: струм однаковий через обидва резистори, а напруга ділиться пропорційно опорам.</span></li>
+      <li>
+        <div class="try" data-ans="0.55" data-tol="0.02" data-unit="В" data-dec="2">
+          <span class="tag">Ваша черга</span>
+          <p>Яка напруга на GPIO4? Відповідь у вольтах.</p>
+          <details><summary>Підказка</summary>3,3 · 10 / (50 + 10).</details>
+        </div>
+      </li>
+      <li><b>Від вольтів до числа АЦП:</b> при ослабленні 11&nbsp;дБ<sup class="cite" data-fact="core-adc-default-atten"></sup> шкала 0…4095 відповідає приблизно 0…3&nbsp;В, тобто грубо ≈1360 відліків на вольт. 0,55&nbsp;В ≈ 750 — поруч із «кімнатою ≈690» на макетці автора<sup class="cite" data-fact="repo-twilight-config"></sup>. Щоб упасти нижче DARK = 500 (≈0,37&nbsp;В), LDR має вирости до ≈80&nbsp;кОм — це вже сутінки.<span class="why">чому «грубо»: АЦП нелінійний біля країв шкали, а ваш LDR і ваше світло інші. Пороги беріть із власного Serial.</span></li>
+    </ol>
+    <div class="try" data-ans="0.553" data-tol="0.03" data-unit="мА" data-dec="2">
+      <span class="tag">Самостійно</span>
+      <h4>Щоб мати більший запас насичення, R3 замінили на 4,7&nbsp;кОм. Який тепер струм бази, у міліамперах?</h4>
+      <details><summary>Підказка</summary>Як у кроці 2 розібраного прикладу, але ділити на 4700&nbsp;Ом.</details>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth">
+        <p class="seems">Одного порога досить: темно — увімкнути, світло — вимкнути.</p>
+        <p class="truth">Біля порога шум перемикає реле знову і знову. Контакти зношуються, лампа мерехтить. Потрібні два пороги й пам'ять стану.</p>
+        <p class="test">Віджет «Гра в гістерезис» (розділ 05) або Serial: накрийте LDR наполовину і порахуйте рядки, де змінюється <code>relay=</code>.</p>
+      </div>
+      <div class="myth" data-mc="E4">
+        <p class="seems">Реле можна ввімкнути прямо від піна — це ж просто «вимикач».</p>
+        <p class="truth">Котушці SRD-05VDC треба ≈71&nbsp;мА при 5&nbsp;В<sup class="cite" data-fact="relay-srd05-coil-sl"></sup>, а вивід за замовчуванням дає ≈20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup> і лише 3,3&nbsp;В — менше за 3,75&nbsp;В (75&nbsp;% від 5&nbsp;В), при яких спрацювання гарантоване<sup class="cite" data-fact="relay-srd05-pullin"></sup>.</p>
+        <p class="test">Подивіться, що стоїть на платі модуля: власний транзистор і діод. Модуль існує саме для цього.</p>
+      </div>
+      <div class="myth" data-mc="E3">
+        <p class="seems">HIGH — це HIGH: 3,3&nbsp;В з GPIO прямо в IN модуля теж підійде.</p>
+        <p class="truth">Вхідна частина модуля живиться від 5&nbsp;В, і на багатьох модулях, щоб він вимкнувся, IN треба підняти майже до 5&nbsp;В. З 3,3&nbsp;В реле на таких модулях лишається ввімкненим або деренчить<sup class="cite" data-fact="relay-module-active-low"></sup>, а GPIO не розрахований на 5&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>.</p>
+        <p class="test">Віджет «Ланцюжок причин» → «GPIO прямо в IN». На макетці: IN через 1&nbsp;кОм на 0&nbsp;В, на 3,3&nbsp;В, на 5&nbsp;В — коли гасне світлодіод модуля?</p>
+      </div>
+      <div class="myth" data-mc="M6">
+        <p class="seems">ESP32 і реле мають кожен своє живлення — землю з'єднувати не обов'язково.</p>
+        <p class="truth">Струм бази повертається до ESP32 лише через спільну GND. Без неї транзистор не відкривається і реле мовчить.</p>
+        <p class="test">Режим прозвонки між GND плати та «−» шини 5&nbsp;В: має пищати.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Тут — вхід (дільник) і транзисторний каскад. Повна схема з навантаженням, модулем живлення і живими напругами — на <a href="../../twilight-relay/#schem">інтерактивному стенді</a>. Піни як у проєкті репозиторію: GPIO4 — канал АЦП1<sup class="cite" data-fact="s3-adc1-pins"></sup> (АЦП2 конфліктує з Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>), GPIO2 — не strapping-пін<sup class="cite" data-fact="s3-strapping-pins"></sup>.</p>
+    <figure class="dual wide" id="dual-mp1" data-nets="v33=3,3 В; adc=GPIO4 (АЦП); gpio2=GPIO2; base=База VT1; in=Колектор = IN; v5=+5 В; gnd=GND (спільна)">
+      <div class="view" data-view="sch"><div class="scroll-x">
+        <svg viewBox="0 0 520 312" role="img" aria-label="Схема: 3,3 В через фоторезистор R1 на вузол GPIO4, від нього R2 10 кОм на землю. GPIO2 через R3 10 кОм на базу VT1 BC547B, емітер на спільну землю. Колектор через R4 10 кОм до +5 В і на вхід IN модуля реле U2; VCC модуля від +5 В, GND модуля на спільну землю.">
+          <rect class="sch-w" x="10" y="40" width="70" height="250" rx="3"/>
+          <text class="sch-ref" x="10" y="30">U1 · ESP32-S3</text>
+          <use class="sch-sym net-3v3" data-net="v33" href="#mcu-pin" x="100" y="60" transform="rotate(180 100 60)"/>
+          <text class="sch-pin net-3v3" data-net="v33" x="74" y="64" text-anchor="end">3V3</text>
+          <use class="sch-sym net-sig" data-net="adc" href="#mcu-pin" x="100" y="120" transform="rotate(180 100 120)"/>
+          <text class="sch-pin net-sig" data-net="adc" x="74" y="124" text-anchor="end">IO4</text>
+          <use class="sch-sym net-sig2" data-net="gpio2" href="#mcu-pin" x="100" y="230" transform="rotate(180 100 230)"/>
+          <text class="sch-pin net-sig2" data-net="gpio2" x="74" y="234" text-anchor="end">IO2</text>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#mcu-pin" x="100" y="275" transform="rotate(180 100 275)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="74" y="279" text-anchor="end">GND</text>
+          <path class="sch-w net-3v3" data-net="v33" d="M100 60H150"/>
+          <use class="sch-sym" href="#ldr" x="150" y="60" transform="rotate(90 150 60)"/>
+          <text class="sch-ref" x="180" y="100">R1</text><text class="sch-val" x="180" y="115">LDR</text>
+          <path class="sch-w net-sig" data-net="adc" d="M100 120H150"/>
+          <use class="sch-sym net-sig" data-net="adc" href="#dot" x="150" y="120"/>
+          <use class="sch-sym" href="#res" x="150" y="120" transform="rotate(90 150 120)"/>
+          <text class="sch-ref" x="160" y="146">R2</text><text class="sch-val" x="160" y="162">10 кОм</text>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="150" y="180"/>
+          <path class="sch-w net-sig2" data-net="gpio2" id="s-g2" d="M100 230H200"/>
+          <use class="sch-sym" href="#res" x="200" y="230"/>
+          <text class="sch-ref" x="230" y="216" text-anchor="middle">R3</text><text class="sch-val" x="230" y="254" text-anchor="middle">10 кОм</text>
+          <path class="sch-w net-sig3" data-net="base" id="s-b" d="M260 230H280"/>
+          <use class="sch-sym" href="#npn" x="280" y="230"/>
+          <text class="sch-ref" x="334" y="226">VT1</text><text class="sch-val" x="334" y="242">BC547B</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="s-e" d="M310 260V296"/>
+          <use class="sch-sym net-5v" data-net="v5" href="#vcc" x="310" y="80"/>
+          <text class="sch-pin net-5v" data-net="v5" x="322" y="72">+5 В</text>
+          <use class="sch-sym" href="#res" x="310" y="80" transform="rotate(90 310 80)"/>
+          <text class="sch-ref" x="320" y="106">R4</text><text class="sch-val" x="320" y="122">10 кОм</text>
+          <path class="sch-w" data-net="in" id="s-c" d="M310 140V200"/>
+          <use class="sch-sym" data-net="in" href="#dot" x="310" y="170"/>
+          <path class="sch-w" data-net="in" id="s-in" d="M310 170H400"/>
+          <rect class="sch-w" x="400" y="120" width="110" height="130" rx="3"/>
+          <text class="sch-ref" x="400" y="112">U2 · модуль реле</text>
+          <text class="sch-pin" data-net="in" x="406" y="174">IN</text>
+          <text class="sch-pin net-5v" data-net="v5" x="406" y="144">VCC</text>
+          <text class="sch-pin net-gnd" data-net="gnd" x="406" y="234">GND</text>
+          <text class="sch-val" x="455" y="200" text-anchor="middle">active-LOW</text>
+          <path class="sch-w net-5v" data-net="v5" d="M400 140H370V120"/>
+          <use class="sch-sym net-5v" data-net="v5" href="#vcc" x="370" y="120"/>
+          <text class="sch-pin net-5v" data-net="v5" x="370" y="96" text-anchor="middle">+5 В</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="s-gb" d="M100 275H120V296H380V230H400"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#dot" x="310" y="296"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="215" y="290" text-anchor="middle">спільна GND</text>
+        </svg>
+      </div></div>
+      <div class="view" data-view="bb"><div class="scroll-x">
+        <svg id="bb-mp1" viewBox="0 0 560 262" role="img" aria-label="Макетка: верхні шини — 3,3 В і GND плати, нижні — 5 В і GND. LDR у стовпчиках 4–8, R2 з 8 у 13 і на мінус; GPIO4 у стовпчик 8. Внизу: GPIO2 у 15, R3 з 15 у 20, транзистор E-B-C у 19-20-21, емітер на мінус, R4 з 21 у 26 і на +5 В, зі стовпчика 21 дріт на IN модуля реле. Перемичка з'єднує обидві шини GND."></svg>
+      </div></div>
+      <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах. <b>VT1 на макетці:</b> E у стовпчику 19, B у 20, C у 21, плоский бік — до центральної канавки (від вас). Якщо повернути транзистор плоским боком до себе, виводи читаються навпаки: C-B-E<sup class="cite" data-fact="bc547-pinout"></sup>.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <div class="seg" role="group" aria-label="Рівень на GPIO2" id="lvl">
+        <button type="button" data-l="hi" aria-pressed="false">GPIO2 = HIGH</button>
+        <button type="button" data-l="lo" aria-pressed="true">GPIO2 = LOW</button>
+      </div>
+      <button type="button" class="btn" id="flow-btn" aria-pressed="false">Показати струм</button>
+      <span class="out" id="flow-out" aria-live="polite"></span>
+    </div>
+    <div class="note danger">Верхня шина з'єднана з піном 3V3. Ніколи не подавайте на неї 5&nbsp;В з модуля живлення: GPIO і живлення ESP32-S3 розраховані до 3,6&nbsp;В<sup class="cite" data-fact="s3-abs-max-vdd"></sup>. Мережеву напругу (230&nbsp;В) через реле в курсі не комутуємо: навантаження лише низьковольтне, контакти SRD — до 28&nbsp;В DC<sup class="cite" data-fact="relay-srd05-contacts"></sup>.</div>
+  </section>
+
+  <!-- ============================================================ 09 lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <p><b>Набір:</b> YD-ESP32-S3, фоторезистор, 3 резистори 10&nbsp;кОм, резистор 1&nbsp;кОм (для кроку 1), BC547B, модуль реле 5&nbsp;В «low level trigger», світлодіод + 220&nbsp;Ом як «лампа», модуль живлення макетки 5&nbsp;В, мультиметр. Код: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay">esp32-s3-twilight-relay</a>.</p>
+    <ol>
+      <li><b>Перевірте модуль окремо:</b> VCC і GND модуля — на 5&nbsp;В; IN через 1&nbsp;кОм на GND, потім на 5&nbsp;В. Коли клацає і світиться його LED? Так ви дізнаєтеся, active-LOW він чи ні.</li>
+      <li>Зберіть схему з розділу 08. <b>До живлення</b> продзвоніть кожну пару шин (КЗ немає) і з'єднання GND–GND.</li>
+      <li>Увімкніть живлення, виміряйте 3,3&nbsp;В і 5&nbsp;В на шинах (сходинка 1). Залийте код, відкрийте монітор 115200.</li>
+      <li>Запишіть <b>прогноз</b> для «дня» (кімната) і «ночі» (LDR під долонею), потім виміряйте все відносно GND.</li>
+      <li>Підберіть свої пороги за числами з Serial: DARK трохи вище «ночі», LIGHT трохи нижче «дня», мертва зона ширша за тремтіння.</li>
+      <li>Накрийте LDR наполовину на 1&nbsp;хвилину і порахуйте перемикання в Serial — з вашими порогами і з порогами, зведеними в один (DARK = LIGHT, тобто без мертвої зони).</li>
+    </ol>
+    <table class="measure" data-key="mp1-daynight" data-calc="diff">
+      <caption>День і ніч: прогноз проти вимірювання</caption>
+      <thead><tr><th>Величина</th><th>Прогноз</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>День: V на GPIO4, В</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>День: число АЦП</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>День: IN (V<sub>CE</sub>), В</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Ніч: V на GPIO4, В</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Ніч: число АЦП</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Ніч: V<sub>BE</sub>, В</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Ніч: IN (V<sub>CE</sub>), В</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Перемикань за 1 хв біля порога</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <p class="small muted">Орієнтир: на макетці автора кімната давала ≈690, долоня ≈350<sup class="cite" data-fact="repo-twilight-config"></sup>. У повній темряві LDR має понад 1&nbsp;МОм<sup class="cite" data-fact="ldr-gl5528-dark"></sup>, тож напруга на АЦП майже 0.</p>
+    <details class="more">
+      <summary>Розширення: що якщо…</summary>
+      <ul>
+        <li>…лампа світить просто на LDR? Увімкнулася → стало світло → вимкнулася → темно… Гістерезис рятує, лише поки підсвітка від лампи менша за мертву зону; лампа, що світить просто на LDR, зазвичай дає більше — тоді потрібен екран. Виміряйте, на скільки відліків лампа піднімає АЦП, і порівняйте з LIGHT − DARK.</li>
+        <li>…замінити R3 на 4,7&nbsp;кОм? Виміряйте V<sub>CE</sub> вночі ще раз: чи змінилося?</li>
+        <li>…модуль виявився active-HIGH? Що змінити — схему чи одну лінію коду?</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- ============================================================ 10 check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="mp1" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="mp1" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Музей помилок і найспокійніше реле</h3>
+      <dl>
+        <dt>Мета</dt><dd>Кожен збирає свій перемикач. Команда порівнює пороги й кількість перемикань за 1&nbsp;хвилину біля порога і дарує «Музею помилок» одну справжню помилку.</dd>
+        <dt>Здати</dt><dd><ul><li>таблицю «учасник · DARK · LIGHT · перемикань за 1 хв біля порога» (з логу Serial, як у кроці 6 міні-лаби);</li><li>один експонат музею: фото, симптом, причина, як знайшли (яким виміром), як виправили.</li></ul></dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b> показує свою макетку на камеру і проводить «екскурсію» по ланках;</li><li><b>Вимірювач</b> збирає таблицю день/ніч від усіх;</li><li><b>Доповідач</b> оформлює експонат музею в Discussions;</li><li><b>Скептик</b> перевіряє спільну GND, напрямок транзистора і що R4 іде на 5&nbsp;В, а не на 3,3&nbsp;В.</li></ul></dd>
+        <dt>Критерії</dt><dd>Працює вдень і вночі · пороги обґрунтовані числами · експонат має «як знайшли» з виміром · пояснення подвійної інверсії. 0–2 бали кожен.</dd>
+        <dt>Ускладнення</dt><dd>Додайте мінімальний час між перемиканнями (не частіше ніж раз на 5&nbsp;с) без <code>delay()</code> — через <code>millis()</code>.</dd>
+        <dt>Термін</dt><dd>до середи 19:00 (розбір на занятті)</dd>
+        <dt>Як здати</dt><dd>Discussions → «Командні виклики» і «Музей помилок».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p><b>Підготуйте до дзвінка:</b> зібраний (хоча б частково) перемикач, мультиметр, відкритий монітор Serial і цю сторінку. Якщо щось не працює — чудово: принесіть як кандидата на живе налагодження (напишіть у Slack #help до 18:00).</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1</b> (після ідеї 3): «GPIO2 = HIGH, модуль active-LOW. Реле?» А — ON, Б — OFF, В — залежить від коду.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікування: ≈45&nbsp;% А, ≈40&nbsp;% Б, ≈15&nbsp;% В.</p></details>
+      <p>Якщо А &lt; 70&nbsp;% — пара з різними відповідями 60&nbsp;с на мікрофоні, потім переголосування. Ключ: дві інверсії.</p>
+      <p><b>ConcepTest 2</b> (POE, розділ 05): прогноз клацань за 10&nbsp;с з одним порогом.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікування: ≈30&nbsp;% «0», ≈40&nbsp;% «1–2», ≈30&nbsp;% «десятки».</p></details>
+      <p>Покажіть «Гру в гістерезис» з одним порогом, потім два пороги, потім звузьте мертву зону до 20.</p>
+      <p><b>ConcepTest 3:</b> «ESP32 від ноутбука, реле від модуля 5&nbsp;В, GND не з'єднані. Що бачимо?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>А — реле ніколи не вмикається (правильно), Б — завжди ввімкнене, В — працює. Очікування ≈50 / 20 / 30&nbsp;%. Розв'язок — мотузка-петля (ідея 5).</p></details>
+      <p><b>Живе налагодження (день-специфічний блок, 95–108 хв):</b> студент-доброволець на камері. Чат-водоспад: «одна гіпотеза — один рядок». Потім голосування «що міряти першим?» (живлення / земля / база / код). Міряємо в порядку сходів; кожен вимір записує Писар дошки у фрейм «Стіна прогнозів».</p>
+      <table class="tbl-plain">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що показати</th></tr></thead>
+        <tbody>
+          <tr><td>22–34</td><td>Ідеї 1–3 + ConcepTest 1</td><td>блок-схема, таблиця інверсій</td></tr>
+          <tr><td>34–46</td><td>POE гістерезис</td><td>віджет «Гра в гістерезис»</td></tr>
+          <tr><td>46–55</td><td>«Знайди помилку»</td><td>«Ланцюжок причин», режими несправностей</td></tr>
+          <tr><td>62–90</td><td>Збірка разом</td><td>розділ 08, вкладка «Макетка»</td></tr>
+          <tr><td>95–108</td><td>Живе налагодження + реліз виклику</td><td>розділ 12</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, навіщо сутінковому перемикачу два пороги замість одного."></form>
+  </section>
+
+  <!-- ============================================================ 15 more -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../twilight-relay/">Сутінковий перемикач: стенд, схема, гістерезис</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/#debug">Налагоджувач у PlatformIO</a></li>
+      <li><a class="chip deep" href="../../adc-light/">АЦП і світло</a></li>
+      <li><a class="chip deep" href="../../power-loads/">Потужне навантаження (урок 2.2)</a></li>
+      <li><a class="chip" href="../mp1-review/">Далі: розбір міні-проєкту</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s84aooy0813msjmeaph">Міні-проєкт: підключення сенсора і актуатора, відладчик</a> (потрібен вхід). Там — завдання і креслення схеми.</li>
+      <li>Відео до цього уроку в LMS немає. Запис заняття — у LMS; розділи запису публікує Підсумовувач у Slack #recordings.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay/cpp">esp32-s3-twilight-relay/cpp</a> — Arduino, ядро 2.0.17<sup class="cite" data-fact="core-arduino-version"></sup>, налагоджувач уже налаштований.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay/rust">esp32-s3-twilight-relay/rust</a> — те саме на esp-hal + Embassy, гістерезис з тестами на ПК.</li>
+    </ul>
+    <details class="more">
+      <summary>Що виправлено порівняно з LMS (6 пунктів)</summary>
+    <ul class="lms-fix">
+      <li><b>Уточнено:</b> LMS вимагає «HIGH на GPIO = увімкнути реле», але не каже, що це правильно лише для модуля, який вмикається <b>низьким</b> рівнем. Транзистор з R4 інвертує сигнал, тож з модулем active-HIGH логіка перевернеться. Як перевірити свій модуль — крок 1 міні-лаби<sup class="cite" data-fact="relay-module-active-low"></sup>.</li>
+      <li><b>Уточнено:</b> щоб умова «ADC &lt; THRESHOLD_DARK → темно» була правильною, LDR має стояти <b>вгорі</b> дільника (до 3,3&nbsp;В), а R2 — до GND. У LMS порядок не вказано; навпаки — логіка інвертується.</li>
+      <li><b>Додано:</b> спільна земля. ESP32 і 5-вольтова частина мають одну GND; без неї транзистор не відкривається.</li>
+      <li><b>Додано:</b> вибір пінів. «GPIO In» має бути каналом АЦП1 (GPIO1–10)<sup class="cite" data-fact="s3-adc1-pins"></sup>, бо АЦП2 не працює разом з Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>.</li>
+      <li><b>Додано:</b> назва уроку в LMS обіцяє «відладчик», а текст його не розглядає. ESP32-S3 має вбудований USB-JTAG<sup class="cite" data-fact="s3-builtin-usb-jtag"></sup>; як ним користуватися — в ідеї 6.</li>
+      <li><b>Перевірено, правильно:</b> діапазон АЦП 0…4095<sup class="cite" data-fact="s3-adc-max-raw"></sup>; низьковольтне навантаження 5/12&nbsp;В на контактах NO в межах номіналу реле<sup class="cite" data-fact="relay-srd05-contacts"></sup>.</li>
+    </ul>
+    </details>
+    <details class="more">
+      <summary>Джерела: звідки кожне число на сторінці</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <!-- ============================================================ 16 talk -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const reduce = () => Study.reducedMotion();
+  const press = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+
+  // Footnote links jump into the collapsed source list: open it first.
+  document.addEventListener('click', (e) => { if (e.target.closest('.cite')) { const d = $('#sources').closest('details'); if (d) d.open = true; } });
+
+  /* ================================================================ 05a Гра в гістерезис
+     Model: every 100 ms the code reads adc = light + noise and decides (1 threshold or DARK/LIGHT with memory).
+     Shows the last 10 s (100 samples), threshold lines, relay band and click marks. */
+  (() => {
+    const cv = $('#hy-cv');
+    const N = 100, TICK = 0.1;
+    const st = { mode: 1, base: 550, noise: 20, t1: 550, dark: 500, light: 600, on: false, dusk: null, acc: 0 };
+    const samples = [];
+    let started = false;
+    const rand = (() => { let a = 12345; return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; }; })();
+    function tick() {
+      if (st.dusk) {
+        st.dusk.t += TICK;
+        const k = Math.min(1, st.dusk.t / 14);
+        st.base = Math.round(800 - 500 * k);
+        $('#hy-base').value = st.base; $('#hy-base-o').textContent = st.base;
+        if (k >= 1) st.dusk = null;
+      }
+      const adc = Math.round(st.base + st.noise * (rand() + rand() - 1));
+      const prev = st.on;
+      if (st.mode === 1) st.on = adc < st.t1;
+      else if (adc < st.dark) st.on = true;
+      else if (adc > st.light) st.on = false;
+      samples.push({ adc, on: st.on, click: samples.length > 0 && prev !== st.on });
+      if (samples.length > N) samples.shift();
+    }
+    function draw() {
+      const ctx = Study.fitCanvas(cv), t = Study.tokens();
+      const W = ctx.w, H = ctx.h, L = 46, R = 8, T = 12, B = 60;
+      const pw = W - L - R, ph = H - T - B;
+      const y = (v) => T + ph * (1 - (v - 250) / 600);
+      const x = (i) => L + pw * i / (N - 1);
+      const by = H - B + 22, bh = 16;
+      ctx.clearRect(0, 0, W, H);
+      ctx.font = `13px ${t['f-mono'] || 'monospace'}`;
+      // grid + axis labels
+      ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.fillStyle = t.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let v = 300; v <= 800; v += 100) { ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - R, y(v)); ctx.stroke(); ctx.fillText(String(v), L - 6, y(v)); }
+      // dead band / thresholds
+      ctx.textAlign = 'left';
+      const line = (v, label, below) => {
+        ctx.setLineDash([6, 5]); ctx.strokeStyle = t.accent; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - R, y(v)); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = t.accent; ctx.fillText(label, L + 6, y(v) + (below ? 11 : -9));
+      };
+      if (st.mode === 2) {
+        ctx.globalAlpha = 0.14; ctx.fillStyle = t.accent; ctx.fillRect(L, y(st.light), pw, y(st.dark) - y(st.light)); ctx.globalAlpha = 1;
+        line(st.light, `LIGHT ${st.light}`); line(st.dark, `DARK ${st.dark}`, true);
+      } else line(st.t1, `ПОРІГ ${st.t1}`);
+      // trace
+      if (samples.length) {
+        const off = N - samples.length;
+        ctx.strokeStyle = t.ink; ctx.lineWidth = 2; ctx.beginPath();
+        samples.forEach((s, i) => { const xx = x(i + off), yy = y(Math.max(250, Math.min(850, s.adc))); if (i) ctx.lineTo(xx, yy); else ctx.moveTo(xx, yy); });
+        ctx.stroke();
+        // relay band
+        samples.forEach((s, i) => {
+          ctx.fillStyle = s.on ? t.ok : t['panel-2'];
+          ctx.fillRect(x(i + off), by, pw / (N - 1) + 0.5, bh);
+          if (s.click) { ctx.fillStyle = t.bad; ctx.fillRect(x(i + off) - 1, by - 10, 2.5, 8); }
+        });
+      }
+      ctx.fillStyle = t.muted; ctx.textAlign = 'right';
+      ctx.fillText('реле', L - 6, by + bh / 2); ctx.fillStyle = t.bad; ctx.fillText('клац', L - 6, by - 7); ctx.fillStyle = t.muted;
+      ctx.textAlign = 'left'; ctx.fillText('−10 с', L, H - 9); ctx.textAlign = 'right'; ctx.fillText('зараз', W - R, H - 9);
+      const clicks = samples.filter((s) => s.click).length;
+      $('#hy-c10').textContent = String(clicks);
+      $('#hy-c10').className = clicks > 2 ? 'bad' : 'ok';
+      // Hourly projection only for a steady light: one legitimate switch at dusk is not «360 per hour».
+      $('#hy-ch').textContent = st.dusk || clicks <= 1 ? '—' : fmt.num(clicks * 360, 0);
+      $('#hy-st').textContent = st.on ? 'ON' : 'OFF';
+    }
+    const sim = Study.sim(cv, (dt) => {
+      if (!started) { draw(); return; }
+      st.acc += dt;
+      while (st.acc >= TICK) { st.acc -= TICK; tick(); }
+      draw();
+    });
+    sim.pause();
+    const playBtn = $('#hy-play');
+    const syncPlay = () => { playBtn.textContent = sim.running ? '⏸ Пауза' : '▶ Пуск'; };
+    cv.addEventListener('click', () => setTimeout(syncPlay));
+    playBtn.addEventListener('click', () => { sim.toggle(); syncPlay(); });
+    $('#hy-step').addEventListener('click', () => { for (let i = 0; i < 10; i++) tick(); draw(); });
+    const bind = (id, key, after) => $(id).addEventListener('input', (e) => { st[key] = +e.target.value; $(id + '-o').textContent = st[key]; if (after) after(); draw(); });
+    bind('#hy-base', 'base', () => { st.dusk = null; });
+    bind('#hy-noise', 'noise');
+    bind('#hy-t', 't1');
+    bind('#hy-d', 'dark', () => { if (st.light < st.dark) { st.light = st.dark; $('#hy-l').value = st.light; $('#hy-l-o').textContent = st.light; } });
+    bind('#hy-l', 'light', () => { if (st.dark > st.light) { st.dark = st.light; $('#hy-d').value = st.dark; $('#hy-d-o').textContent = st.dark; } });
+    $$('#hy-mode button').forEach((b) => b.addEventListener('click', () => {
+      st.mode = +b.dataset.m; press($('#hy-mode'), b);
+      $('#hy-t-wrap').hidden = st.mode !== 1; $('#hy-d-wrap').hidden = st.mode !== 2; $('#hy-l-wrap').hidden = st.mode !== 2;
+      draw();
+    }));
+    $('#hy-dusk').addEventListener('click', () => { st.dusk = { t: 0 }; if (!sim.running && !reduce()) { sim.play(); syncPlay(); } else if (!sim.running) { for (let i = 0; i < 140; i++) tick(); draw(); } });
+    $('#w-hyst').addEventListener('predict', () => {
+      started = true;
+      if (!samples.length) for (let i = 0; i < 30; i++) tick();
+      if (!reduce()) sim.play();
+      syncPlay(); draw();
+    });
+    Study.onTheme(draw);
+    addEventListener('resize', draw);
+    syncPlay(); draw();
+  })();
+
+  /* ================================================================ 05b Ланцюжок причин */
+  (() => {
+    const VBE = 0.7; // facts: bc547-vbe
+    let level = 'hi', fault = 'ok', open = false, timers = [];
+    const model = () => {
+      const hi = level === 'hi';
+      const gpio = hi ? '3,3 В' : '0 В';
+      if (fault === 'direct') {
+        return { gpio, vbe: '—', ib: 0, inV: hi ? '3,3 В' : '0 В', inLow: !hi, mod: hi ? 'maybe' : 'on',
+          steps: [`GPIO2 = ${hi ? 'HIGH' : 'LOW'}, ${gpio} — прямо на IN, транзистора немає.`,
+            hi ? 'IN = 3,3 В: для багатьох 5-вольтових модулів це ще не HIGH.' : 'IN = 0 В: модуль active-LOW вмикається.',
+            hi ? 'Вхід модуля: ON або деренчить (залежить від плати); у пін ще й тече струм з 5 В.' : 'Котушка під струмом, COM–NO замкнено.',
+            hi ? '✗ Вимкнути реле не вдається: потрібен ключ з R4 до 5 В.' : '✗ Логіка ще й перевернута: LOW вмикає.'] };
+      }
+      if (fault === 'nognd') {
+        return { gpio: hi ? '3,3 В?' : '0 В', vbe: '0 В', ib: 0, inV: '5 В', inLow: false, mod: 'off',
+          steps: [`GPIO2 = ${hi ? 'HIGH' : 'LOW'} — але відносно GND плати, не макетки.`,
+            'Петля струму бази розірвана: I_B = 0, VT1 закритий.',
+            'R4 тягне IN до 5 В — це HIGH.',
+            '✗ Модуль active-LOW вимкнений завжди. Реле мовчить за будь-якого GPIO2.'] };
+      }
+      const pull = fault === 'r433' ? '3,3 В' : '5 В';
+      const ib = hi ? (3.3 - VBE) / 10000 * 1000 : 0;
+      return { gpio, vbe: hi ? `${fmt.num(VBE, 1)} В` : '0 В', ib, inV: hi ? '0,1 В' : pull, inLow: hi, mod: hi ? 'on' : (fault === 'r433' ? 'maybe' : 'off'),
+        steps: hi ? [`GPIO2 = HIGH, 3,3 В.`, `I_B = (3,3 − 0,7) / 10 кОм ≈ ${fmt.num(ib, 2)} мА: VT1 відкритий, у насиченні.`,
+            'Колектор притиснутий до землі: IN ≈ 0,1 В — це LOW.', 'Модуль active-LOW: увімкнено. Котушка під струмом, COM–NO замкнено.', 'Лампа світить.']
+          : (fault === 'r433'
+            ? ['GPIO2 = LOW, 0 В.', 'I_B = 0: VT1 закритий.', 'R4 тягне IN лише до 3,3 В.', '✗ Для багатьох 5-вольтових модулів 3,3 В — ще не HIGH: реле може не вимикатися або деренчати.']
+            : ['GPIO2 = LOW, 0 В.', 'I_B = 0: VT1 закритий.', 'R4 тягне IN до 5 В — це HIGH.', 'Модуль active-LOW: вимкнено. Контакт розімкнений.', 'Лампа не світить.']) };
+    };
+    const svg = $('#chain-svg');
+    function apply(animate) {
+      timers.forEach(clearTimeout); timers = [];
+      const m = model();
+      $('#ch-v1').textContent = m.gpio;
+      $('#ch-v2').textContent = `V_BE ${m.vbe}`;
+      $('#ch-v3').textContent = `IN ${m.inV}`;
+      $('#ch-v4').textContent = m.mod === 'on' ? 'вхід: ON' : m.mod === 'off' ? 'вхід: OFF' : 'вхід: ON?';
+      const on = m.mod !== 'off';
+      $('#ch-v5').textContent = on ? (m.mod === 'maybe' ? 'котушка ⚡?' : 'котушка ⚡') : 'котушка —';
+      $('#ch-lever').setAttribute('d', on ? 'M504 140L530 140' : 'M504 140L526 126');
+      $('#ch-lamp').setAttribute('opacity', on ? (m.mod === 'maybe' ? '.35' : '.6') : '0');
+      $('#ch-stage').classList.toggle('faded', fault === 'direct');
+      $('#ch-direct').style.display = fault === 'direct' ? '' : 'none';
+      $('#ch-w4').style.display = $('#ch-w5').style.display = fault === 'direct' ? 'none' : '';
+      $('#ch-break').style.display = fault === 'nognd' ? '' : 'none';
+      $('#ch-gndA').setAttribute('d', fault === 'nognd' ? 'M45 152V272H100' : 'M45 152V272H120');
+      $('#ch-r4lbl').textContent = fault === 'r433' ? '+3,3 В ✗' : '+5 В';
+      const ib = open ? m.ib : 0;
+      S.flow($('#ch-w1'), { mA: ib, k: 40 }); S.flow($('#ch-w2'), { mA: ib, k: 40 }); S.flow($('#ch-w3'), { mA: ib, k: 40 });
+      const ic = open && m.inLow && fault !== 'direct' ? 0.49 : 0;
+      S.flow($('#ch-w4'), { mA: ic, k: 40 });
+      // propagate: badges + step list one after another
+      const nodes = ['#ch-n1', '#ch-n2', '#ch-n3', '#ch-n4', '#ch-n5'].map((s) => $(s));
+      const ol = $('#ch-steps');
+      // Before the prediction nothing may give the answer away (the blur is not enough for screen readers).
+      $('#ch-out').textContent = open ? `Підсумок: реле ${m.mod === 'off' ? 'OFF · лампа не світить' : m.mod === 'maybe' ? 'ON? · залежить від модуля' : 'ON · лампа світить'}` : '';
+      if (!open) { $('#ch-v3').textContent = 'IN ?'; ol.innerHTML = ''; nodes.forEach((n) => n.classList.remove('lit')); return; }
+      ol.innerHTML = m.steps.map((s) => `<li class="${s.startsWith('✗') ? 'bad' : ''}">${s}</li>`).join('');
+      const lis = $$('li', ol);
+      nodes.forEach((n) => n.classList.remove('lit'));
+      const go = (i) => { if (nodes[i]) nodes[i].classList.add('lit'); if (lis[i]) lis[i].classList.add('on'); if (i === lis.length - 1) lis.slice(i).forEach((l) => l.classList.add('on')); };
+      const n = Math.max(nodes.length, lis.length);
+      if (!animate || reduce()) { for (let i = 0; i < n; i++) go(i); return; }
+      for (let i = 0; i < n; i++) timers.push(setTimeout(() => go(i), 350 * i));
+    }
+    $$('#ch-lvl button').forEach((b) => b.addEventListener('click', () => { level = b.dataset.l; press($('#ch-lvl'), b); apply(true); }));
+    $$('#ch-fault button').forEach((b) => b.addEventListener('click', () => { fault = b.dataset.f; press($('#ch-fault'), b); apply(true); }));
+    $('#w-chain').addEventListener('predict', (e) => { open = true; apply(!e.detail.restored); });
+    apply(false);
+  })();
+
+  /* ================================================================ 08 breadboard + levels/flow */
+  (() => {
+    const bbSvg = $('#bb-mp1');
+    const g = S.svg('g', {}, bbSvg);
+    // ESP32 board stub (left)
+    S.svg('rect', { x: 2, y: 40, width: 62, height: 180, rx: 5, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
+    S.svg('text', { class: 'sch-pin', x: 6, y: 32 }, g).textContent = 'плата';
+    const pins = [['3V3', 'v33', 'net-3v3', 60], ['GND', 'gnd', 'net-gnd', 92], ['IO4', 'adc', 'net-sig', 140], ['IO2', 'gpio2', 'net-sig2', 196]];
+    const pinAt = {};
+    pins.forEach(([t, net, cls, y]) => {
+      S.svg('text', { class: `sch-pin ${cls}`, 'data-net': net, x: 8, y: y + 5 }, g).textContent = t;
+      S.svg('circle', { cx: 54, cy: y, r: 3, fill: 'var(--muted)' }, g);
+      pinAt[net] = { x: 54, y };
+    });
+    const bb = S.breadboard(bbSvg, { cols: 30, rails: true, x: 80, y: 20, colLabels: 'bottom' });
+    bb.markRail('top', '+', 'v33', 'net-3v3'); bb.markRail('top', '-', 'gnd', 'net-gnd');
+    bb.markRail('bottom', '+', 'v5', 'net-5v'); bb.markRail('bottom', '-', 'gnd', 'net-gnd');
+    bb.mark(4, 'top', 'v33', 'net-3v3'); bb.mark(8, 'top', 'adc', 'net-sig'); bb.mark(13, 'top', 'gnd', 'net-gnd');
+    bb.mark(15, 'bottom', 'gpio2', 'net-sig2'); bb.mark(20, 'bottom', 'base', 'net-sig3'); bb.mark(19, 'bottom', 'gnd', 'net-gnd');
+    bb.mark(21, 'bottom', 'in', ''); bb.mark(26, 'bottom', 'v5', 'net-5v');
+    const J = (from, to, net, cls, lift, title) => S.part(bbSvg, 'jumper', { from, to, net, cls, lift, title });
+    const w = {};
+    J(pinAt.v33, bb.rail('top', '+', 2), 'v33', 'net-3v3', 10, '3V3 плати → верхня шина +');
+    w.gp = J(pinAt.gnd, bb.rail('top', '-', 3), 'gnd', 'net-gnd', 10, 'GND плати → верхня шина −');
+    J(bb.rail('top', '+', 4), bb.hole(4, 'a'), 'v33', 'net-3v3', 0, 'Шина 3,3 В → стовпчик 4');
+    // LDR body (custom): leads 4c–8c
+    const a = bb.hole(4, 'c'), b = bb.hole(8, 'c');
+    const ldr = S.svg('g', { class: 'bb-ldr' }, bbSvg);
+    S.svg('title', {}, ldr).textContent = 'Фоторезистор R1 (LDR): стовпчики 4 і 8, полярності немає';
+    S.svg('path', { class: 'bb-lead', d: `M${a.x} ${a.y}V${a.y - 10}H${b.x}V${b.y}` }, ldr);
+    S.svg('circle', { cx: (a.x + b.x) / 2, cy: a.y - 12, r: 10, fill: '#e8c66a', stroke: '#8a6d1d', 'stroke-width': 1 }, ldr);
+    S.svg('path', { d: `M${(a.x + b.x) / 2 - 6} ${a.y - 16}h3v4h3v-4h3v4h3`, fill: 'none', stroke: '#9b3b1f', 'stroke-width': 1.5 }, ldr);
+    S.svg('text', { class: 'bb-part-lbl', x: (a.x + b.x) / 2, y: a.y - 26, 'text-anchor': 'middle' }, ldr).textContent = 'R1';
+    S.part(bbSvg, 'res', { from: bb.hole(8, 'e'), to: bb.hole(13, 'e'), ohms: 10000, label: 'R2' });
+    J(bb.hole(13, 'a'), bb.rail('top', '-', 13), 'gnd', 'net-gnd', 0, 'Стовпчик 13 → шина GND');
+    w.adc = J(pinAt.adc, bb.hole(8, 'a'), 'adc', 'net-sig', 26, 'GPIO4 → стовпчик 8 (середня точка дільника)');
+    // transistor stage (lower half)
+    w.g2 = J(pinAt.gpio2, bb.hole(15, 'f'), 'gpio2', 'net-sig2', 20, 'GPIO2 → стовпчик 15');
+    S.part(bbSvg, 'res', { from: bb.hole(15, 'g'), to: bb.hole(20, 'g'), ohms: 10000 });
+    { const p = bb.hole(16, 'g'); S.svg('text', { class: 'bb-part-lbl', x: p.x, y: p.y - 11, 'text-anchor': 'middle' }, bbSvg).textContent = 'R3'; }
+    const E = bb.hole(19, 'i'), Bq = bb.hole(20, 'i'), C = bb.hole(21, 'i');
+    const q = S.svg('g', {}, bbSvg);
+    S.svg('title', {}, q).textContent = 'VT1 BC547B: емітер у 19, база у 20, колектор у 21, плоским боком до центральної канавки';
+    [E, Bq, C].forEach((p) => S.svg('path', { class: 'bb-lead', d: `M${p.x} ${p.y}V${p.y - 18}` }, q));
+    S.svg('path', { class: 'bb-ic', d: `M${E.x - 8} ${E.y - 30}H${C.x + 8}A18 12 0 0 1 ${E.x - 8} ${E.y - 30}Z` }, q);
+    S.svg('text', { class: 'bb-part-lbl', x: E.x - 9, y: E.y + 5, 'text-anchor': 'end' }, q).textContent = 'VT1';
+    // Visible pin letters: the flat side faces the channel, so from the viewer it reads E-B-C.
+    [[E, 'E'], [Bq, 'B'], [C, 'C']].forEach(([p, t]) => { S.svg('text', { class: 'bb-txt', x: p.x, y: p.y - 20, 'text-anchor': 'middle' }, q).textContent = t; });
+    w.e = J(bb.hole(19, 'j'), bb.rail('bottom', '-', 19), 'gnd', 'net-gnd', 0, 'Емітер → шина GND');
+    S.part(bbSvg, 'res', { from: bb.hole(21, 'h'), to: bb.hole(26, 'h'), ohms: 10000 });
+    { const p = bb.hole(24, 'j'); S.svg('text', { class: 'bb-part-lbl', x: p.x, y: p.y + 4, 'text-anchor': 'middle' }, bbSvg).textContent = 'R4'; }
+    w.r4 = J(bb.hole(26, 'j'), bb.rail('bottom', '+', 26), 'v5', 'net-5v', 0, 'R4 → шина +5 В');
+    J(bb.rail('top', '-', 29), bb.rail('bottom', '-', 29), 'gnd', 'net-gnd', 0, 'Спільна GND: верхня шина − ↔ нижня шина −');
+    // relay module (right, off-board)
+    const mod = S.svg('g', {}, bbSvg);
+    S.svg('title', {}, mod).textContent = 'Модуль реле U2: гребінка IN, VCC, GND';
+    S.svg('rect', { class: 'bb-mod', x: 440, y: 112, width: 116, height: 104, rx: 5 }, mod);
+    S.svg('rect', { x: 486, y: 124, width: 62, height: 50, rx: 3, fill: '#2f7fd6', stroke: '#123d6e' }, mod);
+    S.svg('text', { class: 'bb-txt', x: 517, y: 154, 'text-anchor': 'middle' }, mod).textContent = 'реле';
+    const mp = { in: { x: 448, y: 140 }, v5: { x: 448, y: 166 }, gnd: { x: 448, y: 192 } };
+    [['IN', 'in'], ['VCC', 'v5'], ['GND', 'gnd']].forEach(([t, k]) => {
+      S.svg('circle', { cx: mp[k].x, cy: mp[k].y, r: 3.5, fill: '#d9d9d9' }, mod);
+      S.svg('text', { class: 'bb-txt', x: 456, y: mp[k].y + 5 }, mod).textContent = t;
+    });
+    w.in = J(bb.hole(21, 'f'), mp.in, 'in', '', 30, 'Колектор (стовпчик 21) → IN модуля');
+    J(bb.rail('bottom', '+', 27), mp.v5, 'v5', 'net-5v', 14, 'Шина +5 В → VCC модуля');
+    J(bb.rail('bottom', '-', 28), mp.gnd, 'gnd', 'net-gnd', 6, 'Шина GND → GND модуля');
+    S.svg('text', { class: 'sch-pin net-5v', 'data-net': 'v5', x: 556, y: 256, 'text-anchor': 'end' }, bbSvg).textContent = '+5 В від модуля живлення';
+
+    /* levels and current */
+    const dual = $('#dual-mp1');
+    let level = 'lo', flowOn = false;
+    function upd() {
+      const hi = level === 'hi';
+      S.setNetLevel(dual, 'gpio2', level);
+      S.setNetLevel(dual, 'in', hi ? 'lo' : 'hi');
+      const ib = hi ? 0.26 : 0, ic = hi ? 0.49 : 0;
+      [[$('#s-g2'), ib, 1], [$('#s-b'), ib, 1], [$('#s-e'), ib + ic, 1], [w.g2, ib, 1], [w.e, ib + ic, 1],
+       [$('#s-c'), ic, 1], [w.r4, ic, -1]].forEach(([el, mA, dir]) => {
+        if (flowOn) S.flow(el, { mA, dir, k: 40 }); else if (el && el._flow) el._flow.set(0);
+      });
+      $('#flow-out').textContent = hi
+        ? 'HIGH: I_B ≈ 0,26 мА, IN ≈ 0,1 В (LOW) → модуль active-LOW вмикає реле.'
+        : 'LOW: I_B = 0, VT1 закритий, R4 тягне IN до 5 В (HIGH) → реле вимкнене.';
+    }
+    $$('#lvl button').forEach((b) => b.addEventListener('click', () => { level = b.dataset.l; press($('#lvl'), b); upd(); }));
+    $('#flow-btn').addEventListener('click', (e) => {
+      flowOn = !flowOn;
+      e.currentTarget.setAttribute('aria-pressed', String(flowOn));
+      e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
+      upd();
+    });
+    upd();
+  })();
+});
+</script>
+</body>
+</html>

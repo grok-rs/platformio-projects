@@ -1,0 +1,1011 @@
+/* study.css: base and lesson-hub components for the study site. Look: "Bench Notebook" (SPEC.md).
+   Tokens, fonts and the page background live in theme.css (imported here, and linked by the older deep pages).
+   One reading column (.hub, 760 px); .wide children break out symmetrically; >= 1100 px adds a sticky TOC on the left.
+   Text never goes below 13 px; tap targets are >= 44 px on touch screens. Colour never carries meaning alone:
+   every state also has a label, an icon or a shape. Nothing moves on its own for more than 5 s. */
+@import url("theme.css");
+
+/* ================================================================ base */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; padding-inline: 16px; padding-block: 0 72px;
+  font: 400 var(--fs-body)/1.65 var(--f-body);
+  overflow-wrap: break-word; font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+a:hover { text-decoration-color: currentColor; text-decoration-thickness: 2px; }
+h1, h2, h3, h4 { font-family: var(--f-display); font-optical-sizing: auto; line-height: 1.15; text-wrap: balance; margin: 0; color: var(--ink); }
+h3 { font-size: var(--fs-h3); font-weight: 650; margin: 26px 0 8px; letter-spacing: -.005em; }
+h4 { font-size: var(--fs-h4); font-weight: 650; margin: 18px 0 6px; }
+p { margin: 0 0 14px; text-wrap: pretty; }
+ul, ol { margin: 4px 0 16px; padding-left: 24px; }
+li { margin-bottom: 6px; }
+li::marker { color: var(--copper); }
+b, strong { font-weight: 650; }
+img, svg, video, canvas { max-width: 100%; }
+svg { overflow: visible; }
+code, kbd, pre, .mono { font-family: var(--f-mono); font-variant-ligatures: none; }
+code {
+  font-size: max(13px, .88em); padding: .05em .38em; border-radius: 5px; overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--copper) 7%, var(--panel-2)); border: 1px solid color-mix(in srgb, var(--copper) 16%, var(--line));
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+pre {
+  font: 14px/1.6 var(--f-mono); padding: 12px 14px; overflow-x: auto; border-radius: var(--radius);
+  border: 1px solid var(--line); border-left: 3px solid var(--copper-hi); box-shadow: var(--shadow-inset);
+  /* a right-edge scroll shadow while lines are clipped: the paper-coloured cover scrolls with the content (local) and
+     hides the fixed shadow (scroll) once the end is reached */
+  background:
+    linear-gradient(270deg, var(--sunk) 40%, transparent) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--ink) 22%, transparent), transparent) right / 12px 100% no-repeat scroll,
+    var(--sunk);
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+kbd {
+  display: inline-block; font-size: .82em; line-height: 1.5; padding: 0 .45em; border-radius: 5px;
+  background: var(--panel); border: 1px solid var(--line-2); box-shadow: 0 1.5px 0 var(--line-2); color: var(--ink);
+}
+sub, sup { font-size: .75em; }
+:is(sub, sup):not(.cite) { font-size: max(13px, .75em); line-height: 0; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+.small { font-size: var(--fs-small); color: var(--muted); }
+.muted { color: var(--muted); }
+.num, .tab { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: 8px; top: -80px; z-index: 50; background: var(--accent); color: var(--accent-ink); padding: 8px 14px; border-radius: var(--r-sm); font-weight: 600; }
+.skip:focus { top: 8px; }
+
+/* ================================================================ controls */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 9px 18px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--panel); color: var(--ink); box-shadow: var(--shadow-key);
+  font: 600 15px/1.2 var(--f-body); text-decoration: none; text-align: center;
+  transition: transform var(--t1) var(--ease), box-shadow var(--t1) var(--ease), border-color var(--t1), background-color var(--t1), color var(--t1);
+}
+.btn:hover { border-color: var(--accent); color: var(--ink); text-decoration: none; transform: translateY(-1px); box-shadow: 0 3px 0 var(--line-2); }
+.btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--line-2); transition-duration: .05s; }
+.btn:disabled { opacity: 1; cursor: not-allowed; transform: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 0 var(--accent-deep); }
+.btn.primary:hover { color: var(--accent-ink); box-shadow: 0 3px 0 var(--accent-deep); filter: brightness(1.06); }
+.btn.primary:active { box-shadow: 0 0 0 var(--accent-deep); }
+.btn.ghost { background: transparent; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--line-2)); box-shadow: none; }
+.btn.ghost:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); box-shadow: none; }
+.btn.sm { min-height: 38px; padding: 6px 13px; font-size: 14px; border-radius: 9px; }
+.btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); transform: none; }
+.btn.teach { color: var(--ink); border-color: var(--line-2); border-style: dashed; background: var(--panel); box-shadow: none; }
+.btn.teach:hover { border-color: var(--teach); }
+.btn.teach[aria-pressed="true"] { background: color-mix(in srgb, var(--teach) 12%, var(--panel)); border-color: var(--teach); border-style: solid; box-shadow: inset 0 0 0 1px var(--teach); color: var(--ink); }
+/* disabled = an empty outline with a muted label: "waiting for your choice", not a washed-out green */
+.btn:disabled, .btn.primary:disabled, .btn.ghost:disabled, .btn:disabled:hover {
+  background: transparent; color: var(--muted); border-color: var(--line-strong); box-shadow: none; filter: none; transform: none;
+}
+.btn-row, .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0; }
+@media (pointer: coarse) { .btn.sm { min-height: 44px; } }
+
+input[type="text"], input[type="number"], input:not([type]), textarea, select {
+  font: 500 16px/1.4 var(--f-body); color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 11px; min-height: 44px; max-width: 100%;
+  box-shadow: var(--shadow-inset); transition: border-color var(--t1), box-shadow var(--t1);
+}
+/* Control boundaries must be >= 3:1 (WCAG 1.4.11). Pages style their own selects/inputs with --line, so this rule
+   outranks page CSS (the :not(#\#) adds id weight) without touching their layout. Validation states keep their colour. */
+:is(input:not([type="range"], [type="checkbox"], [type="radio"], [type="hidden"], [type="color"]), select, textarea):not(.ok, .no):not(#\#) { border-color: var(--line-strong); }
+:is(input, select, textarea):not(.ok, .no):not(#\#):hover { border-color: var(--accent); }
+:is(input, textarea, select):not(#\#):focus-visible { outline: 2.5px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+textarea { width: 100%; resize: vertical; min-height: 72px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .85; }
+
+/* small-caps labels used by many components */
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent);
+}
+
+/* ================================================================ chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; padding: 0; list-style: none; }
+.chips li { margin: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 5px 13px;
+  border: 1px solid var(--line-2); border-radius: var(--r-pill); background: var(--panel);
+  font: 500 14px/1.25 var(--f-body); color: var(--ink); text-decoration: none; max-width: 100%;
+  transition: border-color var(--t1), background-color var(--t1), transform var(--t1) var(--ease);
+}
+.chip .k { font: 600 13px var(--f-mono); color: var(--muted); }
+a.chip { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 38%, var(--line-2)); }
+a.chip:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--panel)); text-decoration: none; transform: translateY(-1px); }
+a.chip[href^="http"]::after { content: "↗"; font-size: .9em; }
+.chip.deep::before { content: "Глибше"; font: 600 13px var(--f-mono); color: var(--muted); margin-right: 2px; }
+.materials .chip.deep::before { content: none; } /* the «Матеріали» list already sits under «Глибше» */
+.chip.ok { border-color: var(--ok); color: var(--ok); }
+.chip.ok::before, .chip.warn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.chip.warn { border-color: var(--hi); color: var(--warn); }
+.chip.teach { border-color: var(--teach); color: var(--teach); border-style: dashed; }
+/* touch: every small target is >= 44 px (chips, glossary and misconception chips, quiz dots, summaries, buttons);
+   citation numbers and «↩» back-links keep their size and get a larger invisible hit area */
+@media (pointer: coarse) {
+  .chip, .btn, summary { min-height: 44px; }
+  .gl-chip, .mc-chip { display: inline-flex; align-items: center; min-height: 44px; }
+  :root :is(.quiz, .qz) .qz-dot { width: 44px; height: 44px; min-width: 44px; }
+  .hub :is(input:not([type="range"], [type="checkbox"], [type="radio"], [type="hidden"]), select) { min-height: 44px; }
+  sup.cite a, .src-back { position: relative; }
+  sup.cite a::after, .src-back::after { content: ""; position: absolute; inset: -12px -8px; }
+}
+/* Page-local CSS (e.g. «.presets .btn{min-height:36px}», 42 px .seg keys) outranks the block above, so the shared
+   floor carries id weight here. Layout is untouched: only the minimum box grows. Inline chips keep their line and
+   get an invisible hit area instead. */
+@media (pointer: coarse) {
+  :root:not(#\#) :is(.hub, main, .atl, .wrap) :is(.btn, .btn.sm, .seg button, .presets .btn, details > summary, .hub-toc a, .opt, .linkish, .ld,
+    .net-btn, .net-legend button, .pts button, .phase-btns button, .fchip, .fc-anki, .k-btn, .dual-tabs button) { min-height: 44px; }
+  :root:not(#\#) :is(.hub, main, .atl) :is(.seg button, .pts button, .k-btn, .net-btn, .ld) { min-width: 44px; }
+  :root:not(#\#) .hub-mbar a { min-height: 44px; }
+  :root:not(#\#) :is(.hub, main, .atl) input[type="range"] { min-height: 44px; }
+  :root:not(#\#) :is(.hub, main, .atl) label:has(> input:is([type="checkbox"], [type="radio"])):not(.scale label) { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+  :root:not(#\#) .fc-links a { display: inline-flex; align-items: center; min-height: 44px; }
+  :is(.atl-card, .atl-les) .chip { position: relative; }
+  :is(.atl-card, .atl-les) .chip::before { content: ""; position: absolute; inset: -11px 0; }
+}
+
+/* ================================================================ hub layout */
+.hub { max-width: 760px; margin: 0 auto; padding-top: 4px; }
+.hub > header, .hub-head { padding-block: clamp(24px, 4vw, 44px) 6px; }
+.eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  font: 600 13px/1.4 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); margin: 0 0 12px;
+}
+.eyebrow::before { content: ""; flex: none; width: 22px; height: 1.5px; background: currentColor; }
+.hub h1 { font-size: var(--fs-h1); font-weight: 700; line-height: 1.06; letter-spacing: -.018em; margin: 0 0 14px; }
+/* The accent word: copper with a solder-trace underline that skips descenders (never crosses «р», «у»). */
+.hub h1 span, .hl-word {
+  color: var(--copper);
+  text-decoration: underline; text-decoration-color: var(--copper-hi); text-decoration-thickness: .075em;
+  text-underline-offset: .2em; text-decoration-skip-ink: auto;
+}
+.lead { font-size: var(--fs-lead); line-height: 1.6; color: var(--muted); max-width: 62ch; margin: 0 0 16px; }
+@media (max-width: 480px) {
+  .hub > header .lead { margin-bottom: 12px; }
+}
+/* «Я це знаю → до самоперевірки» is a quiet ghost key at every width, so a beginner's first choice (and the only
+   filled button in the hero) is not "skip the lesson". */
+.hub > header .actions a.btn.primary[href="#check"] {
+  background: transparent; border-color: var(--line-strong); color: var(--ink); box-shadow: none; filter: none; font-weight: 600;
+}
+.hub > header .actions a.btn.primary[href="#check"]:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: none; filter: none; }
+/* Phones: the hero is a compact title block. The meta chips become one muted mono line of facts and links, and
+   the skip key becomes a plain text link. */
+@media (max-width: 640px) {
+  .hub > header { padding-block: 14px 0; }
+  .hub > header .eyebrow { margin-bottom: 8px; }
+  .hub > header h1 { margin-bottom: 8px; }
+  .hub > header .lead { line-height: 1.5; margin-bottom: 6px; }
+  .hub > .hub-toc { margin-top: 12px; }
+  .hub > header + .hub-toc + section.hs, .hub > header + section.hs { margin-top: 28px; padding-top: 22px; }
+  .hub > header .chips { gap: 0 14px; margin: 8px 0 4px; }
+  .hub > header .chip {
+    min-height: 32px; padding: 2px 0; border: 0; border-radius: 0; background: none;
+    font: 500 13px/1.4 var(--f-mono); color: var(--muted);
+  }
+  .hub > header a.chip { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .hub > header a.chip:hover { background: none; transform: none; }
+  .hub > header .actions { margin: 4px 0 0; }
+  .hub > header .actions a.btn.primary[href="#check"] {
+    min-height: 44px; padding: 0; background: none; border: 0; box-shadow: none; filter: none;
+    color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .hub > header .actions a.btn.primary[href="#check"]:hover { transform: none; }
+}
+@media (max-width: 640px) and (pointer: coarse) { .hub > header a.chip { min-height: 44px; } }
+
+/* Section: a ruler edge on top (hairline + 8 px ticks + 40 px major ticks), then the pad-numbered heading. */
+section.hs {
+  margin-top: clamp(44px, 6vw, 64px); padding-top: 30px; scroll-margin-top: 16px;
+  background-image:
+    linear-gradient(var(--line), var(--line)),
+    repeating-linear-gradient(90deg, var(--line-2) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, var(--copper-hi) 0 1.5px, transparent 1.5px 40px);
+  background-size: 100% 1px, 121px 5px, 82px 10px;
+  background-position: 0 0, 0 1px, 0 1px;
+  background-repeat: no-repeat;
+}
+section.hs > h2, .hs-h {
+  display: flex; align-items: center; gap: 14px;
+  font-size: var(--fs-h2); font-weight: 680; letter-spacing: -.012em; margin: 0 0 18px;
+}
+h2 .n {
+  flex: none; display: inline-grid; place-items: center; min-width: 2.5em; height: 2em; padding: 0 .4em;
+  font: 700 14px/1 var(--f-mono); letter-spacing: .02em; color: var(--copper);
+  background: color-mix(in srgb, var(--copper) 9%, var(--panel)); border: 1.5px solid color-mix(in srgb, var(--copper) 50%, var(--line));
+  border-radius: 8px; box-shadow: inset 0 0 0 2.5px var(--panel);
+}
+section.hs > h2 + .sub, .hs-sub { margin: -8px 0 18px; color: var(--muted); }
+.hs > :is(p, ul, ol), .gl .def { max-width: 68ch; }
+.small, .pb p.small { max-width: 75ch; }
+:is(.gated p.small, .ph ~ p.small, .answers p, .hs li, .note p) { max-width: 68ch; }
+
+/* Wide blocks (widgets, dual figures) break out of the 760 px column SYMMETRICALLY.
+   Without a TOC: up to 1080 px, centred on the column. study.js keeps --sbw = the classic scrollbar's width. */
+.wide { --wide-w: min(1080px, 100vw - var(--sbw, 0px) - 32px); }
+:is(.hub, section.hs) .wide {
+  width: var(--wide-w); max-width: none;
+  margin-inline: min(0px, (100% - var(--wide-w)) / 2);
+}
+
+details.more { margin: 16px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+details.more > summary {
+  cursor: pointer; list-style: none; padding: 10px 16px; min-height: 48px; display: flex; align-items: center; gap: 10px;
+  font-weight: 600; color: var(--accent); border-radius: inherit;
+}
+details.more > summary:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before {
+  content: "+"; flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px;
+  font: 700 15px/1 var(--f-mono); border: 1.5px solid currentColor; transition: transform var(--t2) var(--ease);
+}
+details.more[open] > summary::before { content: "−"; transform: rotate(180deg); }
+details.more > :not(summary) { margin-inline: 16px; }
+details.more > :last-child:not(summary) { margin-bottom: 16px; }
+
+/* ================================================================ TOC (generated by Study.toc) */
+.hub-toc { margin: 20px 0 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+.hub-toc > summary {
+  cursor: pointer; list-style: none; padding: 10px 16px; min-height: 48px; display: flex; align-items: center; justify-content: space-between;
+  font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper);
+}
+.hub-toc > summary::-webkit-details-marker { display: none; }
+.hub-toc > summary::after { content: "▾"; font-size: 14px; transition: transform var(--t2); }
+.hub-toc[open] > summary::after { transform: rotate(180deg); }
+.hub-toc ol { list-style: none; margin: 0; padding: 0 8px 10px; }
+.hub-toc li { margin: 0; }
+.hub-toc a {
+  display: flex; gap: 10px; align-items: baseline; padding: 8px 10px; min-height: 40px; border-radius: 8px;
+  color: var(--ink); text-decoration: none; font-size: 15px; line-height: 1.3; position: relative;
+}
+.hub-toc a .n { font: 600 13px var(--f-mono); color: var(--muted); flex: none; min-width: 2ch; font-variant-numeric: tabular-nums; }
+.hub-toc a:hover { background: var(--panel-2); }
+.hub-toc a[aria-current] { background: color-mix(in srgb, var(--copper) 9%, var(--panel)); font-weight: 600; box-shadow: inset 3px 0 0 var(--copper); }
+.hub-toc a[aria-current] .n { color: var(--copper); }
+.hub-toc li.t-only a { color: var(--teach); }
+
+@media (min-width: 1100px) {
+  /* TOC | gap | 760 px column | equal gap. The column sits centred between the TOC and the right edge,
+     so wide blocks can grow by the same amount on both sides without touching the TOC. */
+  .hub.has-toc {
+    max-width: 1400px; container-type: inline-size;
+    display: grid; grid-template-columns: [toc-start] 210px [toc-end] minmax(36px, 1fr) [main-start] minmax(0, 760px) [main-end] minmax(0, 1fr);
+    row-gap: 0;
+  }
+  .hub.has-toc > * { grid-column: main; min-width: 0; }
+  .hub.has-toc > .hub-toc {
+    grid-column: toc; grid-row: 1 / span 80; align-self: start;
+    position: sticky; top: 16px; margin-top: 36px; max-height: calc(100vh - 32px); overflow-y: auto;
+    background: transparent; border: 0; box-shadow: none; scrollbar-width: thin;
+  }
+  .hub.has-toc > .hub-toc > summary { pointer-events: none; padding-inline: 12px; min-height: 36px; }
+  .hub.has-toc > .hub-toc > summary::after { content: none; }
+  /* the TOC hangs on a ruler: a hairline with a tick at every entry */
+  .hub.has-toc > .hub-toc ol { padding: 0 0 8px 12px; margin-left: 12px; border-left: 1px solid var(--line-2); }
+  .hub.has-toc > .hub-toc li { position: relative; }
+  .hub.has-toc > .hub-toc li::before { content: ""; position: absolute; left: -12px; top: 18px; width: 6px; height: 1px; background: var(--line-2); }
+  .hub.has-toc > .hub-toc a { font-size: 14px; padding: 6px 10px; min-height: 34px; }
+  /* a TOC taller than the window: tighter rows, and the end of the list fades so it reads as scrollable */
+  .hub.has-toc > .hub-toc:is(:hover, :focus-within) { scrollbar-width: thin; }
+  .hub.has-toc > .hub-toc { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); padding-bottom: 24px; }
+  .hub.has-toc > .hub-toc li:has(> a[aria-current])::before { background: var(--copper); width: 9px; height: 2px; top: 17px; }
+  .hub.has-toc .wide {
+    /* the overhang stops 40 px short of the TOC rail on both sides (the column stays centred) */
+    --wide-w: min(1080px, max(760px, 100cqw - 290px));
+    width: var(--wide-w); margin-inline: calc((100% - var(--wide-w)) / 2);
+  }
+  @media (max-height: 760px) { .hub.has-toc > .hub-toc a { padding-block: 4px; min-height: 30px; } .hub.has-toc > .hub-toc li::before { top: 15px; } }
+  /* the calm band of the dot grid follows the shifted column */
+  body:has(.hub.has-toc)::before { --calm-c: calc(50% + 105px); }
+}
+
+/* ================================================================ callouts */
+.note {
+  position: relative; margin: 18px 0; padding: 12px 16px 13px 18px; border-radius: 4px var(--radius) var(--radius) 4px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--hl);
+}
+.note::before {
+  content: "Примітка"; display: block; margin-bottom: 4px;
+  font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--hl);
+}
+/* tip = a flat sticky note with a folded corner (no tilt, no tape: text stays crisp) */
+.note.tip {
+  background: var(--sticky); border: 1px solid var(--sticky-edge); border-radius: 4px 4px 4px 4px;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--sticky-edge) 60%, transparent), 0 10px 20px -16px rgba(70, 45, 20, .45);
+  padding-right: 30px;
+}
+.note.tip::after {
+  content: ""; position: absolute; right: -1px; bottom: -1px; width: 20px; height: 20px;
+  background: linear-gradient(315deg, var(--paper) 0 50%, var(--sticky-edge) 50% 100%);
+  border-top-left-radius: 4px; box-shadow: -1px -1px 2px rgba(70, 45, 20, .12);
+}
+.note.tip::before { content: "✓ Порада"; color: var(--hi-ink); }
+/* warn / danger = hazard tape on the left edge: amber or red stripes on black, the same in both themes */
+.note.warn, .note.danger { border-left: 1px solid var(--line); padding-left: 26px; }
+.note.warn {
+  border-color: color-mix(in srgb, var(--hi) 45%, var(--line));
+  background:
+    repeating-linear-gradient(-45deg, var(--hi) 0 6px, #241c12 6px 12px) left top / 9px 100% no-repeat,
+    color-mix(in srgb, var(--hi) 8%, var(--panel));
+}
+.note.warn::before { content: "! Увага"; color: var(--warn); }
+.note.danger {
+  border: 1.5px solid var(--bad);
+  background:
+    repeating-linear-gradient(-45deg, var(--bad) 0 6px, #241c12 6px 12px) left top / 10px 100% no-repeat,
+    color-mix(in srgb, var(--bad) 7%, var(--panel));
+}
+.note.danger::before { content: "⚠ Може пошкодити залізо"; color: var(--bad); }
+.note[data-label]::before { content: attr(data-label); }
+.note.plain::before { content: none; }
+.note > :last-child { margin-bottom: 0; }
+
+/* «Головне»: copper margin mark, the one takeaway per idea */
+p.key, .key {
+  margin: 16px 0 0; padding: 12px 16px 12px 16px; border-radius: 4px 10px 10px 4px;
+  background: color-mix(in srgb, var(--copper) 7%, var(--panel)); border-left: 3px solid var(--copper);
+}
+.key > b:first-child {
+  display: inline-block; margin-right: 8px; font: 700 13px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper);
+  vertical-align: .08em;
+}
+.key > b:first-child::after { content: ":"; }
+
+/* ================================================================ idea cards */
+.idea {
+  margin: 20px 0; padding: 20px 20px 18px; border-radius: var(--r-lg);
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.idea > h3 { margin: 0 0 10px; font-size: var(--fs-h3); }
+.idea > p { margin: 0 0 12px; }
+/* figure sheet: a recessed drawing sheet. No grid behind wires; the caption sits on the same flat sheet. */
+.idea figure {
+  margin: 6px 0 14px; min-width: 0; padding: 14px 14px 12px; border-radius: var(--radius);
+  background: var(--sheet); border: 1px solid var(--line); box-shadow: var(--shadow-inset);
+}
+.idea figure svg, .idea figure img, .idea figure canvas { display: block; width: 100%; height: auto; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+figcaption code { font-size: max(13px, .88em); }
+.idea figure figcaption { padding-top: 8px; border-top: 1px dashed var(--line); }
+@media (min-width: 820px) {
+  /* text | figure: the text track is the wider one, and the figure follows long text (sticky) */
+  .idea:has(> figure) { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(260px, 1fr); column-gap: 24px; row-gap: 0; align-content: start; }
+  .idea:has(> figure) > * { grid-column: 1; }
+  .idea:has(> figure) > :is(h3, .key, .full) { grid-column: 1 / -1; }
+  /* the figure spans the text rows only (rows 2–12; «Головне» is pinned to row 13), so the sticky sheet never slides over it */
+  .idea:has(> figure) > figure { grid-column: 2; grid-row: 2 / span 11; align-self: start; margin: 0 0 12px; position: sticky; top: 96px; }
+  .idea:has(> figure) > .key { align-self: end; position: relative; z-index: 1; grid-row: 13; }
+  .idea:not(:has(> figure)) > :not(h3) { max-width: 68ch; }
+  /* a card with code, or a long one (4+ paragraphs): one 68ch text column; the figure gets the full card width
+     (after the text in a long card), so there is no tall empty column and code is not squeezed */
+  .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) { grid-template-columns: minmax(0, 1fr); }
+  .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) > * { grid-column: 1; }
+  .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) > :not(h3, figure, pre, .key) { max-width: 68ch; }
+  .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) > figure { grid-row: auto; position: static; margin: 6px 0 14px; }
+  .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) > figure > :is(svg, img, canvas) { max-width: min(100%, 520px); margin-inline: auto; }
+  .idea:has(> figure):has(> p:nth-of-type(4)):not(:has(> pre)) > figure { order: 1; }
+  .idea:has(> figure):has(> p:nth-of-type(4)):not(:has(> pre)) > .key { order: 2; }
+  .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) > .key { grid-row: auto; }
+}
+@media (min-width: 900px) {
+  /* a wider drawing column: a 320-unit viewBox renders its 14-unit labels at >= 13 px */
+  .idea:has(> figure):not(:has(> pre), :has(> p:nth-of-type(4))) { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
+}
+/* a full-width idea figure (no side column) is capped and centred, so the drawings of one page share a scale */
+.idea:not(:has(> figure)) figure > :is(svg, img), .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) > figure > :is(svg, img) { max-width: min(100%, 440px); margin-inline: auto; }
+
+/* ================================================================ predict → gated widget */
+.predict {
+  margin: 20px 0; padding: 16px 18px 18px; border-radius: var(--r-lg);
+  border: 1px solid var(--line-strong); background: var(--panel);
+}
+/* labels: warm-up = copper (wayfinding); predict-first = brass with an amber LED (SPEC §0 «amber LED») */
+.predict > .tag { color: var(--copper); }
+.predict[data-gate] > .tag { color: var(--hi-ink); }
+.predict[data-gate] > .tag::before {
+  content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--hi);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hi) 25%, transparent);
+}
+.predict > p, .predict .q { margin: 6px 0 12px; font-weight: 600; font-size: 1.04rem; line-height: 1.5; }
+.opts { display: grid; gap: 8px; }
+@media (min-width: 560px) { .opts.cols-2 { grid-template-columns: 1fr 1fr; } }
+/* Options read like radio buttons: empty ring → dot (your pick) → ✓ / ✗ in a filled disc, plus a text label. */
+/* The ring is absolutely placed in a left gutter, so the answer text (with any inline <code>/<b>) flows as one
+   block in its own column at every width, and the verdict pill follows the text inline. */
+.opt {
+  display: block; position: relative; width: 100%; text-align: left;
+  min-height: 50px; padding: 13px 14px 13px 48px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--panel-2); color: var(--ink); font: 500 16px/1.4 var(--f-body);
+  box-shadow: 0 1.5px 0 var(--line-2);
+  transition: border-color var(--t1), background-color var(--t1), transform var(--t1) var(--ease), box-shadow var(--t1);
+}
+.opt::before {
+  content: ""; position: absolute; left: 14px; top: calc(13px + .7em - 11px);
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; box-sizing: border-box;
+  border: 2px solid var(--line-strong); background: var(--panel); font: 800 13px/1 var(--f-body); color: var(--panel);
+  transition: border-color var(--t1), background var(--t1);
+}
+.opt:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--panel-2)); transform: translateY(-1px); box-shadow: 0 2.5px 0 var(--line-2); }
+.opt:hover:not(:disabled)::before { border-color: var(--accent); }
+.opt:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+.opt:disabled { cursor: default; }
+.opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.opt[aria-pressed="true"]::before, .opt.chosen::before { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 4.5px, var(--panel) 5.5px); }
+.opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel)); color: var(--ink); box-shadow: inset 0 0 0 1px var(--ok); }
+.opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--panel)); color: var(--ink); box-shadow: inset 0 0 0 1px var(--bad); }
+.opt.right::before { content: "✓"; border-color: var(--ok); background: var(--ok); }
+.opt.wrong::before { content: "✗"; border-color: var(--bad); background: var(--bad); }
+.opt.right::after, .opt.wrong::after, .opt.chosen::after {
+  display: inline-block; margin-left: 8px; padding: 0 9px; border-radius: var(--r-pill); white-space: nowrap; vertical-align: 1px;
+  font: 600 13px/1.5 var(--f-mono); border: 1px solid currentColor;
+}
+.opt.right::after { content: "правильна"; color: var(--ok); }
+.opt.right.chosen::after { content: "ваш прогноз ✓"; }
+.opt.wrong::after { content: "ваш прогноз"; color: var(--bad); }
+.opt.chosen:not(.right):not(.wrong)::after { content: "ваш прогноз"; color: var(--accent); }
+.fb { margin-top: 12px; font-size: 15px; min-height: 1.2em; color: var(--muted); }
+.fb:empty { margin-top: 0; min-height: 0; }
+.fb.ok { color: var(--ok); } .fb.no { color: var(--bad); }
+.fb .txt { color: var(--ink); }
+/* the verdict of a prediction or a numeric try: the self-check callout (panel strip, ok / bad margin mark, glyph) */
+:is(.predict, .try) > .fb:is(.ok, .no), .try .fb:is(.ok, .no) {
+  padding: 10px 14px; border-radius: 4px 10px 10px 4px; color: var(--ink); line-height: 1.5;
+  background: var(--sunk); border: 1px solid var(--line); border-left: 4px solid var(--ok);
+}
+:is(.predict, .try) > .fb.no, .try .fb.no { border-left-color: var(--bad); }
+:is(.predict, .try) > .fb:is(.ok, .no)::before, .try .fb:is(.ok, .no)::before { font-weight: 800; margin-right: 6px; }
+:is(.predict, .try) > .fb.ok::before, .try .fb.ok::before { content: "✓"; color: var(--ok); }
+:is(.predict, .try) > .fb.no::before, .try .fb.no::before { content: "✗"; color: var(--bad); }
+.explain {
+  margin-top: 12px; padding: 12px 14px; border-radius: 4px 10px 10px 4px;
+  background: var(--sunk); border-left: 3px solid var(--hi);
+}
+.explain > .tag { color: var(--hi-ink); }
+.explain p { margin: 4px 0 6px; }
+.explain details > summary { cursor: pointer; color: var(--accent); font-weight: 600; min-height: 40px; display: flex; align-items: center; }
+.explain details p { margin: 4px 0 0; }
+.predict .redo { margin-top: 12px; }
+
+/* Gate: the widget's title bar stays readable, the body is a faded preview of its controls and drawing, with a calm
+   "predict first" label that stays in view (sticky) and an amber LED. It is a button: it scrolls back to the
+   prediction. Anything that could carry the answer (readouts, explanation text, code, canvas plots, dynamic SVG
+   labels) keeps its space but stays empty until the prediction is made, at every width (blur alone leaks on phones). The drawing's shapes stay; its labels go. */
+.gated { position: relative; margin: 20px 0; border-radius: var(--r-lg); }
+.gated:not(.open) { min-height: 160px; }
+.gated:not(.open) > :not(.gate-msg) { filter: blur(1.6px) grayscale(.35); opacity: .6; pointer-events: none; user-select: none; -webkit-user-select: none; }
+.gated:not(.open) > :is(.ph, .w-head, header) { filter: none; opacity: 1; }
+.gated:not(.open) > :not(.gate-msg, .ph, .w-head, header) :is(p, li, figcaption, dd, .note, .status, pre, code, .code, .serial, td, details,
+  canvas, svg text, [data-answer], [aria-live], [role="status"], [class*="code"], output, .readout, .lcd, .ro, .val, .v) { visibility: hidden; }
+@media (max-width: 640px) { .gated:not(.open) > :not(.gate-msg) { filter: none; } } /* blur is costly on low-end phones */
+/* the overlay starts under the title bar: a one-column grid whose row 1 is the header; the absolutely placed
+   .gate-msg takes grid line 2 → the bottom edge as its containing block */
+.gated:has(> :is(.ph, .w-head, header)) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+.gated:has(> :is(.ph, .w-head, header)) > .gate-msg { grid-row: 2 / auto; grid-column: 1 / -1; border-radius: 0 0 var(--r-lg) var(--r-lg); border-top: 0; }
+.gate-msg {
+  position: absolute; inset: 0; z-index: 3; display: grid; justify-items: center; align-items: start;
+  padding: clamp(24px, 5vw, 48px) 12px 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--paper) 55%, transparent), color-mix(in srgb, var(--paper) 18%, transparent) 220px);
+  border: 1px solid var(--line-strong); border-radius: inherit;
+}
+.gate-msg button {
+  position: sticky; top: 20px; display: inline-flex; align-items: center; gap: 10px;
+  font: 600 15px/1.3 var(--f-body); color: var(--ink); background: var(--panel); cursor: pointer;
+  border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); padding: 10px 18px 10px 14px; min-height: 46px;
+  box-shadow: var(--shadow-lift); transition: border-color var(--t1), transform var(--t1) var(--ease);
+}
+.gate-msg button::before {
+  content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--hi);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hi) 28%, transparent), 0 0 8px color-mix(in srgb, var(--hi) 60%, transparent);
+}
+.gate-msg button:hover { border-color: var(--accent); transform: translateY(-1px); }
+.gated.open { animation: gate-open .5s var(--ease); }
+@keyframes gate-open { from { opacity: .55; filter: blur(1.6px); } to { opacity: 1; filter: none; } }
+
+/* hub segmented controls on narrow phones: five or more keys make a 3-column block (no orphan «100 мкс») */
+@media (max-width: 420px) {
+  .hub .seg:has(> button:nth-of-type(5)) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hub .seg:has(> button:nth-of-type(5)) > button { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* widget frame helpers for page authors */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; box-shadow: var(--shadow); }
+.ph { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.ph h3, .ph h4 {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0;
+  font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink);
+}
+.ph h3::before, .ph h4::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.pb { padding: 16px; }
+.pb > :first-child { margin-top: 0; }
+.ctl { display: grid; gap: 4px; min-width: 0; font-size: 14px; }
+.ctl > label, .ctl > span:first-child { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.ctl b, .out { font: 600 14px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.hub canvas { display: block; }
+[data-sim] { cursor: pointer; }
+[data-sim="paused"] { outline: 1px dashed var(--line-strong); outline-offset: -1px; }
+
+/* ================================================================ try (numeric self-check): brass = "try it" */
+.try {
+  margin: 20px 0; padding: 14px 18px 16px; border-radius: 4px var(--radius) var(--radius) 4px;
+  border: 1px solid color-mix(in srgb, var(--hi) 40%, var(--line)); border-left: 4px solid var(--hi);
+  background: color-mix(in srgb, var(--hi) 6%, var(--panel));
+}
+.try > .tag { color: var(--hi-ink); }
+.try h4, .try > p { margin: 4px 0 8px; font-family: var(--f-body); font-size: 1.02rem; font-weight: 600; line-height: 1.5; }
+.try .row { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 8px; }
+.try input { width: 9.5em; font: 600 17px var(--f-mono); font-variant-numeric: tabular-nums; }
+.try input.ok { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
+.try input.no { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.try .unit { font: 600 15px var(--f-mono); color: var(--muted); }
+.try details, .faded details { margin-top: 8px; font-size: 15px; }
+.try details > summary, .faded details > summary { cursor: pointer; color: var(--accent); font-weight: 600; min-height: 40px; display: inline-flex; align-items: center; }
+.try.solved { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 6%, var(--panel)); }
+
+/* ================================================================ worked / faded examples: numbered solder pads */
+ol.worked, ol.faded {
+  list-style: none; counter-reset: step; margin: 18px 0; padding: 6px 18px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow);
+}
+ol.worked > li, ol.faded > li {
+  counter-increment: step; position: relative; margin: 0; padding: 14px 0 14px 48px; border-top: 1px dashed var(--line);
+}
+ol.worked > li:first-child, ol.faded > li:first-child { border-top: 0; }
+ol.worked > li::before, ol.faded > li::before {
+  content: counter(step); position: absolute; left: 0; top: 12px; width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center; font: 700 14px var(--f-mono);
+  background: color-mix(in srgb, var(--copper) 12%, var(--panel)); color: var(--copper);
+  border: 2px solid var(--copper); box-shadow: inset 0 0 0 3px var(--panel);
+}
+ol.faded > li:has(.try)::before { background: var(--panel); color: var(--hi-ink); border: 2px dashed var(--hi); box-shadow: none; content: "?"; }
+.worked .why, .faded .why {
+  display: block; margin-top: 6px; padding: 4px 0 4px 12px; border-left: 2px solid var(--line-2);
+  font-size: 14.5px; color: var(--muted);
+}
+.worked .formula, .faded .formula, .formula {
+  display: block; font: 600 15px/1.55 var(--f-mono); font-variant-numeric: tabular-nums; overflow-x: auto;
+  margin: 8px 0; padding: 7px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line);
+}
+ol.faded > li .try { margin: 8px 0 0; padding: 10px 12px; }
+.ex-label { display: block; margin: 22px 0 6px; }
+.ex-label + :is(ol.worked, ol.faded) { margin-top: 0; }
+
+/* ================================================================ myths: three bands with a shape badge each */
+.myth {
+  position: relative; margin: 18px 0; border-radius: var(--r-lg); overflow: hidden;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow);
+}
+.myth > p { position: relative; margin: 0; padding: 12px 16px 13px 54px; }
+.myth > p::before { display: block; margin-bottom: 2px; font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+.myth > p::after {
+  position: absolute; left: 16px; top: 13px; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; font: 800 13px/1 var(--f-body); color: var(--panel);
+}
+.myth .seems { background: color-mix(in srgb, var(--bad) 7%, var(--panel)); border-bottom: 1px solid var(--line); }
+.myth .seems::before { content: "Здається"; color: var(--bad); }
+.myth .seems::after { content: "✗"; background: var(--bad); }
+.myth .truth { background: color-mix(in srgb, var(--ok) 7%, var(--panel)); }
+.myth .truth::before { content: "Насправді"; color: var(--ok); }
+.myth .truth::after { content: "✓"; background: var(--ok); }
+.myth .test { border-top: 1px dashed var(--line); }
+.myth .test::before { content: "Як переконатися"; color: var(--ink); }
+.myth .test::after { content: "?"; background: var(--muted); }
+.myth[data-mc]::after {
+  content: attr(data-mc); display: none; position: absolute; top: 8px; right: 10px;
+  font: 600 13px var(--f-mono); color: var(--teach); border: 1px dashed var(--teach); border-radius: 6px; padding: 1px 6px; background: var(--panel);
+}
+html.teacher .myth[data-mc]::after { display: block; }
+.myths { display: grid; gap: 0; }
+
+/* ================================================================ dual figure (schematic + breadboard) */
+figure.dual { margin: 20px 0; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+figure.dual > .view {
+  background: var(--sheet); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px 14px; min-width: 0;
+  box-shadow: var(--shadow-inset);
+}
+figure.dual > .view > svg, figure.dual > .view > img { display: block; width: 100%; height: auto; }
+/* one view on its own (the other collapsed or absent): a sane drawing size, not a 980 px blow-up of a 300 px viewBox */
+.view svg { display: block; max-width: 560px; max-height: 440px; margin-inline: auto; }
+/* title-block label of each sheet */
+figure.dual > .view::before {
+  content: attr(data-label); display: inline-flex; margin-bottom: 8px; padding: 2px 9px; border-radius: 6px;
+  font: 600 13px/1.4 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line-2); background: var(--panel);
+}
+figure.dual > .view[data-view="sch"]:not([data-label])::before { content: "Схема"; }
+figure.dual > .view[data-view="bb"]:not([data-label])::before { content: "Макетка"; }
+figure.dual > figcaption, figure.dual > .legend, figure.dual > .dual-tabs, figure.dual > .net-legend { grid-column: 1 / -1; }
+.dual-tabs { display: none; }
+@media (max-width: 719px) {
+  figure.dual { grid-template-columns: minmax(0, 1fr); }
+  figure.dual > .view { padding: 10px; }
+  .dual-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); width: max-content; max-width: 100%; }
+  .dual-tabs button {
+    min-height: 44px; padding: 8px 20px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); cursor: pointer;
+    font: 600 15px var(--f-body);
+  }
+  .dual-tabs button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 0 var(--line-2), 0 2px 6px -3px rgba(0, 0, 0, .3); }
+  figure.dual.tabbed > .view:not(.active) { display: none; }
+  figure.dual.tabbed > .view::before { display: none; }
+}
+/* net colour classes: wires use stroke; labels use the text-safe *-ink companions */
+.net-5v { stroke: var(--n5); color: var(--n5); }
+.net-3v3 { stroke: var(--n33); color: var(--n33); }
+.net-gnd { stroke: var(--ngnd); color: var(--ngnd); }
+.net-sig { stroke: var(--nsig); color: var(--nsig); }
+.net-sig2 { stroke: var(--nsig2); color: var(--nsig2); }
+.net-sig3 { stroke: var(--nsig3); color: var(--nsig3); }
+text.net-5v, text.net-3v3, text.net-gnd, text.net-sig, text.net-sig2, text.net-sig3 { fill: currentColor; stroke: none; }
+text.net-3v3 { fill: var(--n33-ink); }
+text.net-sig { fill: var(--nsig-ink); }
+.nets-focus [data-net]:not(.net-on) { opacity: .25; transition: opacity var(--t2); }
+[data-net].net-on { filter: drop-shadow(0 0 3px currentColor); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--muted); }
+.legend .sw { display: inline-block; width: 20px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; background: currentColor; }
+
+/* ================================================================ tables, measure table */
+.tbl { overflow-x: auto; max-width: 100%; margin: 16px 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); -webkit-overflow-scrolling: touch; box-shadow: var(--shadow); }
+.tbl > table { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl th, .tbl td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.tbl tr:last-child > th, .tbl tr:last-child > td { border-bottom: 0; }
+.tbl tbody tr:nth-child(even) > * { background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+.tbl thead th { font: 600 13px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); vertical-align: bottom; border-bottom: 1.5px solid var(--line-2); }
+.tbl tbody th { font-weight: 600; white-space: nowrap; }
+.tbl caption { caption-side: top; text-align: left; padding: 12px 14px 2px; font-weight: 600; }
+table.measure { min-width: 600px; }
+table.measure td { padding: 6px 8px; }
+table.measure input { width: 100%; min-width: 7ch; font: 500 15px var(--f-mono); font-variant-numeric: tabular-nums; padding: 7px 8px; }
+table.measure td.why-col input, table.measure td[data-col="why"] input { min-width: 16ch; font-family: var(--f-body); }
+table.measure td[data-col="diff"] { font: 600 15px var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 9ch; }
+table.measure td.diff-big { color: var(--warn); }
+table.measure td.diff-big::after { content: " !"; }
+/* Phones: a measure table is stacked, one card per row, each cell labelled with its column (data-label set by
+   study.js), so nothing has to be scrolled sideways. The header row stays for screen readers only. */
+@media (max-width: 599px) {
+  .tbl.tbl-stack { overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .tbl-stack > table.measure { display: block; min-width: 0; }
+  .tbl-stack > table.measure caption { display: block; padding: 0 0 8px; }
+  .tbl-stack > table.measure thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .tbl-stack > table.measure tbody { display: block; }
+  .tbl-stack > table.measure tr {
+    display: block; margin: 0 0 10px; padding: 8px 12px 6px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  }
+  .tbl-stack > table.measure tr > * { background: none !important; }
+  .tbl-stack > table.measure tbody th { display: block; padding: 2px 0 6px; border: 0; white-space: normal; font-size: 16px; }
+  .tbl-stack > table.measure td {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-width: 0; padding: 4px 0; border: 0;
+  }
+  .tbl-stack > table.measure td::before {
+    content: attr(data-label); flex: 0 0 38%; min-width: 0;
+    font: 600 13px/1.3 var(--f-mono); letter-spacing: .03em; color: var(--muted);
+  }
+  .tbl-stack > table.measure td > input, .tbl-stack > table.measure td > textarea { flex: 1 1 0; min-width: 0; width: auto; }
+  .tbl-stack > table.measure td[data-col="diff"] { min-width: 0; }
+  /* A page's own «scroll sideways →» hint is obsolete once its table is stacked. */
+  :is(.scroll-hint, .narrow-only):has(+ .tbl-stack) { display: none !important; }
+}
+.measure-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -4px 0 16px; }
+.measure-bar .saved { font-size: 14px; color: var(--muted); }
+
+/* ================================================================ team challenge: a job card */
+.challenge {
+  --team: var(--copper);
+  position: relative; margin: 20px 0; padding: 22px 20px 16px; border-radius: var(--r-lg); overflow: hidden;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+/* Every team does the same challenge, so the band and eyebrow are neutral copper whatever data-team says.
+   .challenge.is-mine[data-team] (opt-in) shows the team colour and the team disc. */
+.challenge::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 6px; background: var(--team); }
+.challenge.is-mine[data-team] { --team: var(--team-c); }
+.challenge > .tag { color: var(--team); }
+.challenge.is-mine[data-team] > .tag::before {
+  content: var(--team-g); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--team); color: var(--panel); font: 700 13px/1 var(--f-mono); letter-spacing: 0;
+}
+/* Team identity without colour: a disc with the unit symbol (Ω / V / A / F) before the team name. */
+:is(.team-disc, .challenge.is-mine)[data-team="ohm"] { --team-c: var(--team-ohm); --team-g: "Ω"; }
+:is(.team-disc, .challenge.is-mine)[data-team="volt"] { --team-c: var(--team-volt); --team-g: "V"; }
+:is(.team-disc, .challenge.is-mine)[data-team="amp"] { --team-c: var(--team-amp); --team-g: "A"; }
+:is(.team-disc, .challenge.is-mine)[data-team="farad"] { --team-c: var(--team-farad); --team-g: "F"; }
+.team-disc { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--team-c, var(--ink)); }
+.team-disc::before {
+  content: var(--team-g, "?"); flex: none; display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; min-width: 20px; min-height: 20px;
+  border-radius: 50%; background: var(--team-c, var(--muted)); color: var(--panel); font: 700 13px/1 var(--f-mono);
+}
+.challenge > h3 { margin: 6px 0 12px; }
+.challenge dl { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.challenge dt { font: 600 13px var(--f-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding-top: 10px; }
+.challenge dd { margin: 2px 0 0; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+.challenge dd:last-of-type { border-bottom: 0; }
+.challenge dd > :last-child { margin-bottom: 0; }
+.challenge dd > details.more:first-child { margin-top: 0; }
+.challenge dd ul, .challenge dd ol { margin: 4px 0 0; }
+@media (min-width: 640px) {
+  .challenge dl { grid-template-columns: 9.5rem minmax(0, 1fr); column-gap: 18px; }
+  .challenge dt { padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .challenge dd { padding: 10px 0; margin: 0; }
+  .challenge dt:last-of-type { border-bottom: 0; }
+}
+.rubric { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.rubric td, .rubric th { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+
+/* ================================================================ teacher notes */
+.tnote {
+  display: none; margin: 16px 0; padding: 12px 16px; border-radius: var(--radius);
+  border: 1.5px dashed var(--teach); background: color-mix(in srgb, var(--teach) 7%, var(--panel)); font-size: 15px;
+}
+.tnote::before {
+  content: "Для викладача"; display: block; margin-bottom: 4px;
+  font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--teach);
+}
+.tnote > :last-child { margin-bottom: 0; }
+html.teacher .tnote { display: block; }
+.t-only { display: none !important; }
+html.teacher .t-only { display: revert !important; }
+.teacher-btn::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--teach); }
+.teacher-btn[aria-pressed="true"]::before { background: var(--teach); }
+
+/* ================================================================ quiz / deck containers (filled by quiz.js, flashcards.js) */
+.quiz, .deck-mini {
+  margin: 18px 0; padding: 16px 18px; border-radius: var(--r-lg); background: var(--panel); border: 1px solid var(--line);
+  min-height: 80px;
+}
+.quiz:empty::before, .deck-mini:empty::before { content: "Завантаження…"; color: var(--muted); font-size: 15px; }
+.quiz .missing, .deck-mini .missing { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* quiz.js injects its own <style> after this file; these :root-prefixed rules refine it (no !important). */
+:root .quiz.quiz-mounted { padding: 20px 20px 18px; border-radius: var(--r-lg); }
+:root .qz-title { color: var(--copper); }
+:root .qz-dot { width: 36px; height: 36px; border-color: var(--line-2); }
+:root .qz-dot[aria-current="step"] { border-color: var(--copper); color: var(--copper); box-shadow: 0 0 0 3px color-mix(in srgb, var(--copper) 20%, transparent); }
+:root .qz-stem { font-size: 18px; }
+:root .qz-opt {
+  border-color: var(--line-2); border-radius: 12px; box-shadow: 0 1.5px 0 var(--line-2);
+  transition: border-color var(--t1), background-color var(--t1), transform var(--t1) var(--ease), box-shadow var(--t1), opacity var(--t2);
+}
+:root .qz-opt:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2.5px 0 var(--line-2); }
+:root .qz-opt:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+:root .qz-opt .k { border-radius: 50%; border-color: var(--line-strong); color: var(--ink); }
+:root .qz-opt.right, :root .qz-opt.wrong { box-shadow: inset 0 0 0 1px currentColor; }
+:root .qz-opt.right { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ok); }
+:root .qz-opt.wrong { color: var(--ink); box-shadow: inset 0 0 0 1px var(--bad); }
+:root .qz-opt .mark { display: inline-block; justify-self: start; padding: 1px 8px; border-radius: var(--r-pill); border: 1px solid currentColor; }
+:root .qz-badge { border-color: var(--line-2); }
+:root .qz-end { border-radius: var(--r-lg); background: color-mix(in srgb, var(--copper) 5%, var(--panel)); border-color: color-mix(in srgb, var(--copper) 30%, var(--line)); }
+:root .qz-end-h { font-weight: 700; }
+:root .qz-ring .fg { stroke: var(--accent); }
+:root .qz-fb.ok, :root .qz-fb.no { border-radius: 4px 10px 10px 4px; background: var(--sunk); }
+/* projector mode: a calm stage, serif stem, copper letter discs, code without broken boxes */
+:root .qp { border-radius: 20px; gap: 14px; background: var(--panel); min-height: min(66vh, 700px); }
+:root .qz-present-host:fullscreen .qp { min-height: 100vh; }
+:root .qp-stage { justify-content: flex-start; padding-top: clamp(4px, 2.5vh, 32px); }
+:root .qp-stem { font: 600 clamp(28px, 3vw, 48px)/1.22 var(--f-display); letter-spacing: -.01em; }
+:root .qp-opt { border-radius: 16px; border-color: var(--line-2); background: var(--panel-2); }
+:root .qp-letter { border-radius: 50%; border-color: var(--copper); color: var(--copper); font-weight: 700; }
+:root .qp-opt.right .qp-letter { background: var(--ok); border-color: var(--ok); color: var(--panel); }
+:root .qp-from { background: color-mix(in srgb, var(--copper) 9%, var(--panel)); border-color: color-mix(in srgb, var(--copper) 35%, var(--line)); }
+:root .qp-timer { border-color: var(--line-strong); }
+:root :is(.qp-stem, .qp-opt, .qp-explain) code { background: color-mix(in srgb, var(--copper) 9%, transparent); border: 0; padding: 0 .2em; border-radius: 4px; }
+
+/* flashcards.js: index-card face, keycap grades, 2 × 2 grades on narrow phones */
+:root .fc-card {
+  border-radius: 8px 8px 18px 8px; border-color: var(--line-2);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--copper) 5%, transparent), transparent 110px);
+  box-shadow: var(--shadow-lift);
+}
+:root .fc-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; border-radius: 8px 8px 0 0; background: var(--copper-hi); opacity: .8; }
+:root .fc-deck { color: var(--copper); }
+:root .fc-term { font-weight: 700; letter-spacing: -.01em; }
+:root .fc-g {
+  border-color: var(--line-2); box-shadow: 0 2px 0 var(--line-2); border-radius: 12px;
+  transition: transform var(--t1) var(--ease), box-shadow var(--t1), border-color var(--t1), background-color var(--t1);
+}
+:root .fc-g:hover { transform: translateY(-1px); box-shadow: 0 3px 0 var(--line-2); }
+:root .fc-g:active { transform: translateY(2px); box-shadow: none; }
+:root .fc-bar { height: 8px; }
+:root .fc-bar span { background: linear-gradient(90deg, var(--accent), var(--ok)); }
+:root .fc-dash { border-radius: var(--r-lg); }
+:root .fc-nums div { border-left: 2px solid color-mix(in srgb, var(--copper) 45%, var(--line)); }
+:root .fc-nums b { font-weight: 700; }
+@media (max-width: 420px) {
+  :root .fc-grades { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* keyboard hints are noise on touch screens */
+@media (hover: none) and (pointer: coarse) {
+  :root .fc-actions kbd, :root .fc-g kbd, :root .qp-keys { display: none; }
+}
+
+/* ================================================================ citations and sources */
+sup.cite { font-size: 13px; line-height: 0; vertical-align: super; }
+sup.cite a { font: 600 13px var(--f-mono); text-decoration: none; padding: 0; margin: 0; border-radius: 4px; position: relative; }
+/* the larger hit area is an invisible box, so «МГц [1]» sits right before its comma */
+sup.cite a::after { content: ""; position: absolute; inset: -6px -3px; }
+sup.cite a:hover { text-decoration: underline; }
+sup.cite.cite-missing a { color: var(--warn); }
+ol.sources { margin: 10px 0; padding-left: 30px; font-size: 15px; }
+ol.sources li { padding-left: 4px; margin-bottom: 10px; scroll-margin-top: 16px; }
+ol.sources li::marker { font-family: var(--f-mono); }
+ol.sources li:target { background: color-mix(in srgb, var(--copper) 10%, transparent); border-radius: 6px; outline: 4px solid color-mix(in srgb, var(--copper) 10%, transparent); }
+ol.sources .src-meta { display: block; color: var(--muted); font-size: 14px; }
+ol.sources .src-back { text-decoration: none; margin-left: 6px; display: inline-block; min-width: 24px; text-align: center; }
+.src-status { display: inline-block; margin-left: 6px; font: 600 13px var(--f-mono); border: 1px solid currentColor; border-radius: 6px; padding: 0 6px; }
+.src-status.disputed { color: var(--bad); }
+.src-status.unverified, .src-missing { color: var(--warn); }
+.checked-stamp { display: inline-flex; gap: 6px; align-items: center; font: 600 14px var(--f-mono); color: var(--ok); border: 1.5px solid var(--ok); border-radius: 6px; padding: 3px 9px; }
+
+/* ================================================================ exit ticket */
+form.exit-ticket {
+  margin: 18px 0; padding: 18px; border-radius: var(--r-lg); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+  display: grid; gap: 16px;
+}
+form.exit-ticket label, form.exit-ticket .et-field { display: grid; gap: 6px; font-weight: 600; }
+form.exit-ticket fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+form.exit-ticket legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+.scale { display: flex; flex-wrap: wrap; gap: 8px; }
+.scale label { position: relative; display: block; font-weight: 600; }
+.scale input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.scale span {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--panel-2); font: 700 18px var(--f-mono); color: var(--ink);
+  box-shadow: 0 2px 0 var(--line-2); transition: transform var(--t1) var(--ease), background-color var(--t1);
+}
+.scale label:hover span { transform: translateY(-1px); border-color: var(--accent); }
+.scale input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 0 var(--accent-deep); }
+.scale input:focus-visible + span { outline: 2.5px solid var(--focus); outline-offset: 2px; }
+/* the end labels share the scale's width, so «5 — поясню іншим» ends under key 5 */
+form.exit-ticket fieldset:has(> .scale) { display: grid; grid-template-columns: minmax(0, max-content); }
+.scale-ends { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+form.exit-ticket .et-note { margin: 0; font-size: 14px; color: var(--muted); font-weight: 400; }
+form.exit-ticket .actions { margin: 0; }
+
+/* ================================================================ comments */
+.comments { margin: 12px 0; min-height: 40px; }
+.comments .fallback { padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); margin: 0; }
+
+/* ================================================================ backlink banner (deep pages) */
+.from-lesson {
+  max-width: 1240px; margin: 10px auto 0; padding: 8px 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  font-size: 15px;
+}
+
+/* ================================================================ lesson end (built by study.js after #talk)
+   <section class="hub-end">: a status line and three keys (Самоперевірка · Картки уроку · Наступний урок →). */
+.hub-end {
+  margin: clamp(40px, 6vw, 56px) 0 0; padding: 18px 20px; border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--copper) 5%, var(--panel)); border: 1px solid color-mix(in srgb, var(--copper) 28%, var(--line));
+  box-shadow: var(--shadow);
+}
+.hub-end > :is(h2, h3, .tag) { margin: 0 0 6px; font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+.hub-end :is(p, .status, .hub-end-status) { margin: 0 0 12px; color: var(--ink); }
+.hub-end :is(.actions, .btn-row, .hub-end-btns) { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+.hub-end .btn:last-child:not(:only-child) { margin-left: auto; }
+@media (max-width: 480px) { .hub-end .btn { flex: 1 1 100%; } .hub-end .btn:last-child:not(:only-child) { margin-left: 0; } }
+/* a section the reader has finished: a small ✓ after its TOC entry (the state is also in the link's label) */
+.hub-toc a.done::after { content: "✓"; margin-left: auto; padding-left: 6px; font: 700 13px/1 var(--f-body); color: var(--ok); }
+
+/* ================================================================ challenge roles: a 2 × 2 grid of role chips */
+.ch-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0 4px; padding: 0; list-style: none; }
+.ch-roles > * {
+  display: flex; align-items: center; gap: 10px; min-width: 0; margin: 0; padding: 8px 12px; min-height: 44px;
+  border: 1px solid var(--line-2); border-radius: 12px; background: var(--panel-2); box-shadow: 0 1.5px 0 var(--line-2);
+}
+.ch-roles :is(.ic, .icon, svg) { flex: none; width: 22px; height: 22px; color: var(--copper); }
+.ch-roles :is(b, .role) { font-weight: 650; }
+.ch-roles :is(.name, small) { margin-left: auto; font: 500 13px/1.3 var(--f-mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+@media (max-width: 420px) { .ch-roles { grid-template-columns: minmax(0, 1fr); } }
+
+/* ================================================================ teacher answer inside a teacher note: collapsed */
+.tnote details.t-spoiler { margin: 8px 0 0; border: 1px dashed color-mix(in srgb, var(--teach) 60%, var(--line)); border-radius: 8px; background: var(--panel); }
+.tnote details.t-spoiler > summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px;
+  font: 600 13px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--teach);
+}
+.tnote details.t-spoiler > summary::-webkit-details-marker { display: none; }
+.tnote details.t-spoiler > summary::before { content: "+"; font: 700 15px/1 var(--f-mono); transition: transform var(--t2) var(--ease); }
+.tnote details.t-spoiler[open] > summary::before { content: "−"; }
+.tnote details.t-spoiler > :not(summary) { margin: 0 12px 10px; }
+
+/* ================================================================ toast */
+.study-toast {
+  position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 100;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  max-width: min(92vw, 520px); padding: 11px 18px; border-radius: 12px;
+  background: var(--ink); color: var(--paper); font: 600 15px/1.4 var(--f-body); box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .55);
+  transition: opacity var(--t2), transform var(--t2) var(--ease);
+}
+.study-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.study-toast.bad { background: var(--bad); color: #fff; }
+
+/* ================================================================ phone section bar (built by study.js on hubs < 900 px)
+   <nav class="hub-mbar">: button.hub-mbar-toc («04 / 16 Головні ідеї ▾», aria-expanded) opens .hub-mbar-sheet (the TOC);
+   a.hub-mbar-top «↑»; .hub-mbar-progress (width from --p, 0–1). It appears once the hero has scrolled away (.is-on). */
+.hub-mbar { display: none; }
+@media (max-width: 899px) {
+  .hub-mbar {
+    position: fixed; inset-inline: 0; bottom: 0; z-index: 60;
+    display: flex; align-items: center; gap: 6px; height: calc(44px + env(safe-area-inset-bottom));
+    padding: 0 max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
+    background: var(--panel); border-top: 1px solid var(--line-2); box-shadow: var(--shadow);
+    font: 600 13px/1.3 var(--f-mono); color: var(--ink);
+    opacity: 0; visibility: hidden; transition: opacity var(--t2) var(--ease), visibility var(--t2);
+  }
+  .hub-mbar.is-on { opacity: 1; visibility: visible; }
+  .hub-mbar-toc {
+    flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 8px;
+    border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+    white-space: nowrap; overflow: hidden;
+  }
+  .hub-mbar-toc > * { flex: none; }
+  /* only the title truncates; the «▾» after it always shows */
+  .hub-mbar-toc > .t { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hub-mbar-toc :is(.n, b, strong) { color: var(--copper); font-weight: 700; }
+  .hub-mbar-toc[aria-expanded="true"] { background: var(--panel-2); }
+  .hub-mbar-top {
+    flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px;
+    border: 1px solid var(--line-2); color: var(--accent); text-decoration: none; font: 700 18px/1 var(--f-body);
+  }
+  .hub-mbar-progress {
+    position: absolute; left: 0; top: -1px; height: 2px; width: calc(var(--p, 0) * 100%);
+    background: var(--copper); pointer-events: none;
+  }
+  /* bottom sheet with the lesson TOC; the current entry looks like the desktop TOC's */
+  .hub-mbar-sheet {
+    position: absolute; inset-inline: 0; bottom: 100%; max-height: 70vh; overflow-y: auto; overscroll-behavior: contain;
+    padding: 8px 8px 10px; background: var(--panel); border-top: 1px solid var(--line-2); border-radius: 16px 16px 0 0;
+    box-shadow: var(--shadow-lift); font: 500 15px/1.3 var(--f-body);
+  }
+  .hub-mbar-sheet :is(ol, ul) { list-style: none; margin: 0; padding: 0; }
+  .hub-mbar-sheet li { margin: 0; }
+  .hub-mbar-sheet a {
+    display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; min-height: 44px; border-radius: 8px;
+    color: var(--ink); text-decoration: none;
+  }
+  .hub-mbar-sheet a .n { font: 600 13px var(--f-mono); color: var(--muted); flex: none; min-width: 2ch; font-variant-numeric: tabular-nums; }
+  .hub-mbar-sheet a[aria-current] { background: color-mix(in srgb, var(--copper) 9%, var(--panel)); font-weight: 600; box-shadow: inset 3px 0 0 var(--copper); }
+  .hub-mbar-sheet a[aria-current] .n { color: var(--copper); }
+  body:has(> .hub-mbar) { padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
+  /* a focused control scrolled into view never ends up behind the bar (WCAG 2.4.11) */
+  html:has(> body > .hub-mbar:not([hidden])) { scroll-padding-bottom: calc(44px + 16px + env(safe-area-inset-bottom)); }
+}
+@media (forced-colors: active) { .hub-mbar { display: none !important; } }
+
+/* ================================================================ motion, forced colours and print */
+@media (prefers-reduced-motion: reduce) {
+  .hub-mbar { transition: none; }
+  .btn:hover, .chip:hover, .opt:hover, .gate-msg button:hover, :root .qz-opt:hover, :root .fc-g:hover, .scale label:hover span { transform: none !important; }
+}
+@media (forced-colors: active) {
+  .note.warn, .note.danger { background: Canvas; border-left: 8px solid CanvasText; }
+  .opt::before, .myth > p::after, h2 .n, .gate-msg button::before { forced-color-adjust: none; border: 2px solid CanvasText; background: Canvas; color: CanvasText; }
+  .opt.right, .opt.wrong, .opt[aria-pressed="true"] { border: 3px solid Highlight; }
+  .gated:not(.open) > :not(.gate-msg) { filter: none; opacity: .4; }
+  section.hs { background-image: none; border-top: 1px solid CanvasText; }
+  .key, .try, .explain, .note, .idea figure, figure.dual > .view, .hub-end, .ch-roles > *, .tnote details.t-spoiler { border: 1px solid CanvasText; }
+  :is(.predict, .try) .fb:is(.ok, .no) { border: 1px solid CanvasText; border-left-width: 4px; }
+  .team-disc::before, .challenge.is-mine > .tag::before { forced-color-adjust: none; border: 2px solid CanvasText; background: Canvas; color: CanvasText; }
+}
+@media print {
+  body { padding: 0; font-size: 12pt; }
+  .site-nav, .theme-btn, .hub-toc, .hub-mbar, .study-toast, .gate-msg, .dual-tabs, .measure-bar, .teacher-btn,
+  .quiz button, .deck-mini, .comments, form.exit-ticket .actions, .predict .redo, .btn, .hub-end :is(.actions, .btn-row, .hub-end-btns) { display: none !important; }
+  .tnote details.t-spoiler > :not(summary) { display: block !important; }
+  .gated > * { filter: none !important; opacity: 1 !important; }
+  .gated > * :is(p, li, figcaption, dd, .note, .status, pre, code, .code, .serial, td, details,
+    canvas, svg text, [data-answer], [aria-live], [role="status"], [class*="code"], output, .readout, .lcd, .ro, .val, .v) { visibility: visible !important; }
+  figure.dual.tabbed > .view { display: block !important; }
+  section.hs, .idea, .challenge, .myth, .note { break-inside: avoid; }
+  .idea, .panel, .myth, .challenge, .tbl, ol.worked { box-shadow: none !important; }
+  .tnote { display: none !important; }
+  html.teacher .tnote { display: block !important; }
+  a { color: inherit; }
+}

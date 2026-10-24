@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Розминка · спіральний квіз</title>
+<meta name="description" content="Розминка на початку заняття: питання з попередніх уроків великим шрифтом для показу в Zoom, або самоперевірка для студентів.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* page layout only; quiz styles come with quiz.js */
+.wu { max-width: 1240px; margin: 0 auto; padding-top: 18px; }
+.wu-head { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
+.wu-head h1 { font-size: clamp(2.1rem, 1.3rem + 3vw, 3rem); font-weight: 720; line-height: 1; letter-spacing: -.02em; margin: 0; }
+.wu-head .eyebrow { margin-bottom: 6px; }
+.wu-tools { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+/* segmented control: a sunk track with a raised key for the active mode */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); }
+.seg button { min-height: 40px; padding: 6px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.seg button:hover { color: var(--accent); }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 0 var(--line-2), 0 2px 6px -3px rgba(0, 0, 0, .3); }
+.seg button[aria-pressed="true"]::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--accent); vertical-align: .1em; }
+.wu-cur { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.wu-cur select { min-height: 40px; padding: 6px 8px; font-size: 15px; max-width: 13rem; }
+.wu-info { margin: 0 0 14px; font: 500 14px/1.45 var(--f-mono); color: var(--muted); }
+.wu-info b { color: var(--ink); font-weight: 600; }
+.wu-info .demo { color: var(--hi-ink); }
+#wu.self { max-width: 760px; margin-inline: auto; }
+#wu.self > .qz { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+#wu .qz-msg { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.wu-help { max-width: 760px; margin: 28px auto 0; }
+.wu-help ol, .wu-help ul { font-size: 15px; }
+.wu-help code { white-space: nowrap; }
+@media (max-width: 640px) { .wu-tools { width: 100%; } .wu-cur { flex: 1 1 100%; } .wu-cur select { flex: 1; max-width: none; } }
+</style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="warmup">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="wu">
+  <header class="wu-head">
+    <div>
+      <p class="eyebrow">Початок заняття · 5–8 хвилин</p>
+      <h1>Розминка</h1>
+    </div>
+    <div class="wu-tools">
+      <div class="seg" role="group" aria-label="Режим показу">
+        <button type="button" data-mode="self" aria-pressed="true">Самостійно</button>
+        <button type="button" data-mode="present" aria-pressed="false">Проєктор</button>
+      </div>
+      <label class="wu-cur">Розминка до <select id="wu-current" aria-label="Урок, до якого розминка"></select></label>
+      <button type="button" class="btn ghost sm" id="wu-reseed" title="Вибрати інші питання з тих самих уроків">Інші питання</button>
+      <button type="button" class="btn ghost sm" id="wu-link">Скопіювати посилання</button>
+    </div>
+  </header>
+  <p class="wu-info" id="wu-info" aria-live="polite"></p>
+  <div id="wu"><div class="qz-msg"><p class="muted">Завантаження питань…</p></div></div>
+  <noscript><p class="note warn">Розминка працює з увімкненим JavaScript.</p></noscript>
+
+  <details class="more wu-help" id="howto">
+    <summary>Як провести розминку на дзвінку</summary>
+    <ol>
+      <li>Поділіться в Zoom вікном цієї сторінки й натисніть <b>На весь екран</b> (<kbd>F</kbd>).</li>
+      <li>Кожне питання: Zoom-опитування <i>або</i> «водоспад» у чаті. Усі пишуть букву <b>А/Б/В/Г</b>, але натискають Enter лише на «3-2-1». Так ніхто не підглядає. Кнопка «Скопіювати для чату» дає текст питання з варіантами.</li>
+      <li>Якщо правильних 30–70%: двоє з різними відповідями пояснюють свій вибір (60&nbsp;с), потім <b>Голосування 2</b> (<kbd>V</kbd>) і повторний вибір.</li>
+      <li><b>Показати відповідь</b> (<kbd>Enter</kbd>), а тоді одна людина читає свою відповідь і пояснює її. Далі <kbd>→</kbd>.</li>
+    </ol>
+    <p>Посилання з налаштуваннями:</p>
+    <ul>
+      <li><code>?mix=last:2,week:1,old:2</code>: 2 питання з 1–2 попередніх уроків, 1 з 3–5 уроків тому, 2 зі старіших (типово).</li>
+      <li><code>?current=2-4</code>: розминка до уроку 2.4 (питання лише з попередніх уроків).</li>
+      <li><code>?q=1-4-q03,1-1-q07</code>: конкретні питання в заданому порядку.</li>
+      <li><code>?t=45</code>: таймер на 45&nbsp;с замість 60; <code>?mode=self</code> або <code>?mode=projector</code>: самоперевірка чи проєктор. Без параметра сторінка відкривається в режимі «Самостійно», а в режимі викладача — у «Проєкторі».</li>
+    </ul>
+    <p class="small">Питання для розминки — це пункти квізів уроків, позначені <code>warmup: true</code>. Добірка однакова протягом дня, тож посилання, надіслане заздалегідь, покаже ті самі питання; «Інші питання» перемішує їх заново.</p>
+  </details>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/quiz.js" defer></script>
+<script defer>
+// Warm-up page controller: reads the URL, picks questions with StudyQuiz.pickWarmup and mounts them in
+// 'present' (projector) or 'warmup' (self-check list) mode. Falls back to the demo set when no lesson quiz exists yet.
+document.addEventListener('study:ready', () => {
+  const Q = window.StudyQuiz;
+  const box = document.getElementById('wu'), info = document.getElementById('wu-info'), sel = document.getElementById('wu-current');
+  if (!Q) { box.innerHTML = '<div class="qz-msg"><p>Модуль квізів не завантажився. Оновіть сторінку.</p></div>'; return; }
+  const P = new URLSearchParams(location.search);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const lessons = (() => {
+    const C = window.COURSE;
+    return C && Array.isArray(C.modules) ? C.modules.flatMap((m) => (m && Array.isArray(m.lessons) ? m.lessons : [])).filter((l) => l && l.id) : [];
+  })();
+  // Default: today's lesson, otherwise the next one with a date (the same rule as the course map's
+  // «сьогодні» / «наступне» chips). A warm-up "до уроку X" asks about the lessons before X.
+  const defaultCurrent = () => {
+    const l = lessons.find((x) => x.date && x.date >= today);
+    return l ? l.id : '';
+  };
+  // ?mode=self / ?mode=projector (also =present). Without it: projector only in teacher mode.
+  const modeParam = P.get('mode');
+  const state = {
+    mode: modeParam === 'self' ? 'self'
+      : modeParam === 'projector' || modeParam === 'present' ? 'present'
+        : document.documentElement.classList.contains('teacher') ? 'present' : 'self',
+    current: P.has('current') ? P.get('current') : defaultCurrent(),
+    mix: P.get('mix') || 'last:2,week:1,old:2',
+    q: P.get('q'), src: P.get('src'), t: P.get('t'), n: P.get('n'), seed: P.get('seed') || null,
+  };
+  let questions = [];
+
+  // Lesson picker: every lesson up to two weeks ahead (so the teacher can prepare the next call's warm-up).
+  const horizon = (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().slice(0, 10); })();
+  const opts = lessons.filter((l) => l.status !== 'planned' || !l.date || l.date <= horizon);
+  if (state.current && !opts.some((l) => l.id === state.current)) { const l = lessons.find((x) => x.id === state.current); if (l) opts.push(l); }
+  // "до …" phrase: the review session and the flex slots have no lesson number of their own.
+  const towards = (id) => {
+    const l = lessons.find((x) => x.id === id);
+    if (id === 'mp1-review') return 'розбору МП1';
+    if (l && /^flex/.test(l.id)) return 'гнучкого слоту';
+    return `уроку ${l ? (l.n || l.id) : (Q.lessonN ? Q.lessonN(id) : id)}`;
+  };
+  sel.innerHTML = `<option value="">усіх уроків</option>` + opts.map((l) =>
+    `<option value="${esc(l.id)}"${l.id === state.current ? ' selected' : ''}>${esc(towards(l.id))}${l.date ? ` · ${esc(l.date.slice(8, 10))}.${esc(l.date.slice(5, 7))}` : ''}</option>`).join('');
+  sel.closest('label').hidden = !lessons.length || !!state.q || !!state.src;
+  document.getElementById('wu-reseed').hidden = !!state.q;
+
+  const label = (id) => (Q.lessonN ? Q.lessonN(id) : id);
+  async function pick() {
+    let qs, demo = false, how = '';
+    if (state.q) {
+      qs = await Q.loadByIds(state.q);
+      how = `Вибрані питання: ${qs.length}`;
+      if (qs.missing && qs.missing.length) how += ` · не знайдено: ${qs.missing.join(', ')}`;
+    } else if (state.src) {
+      qs = await Q.load(state.src);
+      how = `Квіз: ${state.src}`;
+    } else {
+      qs = await Q.pickWarmup({ current: state.current || null, mix: state.mix, n: state.n || undefined, seed: state.seed ?? undefined });
+      how = state.current ? `Розминка до ${esc(towards(state.current)).replace(/^(\S+) (.+)$/, '$1 <b>$2</b>')}` : 'Розминка з усіх уроків';
+    }
+    if (!qs.length && !state.q) {
+      // No lesson quizzes published yet (or a first lesson): show the demo set so the page still works.
+      const all = await Q.load('_sample');
+      qs = all.filter((q) => q.warmup);
+      demo = true;
+    }
+    const from = [...new Set(qs.map((q) => label(q.lesson)))];
+    info.innerHTML = qs.length
+      ? `${how}${from.length ? ` · питання з уроків ${from.map((x) => `<b>${esc(x)}</b>`).join(', ')}` : ''}${demo ? ' · <span class="demo">демо-набір: квізи уроків ще не опубліковані</span>' : ''}`
+      : how;
+    return qs;
+  }
+  function show() {
+    box.className = state.mode === 'self' ? 'self' : '';
+    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+    if (!questions.length) {
+      box.innerHTML = '<div class="qz-msg"><p><b>Питань не знайдено.</b> Перевірте посилання або виберіть інший урок.</p></div>';
+      return;
+    }
+    Q.mount(box, {
+      mode: state.mode === 'self' ? 'warmup' : 'present', questions, time: state.t,
+      title: `Розминка: ${questions.length} ${questions.length < 5 ? 'питання' : 'питань'} з попередніх уроків`,
+    });
+  }
+  async function reload() {
+    box.innerHTML = '<div class="qz-msg"><p class="muted">Завантаження питань…</p></div>';
+    try { questions = await pick(); } catch (e) { console.error(e); questions = []; }
+    show();
+  }
+  const syncURL = () => {
+    const u = new URL(location.href);
+    const set = (k, v) => (v ? u.searchParams.set(k, v) : u.searchParams.delete(k));
+    set('mode', state.mode === 'self' ? 'self' : 'projector');
+    if (!state.q && !state.src) set('current', state.current === defaultCurrent() ? '' : state.current || 'all');
+    try { history.replaceState(null, '', u); } catch { /* file:// */ }
+  };
+
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    if (state.mode === b.dataset.mode) return;
+    state.mode = b.dataset.mode;
+    syncURL();
+    show();
+  }));
+  sel.addEventListener('change', () => { state.current = sel.value; state.seed = null; syncURL(); reload(); });
+  document.getElementById('wu-reseed').addEventListener('click', () => { state.seed = Math.random().toString(36).slice(2, 8); reload(); });
+  document.getElementById('wu-link').addEventListener('click', () => {
+    const u = new URL(location.href);
+    if (state.seed && !state.q) u.searchParams.set('seed', state.seed);
+    Study.copy(u.href);
+  });
+  if (state.current === 'all') state.current = '';
+  reload();
+});
+</script>
+</body>
+</html>

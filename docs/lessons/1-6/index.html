@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 1.6 · АЦП і фоторезистор</title>
+<meta name="description" content="Як ESP32-S3 перетворює напругу на число 0…4095: лінійка АЦП, ослаблення, подільник з фоторезистором, вибір піна ADC1 і усереднення шуму.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 17px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.readout .warnout { color: var(--bad); font-weight: 600; }
+.ctl input[type="range"] { width: 100%; min-height: 32px; accent-color: var(--accent); }
+@media (pointer: coarse) { .seg button, .ctl input[type="range"] { min-height: 44px; } /* incl. #topo, #navg */ } /* desktop keeps the compact size above */
+.wgrid { display: grid; gap: 14px; }
+@media (min-width: 820px) { .wgrid { grid-template-columns: 1fr 1fr; align-items: start; } }
+.wgrid svg { display: block; width: 100%; max-width: 440px; height: auto; margin-inline: auto; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.fig-svg { display: block; width: 100%; height: auto; }
+.lbl { fill: var(--ink); font: 500 14px var(--f-body); }
+.lbl-m { fill: var(--muted); font: 500 14px var(--f-mono); }
+.lbl-s { fill: var(--ink); font: 600 13px var(--f-mono); }
+#why figure { margin: 12px 0; }
+.lbl-b { fill: var(--ink); font: 600 15px var(--f-mono); }
+.ax { stroke: var(--line); stroke-width: 1.5; fill: none; }
+.grid-l { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; fill: none; }
+.curve { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linejoin: round; }
+.ramp { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+.ceil { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+.ceil-t { fill: var(--bad); font: 600 13px var(--f-mono); }
+.dotp { fill: var(--hi); stroke: var(--panel); stroke-width: 2; }
+.box { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.5; }
+.box-hi { fill: color-mix(in srgb, var(--accent) 12%, var(--panel)); stroke: var(--accent); stroke-width: 1.5; }
+.arrow { stroke: var(--muted); stroke-width: 2; fill: none; marker-end: url(#a16-arrow); }
+.vbar-bg { fill: var(--panel-2); stroke: var(--line); }
+.vbar-fill { fill: var(--nsig); transition: height .25s, y .25s; }
+@media (prefers-reduced-motion: reduce) { .vbar-fill { transition: none; } }
+.tile-a1 { fill: color-mix(in srgb, var(--ok) 16%, var(--panel)); stroke: var(--ok); stroke-width: 1.5; }
+.tile-a2 { fill: color-mix(in srgb, var(--warn) 14%, var(--panel)); stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.tile-me { stroke: var(--accent); stroke-width: 3.5; fill: none; }
+.bar-cal { fill: color-mix(in srgb, var(--accent) 55%, var(--panel)); }
+.bar-in { fill: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
+.noise-cv { display: block; width: 100%; height: 220px; border-radius: 8px; background: var(--panel-2); cursor: pointer; }
+.code { overflow-x: auto; max-width: 100%; padding: 12px 14px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); font: 14px/1.5 var(--f-mono); }
+.swing { margin-top: 8px; padding: 8px 12px; border-radius: 8px; background: var(--panel-2); font-size: 15px; }
+.swing b { font-family: var(--f-mono); }
+.undef { fill: color-mix(in srgb, var(--warn) 18%, transparent); }
+.narrow-only { display: none; }
+@media (max-width: 700px) { .narrow-only { display: block; } }
+</style>
+</head>
+<body data-lesson="1-6">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:1-6">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Урок 1.6 · сб 19.09</p>
+    <h1>АЦП: як мікроконтролер <span>«бачить» світло</span></h1>
+    <p class="lead">Кнопка каже лише «так» чи «ні». Щоб дізнатися, скільки світла в кімнаті, ESP32-S3 перетворює напругу на число від 0 до 4095. Розберемо, як саме.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: плата, фоторезистор, 10&nbsp;кОм, макетка</a></li>
+      <li><a class="chip" href="../1-4/">Спершу: урок 1.4 · GPIO і розпіновка</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Ви робите нічник, який має вмикатися сам, коли смеркає. Збираєте схему, а Serial показує <b>4095</b> і вдень, і під лампою. Плата зламана? Ні: так виглядає АЦП, який «вперся в стелю». Після цього уроку ви знайдете причину за хвилину й підберете резистор, щоб число справді реагувало на світло.</p>
+    <figure>
+      <svg class="fig-svg" viewBox="0 0 340 128" role="img" aria-label="Ланцюжок перетворень: світло змінює опір фоторезистора, подільник перетворює опір на напругу, АЦП перетворює напругу на число, а код ухвалює рішення.">
+        <defs><marker id="a16-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+        <rect class="box" x="2" y="22" width="70" height="56" rx="8"/>
+        <text class="lbl" x="37" y="46" text-anchor="middle">Світло</text>
+        <text class="lbl-m" x="37" y="66" text-anchor="middle">300 лк</text>
+        <path class="arrow" d="M74 50H88"/>
+        <rect class="box" x="90" y="22" width="70" height="56" rx="8"/>
+        <text class="lbl" x="125" y="46" text-anchor="middle">Опір</text>
+        <text class="lbl-m" x="125" y="66" text-anchor="middle">1,6 кОм</text>
+        <path class="arrow" d="M162 50H176"/>
+        <rect class="box" x="178" y="22" width="70" height="56" rx="8"/>
+        <text class="lbl" x="213" y="46" text-anchor="middle">Напруга</text>
+        <text class="lbl-m" x="213" y="66" text-anchor="middle">2,8 В</text>
+        <path class="arrow" d="M250 50H264"/>
+        <rect class="box-hi" x="266" y="22" width="72" height="56" rx="8"/>
+        <text class="lbl" x="302" y="46" text-anchor="middle">Число</text>
+        <text class="lbl-b" x="302" y="67" text-anchor="middle">3740</text>
+        <text class="lbl-m" x="81" y="102" text-anchor="middle">LDR</text>
+        <text class="lbl-m" x="169" y="102" text-anchor="middle">подільник</text>
+        <text class="lbl-m" x="257" y="102" text-anchor="middle">АЦП</text>
+        <text class="lbl-m" x="170" y="122" text-anchor="middle">приклад для LDR зверху і 10 кОм знизу</text>
+      </svg>
+      <figcaption>Три перетворення. Код бачить лише останнє, тож помилка може ховатися в будь-якому з попередніх.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>перерахувати</b> число АЦП у вольти й назад та пояснити, чому 4095 — це не 3,3&nbsp;В;</li>
+      <li><b>розрахувати</b> подільник з фоторезистором і <b>передбачити</b>, куди рухається число, коли темнішає;</li>
+      <li><b>вибрати</b> пін ADC1, який працює навіть з увімкненим Wi-Fi;</li>
+      <li><b>зменшити</b> шум усередненням і пояснити, чому виграш від усереднення росте повільніше, ніж кількість вимірів.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Цифровий вхід питає «чи є?», аналоговий — «скільки?»</h3>
+      <p><code>digitalRead()</code> порівнює напругу з порогом і відповідає 0 або 1. Усе, що вище ≈&nbsp;0,75·VDD, — це HIGH<sup class="cite" data-fact="s3-vih"></sup>, нижче ≈&nbsp;0,25·VDD — LOW<sup class="cite" data-fact="s3-vil"></sup>. Для кнопки цього досить. Світло ж змінюється плавно, і нам потрібна не відповідь «так/ні», а <i>число</i>. Його дає <code>analogRead()</code> через аналого-цифровий перетворювач (АЦП, англ. ADC).</p>
+      <figure>
+        <svg viewBox="0 0 320 162" role="img" aria-label="Та сама плавна крива напруги від 0 до 3,3 В, прочитана в чотири моменти. Смуга посередині — від 0,83 до 2,48 В, де цифровий рівень не визначений. digitalRead: 0, 1, 1 і знак питання для точки в смузі. analogRead: 560, 3740, 3450, 2120.">
+          <rect class="undef" x="30" y="35" width="280" height="50"/>
+          <text class="lbl-m" x="200" y="78" text-anchor="middle">невизначено</text>
+          <path class="ax" d="M30 10V110H310"/>
+          <path class="curve" d="M30 101C85 101 105 19 165 19S265 64 310 64"/>
+          <circle class="dotp" r="5" cx="50" cy="97.1"/><circle class="dotp" r="5" cx="140" cy="24.2"/>
+          <circle class="dotp" r="5" cx="220" cy="31"/><circle class="dotp" r="5" cx="290" cy="61.3"/>
+          <text class="lbl-m" x="36" y="14">3,3 В</text>
+          <text class="lbl-m" x="24" y="114" text-anchor="end">0</text>
+          <g class="lbl-b" text-anchor="middle">
+            <text x="50" y="132">0</text><text x="140" y="132">1</text><text x="220" y="132">1</text><text x="290" y="132">?</text>
+          </g>
+          <g class="lbl-m" text-anchor="middle">
+            <text x="50" y="154">560</text><text x="140" y="154">3740</text><text x="220" y="154">3450</text><text x="290" y="154">2120</text>
+          </g>
+        </svg>
+        <figcaption>Рядок 1 — <code>digitalRead</code>, рядок 2 — <code>analogRead</code> у тих самих чотирьох моментах (≈&nbsp;0,42; 2,83; 2,61 і 1,61&nbsp;В). Остання точка в смузі 0,83…2,48&nbsp;В: тут цифровий вхід може повернути і 0, і 1, а АЦП спокійно каже «2120».</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Цифровий вхід стискає напругу до одного біта, АЦП зберігає її величину як число.</p>
+    </article>
+
+    <article class="idea" id="ruler-card">
+      <h3>АЦП — лінійка на 4096 поділок</h3>
+      <p>АЦП ESP32-S3 12-бітний<sup class="cite" data-fact="s3-adc-units"></sup>: 2¹² = 4096 поділок, тож <code>analogRead()</code> повертає ціле число 0…4095<sup class="cite" data-fact="core-adc-default-resolution"></sup>. Як лінійка, він каже не «скільки вольт», а <i>номер поділки</i>, до якої дотягнулася напруга. Усе між двома поділками округлюється: це <b>шум квантування</b>.</p>
+      <div class="predict" data-ok="0" data-gate="w-stairs"
+           data-why="Кожен новий біт подвоює кількість поділок (2ⁿ), а діапазон той самий. Тож поділка стає вдвічі вужчою: 8 біт — 256 сходинок по ≈ 12 мВ, 12 біт — 4096 сходинок по ≈ 0,76 мВ.">
+        <span class="tag">Спрогнозуйте</span>
+        <p>АЦП додали ще один біт. Що станеться з висотою однієї сходинки?</p>
+        <div class="opts">
+          <button class="opt">Стане вдвічі меншою</button>
+          <button class="opt">Зменшиться рівно на 1&nbsp;мВ</button>
+          <button class="opt">Не зміниться: додасться сходинка вгорі</button>
+        </div>
+        <div class="fb" aria-live="polite"></div>
+      </div>
+      <div class="gated panel" id="w-stairs">
+        <div class="ph"><h3>Сходинки квантування</h3><span class="small">діапазон 0…3,1 В</span></div>
+        <div class="pb">
+          <div class="ctl"><label for="bits">Розрядність <b id="bits-v">3 біти</b></label>
+            <input type="range" id="bits" min="3" max="12" step="1" value="3"></div>
+          <svg id="stairs-svg" viewBox="0 0 320 170" role="img" aria-label="Графік: пунктир — плавна вхідна напруга, ламана — число АЦП. Чим більше бітів, тим дрібніші сходинки."></svg>
+          <div class="readout" aria-live="polite">
+            <span>Рівнів <b id="st-n">8</b></span>
+            <span>Найбільше число <b id="st-max">7</b></span>
+            <span>Крок <b id="st-lsb">388 мВ</b></span>
+          </div>
+        </div>
+      </div>
+      <p class="key"><b>Головне</b>12 біт = 4096 поділок, числа 0…4095. Один крок ≈ 0,76&nbsp;мВ, і точніше за крок АЦП не скаже.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Кінець лінійки — не 3,3&nbsp;В, а ≈&nbsp;3,1&nbsp;В</h3>
+      <p>Перед АЦП стоїть <b>ослаблення</b> (attenuation): воно задає, яку напругу вважати «повною шкалою». В Arduino-ESP32 за замовчуванням режим 11&nbsp;дБ (дБ тут — просто назва режиму)<sup class="cite" data-fact="core-adc-default-atten"></sup>: вхід приймає приблизно до 3,1&nbsp;В<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>, а гарантована точність ±50&nbsp;мВ — до 2,9&nbsp;В<sup class="cite" data-fact="s3-adc-error-atten3"></sup>. Усе вище ≈&nbsp;3,1&nbsp;В АЦП показує як 4095. Точні мілівольти дає <code>analogReadMilliVolts()</code>: він враховує заводське калібрування чипа<sup class="cite" data-fact="core-analogreadmillivolts"></sup>. Для оцінки вручну: <span class="formula">V ≈ raw / 4095 · 3,1 В</span></p>
+      <figure>
+        <svg viewBox="0 0 320 170" role="img" aria-label="Чотири смуги діапазонів АЦП. 0 дБ: до 0,85 В. 2,5 дБ: до 1,1 В. 6 дБ: до 1,6 В. 11 дБ, за замовчуванням: калібровано до 2,9 В, вхід до приблизно 3,1 В. Напруга живлення 3,3 В лежить за межею шкали.">
+          <g id="att-bars"></g>
+          <path class="ax" d="M70 140H300"/>
+          <path class="ceil" d="M300 8V140"/>
+          <text class="ceil-t" x="300" y="160" text-anchor="middle">3,3 В</text>
+          <text class="lbl-m" x="70" y="160" text-anchor="middle">0</text>
+          <text class="lbl-m" x="175" y="160" text-anchor="middle">1,5 В</text>
+        </svg>
+        <figcaption>Темна частина — калібрований діапазон<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>, світла — запас входу до ≈&nbsp;3,1&nbsp;В. 3,3&nbsp;В лежить за межею шкали.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>4095 означає «≈&nbsp;3,1&nbsp;В або більше», а не «рівно 3,3&nbsp;В». Для вольтів беріть <code>analogReadMilliVolts()</code>.</p>
+    </article>
+
+    <article class="idea">
+      <h3>АЦП міряє напругу, тому опір LDR треба «перекласти»</h3>
+      <p>Фоторезистор (LDR) на світлі має малий опір, у темряві — великий: GL5528 при 10&nbsp;лк має 10–20&nbsp;кОм<sup class="cite" data-fact="ldr-gl5528-light"></sup>, а в повній темряві — від 1&nbsp;МОм<sup class="cite" data-fact="ldr-gl5528-dark"></sup>. АЦП опору не бачить, тож LDR ставимо послідовно з постійним резистором R1 — виходить <b>подільник напруги</b>. Згадайте мотузку-петлю: через обидва резистори тягнеться та сама «мотузка» струму I&nbsp;=&nbsp;3,3&nbsp;В&nbsp;/&nbsp;(R<sub>LDR</sub>&nbsp;+&nbsp;R1) — закон Ома з уроку 1.1. Пін бачить напругу на нижньому резисторі: V&nbsp;=&nbsp;I&nbsp;·&nbsp;R1. Підставте I — і вийде формула на малюнку. Хто з двох резисторів більший, тому дістається більша частка напруги.</p>
+      <figure>
+        <svg viewBox="0 0 320 180" role="img" aria-label="Подільник: 3,3 В, зверху фоторезистор LDR, у середній точці вивід GPIO4, знизу резистор R1 10 кілоом до землі. Формула: V на GPIO4 дорівнює 3,3 В помножити на R1 і поділити на суму R LDR і R1.">
+          <use class="sch-sym net-3v3" href="#vcc" x="60" y="22"/>
+          <text class="sch-pin net-3v3" x="76" y="14">3,3 В</text>
+          <path class="sch-w net-3v3" d="M60 22V30"/>
+          <use class="sch-sym" href="#ldr" x="60" y="30" transform="rotate(90 60 30)"/>
+          <text class="sch-ref" x="90" y="64">LDR</text>
+          <path class="sch-w net-sig" d="M60 90V110H130"/>
+          <use class="sch-sym" href="#dot" x="60" y="110"/>
+          <text class="sch-pin net-sig" x="134" y="115">GPIO4</text>
+          <path class="sch-w" d="M60 110V112"/>
+          <use class="sch-sym" href="#res" x="60" y="112" transform="rotate(90 60 112)"/>
+          <text class="sch-ref" x="80" y="140">R1</text>
+          <text class="sch-val" x="80" y="156">10 кОм</text>
+          <use class="sch-sym net-gnd" href="#gnd" x="60" y="172"/>
+          <text class="lbl" x="200" y="56" text-anchor="middle">V = 3,3 В ·</text>
+          <text class="lbl" x="268" y="46" text-anchor="middle">R1</text>
+          <path class="ax" d="M232 52H306"/>
+          <text class="lbl" x="268" y="70" text-anchor="middle">R<tspan font-size="11" dy="3">LDR</tspan><tspan dy="-3"> + R1</tspan></text>
+        </svg>
+        <figcaption>Пін вимірює напругу на нижньому резисторі R1. Куди рухатиметься число, коли світла поменшає, — спрогнозуйте в розділі 05.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Подільник перетворює зміну опору на зміну напруги. Напрям («світло = більше число» чи навпаки) задає місце LDR.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Не кожен пін — аналоговий, і не кожен аналоговий дружить з Wi-Fi</h3>
+      <p>Канали ADC1 — це GPIO1…GPIO10<sup class="cite" data-fact="s3-adc1-pins"></sup>, ADC2 — GPIO11…GPIO20<sup class="cite" data-fact="s3-adc2-pins"></sup>. ADC2 ділить апаратуру з Wi-Fi, тож під час роботи Wi-Fi він для датчиків непридатний<sup class="cite" data-fact="s3-adc2-wifi"></sup>. Пін GPIO3 — strapping<sup class="cite" data-fact="s3-strap-gpio3"></sup>, GPIO19/20 зайняті USB<sup class="cite" data-fact="s3-usb-pins-as-gpio"></sup>. Решта пінів (0, 21, 26–48) АЦП не мають зовсім.</p>
+      <figure>
+        <svg id="pins-svg" viewBox="0 0 330 152" role="img" aria-label="Піни GPIO1–GPIO20. Перший ряд, 1–10: ADC1, працюють завжди; GPIO3 — strapping, GPIO4 — наш фоторезистор. Другий ряд, 11–20: ADC2, конфлікт з Wi-Fi; GPIO19 і 20 — USB."></svg>
+        <figcaption>Суцільна рамка — ADC1, пунктир — ADC2. Наш вибір — GPIO4.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Датчик — на ADC1 (GPIO1…10, краще 4–7). ADC2 лише тоді, коли Wi-Fi вимкнено.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: дискретизація і квантування — це різні речі</summary>
+      <p><b>Дискретизація</b> (sampling) — це <i>коли</i> ми міряємо: замість неперервної кривої беремо точки через проміжки часу. <b>Квантування</b> (quantization) — <i>наскільки точно</i> записуємо кожну точку: округлюємо до найближчої поділки з 4096. Перше обмежує, як швидко сигнал може змінюватися (АЦП S3 робить до 100 тис. вибірок/с<sup class="cite" data-fact="s3-adc-linearity"></sup>), друге — найменшу різницю, яку видно. Для світла в кімнаті обидва запаси величезні; заважає здебільшого шум.</p>
+      <p>Обмежена аналогія з водою: цифровий вхід — кран «відкрито/закрито», аналоговий — кран, відкритий на будь-яку частку. Аналогія лише про «скільки», а не про те, як тече струм.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+    <div class="predict" data-ok="1" data-gate="w-div"
+         data-why="LDR стоїть зверху, між 3,3 В і GPIO4. Долоня робить його опір великим, і більша частка напруги «застрягає» на ньому. Нижньому резистору (і піну) лишається менше: V падає, число теж. Якби LDR стояв знизу, було б навпаки.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>LDR зверху (до 3,3&nbsp;В), 10&nbsp;кОм знизу (до GND), середня точка — на GPIO4. Ви закриваєте LDR долонею. Що буде з числом <code>analogRead()</code>?</p>
+      <div class="opts">
+        <button class="opt">Зросте: опір більший, тож і число більше</button>
+        <button class="opt">Зменшиться: пін отримає меншу частку напруги</button>
+        <button class="opt">Не зміниться: живлення лишилося 3,3&nbsp;В</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-div">
+      <div class="ph"><h3>Конструктор подільника</h3><span class="small">модель GL5528<sup class="cite" data-fact="ldr-gl5528-gamma"></sup>; швидкість точок ∝ струму</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Де стоїть фоторезистор" id="topo">
+          <button type="button" data-t="top" aria-pressed="true">LDR зверху</button>
+          <button type="button" data-t="bot" aria-pressed="false">LDR знизу</button>
+        </div>
+        <div class="wgrid" style="margin-top:12px">
+          <div>
+            <div class="ctl"><label for="lux">Світло <b id="lux-v">300 лк</b></label>
+              <input type="range" id="lux" min="-2" max="4" step="0.02" value="2.48"></div>
+            <div class="presets" role="group" aria-label="Типові умови">
+              <button type="button" class="btn sm" data-lux="0.01">Темрява</button>
+              <button type="button" class="btn sm" data-lux="1">Долоня</button>
+              <button type="button" class="btn sm" data-lux="300">Кімната</button>
+              <button type="button" class="btn sm" data-lux="5000">Ліхтарик</button>
+            </div>
+            <div class="ctl" style="margin-top:10px"><label for="rfix">Постійний резистор R1 <b id="rfix-v">10 кОм</b></label>
+              <input type="range" id="rfix" min="0" max="48" step="1" value="24"></div>
+            <svg id="div-svg" viewBox="0 0 300 236" role="img" aria-label="Схема подільника зі стовпчиком напруги на GPIO4. Червона пунктирна лінія — стеля АЦП близько 3,1 В."></svg>
+          </div>
+          <div>
+            <div class="readout" aria-live="polite">
+              <span>R<sub>LDR</sub> <b id="o-rl">1,6 кОм</b></span>
+              <span>V на GPIO4 <b id="o-v">2,83 В</b></span>
+              <span>analogRead <b id="o-raw">3740</b></span>
+              <span>Струм <b id="o-i">0,28 мА</b></span>
+            </div>
+            <p class="readout warnout" id="o-sat" hidden>Стеля: V вище ≈ 3,1&nbsp;В, АЦП показує 4095 і змін світла вже не бачить.</p>
+            <svg id="plot-svg" viewBox="0 0 320 206" role="img" aria-label="Графік: число АЦП залежно від освітленості (логарифмічна шкала) для поточних налаштувань. Точка — поточне світло."></svg>
+            <div class="swing" id="o-swing" aria-live="polite"></div>
+          </div>
+        </div>
+        <p class="small">Виклик: підберіть R1, за якого різниця між «долонею» і «кімнатою» найбільша. Потім порівняйте з формулою з розділу 06.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-noise" style="margin-top:28px"
+         data-why="Випадковий шум частково гаситься при додаванні: розкид середнього з N вимірів менший у √N разів. √16 = 4. Щоб зменшити шум удесятеро, потрібно вже 100 вимірів.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Світло не змінюється, а числа «стрибають» на кілька одиниць. Ви берете середнє з 16 вимірів. У скільки разів зменшиться розкид?</p>
+      <div class="opts">
+        <button class="opt">У 16 разів: скільки вимірів, у стільки разів менше</button>
+        <button class="opt">Приблизно в 4 рази: відхилення гасяться лише частково</button>
+        <button class="opt">Не зменшиться: шум — властивість АЦП</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-noise">
+      <div class="ph"><h3>Шум і усереднення</h3><span class="small">модельний шум; натисніть на графік — пауза</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Скільки вимірів усереднювати" id="navg">
+          <button type="button" data-n="1" aria-pressed="false">N = 1</button>
+          <button type="button" data-n="4" aria-pressed="false">4</button>
+          <button type="button" data-n="16" aria-pressed="true">16</button>
+          <button type="button" data-n="64" aria-pressed="false">64</button>
+        </div>
+        <canvas class="noise-cv" id="noise-cv" width="700" height="220" aria-label="Сірі точки — окремі виміри analogRead, кольорова лінія — ковзне середнє з N останніх вимірів."></canvas>
+        <div class="readout" aria-live="polite">
+          <span>Типовий розкид (σ) одного виміру <b id="n-raw">10</b></span>
+          <span>σ середнього <b id="n-avg">2,5</b></span>
+          <span>Виграш <b id="n-gain">×4</b></span>
+        </div>
+        <p class="small">Лінія — <b>ковзне середнє</b>: після кожного нового виміру беремо середнє з N останніх. σ — «типове» відхилення; окремі точки зрідка відлітають і вдвічі-втричі далі. Числа рахуються за 65&nbsp;536 модельними вимірами, тож виграш стабільний.</p>
+      </div>
+    </div>
+    <p class="small">Даташит S3 теж радить усереднювати кілька вимірів<sup class="cite" data-fact="s3-adc-linearity"></sup>. Повна версія віджетів — на сторінці <a href="../../adc-light/">«Теорія: АЦП і світло»</a>.</p>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Що відомо:</b> LDR зверху, у кімнаті R<sub>LDR</sub>&nbsp;=&nbsp;5&nbsp;кОм (інший екземпляр, ніж у конструкторі 05: фоторезистори сильно різняться); R1&nbsp;=&nbsp;10&nbsp;кОм знизу; живлення 3,3&nbsp;В.<span class="why">чому: формулі подільника потрібні обидва опори й напруга живлення.</span></li>
+      <li><b>Напруга на піні:</b> <span class="formula">V = 3,3 · 10 / (5 + 10) = 2,2 В</span><span class="why">чому: пін «бачить» напругу на нижньому резисторі, тому R1 стоїть у чисельнику.</span></li>
+      <li><b>Перевірка діапазону:</b> 2,2&nbsp;В &lt; 2,9&nbsp;В — у каліброваній зоні.<span class="why">чому: до 2,9&nbsp;В діє калібрована точність; вище ≈&nbsp;3,1&nbsp;В число впирається в 4095.</span></li>
+      <li><b>Число АЦП:</b> <span class="formula">raw ≈ 2,2 / 3,1 · 4095 ≈ 2906</span><span class="why">чому: 4095 поділок на ≈&nbsp;3,1&nbsp;В шкали.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Відомо:</b> ту саму схему накрили долонею, R<sub>LDR</sub>&nbsp;=&nbsp;40&nbsp;кОм, R1&nbsp;=&nbsp;10&nbsp;кОм.</li>
+      <li>
+        <div class="try" data-ans="0.66" data-tol="0.02" data-unit="В" data-dec="2">
+          <span class="tag">Ваша черга</span>
+          <p>Яка напруга на GPIO4, у вольтах?</p>
+          <details><summary>Підказка</summary>V = 3,3 · R1 / (R<sub>LDR</sub> + R1) = 3,3 · 10 / 50.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="872" data-tol="0.02" data-dec="0">
+          <p>Яке приблизно число поверне <code>analogRead()</code>?</p>
+          <details><summary>Підказка</summary>raw ≈ V / 3,1 · 4095.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="1.55" data-tol="0.02" data-unit="В" data-dec="2">
+      <span class="tag">Самостійно</span>
+      <h4><code>analogRead()</code> повернув 2048 (ослаблення за замовчуванням). Яка приблизно напруга на піні?</h4>
+      <details><summary>Підказка</summary>Кінець лінійки — ≈&nbsp;3,1&nbsp;В, а не 3,3&nbsp;В. Тож 2048 — це не 1,65&nbsp;В.</details>
+    </div>
+    <div class="try" data-ans="10000" data-tol="0.05" data-unit="Ом" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Ваш LDR має 1&nbsp;кОм на світлі й 100&nbsp;кОм у тіні. Який R1 дасть найбільшу різницю напруг між цими станами?</h4>
+      <details><summary>Підказка</summary>Найкращий R1 — середнє геометричне: R1 = √(R<sub>світло</sub> · R<sub>тінь</sub>).</details>
+    </div>
+    <details class="more">
+      <summary>Звідки формула з коренем</summary>
+      <p>Різниця напруг ΔV = 3,3·(R/(R<sub>с</sub>+R) − R/(R<sub>т</sub>+R)). Якщо R дуже малий, обидві напруги біля нуля; якщо дуже великий — обидві біля 3,3&nbsp;В. Похідна дорівнює нулю при R² = R<sub>с</sub>·R<sub>т</sub>. Для «кімнати» (≈&nbsp;1,6&nbsp;кОм) і «долоні» (≈&nbsp;67&nbsp;кОм) у моделі виходить ≈&nbsp;10&nbsp;кОм — ось чому 10&nbsp;кОм такий популярний.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myth" data-mc="E3">
+      <p class="seems">Подільник можна живити від 5&nbsp;В: АЦП просто покаже 4095.</p>
+      <p class="truth">На світлі середня точка підійде майже до 5&nbsp;В, а виводи S3 витримують не більше ≈&nbsp;3,6&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>. Це може пошкодити чип. Верх подільника — тільки на 3V3.</p>
+      <p class="test">Перед підключенням до піна поміряйте мультиметром напругу в середній точці під ліхтариком: вона має бути нижчою за 3,3&nbsp;В.</p>
+    </div>
+    <div class="myth" data-mc="adc-ohm">
+      <p class="seems">АЦП міряє опір фоторезистора, тож досить одного LDR між 3V3 і піном.</p>
+      <p class="truth">АЦП міряє лише напругу. Вхід АЦП майже не бере струму, тож на самотньому LDR напруга не падає: пін бачить ≈&nbsp;3,3&nbsp;В за будь-якого світла. Ділити напругу починає лише другий резистор до GND.</p>
+      <p class="test">Вийміть R1 і подивіться в Serial: 4095 і на світлі, і під долонею.</p>
+    </div>
+    <div class="myth" data-mc="adc-3v3">
+      <p class="seems">4095 — це рівно 3,3&nbsp;В, тому V = raw / 4095 · 3,3.</p>
+      <p class="truth">За замовчуванням шкала закінчується на ≈&nbsp;3,1&nbsp;В<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>; 4095 означає «стільки або більше». Формула з 3,3 завищує напругу приблизно на 6&nbsp;%.</p>
+      <p class="test">Подайте на пін 3V3 через 1&nbsp;кОм: <code>analogRead</code> покаже 4095, а <code>analogReadMilliVolts</code> — помітно менше за 3300, хоча мультиметр бачить 3,3&nbsp;В.</p>
+    </div>
+    <details class="more">
+      <summary>Ще дві помилки: напрям числа і вибір піна</summary>
+    <div class="myth" data-mc="adc-dir">
+      <p class="seems">Більше світла — завжди більше число.</p>
+      <p class="truth">Напрям задає схема. LDR зверху: світло → число росте. LDR знизу: світло → число падає.</p>
+      <p class="test">У конструкторі з розділу 05 перемкніть «LDR зверху / знизу» і подивіться, як крива перевертається.</p>
+    </div>
+    <div class="myth" data-mc="adc-pin">
+      <p class="seems">Будь-який пін підійде, аби <code>analogRead</code> скомпілювався.</p>
+      <p class="truth">АЦП є лише на GPIO1…20, а з Wi-Fi працюють тільки GPIO1…10 (ADC1)<sup class="cite" data-fact="s3-adc2-wifi"></sup>.</p>
+      <p class="test">Код з <code>WiFi.begin()</code> і датчиком на GPIO15 повертає помилки або сміття; на GPIO4 — нормальні числа.</p>
+    </div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Та сама схема, що в проєкті <code>esp32-s3-ldr-adc</code>: LDR від 3V3 до GPIO4 (ADC1_CH3), R1&nbsp;10&nbsp;кОм від GPIO4 до GND.</p>
+    <figure class="dual wide" id="dual-ldr" data-nets="v33=3V3; gpio4=GPIO4 (середня точка); gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 260 230" role="img" aria-label="Схема: вивід 3V3 плати U1 до фоторезистора LDR1, другий вивід LDR1 — середня точка, з'єднана з GPIO4 і з резистором R1 10 кілоом, другий вивід R1 на землю.">
+          <rect class="sch-w" x="10" y="40" width="64" height="160" rx="3"/>
+          <text class="sch-ref" x="10" y="30">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="100" y="60" transform="rotate(180 100 60)"/>
+          <text class="sch-pin net-3v3" data-net="v33" x="66" y="65" text-anchor="end">3V3</text>
+          <use class="sch-sym" href="#mcu-pin" x="100" y="120" transform="rotate(180 100 120)"/>
+          <text class="sch-pin net-sig" data-net="gpio4" x="66" y="125" text-anchor="end">GPIO4</text>
+          <use class="sch-sym" href="#mcu-pin" x="100" y="180" transform="rotate(180 100 180)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="66" y="185" text-anchor="end">GND</text>
+          <path class="sch-w net-3v3" data-net="v33" d="M100 60H190V58"/>
+          <use class="sch-sym" href="#ldr" x="190" y="58" transform="rotate(90 190 58)"/>
+          <text class="sch-ref" x="220" y="96">LDR1</text>
+          <path class="sch-w net-sig" data-net="gpio4" d="M190 118V120H100"/>
+          <use class="sch-sym net-sig" data-net="gpio4" href="#dot" x="190" y="120"/>
+          <path class="sch-w net-sig" data-net="gpio4" d="M190 120V130"/>
+          <use class="sch-sym" href="#res" x="190" y="130" transform="rotate(90 190 130)"/>
+          <text class="sch-ref" x="206" y="156">R1</text>
+          <text class="sch-val" x="206" y="172">10 кОм</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M190 190V200"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="190" y="200"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M100 180H120V196"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="120" y="196"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-ldr" viewBox="0 0 262 222" role="img" aria-label="Макетка: дріт від 3V3 у стовпчик 3; фоторезистор зі стовпчика 3 у стовпчик 6 (ряд c); дріт від GPIO4 у стовпчик 6; резистор 10 кілоом зі стовпчика 6 у стовпчик 11; дріт зі стовпчика 11 на шину мінус, з'єднану з GND плати."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Фоторезистор полярності не має.</figcaption>
+    </figure>
+    <div class="dual-ctl" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px">
+      <button type="button" class="btn" id="flow-btn" aria-pressed="false">Показати струм</button>
+      <span class="out" id="flow-out" aria-live="polite"></span>
+    </div>
+    <p class="small">Чому GPIO4: це ADC1, не strapping і не USB. Необов'язково, але корисно: керамічний конденсатор 100&nbsp;нФ від GPIO4 до GND згладжує шум — саме з ним Espressif міряє точність АЦП<sup class="cite" data-fact="s3-adc-error-atten3"></sup>.</p>
+  </section>
+
+  <!-- ============================================================ 09 lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <p>Потрібно: плата YD-ESP32-S3, фоторезистор, резистор 10&nbsp;кОм (коричневий-чорний-помаранчевий), макетка, 4 дроти, мультиметр, ліхтарик телефона. Не впізнаєте деталь — гляньте в атласі: <a href="../../atlas/#photoresistor">фоторезистор</a>, <a href="../../atlas/#resistor">резистор</a>, <a href="../../atlas/#breadboard">макетка</a>, <a href="../../atlas/#multimeter">мультиметр</a>. Повна версія з графіками — <a href="../../ldr-lab/">«Лаба: люксметр»</a>.</p>
+    <div class="note danger">Верх подільника — тільки на 3V3, ніколи на 5V: на світлі пін отримав би майже 5&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>.</div>
+    <ol>
+      <li>Зберіть схему з розділу 08. Перевірте мультиметром: у середній точці при кімнатному світлі 1…3&nbsp;В.</li>
+      <li>Запишіть у таблицю <b>прогноз</b> числа для трьох умов (віджет із розділу 05 допоможе).</li>
+      <li>Прошийте скетч нижче (або проєкт <code>esp32-s3-ldr-adc</code>) і відкрийте Serial Monitor на 115200.</li>
+      <li>Для кожної умови запишіть raw, мВ і середнє з 16 вимірів.</li>
+      <li>Порівняйте прогноз і вимір; запишіть, чому вони різняться (інший LDR, інше світло, стеля…).</li>
+    </ol>
+<details class="more">
+      <summary>Скетч для лаби (raw, мВ і середнє з 16)</summary>
+<pre class="code"><code>#include &lt;Arduino.h&gt;
+constexpr uint8_t kLdrPin = 4;      // ADC1_CH3: працює і з Wi-Fi
+
+void setup() {
+  Serial.begin(115200);
+  analogReadResolution(12);         // 0…4095 (так і за замовчуванням)
+  analogSetAttenuation(ADC_11db);   // шкала ≈ 0…3,1 В (так і за замовчуванням)
+}
+
+void loop() {
+  uint32_t sum = 0;
+  for (int i = 0; i &lt; 16; ++i) sum += analogRead(kLdrPin);  // 16 вимірів
+  unsigned raw = analogRead(kLdrPin);                         // один вимір
+  unsigned mv  = analogReadMilliVolts(kLdrPin);               // калібровані мВ
+  Serial.printf("raw=%u  avg16=%u  mV=%u\n", raw, unsigned(sum / 16), mv);
+  delay(200);
+}</code></pre>
+    </details>
+    <p class="small">Код для нашого ядра Arduino-ESP32 2.0.17<sup class="cite" data-fact="core-arduino-version"></sup>. У ядрі 3.x ці функції називаються так само; змінилася лише реалізація калібрування (adc_cali). У новіших ESP-IDF 5.x те саме ослаблення зветься <code>ADC_ATTEN_DB_12</code> (стара назва <code>ADC_ATTEN_DB_11</code> застаріла) — це не інший режим<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>.</p>
+    <p class="small narrow-only">Таблиця ширша за екран телефона — гортайте її вбік →</p>
+    <table class="measure" data-key="1-6-ldr" data-calc="diff">
+      <caption>Фоторезистор у трьох умовах (LDR зверху, R1 = 10 кОм)</caption>
+      <thead><tr><th>Умова</th><th>Прогноз raw</th><th>Виміряно raw</th><th>Різниця, %</th><th>мВ (калібр.)</th><th>Середнє з 16</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>Долоня</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td></td><td></td><td data-col="why"></td></tr>
+        <tr><th>Кімната</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td></td><td></td><td data-col="why"></td></tr>
+        <tr><th>Ліхтарик</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td></td><td></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <p><b>Розширення: що якщо…</b> поміняти LDR і R1 місцями? Поставити R1&nbsp;=&nbsp;100&nbsp;кОм і посвітити ліхтариком? Спершу спрогнозуйте у віджеті, потім перевірте.</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="1-6" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="1-6" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Люксметр команди</h3>
+      <dl>
+        <dt>Мета</dt><dd>З'ясувати, наскільки різні ваші фоторезистори, і скласти спільну таблицю «число → темно / сутінки / світло».</dd>
+        <dt>Здати</dt><dd>Таблицю raw кожного учасника в трьох умовах (долоня, кімната, ліхтарик), вибраний R1 з обґрунтуванням, таблицю порогів і фото однієї зібраної схеми.</dd>
+        <dt>Ролі</dt><dd><ul><li>Збирач показує схему на камеру й перевіряє, що верх — на 3V3;</li><li>Вимірювач зводить таблиці всіх у одну й рахує розкид;</li><li>Доповідач пише висновок і пост у Discussions;</li><li>Скептик перевіряє, чи ніхто не вперся в 4095 і чи всі на ADC1.</li></ul></dd>
+        <dt>Критерії</dt><dd>Дані від кожного; R1 обґрунтовано (формула + віджет); пороги не перекриваються з урахуванням розкиду; пояснення відмінностей між LDR. Кожен — 0–2 бали.</dd>
+        <dt>Ускладнення</dt><dd>Виміряйте шум (розкид raw за 10&nbsp;с при сталому світлі) і виберіть N для ковзного середнього — середнього з N останніх вимірів, яке оновлюється з кожним новим виміром, — так, щоб розкид став меншим за 2 одиниці.</dd>
+        <dt>Термін</dt><dd>до пн 21.09, 10:00 — таблиця порогів знадобиться в міні-проєкті 1 (сутінковий перемикач)</dd>
+        <dt>Як здати</dt><dd>Пост у GitHub Discussions, категорія «Командні виклики».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: плату з кабелем, фоторезистор, резистор 10&nbsp;кОм, макетку, 4 дроти, мультиметр, ліхтарик телефона. Прочитайте розділи 01–05 і зробіть усі три прогнози.</p>
+    <div class="tnote">
+      <p>Студенти вже бачили прогнози 05 удома, тому обидва ConcepTest — <b>варіанти на перенесення</b>, а не повтор: відповідь із сайту напряму не підходить.</p>
+      <p><b>ConcepTest 1 (на початку блоку 34–46, до віджета):</b> «Тепер LDR <i>знизу</i> (між GPIO4 і GND), 10&nbsp;кОм зверху. Закрили LDR долонею: число А) росте, Б) падає, В) не змінюється?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно А. Очікувано 40–60&nbsp;% «Б»: хто запам'ятав «долоня → менше», а не принцип.</p></details>
+      <p>Peer instruction: двоє з різними відповідями пояснюють по 60&nbsp;с, переголосування, потім кнопка «LDR знизу» у віджеті 05.</p>
+      <p><b>ConcepTest 2 (після ідеї 3):</b> «Під ліхтариком <code>analogRead</code> = 4095, а мультиметр на піні показує 3,2&nbsp;В. А) АЦП зламаний: 4095 мало б бути 3,3&nbsp;В; Б) все гаразд: від ≈&nbsp;3,1&nbsp;В АЦП уже в стелі; В) мультиметр бреше.»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Очікувано 30–50&nbsp;% «А». Розв'язка — <code>analogReadMilliVolts</code> на камеру й віджет 05 з пресетом «Ліхтарик».</p></details>
+      <p><b>POE-демо на камеру:</b> Serial Plotter з raw і avg16. Перед кожною дією — голосування в чаті «↑ / ↓ / =»: долоня, ліхтарик, потім міняємо LDR і R1 місцями й повторюємо.</p>
+      <p><b>Board sprint (tldraw):</b> кожен малює подільник у своєму кадрі, підписує «де більша напруга на світлі» і ставить стрілку напряму числа.</p>
+      <p><b>«Знайди помилку»:</b> покажіть код з LDR на GPIO15 і <code>WiFi.begin()</code> та схему з верхом подільника на 5V — дві помилки.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що показувати</th></tr></thead>
+        <tbody>
+          <tr><td>3–11</td><td>Розминка</td><td>warmup/ (питання 1.4–1.5)</td></tr>
+          <tr><td>22–34</td><td>Ідеї 1–3 + ConcepTest 2</td><td>віджет «Сходинки квантування»</td></tr>
+          <tr><td>34–46</td><td>POE: подільник + ConcepTest 1</td><td>«Конструктор подільника»</td></tr>
+          <tr><td>46–55</td><td>Піни, «Знайди помилку»</td><td>ідея 5, розділ 07</td></tr>
+          <tr><td>62–90</td><td>Збираємо разом</td><td>розділ 08, Serial Plotter</td></tr>
+          <tr><td>90–95</td><td>Board sprint</td><td>tldraw</td></tr>
+          <tr><td>95–108</td><td>Командні демо викликів 1.4–1.5 (сб)</td><td>Discussions; виклик 1.6 — анонс, здача до пн</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, навіщо фоторезистору потрібен другий, постійний резистор."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../adc-light/">Теорія: АЦП і світло</a></li>
+      <li><a class="chip deep" href="../../ldr-lab/">Лаба: люксметр</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s80aoou0813h3dh1mxd" rel="noopener">Урок 1.6 у LMS</a> (потрібен вхід).</li>
+      <li><a href="https://www.youtube.com/watch?v=OfSyZzIJacc" rel="noopener">Відео з уроку</a> — фоторезистор і «розумний світильник» у Tinkercad. Звертайте увагу на ідею подільника та порогу <code>if/else</code>. Плата там інша (Arduino), тож числа й напруги не збігатимуться з ESP32-S3.</li>
+      <li>Статті з LMS: <a href="https://www.wonderfulpcb.com/uk/blog/differences-and-characteristics-of-analog-and-digital-signalsdigital-signals/" rel="noopener">аналогові й цифрові сигнали</a>, <a href="https://corelamps.com/elektronika/fotorezystor/" rel="noopener">як влаштований фоторезистор</a>, <a href="https://arduino.ptngu.com/chapters/13/index.html" rel="noopener">фоторезистор зі шкалою світлодіодів</a>, <a href="https://radioman.com.ua/viewtopic.php?t=21" rel="noopener">ковзне середнє</a>, <a href="https://org2.knuba.edu.ua/mod/book/tool/print/index.php?id=32487" rel="noopener">типи АЦП (КНУБА)</a>.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul class="chips">
+      <li><a class="chip" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc/cpp">esp32-s3-ldr-adc · C++</a></li>
+      <li><a class="chip" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc/rust">esp32-s3-ldr-adc · Rust</a></li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: звідки кожне число на сторінці</summary>
+      <div id="sources"></div>
+    </details>
+    <h3>Що виправлено порівняно з LMS</h3>
+    <ul>
+      <li>LMS: АЦП ділить 0…3,3&nbsp;В, 4095 = 3,3&nbsp;В, V = raw/4095·3,3. Насправді за замовчуванням (11&nbsp;дБ) шкала закінчується на ≈&nbsp;3,1&nbsp;В, а калібрована точність діє до 2,9&nbsp;В<sup class="cite" data-fact="core-3x-adc-default-atten"></sup><sup class="cite" data-fact="s3-adc-atten-ranges"></sup>. Оцінка: V ≈ raw/4095·3,1&nbsp;В, точно — <code>analogReadMilliVolts()</code>.</li>
+      <li>LMS: raw 2048 → 1,65&nbsp;В, «рівно половина». За шкалою ≈&nbsp;3,1&nbsp;В це ≈&nbsp;1,55&nbsp;В.</li>
+      <li>LMS: «ослаблювач дає діапазон 0…~3,3&nbsp;В». Діапазон при 11&nbsp;дБ — до ≈&nbsp;3,1&nbsp;В; від 3,1 до 3,3&nbsp;В АЦП показує 4095<sup class="cite" data-fact="core-adc-default-atten"></sup>.</li>
+      <li>LMS: «для точних вимірів потрібне калібрування». Заводське калібрування вже записане в чип і застосовується в <code>analogReadMilliVolts()</code><sup class="cite" data-fact="core-analogreadmillivolts"></sup>.</li>
+      <li>Уточнення: LMS наводить «темрява ≈&nbsp;50&nbsp;кОм». Це правдоподібно для LDR під долонею, але темновий опір GL5528 — від 1&nbsp;МОм<sup class="cite" data-fact="lms-err-1-6-ldr-values"></sup>.</li>
+    </ul>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const NB = ' ';
+  const VCC = 3.3;          // 3V3 rail
+  const VMAX = 3.1;         // input full scale at 11 dB (facts: core-3x-adc-default-atten)
+  const RAWMAX = 4095;      // 12-bit (facts: s3-adc-max-raw)
+  const R10 = 15000, GAMMA = 0.65, RDARK = 1e6;   // GL5528 model: 10–20 kΩ @10 lx, γ 0,6–0,7, dark ≥ 1 MΩ
+  const rLdr = (lux) => Math.min(RDARK, R10 * Math.pow(lux / 10, -GAMMA));
+  const toRaw = (v) => Math.max(0, Math.min(RAWMAX, Math.round(v / VMAX * RAWMAX)));
+  const sv = (tag, attrs, parent) => S.svg(tag, attrs, parent);
+  const txt = (el, s) => { el.textContent = s; return el; };
+  const ohm = (r) => fmt.si(r, 'Ом', 2);
+  const luxText = (l) => (l < 0.1 ? 'темрява' : l < 10 ? fmt.num(l, 1) + NB + 'лк' : fmt.num(Math.round(l / (l < 100 ? 1 : 10)) * (l < 100 ? 1 : 10), 0) + NB + 'лк');
+
+  /* ==== 04 attenuation bars ==== */
+  (() => {
+    const g = $('#att-bars');
+    const X = (mv) => 70 + mv / 3300 * 230;
+    [['0 дБ', 850, 950], ['2,5 дБ', 1100, 1250], ['6 дБ', 1600, 1750], ['11 дБ', 2900, 3100]].forEach(([name, cal, inp], i) => {
+      const y = 12 + i * 32;
+      sv('rect', { class: 'bar-in', x: 70, y, width: X(inp) - 70, height: 22, rx: 4 }, g);
+      sv('rect', { class: 'bar-cal', x: 70, y, width: X(cal) - 70, height: 22, rx: 4 }, g);
+      txt(sv('text', { class: 'lbl-m', x: 64, y: y + 16, 'text-anchor': 'end' }, g), name);
+      txt(sv('text', { class: 'lbl-m', x: X(inp) + 4, y: y + 16 }, g), i === 3 ? '' : fmt.num(cal / 1000, 2) + NB + 'В');
+      if (i === 3) {
+        txt(sv('text', { class: 'lbl-s', x: 76, y: y + 16 }, g), 'за замовч.: 2,9 / 3,1 В');
+      }
+    });
+  })();
+
+  /* ==== 04 pin tiles ==== */
+  (() => {
+    const g = $('#pins-svg');
+    for (let n = 1; n <= 20; n++) {
+      const row = n <= 10 ? 0 : 1, col = (n - 1) % 10;
+      const x = 6 + col * 32, y = 22 + row * 74;
+      sv('rect', { class: row ? 'tile-a2' : 'tile-a1', x, y, width: 28, height: 30, rx: 5 }, g);
+      txt(sv('text', { class: 'lbl-b', x: x + 14, y: y + 20, 'text-anchor': 'middle', 'font-size': 14 }, g), String(n));
+      const tag = { 3: 'strap', 4: 'LDR', 19: 'USB', 20: 'USB' }[n];
+      if (tag) txt(sv('text', { class: 'lbl-m', x: n === 3 ? x + 24 : n === 4 ? x + 8 : x + 14, y: y + 47, 'text-anchor': n === 3 ? 'end' : n === 4 ? 'start' : 'middle' }, g), tag);
+      if (n === 4) sv('rect', { class: 'tile-me', x: x - 2, y: y - 2, width: 32, height: 34, rx: 6 }, g);
+    }
+    txt(sv('text', { class: 'lbl', x: 6, y: 16 }, g), 'ADC1 · GPIO1–10 · працює завжди');
+    txt(sv('text', { class: 'lbl', x: 6, y: 90 }, g), 'ADC2 · GPIO11–20 · ✕ з Wi-Fi');
+  })();
+
+  /* ==== 04 staircase (gated) ==== */
+  (() => {
+    const svgEl = $('#stairs-svg');
+    const L = 40, R = 310, T = 12, B = 140;
+    sv('path', { class: 'ax', d: `M${L} ${T}V${B}H${R}` }, svgEl);
+    txt(sv('text', { class: 'lbl-m', x: L - 4, y: T + 10, 'text-anchor': 'end' }, svgEl), 'max');
+    txt(sv('text', { class: 'lbl-m', x: L - 4, y: B, 'text-anchor': 'end' }, svgEl), '0');
+    txt(sv('text', { class: 'lbl-m', x: L, y: B + 18 }, svgEl), '0 В');
+    txt(sv('text', { class: 'lbl-m', x: R, y: B + 18, 'text-anchor': 'end' }, svgEl), '3,1 В');
+    txt(sv('text', { class: 'lbl-m', x: (L + R) / 2, y: B + 18, 'text-anchor': 'middle' }, svgEl), 'вхідна напруга');
+    sv('path', { class: 'ramp', d: `M${L} ${B}L${R} ${T}` }, svgEl);
+    const stair = sv('path', { class: 'curve' }, svgEl);
+    const note = sv('text', { class: 'lbl-m', x: R - 4, y: B - 12, 'text-anchor': 'end' }, svgEl);
+    function draw() {
+      const n = +$('#bits').value, levels = 2 ** n;
+      $('#bits-v').textContent = `${n} ${n < 5 ? 'біти' : 'бітів'}`;
+      $('#st-n').textContent = fmt.num(levels, 0);
+      $('#st-max').textContent = fmt.num(levels - 1, 0);
+      const mv = VMAX / levels * 1000;
+      $('#st-lsb').textContent = fmt.num(mv, mv < 1 ? 2 : mv < 100 ? 1 : 0) + NB + 'мВ';
+      const steps = Math.min(levels, 256);
+      let d = `M${L} ${B}`;
+      for (let k = 0; k < steps; k++) {
+        const x0 = L + (R - L) * k / steps, x1 = L + (R - L) * (k + 1) / steps;
+        const y = B - (B - T) * k / (steps - 1);
+        d += `L${x0.toFixed(1)} ${y.toFixed(1)}L${x1.toFixed(1)} ${y.toFixed(1)}`;
+      }
+      stair.setAttribute('d', d);
+      note.textContent = levels > 128 ? 'сходинки вже тонші за лінію' : '';
+    }
+    $('#bits').addEventListener('input', draw);
+    draw();
+  })();
+
+  /* ==== 05 divider constructor (gated) ==== */
+  const E12 = [1, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
+  const RLIST = [];
+  for (let e = 2; e <= 5; e++) E12.forEach((m) => RLIST.push(Math.round(m * 10 ** e)));
+  RLIST.push(1e6);
+  const st = { top: true, lux: 300, r: 10000, on: false };
+  const dsvg = $('#div-svg');
+  // Static parts of the divider drawing
+  sv('use', { href: '#vcc', x: 60, y: 24, class: 'sch-sym net-3v3' }, dsvg);
+  txt(sv('text', { class: 'sch-pin net-3v3', x: 74, y: 16 }, dsvg), '3,3 В');
+  const wTop = sv('path', { class: 'sch-w net-3v3', d: 'M60 24V36' }, dsvg);
+  const symTop = sv('use', { class: 'sch-sym', href: '#ldr', x: 60, y: 36, transform: 'rotate(90 60 36)' }, dsvg);
+  const refTop = sv('text', { class: 'sch-ref', x: 90, y: 62 }, dsvg);
+  const valTop = sv('text', { class: 'sch-val', x: 90, y: 78 }, dsvg);
+  const wMid = sv('path', { class: 'sch-w net-sig', d: 'M60 96V138' }, dsvg);
+  sv('path', { class: 'sch-w net-sig', d: 'M60 117H150' }, dsvg);
+  sv('use', { class: 'sch-sym net-sig', href: '#dot', x: 60, y: 117 }, dsvg);
+  txt(sv('text', { class: 'sch-pin net-sig', x: 112, y: 110, 'text-anchor': 'middle' }, dsvg), 'GPIO4');
+  const symBot = sv('use', { class: 'sch-sym', href: '#res', x: 60, y: 138, transform: 'rotate(90 60 138)' }, dsvg);
+  const refBot = sv('text', { class: 'sch-ref', x: 90, y: 164 }, dsvg);
+  const valBot = sv('text', { class: 'sch-val', x: 90, y: 180 }, dsvg);
+  const wBot = sv('path', { class: 'sch-w net-gnd', d: 'M60 198V210' }, dsvg);
+  sv('use', { class: 'sch-sym net-gnd', href: '#gnd', x: 60, y: 210 }, dsvg);
+  // Voltage column: 0…3,3 В, ceiling at 3,1 В
+  const BX = 210, BT = 24, BB = 210, BH = BB - BT;
+  sv('rect', { class: 'vbar-bg', x: BX, y: BT, width: 34, height: BH, rx: 4 }, dsvg);
+  const fill = sv('rect', { class: 'vbar-fill', x: BX + 1, y: BB, width: 32, height: 0, rx: 3 }, dsvg);
+  const yCeil = BB - BH * VMAX / VCC;
+  sv('path', { class: 'ceil', d: `M${BX - 8} ${yCeil}H${BX + 44}` }, dsvg);
+  txt(sv('text', { class: 'ceil-t', x: BX + 48, y: yCeil + 4 }, dsvg), '3,1');
+  txt(sv('text', { class: 'lbl-m', x: BX - 6, y: BT + 10, 'text-anchor': 'end' }, dsvg), '3,3');
+  txt(sv('text', { class: 'lbl-m', x: BX + 48, y: BB }, dsvg), '0 В');
+  const vTxt = sv('text', { class: 'lbl-b', x: BX + 17, y: BB + 20, 'text-anchor': 'middle' }, dsvg);
+  sv('path', { class: 'grid-l', d: `M150 117H${BX}` }, dsvg);
+
+  // Plot: raw vs log10(lux)
+  const psvg = $('#plot-svg');
+  const PL = 44, PR = 312, PT = 26, PB = 150;
+  const px = (lg) => PL + (lg + 2) / 6 * (PR - PL);
+  const py = (raw) => PB - raw / RAWMAX * (PB - PT);
+  sv('path', { class: 'ax', d: `M${PL} ${PT}V${PB}H${PR}` }, psvg);
+  sv('path', { class: 'ceil', d: `M${PL} ${py(RAWMAX)}H${PR}` }, psvg);
+  txt(sv('text', { class: 'lbl-m', x: PL - 4, y: py(RAWMAX) + 4, 'text-anchor': 'end' }, psvg), '4095');
+  txt(sv('text', { class: 'lbl-m', x: PL - 4, y: py(2048) + 4, 'text-anchor': 'end' }, psvg), '2048');
+  txt(sv('text', { class: 'lbl-m', x: PL - 4, y: PB, 'text-anchor': 'end' }, psvg), '0');
+  txt(sv('text', { class: 'lbl-s', x: PL + 6, y: PT - 10 }, psvg), 'analogRead ↑');
+  [['долоня', 0], ['кімната', Math.log10(300)], ['ліхтарик', Math.log10(5000)]].forEach(([t, lg], i) => {
+    sv('path', { class: 'grid-l', d: `M${px(lg)} ${PT}V${PB + 4}` }, psvg);
+    if (i < 2) txt(sv('text', { class: 'lbl-m', x: px(lg), y: PB + 16, 'text-anchor': 'middle' }, psvg), t);
+    // the flashlight line sits too close to «кімната»: label it vertically, inside the plot
+    else txt(sv('text', { class: 'lbl-m', x: px(lg) - 5, y: PB - 6, transform: `rotate(-90 ${px(lg) - 5} ${PB - 6})` }, psvg), t);
+  });
+  txt(sv('text', { class: 'lbl-m', x: PL, y: PB + 50 }, psvg), 'світло → (лог. шкала)');
+  const curve = sv('path', { class: 'curve' }, psvg);
+  const pdot = sv('circle', { class: 'dotp', r: 6 }, psvg);
+
+  const vOf = (lux, r = st.r, top = st.top) => {
+    const rl = rLdr(lux);
+    return top ? VCC * r / (rl + r) : VCC * rl / (rl + r);
+  };
+  function drawDiv() {
+    const rl = rLdr(st.lux), v = vOf(st.lux), raw = toRaw(v), i = VCC / (rl + st.r);
+    // schematic: swap symbols by topology
+    symTop.setAttribute('href', st.top ? '#ldr' : '#res');
+    symBot.setAttribute('href', st.top ? '#res' : '#ldr');
+    refTop.textContent = st.top ? 'LDR' : 'R1';
+    refBot.textContent = st.top ? 'R1' : 'LDR';
+    valTop.textContent = ohm(st.top ? rl : st.r);
+    valBot.textContent = ohm(st.top ? st.r : rl);
+    const h = BH * Math.min(v, VCC) / VCC;
+    fill.setAttribute('y', (BB - h).toFixed(1));
+    fill.setAttribute('height', h.toFixed(1));
+    vTxt.textContent = fmt.num(v, 2) + NB + 'В';
+    $('#o-rl').textContent = ohm(rl);
+    $('#o-v').textContent = fmt.num(v, 2) + NB + 'В';
+    $('#o-raw').textContent = String(raw);
+    $('#o-i').textContent = fmt.si(i, 'А', 2);
+    $('#o-sat').hidden = !(v >= VMAX);
+    $('#lux-v').textContent = luxText(st.lux);
+    $('#rfix-v').textContent = ohm(st.r);
+    $('#lux').setAttribute('aria-valuetext', luxText(st.lux));
+    $('#rfix').setAttribute('aria-valuetext', ohm(st.r));
+    // plot
+    let d = '';
+    for (let k = 0; k <= 120; k++) {
+      const lg = -2 + 6 * k / 120;
+      d += (k ? 'L' : 'M') + px(lg).toFixed(1) + ' ' + py(toRaw(vOf(10 ** lg))).toFixed(1);
+    }
+    curve.setAttribute('d', d);
+    pdot.setAttribute('cx', px(Math.log10(st.lux)).toFixed(1));
+    pdot.setAttribute('cy', py(raw).toFixed(1));
+    const a = toRaw(vOf(1)), b = toRaw(vOf(300));
+    $('#o-swing').innerHTML = `Долоня → <b>${a}</b>, кімната → <b>${b}</b>. Розмах <b>${Math.abs(b - a)}</b> з 4095.`;
+    // current: dots appear only after the prediction
+    const mA = st.on ? i * 1000 : 0;
+    [wTop, wMid, wBot].forEach((w) => S.flow(w, { mA, k: 10 }));
+  }
+  $$('#topo button').forEach((b) => b.addEventListener('click', () => {
+    st.top = b.dataset.t === 'top';
+    $$('#topo button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    drawDiv();
+  }));
+  $('#lux').addEventListener('input', (e) => { st.lux = 10 ** +e.target.value; drawDiv(); });
+  $$('#w-div [data-lux]').forEach((b) => b.addEventListener('click', () => {
+    st.lux = +b.dataset.lux;
+    $('#lux').value = Math.log10(st.lux);
+    drawDiv();
+  }));
+  $('#rfix').addEventListener('input', (e) => { st.r = RLIST[+e.target.value]; drawDiv(); });
+  $('#rfix').max = RLIST.length - 1;
+  $('#rfix').value = RLIST.indexOf(10000);
+  $('#w-div').addEventListener('predict', () => { st.on = true; drawDiv(); });
+  drawDiv();
+
+  /* ==== 05 noise + averaging (gated canvas) ==== */
+  (() => {
+    const cv = $('#noise-cv');
+    const SIGMA = 10, TRUE = 2000, LEN = 140, KEEP = 600;
+    let N = 16, buf = [], ctx, acc = 0, ready = false;
+    const gauss = () => { let s = 0; for (let k = 0; k < 6; k++) s += Math.random(); return (s - 3) * Math.SQRT2 * SIGMA; };
+    const sample = () => Math.round(TRUE + gauss());
+    for (let k = 0; k < KEEP; k++) buf.push(sample());
+    const avgAt = (k) => { let s = 0; for (let j = 0; j < N; j++) s += buf[k - j]; return s / N; };
+    const sd = (arr) => { const m = arr.reduce((a, b) => a + b, 0) / arr.length; return Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length); };
+    // Stats come from a long hidden run and non-overlapping blocks of N, so the gain is stable (≈ √N).
+    const STAT = Array.from({ length: 65536 }, sample);
+    const sRaw = sd(STAT);
+    function stats() {
+      const means = [];
+      for (let k = 0; k + N <= STAT.length; k += N) { let s = 0; for (let j = 0; j < N; j++) s += STAT[k + j]; means.push(s / N); }
+      const sAvg = sd(means);
+      $('#n-raw').textContent = fmt.num(sRaw, 1);
+      $('#n-avg').textContent = fmt.num(sAvg, 1);
+      $('#n-gain').textContent = '×' + fmt.num(sRaw / Math.max(sAvg, 0.01), 1) + ` (√N = ${fmt.num(Math.sqrt(N), 0)})`;
+    }
+    function draw() {
+      ctx = Study.fitCanvas(cv);
+      const t = Study.tokens(), W = ctx.w, H = ctx.h;
+      ctx.clearRect(0, 0, W, H);
+      const lo = TRUE - 45, hi = TRUE + 45;
+      const Y = (v) => H - 24 - (v - lo) / (hi - lo) * (H - 40);
+      const X = (k) => 46 + k / (LEN - 1) * (W - 56);
+      ctx.font = `13px ${t['f-mono']}`; ctx.fillStyle = t.muted; ctx.strokeStyle = t.line; ctx.lineWidth = 1;
+      [TRUE - 40, TRUE, TRUE + 40].forEach((v) => {
+        ctx.beginPath(); ctx.setLineDash([3, 4]); ctx.moveTo(46, Y(v)); ctx.lineTo(W - 10, Y(v)); ctx.stroke();
+        ctx.fillText(String(v), 4, Y(v) + 4);
+      });
+      ctx.setLineDash([]);
+      const start = buf.length - LEN;
+      ctx.fillStyle = t.muted;
+      for (let k = 0; k < LEN; k++) { ctx.beginPath(); ctx.arc(X(k), Y(buf[start + k]), 2.2, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = t.accent; ctx.lineWidth = 3; ctx.beginPath();
+      const avgs = [];
+      for (let k = 0; k < LEN; k++) { const a = avgAt(start + k); avgs.push(a); k ? ctx.lineTo(X(k), Y(a)) : ctx.moveTo(X(k), Y(a)); }
+      ctx.stroke();
+      ctx.fillStyle = t.ink; ctx.fillText('raw (сірі)  ·  ковзне середнє з N (лінія)', 50, 16);
+    }
+    const sim = Study.sim(cv, (dt) => {
+      if (!ready) { draw(); return; }
+      acc += dt;
+      if (acc < 0.06) return;
+      acc = 0;
+      buf.push(sample());
+      if (buf.length > KEEP) buf.splice(0, buf.length - KEEP);
+      draw();
+    });
+    $$('#navg button').forEach((b) => b.addEventListener('click', () => {
+      N = +b.dataset.n;
+      $$('#navg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      stats();
+      draw();
+    }));
+    stats();
+    $('#w-noise').addEventListener('predict', () => { ready = true; draw(); });
+    Study.onTheme(draw);
+    addEventListener('resize', draw);
+    draw();
+    void sim;
+  })();
+
+  /* ==== 08 breadboard ==== */
+  const bbSvg = $('#bb-ldr');
+  const g = sv('g', {}, bbSvg);
+  sv('rect', { x: 2, y: 44, width: 58, height: 110, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
+  txt(sv('text', { class: 'sch-pin', x: 6, y: 36 }, g), 'плата');
+  txt(sv('text', { class: 'sch-pin net-3v3', 'data-net': 'v33', x: 8, y: 70 }, g), '3V3');
+  txt(sv('text', { class: 'sch-pin net-sig', 'data-net': 'gpio4', x: 8, y: 104 }, g), '4');
+  txt(sv('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 138 }, g), 'GND');
+  const pin33 = { x: 50, y: 66 }, pin4 = { x: 50, y: 100 }, pinG = { x: 50, y: 134 };
+  const bb = S.breadboard(bbSvg, { cols: 14, rails: true, x: 76, y: 0, colLabels: 'bottom' });
+  bb.mark(3, 'top', 'v33', 'net-3v3');
+  bb.mark(6, 'top', 'gpio4', 'net-sig');
+  bb.mark(11, 'top', 'gnd', 'net-gnd');
+  bb.markRail('top', '-', 'gnd', 'net-gnd');
+  const j33 = S.part(bbSvg, 'jumper', { from: pin33, to: bb.hole(3, 'e'), net: 'v33', cls: 'net-3v3', lift: 20, title: 'Дріт 3V3 → стовпчик 3' });
+  const j4 = S.part(bbSvg, 'jumper', { from: pin4, to: bb.hole(6, 'e'), net: 'gpio4', cls: 'net-sig', lift: 30, title: 'Дріт GPIO4 → стовпчик 6' });
+  // LDR: two legs into columns 3 and 6, disc with the meander above (no Schem.part kind for it)
+  const a = bb.hole(3, 'c'), c = bb.hole(6, 'c');
+  const lg = sv('g', { class: 'bb-ldr' }, bbSvg);
+  txt(sv('title', {}, lg), 'Фоторезистор LDR1: полярності немає');
+  const cx = (a.x + c.x) / 2, cy = a.y - 12;
+  sv('path', { d: `M${a.x} ${a.y}V${cy + 6}L${cx - 4} ${cy + 2}M${c.x} ${c.y}V${cy + 6}L${cx + 4} ${cy + 2}`, fill: 'none', stroke: '#9aa3aa', 'stroke-width': 1.6 }, lg);
+  sv('circle', { cx, cy: cy - 4, r: 10, fill: '#e9d7a8', stroke: '#8c7a4c', 'stroke-width': 1.2 }, lg);
+  sv('path', { d: `M${cx - 7} ${cy - 9}H${cx + 6}V${cy - 5}H${cx - 6}V${cy - 1}H${cx + 7}`, fill: 'none', stroke: '#b4442c', 'stroke-width': 1.6 }, lg);
+  for (const e of [a, c]) sv('circle', { cx: e.x, cy: e.y, r: 2, fill: '#6f7980' }, lg);
+  txt(sv('text', { class: 'bb-part-lbl', x: cx, y: bb.hole(3, 'e').y + 17, 'text-anchor': 'middle' }, lg), 'LDR1');
+  S.part(bbSvg, 'res', { from: bb.hole(6, 'd'), to: bb.hole(11, 'd'), ohms: 10000, label: 'R1' });
+  const jK = S.part(bbSvg, 'jumper', { from: bb.hole(11, 'a'), to: bb.rail('top', '-', 11), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 11 → шина мінус' });
+  const jG = S.part(bbSvg, 'jumper', { from: pinG, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → шина мінус' });
+
+  let flowOn = false;
+  const dualWires = [[$$('#dual-ldr [data-view="sch"] path.net-3v3')[0], 1], [$$('#dual-ldr [data-view="sch"] path.net-sig')[1], 1],
+    [$$('#dual-ldr [data-view="sch"] path.net-gnd')[0], 1], [$$('#dual-ldr [data-view="sch"] path.net-gnd')[1], -1],
+    [j33, 1], [jK, 1], [jG, -1]];
+  $('#flow-btn').addEventListener('click', (e) => {
+    flowOn = !flowOn;
+    e.currentTarget.setAttribute('aria-pressed', String(flowOn));
+    e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
+    const i = VCC / (rLdr(300) + 10000) * 1000;
+    dualWires.forEach(([w, dir]) => w && S.flow(w, { mA: flowOn ? i : 0, dir, k: 10 }));
+    if (j4._flow) j4._flow.set(0);
+    $('#flow-out').textContent = flowOn ? `Кімната: I = 3,3 / (1,6 кОм + 10 кОм) ≈ ${fmt.num(i, 2)} мА. У пін АЦП струм майже не тече.` : '';
+  });
+});
+</script>
+</body>
+</html>

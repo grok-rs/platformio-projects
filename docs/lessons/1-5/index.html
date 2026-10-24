@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 1.5 · Осцилограф, кнопка і брязкіт</title>
+<meta name="description" content="Як читати осцилограф і логічний аналізатор: шкали, тригер, період, частота, заповнення, фронти, а також чому натискання кнопки з підтяжкою — це спад і скільки триває брязкіт.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 40px; padding: 7px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+@media (pointer: coarse) { .seg button { min-height: 44px; } } /* desktop keeps the compact size above */
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button:focus-visible { outline: 3px solid var(--ink); outline-offset: -5px; }
+.seg button[aria-pressed="true"]:focus-visible { outline-color: var(--accent-ink); }
+.scroll-hint { display: none; }
+@media (max-width: 640px) { .scroll-hint { display: block; } }
+.wctl { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 10px 0; }
+.wctl > label { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+.wctl input[type="range"] { width: 150px; }
+.readout { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 8px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 15px var(--f-mono); color: var(--ink); }
+.scope-cv { max-width: 760px; margin: 0 auto; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); touch-action: manipulation; }
+.model-chip { display: inline-block; vertical-align: middle; padding: 1px 8px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .04em; white-space: nowrap; }
+.status { font: 600 14px var(--f-mono); color: var(--hi-ink); min-height: 1.4em; margin: 6px 0 0; }
+.codeline { font: 14px/1.5 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-x: auto; white-space: pre; margin: 8px 0 0; }
+.codeline mark { background: none; color: var(--hi-ink); font-weight: 600; }
+.press-btn { min-height: 52px; min-width: 150px; font-size: 16px; user-select: none; -webkit-user-select: none; touch-action: none; }
+.press-btn[aria-pressed="true"] { transform: translateY(2px); }
+.edge-grid { display: grid; gap: 12px; }
+@media (min-width: 720px) { .edge-grid { grid-template-columns: 220px 1fr; align-items: start; } }
+.mini-sch { width: 100%; max-width: 220px; margin: 0 auto; display: block; }
+.fig-svg text { font-family: var(--f-mono); }
+/* The breadboard sheet (380 units) is wider than the schematic (320): share the row in that ratio so its labels stay >= 13 px. */
+@media (min-width: 720px) { #dual-btn { grid-template-columns: minmax(0, 320fr) minmax(0, 380fr); } }
+/* On a phone the breadboard keeps 380 px (labels >= 13 px) and scrolls sideways inside its sheet. */
+#dual-btn .bb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#dual-btn .bb-scroll > svg { display: block; width: 100%; height: auto; }
+@media (max-width: 719px) { #dual-btn .bb-scroll > svg { min-width: 380px; } }
+.drill-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.drill-row input { width: 9em; }
+.drill-q { font-weight: 600; margin: 10px 0 0; }
+#lab table.measure[data-key="1-5-bounce10"] { min-width: 0; }
+#lab table.measure[data-key="1-5-bounce10"] input { min-width: 0; width: 5.2em; padding: 6px; }
+#lab table.measure[data-key="1-5-bounce10"] td { padding: 4px; }
+#lab table.measure[data-key="1-5-bounce10"] thead th { font-size: 13px; }
+.scr { max-width: 360px; display: block; margin: 0 auto; }
+.sumline { font: 600 15px var(--f-mono); margin: 8px 0 0; color: var(--ink); }
+.vid { margin: 0 0 10px; }
+.vid b { display: block; }
+.tools td, .tools th { font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .press-btn[aria-pressed="true"] { transform: none; } }
+</style>
+</head>
+<body data-lesson="1-5">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:1-5">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Урок 1.5 · ср 16.09</p>
+    <h1>Сигнали в часі: <span>осцилограф, кнопка і брязкіт</span></h1>
+    <p class="lead">Ви навчитеся читати екран осцилографа й аналізатора, вимірювати період і заповнення та побачите, що насправді відбувається на піні, коли натискаєте кнопку.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: кнопка, 10&nbsp;кОм, логічний аналізатор (бажано)</a></li>
+      <li><a class="chip" href="../../pull-resistors/">Спершу: урок 1.4, підтяжка входу</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Ви написали лічильник натискань: одне переривання — плюс один. Натискаєте кнопку 10 разів, а на екрані 14. Код правильний, кнопка нова. Що не так?</p>
+    <p>Мультиметр тут безсилий: він показує середнє кілька разів на секунду. А проблема живе в мікросекундах. Щоб її побачити, потрібен прилад, який малює напругу <b>в часі</b>: осцилограф або логічний аналізатор. Після цього уроку ви знатимете, куди дивитися й що там шукати.</p>
+  </section>
+
+  <!-- 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>прочитати</b> осцилограму за ціною поділки (В/под і с/под) і <b>пояснити</b>, навіщо тригер;</li>
+      <li><b>виміряти</b> період, частоту, тривалість імпульсу й коефіцієнт заповнення;</li>
+      <li><b>визначити</b>, який фронт дає натискання кнопки з підтяжкою вгору, і вибрати <code>FALLING</code> чи <code>RISING</code>;</li>
+      <li><b>записати</b> брязкіт кнопки й оцінити його тривалість;</li>
+      <li><b>вибрати</b> інструмент: осцилограф, логічний аналізатор чи Serial Plotter.</li>
+    </ul>
+  </section>
+
+  <!-- 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Осцилограф — це графік напруги в часі, розграфлений на поділки</h3>
+      <p>Екран поділено сіткою. Ручка <b>В/под</b> каже, скільки вольтів в одній клітинці по вертикалі, ручка <b>с/под</b> — скільки часу в одній клітинці по горизонталі. Будь-яке значення читається однаково: порахуйте поділки й помножте на ціну поділки.</p>
+      <p>Великий масштаб часу (100&nbsp;мс/под) показує загальну картину, малий (100&nbsp;мкс/под) — дрібні деталі, які на великому зливаються в одну риску.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 200" role="img" aria-label="Сітка осцилографа 10 на 6 поділок. Прямокутний сигнал: висота 3 поділки при 1 вольт на поділку, тобто 3 вольти; період 4 поділки при 1 мілісекунді на поділку, тобто 4 мілісекунди.">
+          <g stroke="var(--line)" stroke-width="1">
+            <path d="M30 20V164M54 20V164M78 20V164M102 20V164M126 20V164M150 20V164M174 20V164M198 20V164M222 20V164M246 20V164M270 20V164"/>
+            <path d="M30 20H270M30 44H270M30 68H270M30 92H270M30 116H270M30 140H270M30 164H270"/>
+          </g>
+          <path d="M30 140H54V68H102V140H150V68H198V140H246V68H270" fill="none" stroke="var(--nsig2)" stroke-width="3"/>
+          <text x="4" y="144" font-size="14" fill="var(--muted)">0 В</text>
+          <path d="M120 140V72" stroke="var(--hi)" stroke-width="2" marker-end="url(#ar1)"/>
+          <defs><marker id="ar1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--hi)"/></marker></defs>
+          <text x="108" y="58" font-size="14" fill="var(--hi-ink)">3 под × 1 В = 3 В</text>
+          <path d="M54 176H150" stroke="var(--accent)" stroke-width="2" marker-start="url(#ar2)" marker-end="url(#ar2)"/>
+          <defs><marker id="ar2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker></defs>
+          <text x="102" y="195" font-size="14" text-anchor="middle" fill="var(--accent)">T = 4 под × 1 мс = 4 мс</text>
+          <text x="270" y="14" font-size="14" text-anchor="end" fill="var(--muted)">1 В/под · 1 мс/под</text>
+          <text x="292" y="180" font-size="14" text-anchor="end" fill="var(--muted)">час →</text>
+        </svg>
+        <figcaption>Значення = поділки × ціна поділки, по обох осях.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Рахуйте поділки й множте на В/под або с/под. Масштаб часу вирішує, які деталі ви взагалі побачите.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Тригер зупиняє картинку</h3>
+      <p>Осцилограф малює екран за екраном. Якщо кожен прохід починається з випадкового місця сигналу, картинки не збігаються: зображення пливе й двоїться. <b>Тригер</b> (синхронізація) чекає, доки сигнал перетне заданий <b>рівень</b> у заданий <b>бік</b> (вгору ↑ або вниз ↓), і лише тоді починає прохід. Усі проходи лягають один на одного, і картинка стоїть.</p>
+      <p>Режим <b>AUTO</b> малює навіть без події тригера (зручно шукати сигнал). <b>NORMAL</b> малює лише після події, тому одноразове натискання кнопки ловлять саме ним (або режимом SINGLE).</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 130" role="img" aria-label="Ліворуч без тригера: три проходи зсунуті один відносно одного, картинка розмита. Праворуч з тригером: три проходи збігаються, позначено рівень тригера і точку старту.">
+          <rect x="6" y="20" width="134" height="90" rx="6" fill="var(--panel-2)" stroke="var(--line)"/>
+          <rect x="160" y="20" width="134" height="90" rx="6" fill="var(--panel-2)" stroke="var(--line)"/>
+          <g fill="none" stroke="var(--nsig2)" stroke-width="2.5">
+            <path d="M10 90H30V40H55V90H80V40H105V90H130V40H136"/>
+            <path d="M10 40H20V90H45V40H70V90H95V40H120V90H136" opacity=".45"/>
+            <path d="M10 90H40V40H65V90H90V40H115V90H136" opacity=".25"/>
+            <path d="M164 90H202V40H227V90H252V40H277V90H290" stroke-width="3"/>
+          </g>
+          <path d="M164 65H290" stroke="var(--hi)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M202 30l-5 -8h10z" fill="var(--hi)"/>
+          <text x="73" y="14" font-size="14" text-anchor="middle" fill="var(--muted)">без тригера</text>
+          <text x="248" y="14" font-size="14" text-anchor="middle" fill="var(--muted)">з тригером ↑</text>
+          <text x="236" y="126" font-size="14" text-anchor="middle" fill="var(--hi-ink)">- - рівень</text>
+        </svg>
+        <figcaption>Ліворуч кожен прохід стартує деінде; праворуч — завжди з фронту ↑, що перетинає рівень.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Тригер = «почни малювати, коли сигнал перетне цей рівень у цей бік». Без нього повторюваний сигнал пливе.</p>
+    </article>
+
+    <div class="predict" data-ok="2" data-gate="w-trig"
+         data-why="Кожен прохід без тригера починається з випадкової фази сигналу, тому сусідні кадри не збігаються: на екрані кілька зсунутих копій, що стрибають. Увімкніть тригер, і перший фронт кожного проходу стане в ту саму точку.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Сигнал на вході безперервно повторюється. Що ви побачите, якщо <b>вимкнути тригер</b>?</p>
+      <div class="opts">
+        <button class="opt">Ту саму нерухому картинку: сигнал же не змінився</button>
+        <button class="opt">Порожній екран: без тригера осцилограф нічого не малює</button>
+        <button class="opt">Картинка пливе й двоїться</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-trig">
+      <div class="ph"><h3>Міні-осцилограф з тригером</h3><span class="small">клік по екрану — пауза</span></div>
+      <div class="pb">
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Тригер" id="trig-edge">
+            <button type="button" data-v="off" aria-pressed="false">Тригер вимк.</button>
+            <button type="button" data-v="rise" aria-pressed="true">↑ висхідний</button>
+            <button type="button" data-v="fall" aria-pressed="false">↓ спадний</button>
+          </div>
+          <div class="seg" role="group" aria-label="Режим тригера" id="trig-mode">
+            <button type="button" data-v="auto" aria-pressed="true">AUTO</button>
+            <button type="button" data-v="normal" aria-pressed="false">NORMAL</button>
+          </div>
+          <label>Рівень <input type="range" id="trig-lvl" min="0" max="4" step="0.1" value="1.6" aria-label="Рівень тригера, вольти"> <b id="trig-lvl-out">1,6 В</b></label>
+        </div>
+        <canvas class="scope-cv" id="trig-cv" width="640" height="300" aria-label="Екран осцилографа: прямокутний сигнал 0–3,3 В, заповнення 30 %. Стан тригера описано в рядку під екраном."></canvas>
+        <p class="status" id="trig-status" aria-live="polite"></p>
+        <p class="small">Спробуйте: поставте рівень 3,8&nbsp;В (вище за сигнал) і перемкніть AUTO ↔ NORMAL. Потім ↑ проти ↓: що опиняється в центрі екрана?</p>
+      </div>
+    </div>
+
+    <article class="idea">
+      <h3>Період, частота і заповнення — три числа прямокутного сигналу</h3>
+      <p class="note"><b>Фронт</b> — будь-який перехід між рівнями. <b>Висхідний</b> фронт: LOW → HIGH, ↑, в Arduino <code>RISING</code>. <b>Спадний</b> фронт (коротко «спад»): HIGH → LOW, ↓, <code>FALLING</code>. Брязкіт дає кілька фронтів обох видів поспіль.</p>
+      <p><b>Період T</b> — час від одного фронту ↑ до наступного фронту ↑. <b>Частота</b> f&nbsp;=&nbsp;1&nbsp;/&nbsp;T: скільки періодів за секунду. <b>Тривалість імпульсу</b> t<sub>HIGH</sub> — скільки сигнал тримається в HIGH. <b>Коефіцієнт заповнення</b> D&nbsp;=&nbsp;t<sub>HIGH</sub>&nbsp;/&nbsp;T: яку частку періоду займає HIGH. Сигнал з D&nbsp;=&nbsp;50&nbsp;% називають <b>меандром</b>.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 150" role="img" aria-label="Прямокутний сигнал. Період T від одного висхідного фронту до наступного. t HIGH — частина періоду в стані HIGH. Формули: f дорівнює 1 поділити на T, D дорівнює t HIGH поділити на T.">
+          <path d="M14 100H40V40H90V100H160V40H210V100H286" fill="none" stroke="var(--nsig2)" stroke-width="3"/>
+          <path d="M40 120H160" stroke="var(--accent)" stroke-width="2" marker-start="url(#ar3)" marker-end="url(#ar3)"/>
+          <path d="M40 26H90" stroke="var(--hi)" stroke-width="2" marker-start="url(#ar4)" marker-end="url(#ar4)"/>
+          <defs>
+            <marker id="ar3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker>
+            <marker id="ar4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--hi)"/></marker>
+          </defs>
+          <text x="100" y="140" font-size="14" text-anchor="middle" fill="var(--accent)">період T</text>
+          <text x="65" y="18" font-size="14" text-anchor="middle" fill="var(--hi-ink)">t<tspan font-size="11" dy="3">HIGH</tspan></text>
+          <text x="228" y="22" font-size="14" fill="var(--ink)">f = 1 / T</text>
+          <text x="228" y="138" font-size="14" fill="var(--ink)">D = t/T</text>
+        </svg>
+        <figcaption>Тут t<sub>HIGH</sub> = 50 з 120 одиниць, тобто D ≈ 42 %.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>f = 1 / T, D = t<sub>HIGH</sub> / T. Усе вимірюється поділками, помноженими на с/под.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Фронт не миттєвий, а пін вирішує в «сірій зоні»</h3>
+      <p>Якщо розтягнути фронт по часу, видно схил. Його тривалість, <b>час наростання</b>, домовилися вимірювати між 10&nbsp;% і 90&nbsp;% амплітуди<sup class="cite" data-fact="rise-time-10-90"></sup>: краї розмиті шумом. VDD — напруга живлення чипа, у нас 3,3&nbsp;В. ESP32-S3 гарантовано бачить LOW до 0,25·VDD<sup class="cite" data-fact="s3-vil"></sup> і HIGH від 0,75·VDD<sup class="cite" data-fact="s3-vih"></sup>. Між ними (≈&nbsp;0,83–2,48&nbsp;В) рівень не визначений, тож повільний або зашумлений фронт може дати кілька перемикань.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 165" role="img" aria-label="Висхідний фронт із нахилом. Пунктирні рівні 10 і 90 відсотків, між ними час наростання. Смуга від 0,25 до 0,75 VDD позначена як невизначена зона входу ESP32-S3.">
+          <rect x="40" y="55" width="250" height="50" fill="var(--hi)" opacity=".12"/>
+          <text x="286" y="86" font-size="14" text-anchor="end" fill="var(--hi-ink)">невизначено</text>
+          <text x="286" y="70" font-size="14" text-anchor="end" fill="var(--muted)">0,75·VDD</text>
+          <text x="286" y="101" font-size="14" text-anchor="end" fill="var(--muted)">0,25·VDD</text>
+          <path d="M40 120H290M40 40H290" stroke="var(--muted)" stroke-dasharray="3 3"/>
+          <text x="4" y="124" font-size="14" fill="var(--muted)">10 %</text>
+          <text x="4" y="44" font-size="14" fill="var(--muted)">90 %</text>
+          <path d="M40 130H90C112 130 118 38 172 31H290" fill="none" stroke="var(--nsig2)" stroke-width="3"/>
+          <path d="M98 120V150M152 40V150" stroke="var(--accent)" stroke-dasharray="2 3"/>
+          <path d="M98 150H152" stroke="var(--accent)" stroke-width="2" marker-start="url(#ar5)" marker-end="url(#ar5)"/>
+          <defs><marker id="ar5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker></defs>
+          <text x="160" y="155" font-size="14" fill="var(--accent)">t наростання</text>
+        </svg>
+        <figcaption>Пунктир — рівні 10 % і 90 %; смуга — зона, де пін ще «не вирішив».</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Фронт має тривалість (10→90 %). Між 0,25 і 0,75·VDD цифровий вхід нічого не гарантує.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Аналізатор бачить 0/1 на багатьох каналах, осцилограф — напругу</h3>
+      <p><b>Осцилограф</b> показує справжню форму напруги: схили, викиди, шум. Каналів зазвичай 2–4, запис короткий. <b>Логічний аналізатор</b> на кожному з 8–16 каналів записує лише «вище порогу чи нижче», зате довго, і вміє розшифровувати UART, I²C, SPI. Аналізатор записує стан входу короткими «знімками» — <b>вибірками</b>. Дешеві аналізатори на чипі FX2 роблять до 24&nbsp;млн вибірок за секунду (24&nbsp;МГц)<sup class="cite" data-fact="la-fx2-24mhz"></sup>: між двома вибірками ≈&nbsp;42&nbsp;нс. Усе, що коротше за проміжок між вибірками, прилад може не помітити.</p>
+      <details class="more">
+        <summary>Порівняння інструментів</summary>
+        <div class="tbl"><table class="tools">
+          <thead><tr><th>Інструмент</th><th>Що бачить</th><th>Коли брати</th></tr></thead>
+          <tbody>
+            <tr><th>Осцилограф</th><td>напругу, форму фронту, шум; 2–4 канали</td><td>«чому фронт такий повільний?», наводки, аналогові сигнали</td></tr>
+            <tr><th>Логічний аналізатор</th><td>0/1 на 8–16 каналах, довгий запис, декодери</td><td>брязкіт, таймінги, шини UART/I²C/SPI</td></tr>
+            <tr><th>Serial Plotter / Teleplot</th><td>лише числа, які надрукувала програма</td><td>повільні величини: АЦП, температура; не брязкіт</td></tr>
+            <tr><th>«Осцилограф на ESP32»</th><td>напругу через АЦП, повільно</td><td>навчальні досліди, звук; не мікросекундні імпульси</td></tr>
+          </tbody>
+        </table></div>
+      </details>
+      <p class="key"><b>Головне</b>Аналізатор = багато каналів 0/1 і довгий запис; осцилограф = форма напруги. Частота вибірки вирішує, які короткі імпульси ви побачите.</p>
+    </article>
+
+    <details class="more">
+      <summary>Віджет: той самий брязкіт очима осцилографа й аналізатора</summary>
+    <div class="predict" data-ok="1" data-gate="w-la"
+         data-why="Аналізатор знає сигнал лише в моменти вибірки. На 10 кГц вибірки йдуть кожні 100 мкс, а імпульси брязкоту тут 33–311 мкс. Короткі проскакують між вибірками, і запис показує менше фронтів, ніж було. На 24 МГц видно всі.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Відпускання кнопки з нашого стенду: 5 фронтів за 0,58&nbsp;мс, найкоротший імпульс 33&nbsp;мкс. Аналізатор налаштовано на <b>10&nbsp;кГц</b> (вибірка кожні 100&nbsp;мкс). Що він покаже?</p>
+      <div class="opts">
+        <button class="opt">Усі 5 фронтів, лише трохи зсунуті</button>
+        <button class="opt">Менше фронтів: короткі імпульси проскакують між вибірками</button>
+        <button class="opt">Напругу кожного імпульсу у вольтах</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-la">
+      <div class="ph"><h3>Той самий брязкіт: осцилограф проти аналізатора</h3><span class="small">моменти фронтів — справжні; форму напруги змодельовано, нахил трохи перебільшено</span></div>
+      <div class="pb">
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Частота вибірки аналізатора" id="la-rate">
+            <button type="button" data-v="24e6" aria-pressed="false">24 МГц</button>
+            <button type="button" data-v="1e6" aria-pressed="false">1 МГц</button>
+            <button type="button" data-v="1e5" aria-pressed="false">100 кГц</button>
+            <button type="button" data-v="1e4" aria-pressed="true">10 кГц</button>
+          </div>
+          <button type="button" class="btn sm" id="la-phase">Інший момент старту вибірки</button>
+        </div>
+        <canvas class="scope-cv" id="la-cv" width="640" height="340" aria-label="Зверху напруга на піні під час відпускання кнопки, із зоною невизначеності входу. Знизу той самий сигнал очима логічного аналізатора; точки — моменти вибірки."></canvas>
+        <div class="readout" aria-live="polite">
+          <span>Фронтів за мітками ISR <b>5</b></span>
+          <span>Аналізатор побачив <b id="la-seen">—</b></span>
+          <span>Між вибірками <b id="la-dt">—</b></span>
+        </div>
+      </div>
+    </div>
+    </details>
+  </section>
+
+  <!-- 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+    <p class="note"><b>Переривання</b> — функція, яку чип викликає сам у момент фронту на піні, не чекаючи на <code>loop()</code>. Режим <code>FALLING</code> чи <code>RISING</code> каже, на якому фронті її викликати. Детально — в уроці 2.4; тут нам потрібне лише слово «на якому фронті».</p>
+    <div class="predict" data-ok="0" data-gate="w-edge"
+         data-why="Підтяжка тримає пін на 3,3 В, поки кнопка розімкнена. Натискання з'єднує пін з GND, напруга падає: це спад, FALLING. Відпускання повертає HIGH, тобто дає RISING. З підтяжкою вниз (кнопка до 3,3 В) усе навпаки.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Кнопка з'єднує GPIO21 з GND, пін у режимі <code>INPUT_PULLUP</code>. Який фронт з'явиться в момент <b>натискання</b>?</p>
+      <div class="opts">
+        <button class="opt">FALLING: HIGH → LOW</button>
+        <button class="opt">RISING: LOW → HIGH, бо натиснули — значить «увімкнули»</button>
+        <button class="opt">Жодного: рівень не зміниться</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-edge">
+      <div class="ph"><h3>Який фронт дає кнопка?</h3><span class="small">утримуйте кнопку або Пробіл</span></div>
+      <div class="pb">
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Схема підключення" id="edge-mode">
+            <button type="button" data-v="up" aria-pressed="true">Підтяжка вгору, кнопка до GND</button>
+            <button type="button" data-v="down" aria-pressed="false">Підтяжка вниз, кнопка до 3,3 В</button>
+          </div>
+        </div>
+        <div class="edge-grid">
+          <div>
+            <svg class="mini-sch" id="edge-sch" viewBox="0 0 220 180" role="img" aria-label="Схема кнопки: у режимі підтяжки вгору резистор від 3,3 В до піна, кнопка від піна до GND; у режимі підтяжки вниз — навпаки.">
+              <g id="sch-up">
+                <use class="sch-sym net-3v3" href="#vcc" x="120" y="20"/>
+                <text class="sch-val" x="134" y="12">3,3 В</text>
+                <path class="sch-w net-3v3" d="M120 20V28"/>
+                <use class="sch-sym" href="#res" x="120" y="28" transform="rotate(90 120 28)"/>
+                <text class="sch-ref" x="134" y="62">R</text>
+                <path class="sch-w net-sig" d="M120 88V112M40 100H120"/>
+                <use class="sch-sym" href="#dot" x="120" y="100"/>
+                <use class="sch-sym" href="#btn" x="120" y="112" transform="rotate(90 120 112)"/>
+                <text class="sch-ref" x="108" y="146" text-anchor="end">S1</text>
+                <path class="sch-w net-gnd" d="M120 172V174"/>
+                <use class="sch-sym net-gnd" href="#gnd" x="120" y="172"/>
+              </g>
+              <g id="sch-down" hidden>
+                <use class="sch-sym net-3v3" href="#vcc" x="120" y="20"/>
+                <text class="sch-val" x="134" y="12">3,3 В</text>
+                <path class="sch-w net-3v3" d="M120 20V28"/>
+                <use class="sch-sym" href="#btn" x="120" y="28" transform="rotate(90 120 28)"/>
+                <text class="sch-ref" x="108" y="62" text-anchor="end">S1</text>
+                <path class="sch-w net-sig" d="M120 88V112M40 100H120"/>
+                <use class="sch-sym" href="#dot" x="120" y="100"/>
+                <use class="sch-sym" href="#res" x="120" y="112" transform="rotate(90 120 112)"/>
+                <text class="sch-ref" x="134" y="146">R</text>
+                <use class="sch-sym net-gnd" href="#gnd" x="120" y="172"/>
+              </g>
+              <text class="sch-pin net-sig" x="8" y="94">GPIO21</text>
+              <text id="edge-pinv" x="8" y="122" font-size="14" fill="var(--ink)">3,3 В</text>
+            </svg>
+          </div>
+          <div>
+            <canvas class="scope-cv" id="edge-cv" width="640" height="260" aria-label="Рівень на GPIO21 у часі, 200 мс на поділку. Кожен фронт підписано: RISING або FALLING, натискання або відпускання."></canvas>
+            <div class="wctl">
+              <button type="button" class="btn primary press-btn" id="edge-press" aria-pressed="false">Натиснути S1</button>
+              <span class="readout" aria-live="polite"><span>digitalRead <b id="edge-read">HIGH</b></span><span>onPress() викликано <b id="edge-count">0</b></span></span>
+            </div>
+          </div>
+        </div>
+        <pre class="codeline" id="edge-code"></pre>
+        <p class="small">Модель «ідеальної» кнопки, 200&nbsp;мс/под. На такому масштабі брязкіт не видно, дивіться наступний віджет.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="2" data-gate="w-bounce"
+         data-why="Пружний контакт відскакує по-різному щоразу. У записі зі стенду більшість подій мали 1 фронт, а окремі давали 2–9 фронтів упродовж до ≈&nbsp;3,6 мс (найчастіше коротше за 1,3 мс). На 100 мс/под усе це зливається в одну риску, і лише 1 мс/под чи 100 мкс/под показують пачку.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Ви <b>відпускаєте</b> кнопку, а логічний аналізатор записує пін. Скільки фронтів він покаже?</p>
+      <div class="opts">
+        <button class="opt">Завжди рівно один</button>
+        <button class="opt">Завжди два: вгору і вниз</button>
+        <button class="opt">Від одного до кількох, щоразу по-різному</button>
+        <button class="opt">Сотні, рівномірно впродовж 100 мс</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-bounce">
+      <div class="ph"><h3>Брязкіт зі стенду: відновлено з міток ISR · запис 17.10.2026</h3><span class="model-chip" title="Відновлено з часів переривання ESP32, а не записано аналізатором">реконструкція з ISR</span><span class="small">GPIO21, INPUT_PULLUP; наблизьте шкалу часу</span></div>
+      <div class="pb">
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Подія з запису" id="b-ev"></div>
+        </div>
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Шкала часу" id="b-scale">
+            <button type="button" data-v="0.1" aria-pressed="true">100 мс/под</button>
+            <button type="button" data-v="0.01" aria-pressed="false">10 мс</button>
+            <button type="button" data-v="0.001" aria-pressed="false">1 мс</button>
+            <button type="button" data-v="0.0001" aria-pressed="false">100 мкс</button>
+            <button type="button" data-v="0.00002" aria-pressed="false">20 мкс</button>
+          </div>
+        </div>
+        <canvas class="scope-cv" id="b-cv" width="640" height="220" aria-label="Рівень піна під час вибраної події з запису стенду в обраному масштабі часу."></canvas>
+        <div class="readout" aria-live="polite">
+          <span>Фронтів у записі <b id="b-n">—</b></span>
+          <span>Брязкіт триває <b id="b-dur">—</b></span>
+          <span>Окремих фронтів на екрані <b id="b-vis">—</b></span>
+        </div>
+        <p class="small">Мітки часу ставило переривання ESP32 (<code>micros()</code>), тож імпульси, коротші за кілька мікросекунд, могли злитися. Усі 190 подій — на сторінці <a href="../../bounce-bench/#viewer">«Брязкіт на стенді»</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 example -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <svg class="fig-svg scr" id="scr-worked" viewBox="0 0 300 200" role="img" aria-label="Екран: 0,5 мілісекунди на поділку, 1 вольт на поділку. Прямокутний сигнал: період 4 поділки, HIGH 1 поділка, висота 3 поділки."></svg>
+    <ol class="worked">
+      <li><b>Прочитайте шкали:</b> 0,5&nbsp;мс/под по горизонталі, 1&nbsp;В/под по вертикалі.<span class="why">чому: без ціни поділки поділки нічого не означають.</span></li>
+      <li><b>Період:</b> від фронту ↑ до наступного фронту ↑ 4 поділки. <span class="formula">T = 4 × 0,5 мс = 2 мс</span><span class="why">чому: рахуємо від однакових подій, щоб охопити рівно один цикл.</span></li>
+      <li><b>Частота:</b> <span class="formula">f = 1 / 2 мс = 500 Гц</span><span class="why">чому: скільки разів по 2 мс уміщується в секунду.</span></li>
+      <li><b>Імпульс і заповнення:</b> HIGH триває 1 поділку = 0,5&nbsp;мс. <span class="formula">D = 0,5 / 2 = 25 %</span><span class="why">чому: заповнення — частка періоду в HIGH.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <svg class="fig-svg scr" id="scr-faded" viewBox="0 0 300 200" role="img" aria-label="Екран: 100 мікросекунд на поділку, 1 вольт на поділку. Прямокутний сигнал: період 5 поділок, HIGH 2 поділки."></svg>
+    <ol class="faded">
+      <li><b>Шкали:</b> 100&nbsp;мкс/под, 1&nbsp;В/под.</li>
+      <li><b>Період:</b> 5 поділок. <span class="formula">T = 5 × 100 мкс = 500 мкс</span></li>
+      <li>
+        <div class="try" data-ans="2000" data-tol="0.02" data-unit="Гц" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Частота, Гц (можна «2 кГц»)?</p>
+          <details><summary>Підказка</summary>f = 1 / T = 1 / 0,0005 с.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="40" data-tol="0.02" data-unit="%" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>HIGH займає 2 поділки. Заповнення, %?</p>
+          <details><summary>Підказка</summary>D = 2 поділки / 5 поділок.</details>
+        </div>
+      </li>
+    </ol>
+    <details class="more">
+      <summary>Тренажер: прочитайте випадковий екран (необмежено прикладів)</summary>
+    <div class="panel wide" id="drill">
+      <div class="ph"><h3>Самостійно: читаємо екран</h3><span class="small" id="drill-streak">правильно поспіль: 0</span></div>
+      <div class="pb">
+        <canvas class="scope-cv" id="drill-cv" width="640" height="320" aria-label="Випадкова осцилограма для тренування. Шкали підписано на екрані; питання — під ним."></canvas>
+        <p class="drill-q" id="drill-q" aria-live="polite"></p>
+        <div class="drill-row">
+          <input type="text" id="drill-in" inputmode="decimal" autocomplete="off" aria-label="Ваша відповідь">
+          <button type="button" class="btn" id="drill-check">Перевірити</button>
+          <button type="button" class="btn ghost" id="drill-new">Нова хвиля</button>
+          <button type="button" class="btn ghost" id="drill-show" hidden>Показати розв'язок</button>
+        </div>
+        <div class="fb" id="drill-fb" aria-live="polite"></div>
+      </div>
+    </div>
+    </details>
+  </section>
+
+  <!-- 07 mistakes -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myth" data-mc="E9">
+      <p class="seems">Натиснули кнопку — отже, сигнал виріс: RISING.</p>
+      <p class="truth">Це залежить від схеми. З підтяжкою вгору (<code>INPUT_PULLUP</code>, кнопка до GND) натискання — це спад, <code>FALLING</code><sup class="cite" data-fact="lms-err-1-5-press-edge"></sup>. RISING буде лише з підтяжкою вниз і кнопкою до 3,3&nbsp;В.</p>
+      <p class="test">Виведіть <code>digitalRead</code> у Serial: відпущена кнопка дає 1, натиснута — 0.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">Брязкіт добре видно на 100&nbsp;мс/под: це ж «довгі» 5–20&nbsp;мс.</p>
+      <p class="truth">У нашої кнопки брязкіт тривав здебільшого частки мілісекунди: серед подій з брязкотом медіана ≈&nbsp;0,18&nbsp;мс, 90&nbsp;% коротші за 1,3&nbsp;мс, максимум 3,56&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>. Ще дві події тривали 28 і 52&nbsp;мс; схоже, це не брязкіт, а імпульс під час утримання, тож у статистику їх не взято. На 100&nbsp;мс/под звичайний брязкіт менший за піксель. Саме через такі рідкісні випадки вікно антибрязкоту беруть із запасом, 5–20&nbsp;мс.</p>
+      <p class="test">У віджеті «Брязкіт зі стенду» перемкніть 100&nbsp;мс → 100&nbsp;мкс.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">Serial Plotter — це безкоштовний осцилограф.</p>
+      <p class="truth">Плотер малює тільки ті числа, які надрукувала ваша програма, і тільки так часто, як вона друкує. Брязкіт між двома <code>Serial.println</code> він не покаже.</p>
+      <p class="test">Друкуйте <code>digitalRead</code> кожні 10&nbsp;мс і натисніть кнопку 20 разів: «зайвих» імпульсів не буде, хоча аналізатор їх бачить.</p>
+    </div>
+    <details class="more">
+      <summary>Ще три помилки: «фронт миттєвий», «аналізатор показує напругу», «поріг — половина живлення»</summary>
+    <div class="myth">
+      <p class="seems">Цифровий фронт миттєвий: щойно був 0, а вже 1.</p>
+      <p class="truth">Напруга росте за скінченний час: її стримують опір підтяжки й ємність піна та дротів. Поки вона в сірій зоні між 0,25 і 0,75·VDD<sup class="cite" data-fact="s3-vil"></sup>, вхід ще «не вирішив», а шум може перекинути його кілька разів.</p>
+      <p class="test">Головна ідея 4 і верхня доріжка віджета «Осцилограф проти аналізатора»: фронт має нахил.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">Логічний аналізатор показує напругу, просто «цифрово».</p>
+      <p class="truth">Він записує лише 0 чи 1 відносно порогу й лише в моменти вибірки. Повільний фронт, викид чи 1,6&nbsp;В він покаже як 0 або 1.</p>
+      <p class="test">Віджет «Осцилограф проти аналізатора»: та сама подія, два різні погляди.</p>
+    </div>
+    <div class="myth">
+      <p class="seems">Пін перемикається рівно на половині живлення, 1,65&nbsp;В.</p>
+      <p class="truth">ESP32-S3 гарантує LOW до 0,25·VDD і HIGH від 0,75·VDD<sup class="cite" data-fact="s3-vih"></sup>. Посередині поведінка не визначена.</p>
+      <p class="test">Подайте з потенціометра 1,6&nbsp;В і почитайте пін: результат на різних платах може бути різним.</p>
+    </div>
+    </details>
+  </section>
+
+  <!-- 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Кнопка з'єднує GPIO21 з GND, резистор 10&nbsp;кОм тягне пін до 3V3. Канал CH1 аналізатора (так його називає прошивка) дивиться на той самий вузол, а GND аналізатора з'єднано з GND плати: без спільної землі приладу нема від чого відраховувати напругу. GPIO21 — як на стенді з уроку й у прошивці <code>esp32-s3-bounce-test</code>.</p>
+    <figure class="dual wide" id="dual-btn" data-nets="gpio21=GPIO21 (вузол кнопки); v33=3V3; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 320 210" role="img" aria-label="Схема: від 3V3 через резистор R1 10 кілоом до вузла GPIO21; від вузла кнопка S1 до землі; від вузла провід до каналу CH1 логічного аналізатора, земля аналізатора на загальну землю.">
+          <rect class="sch-w" x="10" y="60" width="70" height="110" rx="3"/>
+          <text class="sch-ref" x="10" y="50">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="100" y="100" transform="rotate(180 100 100)"/>
+          <text class="sch-pin net-sig" data-net="gpio21" x="74" y="105" text-anchor="end">GPIO21</text>
+          <use class="sch-sym" href="#mcu-pin" x="100" y="150" transform="rotate(180 100 150)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="74" y="155" text-anchor="end">GND</text>
+          <use class="sch-sym net-3v3" data-net="v33" href="#vcc" x="160" y="20"/>
+          <text class="sch-val net-3v3" data-net="v33" x="172" y="10">3V3</text>
+          <path class="sch-w net-3v3" data-net="v33" id="w-v33" d="M160 20V28"/>
+          <use class="sch-sym" href="#res" x="160" y="28" transform="rotate(90 160 28)"/>
+          <text class="sch-ref" x="172" y="52">R1</text>
+          <text class="sch-val" x="172" y="70">10 кОм</text>
+          <path class="sch-w net-sig" data-net="gpio21" id="w-node" d="M160 88V112"/>
+          <path class="sch-w net-sig" data-net="gpio21" id="w-pin" d="M100 100H160"/>
+          <path class="sch-w net-sig" data-net="gpio21" id="w-la" d="M160 100H250"/>
+          <use class="sch-sym net-sig" data-net="gpio21" href="#dot" x="160" y="100"/>
+          <use class="sch-sym" id="s1-open" href="#btn" x="160" y="112" transform="rotate(90 160 112)"/>
+          <g id="s1-closed" hidden><path class="sch-w net-gnd" d="M160 112V172"/><text class="sch-val" x="168" y="146">натиснута</text></g>
+          <text class="sch-ref" x="148" y="146" text-anchor="end">S1</text>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-s1g" d="M160 172V180"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="160" y="180"/>
+          <path class="sch-w net-gnd" data-net="gnd" id="w-pg" d="M100 150H120V180"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="120" y="180"/>
+          <rect class="sch-w" x="250" y="80" width="60" height="84" rx="3"/>
+          <text class="sch-ref" x="250" y="72">Аналізатор</text>
+          <text class="sch-pin net-sig" data-net="gpio21" x="256" y="105">CH1</text>
+          <text class="sch-pin net-gnd" data-net="gnd" x="256" y="155">GND</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M250 150H230V180"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="230" y="180"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <div class="bb-scroll"><svg id="bb-btn" viewBox="0 0 380 222" role="img" aria-label="Макетка: кнопка над жолобком у стовпчиках 7 і 10; резистор зі стовпчика 2 у стовпчик 7; дріт зі стовпчика 2 на шину плюс 3V3; дріт зі стовпчика 10 на шину мінус; GPIO21 плати у стовпчик 7; канал CH1 аналізатора у стовпчик 7, GND аналізатора на шину мінус."></svg></div>
+      </div>
+      <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах.</figcaption>
+    </figure>
+    <div class="wctl">
+      <button type="button" class="btn primary press-btn" id="c-press" aria-pressed="false">Утримувати S1</button>
+      <span class="out" id="c-out" aria-live="polite"></span>
+    </div>
+    <p class="small">Як мотузка-петля: поки кнопку не натиснуто, петля розірвана, і через R1 нічого не тече; пін просто «бачить» 3,3&nbsp;В. Натиснули — петля замкнулася, і через R1 тече 3,3&nbsp;В&nbsp;/&nbsp;10&nbsp;кОм&nbsp;=&nbsp;0,33&nbsp;мА. Прошивка ще вмикає внутрішню підтяжку ≈&nbsp;45&nbsp;кОм<sup class="cite" data-fact="s3-pullup"></sup>, паралельно з R1 це ≈&nbsp;8,2&nbsp;кОм; нічого не ламається.</p>
+    <div class="note warn">Кліпси аналізатора — лише на 3,3-вольтові лінії й GND. Піни ESP32-S3 не розраховані на 5&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>, тож щуп, випадково перекинутий на 5V, через макетку може дістатися до GPIO.</div>
+  </section>
+
+  <!-- 09 lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <p><b>Набір:</b> плата YD-ESP32-S3, тактова кнопка, резистор 10&nbsp;кОм (за бажанням: прошивка вмикає внутрішню підтяжку), дроти, логічний аналізатор і PulseView або Logic 2 (якщо є). Повне завдання з відповідями після здачі — на сторінці <a href="../../bounce-lab/">«Лабораторія брязкоту»</a>.</p>
+    <ol>
+      <li>Спершу заповніть стовпчик «Прогноз» у таблиці 2: скільки, на вашу думку, триває брязкіт і скільки фронтів дає одна подія.</li>
+      <li>Зберіть схему з розділу 08. Прошийте <code>esp32-s3-bounce-test</code>: перейдіть у теку <code>esp32-s3-bounce-test/cpp</code> (там лежить <code>platformio.ini</code>), виконайте <code>pio run -e lab -t upload</code>, потім <code>pio device monitor</code> (роз'єм «USB»<sup class="cite" data-fact="repo-serial-is-usb-cdc"></sup>).</li>
+      <li>Натисніть і відпустіть кнопку 10 разів у різному темпі. Прошивка друкує на кожну подію рядок <code>PRESS</code> / <code>RELEASE</code> з <code>edges=</code> і <code>bounce=</code> у мкс. Рядки <code>GLITCH</code> (короткий імпульс, після якого рівень не змінився) і позначку <code>[ISR missed …]</code> (переривання пропустило фронт) у таблицю не переносьте.</li>
+      <li>Перенесіть числа в таблицю 1 (мкс → мс: поділіть на 1000). Якщо є аналізатор, звірте 2–3 події з його записом: тригер на спад CH1, наблизьте так, щоб на екрані було ≈&nbsp;1&nbsp;мс.</li>
+      <li>Порівняйте прогноз і результат у таблиці 2 й поясніть різницю.</li>
+    </ol>
+    <p class="small scroll-hint">Таблиці ширші за екран: гортайте їх убік →</p>
+    <table class="measure" data-key="1-5-bounce10">
+      <caption>Таблиця 1. Десять натискань</caption>
+      <thead><tr><th>№</th><th>Фронтів, натиск.</th><th>Брязкіт натиск., мс</th><th>Фронтів, відпуск.</th><th>Брязкіт відпуск., мс</th></tr></thead>
+      <tbody>
+        <tr><th>1</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>2</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>3</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>4</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>5</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>6</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>7</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>8</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>9</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+        <tr><th>10</th><td data-col="pe"></td><td data-col="pd"></td><td data-col="re"></td><td data-col="rd"></td></tr>
+      </tbody>
+    </table>
+    <p class="sumline" id="lab-sum" aria-live="polite">Підсумок з’явиться, щойно ви внесете числа.</p>
+    <table class="measure" data-key="1-5-bounce-pred" data-calc="diff">
+      <caption>Таблиця 2. Прогноз проти результату</caption>
+      <thead><tr><th>Величина</th><th>Прогноз</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>Медіана брязкоту (лише події з брязкотом), мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Максимум брязкоту, мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Найбільше фронтів за подію</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <p class="small">Без плати: реальні записи брязкоту зі стенду — на сторінці <a href="../../bounce-bench/">«Брязкіт на стенді»</a>.</p>
+    <details class="more">
+      <summary>Розширення: що якщо…</summary>
+      <ul>
+        <li>…натискати дуже повільно або різко? Чи змінюється кількість фронтів?</li>
+        <li>…порівняти натискання з відпусканням: яке брязкотить частіше саме у вашої кнопки?</li>
+        <li>…запустити <code>pio run -e homework -t upload</code> (лічильник FALLING): на скільки лічильник помиляється після 20 натискань і звідки беруться зайві?</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="1-5" data-mode="stepper"></div>
+  </section>
+
+  <!-- 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="1-5" data-n="8"></div>
+  </section>
+
+  <!-- 12 challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Чия кнопка найбрязкітливіша?</h3>
+      <dl>
+        <dt>Мета</dt><dd>Кожен учасник записує по 10 натискань і відпускань своєї кнопки. Команда рахує медіану й максимум брязкоту і пропонує вікно антибрязкоту в мілісекундах з обґрунтуванням.</dd>
+        <dt>Здати</dt><dd>Спільна таблиця (скопіюйте таблицю 1 кнопкою під нею), доказ найдовшого брязкоту і 2–3 речення: яке вікно і чому саме таке. Доказ — знімок екрана аналізатора або, якщо аналізатора немає, рядок Serial з <code>gaps us:</code>.</dd>
+        <dt>Ролі</dt><dd><ul>
+          <li><b>Збирач</b> збирає стенд і показує його на камеру;</li>
+          <li><b>Вимірювач</b> зводить таблиці всіх учасників і рахує медіану та максимум;</li>
+          <li><b>Доповідач</b> публікує результат і 3 хвилини розповідає в суботу;</li>
+          <li><b>Скептик</b> перевіряє одиниці (мкс чи мс?), спільну землю аналізатора і чи не сплутано натискання з відпусканням.</li>
+        </ul></dd>
+        <dt>Критерії</dt><dd><ul>
+          <li><b>Дані:</b> 0 — менше 10 подій на людину; 1 — є, але без розділення натискань і відпускань; 2 — ≥&nbsp;10 подій на людину, натискання й відпускання окремо.</li>
+          <li><b>Одиниці:</b> 0 — мкс і мс змішано; 1 — одна-дві помилки; 2 — усе в мс, з комою.</li>
+          <li><b>Вікно:</b> 0 — число без пояснення; 1 — пояснено медіаною; 2 — пояснено максимумом і запасом.</li>
+          <li><b>Доказ:</b> 0 — немає; 1 — є, але без шкали чи одиниць; 2 — видно шкалу часу або значення <code>gaps us</code>.</li>
+        </ul></dd>
+        <dt>Ускладнення</dt><dd>Порівняйте натискання з відпусканнями: що брязкотить частіше і довше? Чи збігається це з записом зі стенду?</dd>
+        <dt>Термін</dt><dd>видається в понеділок 21.09, здати до суботи 26.09, 10:00 (цього тижня команди ще працюють над викликом уроку 1.4).</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions, категорія «Командні виклики» (або Slack #show-and-tell через Доповідача).</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- 13 in call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: плату, кнопку, резистор 10&nbsp;кОм, аналізатор (якщо є) і прочитані розділи 04–05. Тримайте під рукою чат: будуть голосування «А/Б/В» на 3-2-1.</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1 (хв 22–34).</b> «INPUT_PULLUP, кнопка до GND: натискання — це RISING чи FALLING?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано з першого голосу: ≈&nbsp;50–60&nbsp;% RISING (інтуїція «увімкнули = вгору» і текст LMS), 40–50&nbsp;% FALLING. Якщо правильних 30–70&nbsp;%, двоє з різними відповідями сперечаються 60&nbsp;с, потім переголосування; очікувано ≥&nbsp;85&nbsp;% FALLING.</p></details>
+      <p>Потім покажіть віджет «Який фронт дає кнопка?» з розділу 05.</p>
+      <p><b>POE-демо (хв 34–46).</b> «Лічильник FALLING-переривань: 10 натискань і відпускань. Що покаже?» Прогнози на «Стіні прогнозів» (зони: рівно 10 / трохи більше / удвічі більше). Демо: <code>esp32-s3-bounce-test</code>, <code>-e homework</code>, на камеру. Пояснення: зайві FALLING дає брязкіт — переважно відпускання (під час відскоку контакт знову замикається), але іноді й натискання.</p>
+      <p><b>Конкурс оцінок.</b> «Скільки мілісекунд триває брязкіт?» Кожен пише число в чат.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано: більшість назве 5–20&nbsp;мс (з LMS). Відповідь зі стенду: медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс (плюс дві аномалії 28 і 52&nbsp;мс — обговоріть, що з ними робити).</p></details>
+      <p>Найближча оцінка виграє. Потім віджет «Брязкіт зі стенду», перемикання 100&nbsp;мс → 100&nbsp;мкс.</p>
+      <p><b>ConcepTest 2.</b> «На 100&nbsp;мс/под брязкіт видно?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано ≈&nbsp;60&nbsp;% «так». Правильна відповідь «ні», показати той самий віджет.</p></details>
+      <p><b>Гонка читання екрана (хв 46–55).</b> Тренажер «Читаємо екран» (розгорніть у розділі 06) на екрані, тричі «Нова хвиля». Усі пишуть відповідь у чат одночасно (waterfall на 3-2-1). Розбирайте лише ту, де розкид найбільший.</p>
+      <p><b>Дошка (хв 90–95).</b> Кожен у своєму фреймі малює осцилограму натискання й відпускання з підтяжкою вгору і підписує, де FALLING, де RISING і де може бути брязкіт.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що показувати</th></tr></thead>
+        <tbody>
+          <tr><td>3–11</td><td>Розминка</td><td><code>warmup/</code>, питання з уроків 1.3–1.4</td></tr>
+          <tr><td>11–22</td><td>Незрозуміле з квитків, огляд уроку, мета</td><td>розділи 01–02</td></tr>
+          <tr><td>22–34</td><td>Шкали, тригер, ConcepTest 1</td><td>розділ 04, віджет «Міні-осцилограф»</td></tr>
+          <tr><td>34–46</td><td>POE: лічильник FALLING</td><td>плата на камеру, потім розділ 05</td></tr>
+          <tr><td>46–55</td><td>Гонка читання екрана</td><td>розділ 06, «Нова хвиля»</td></tr>
+          <tr><td>62–90</td><td>Збирання стенду + аналізатор</td><td>розділ 08, PulseView / Logic 2</td></tr>
+          <tr><td>90–95</td><td>Дошка: осцилограма натискання</td><td>tldraw, свій фрейм</td></tr>
+          <tr><td>95–108</td><td>Живий дебаг стенду студента (з #help, за згодою) або міні-виклади</td><td>розділ 08; виклик розділу 12 — у пн 21.09</td></tr>
+          <tr><td>108–116</td><td>Квиток на вихід</td><td>розділ 14</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть двома реченнями, чому натискання кнопки з INPUT_PULLUP — це FALLING і чому лічильник переривань може показати більше натискань, ніж було."></form>
+  </section>
+
+  <!-- 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../scope-signals/">Осцилограф і кнопка (теорія, 14 розділів)</a></li>
+      <li><a class="chip deep" href="../../bounce-lab/">Лабораторія брязкоту (ДЗ)</a></li>
+      <li><a class="chip deep" href="../../bounce-bench/">Брязкіт на стенді: 190 подій</a></li>
+      <li><a class="chip deep" href="../../pull-resistors/">Підтяжка входу</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <p><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7waooq0813vm0foazb">Урок 1.5 у LMS</a> (потрібен вхід).</p>
+    <details class="more">
+      <summary>Відео з LMS: на що дивитися (5)</summary>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=Hw0tyaQJgx0">Осцилограф і генератор сигналів</a></b><span class="small">Найкорисніше: шкали (02:30–09:30), щупи ×1/×10 (12:33), синхронізація (16:03). Конспект з мітками — <a href="../../scope-signals/#videos">тут</a>.</span></div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=bOVcHbEco70">Логічний аналізатор</a></b><span class="small">За бажанням: лекція про ПЛІС. Візьміть три ідеї: тригер як умова (01:02), 1 біт на канал (02:30), прилад змінює те, що вимірює (04:30).</span></div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=cTEL89ot52Q">Кнопка і світлодіод на Arduino</a></b><span class="small">Знайдіть помилку: кнопка до 5&nbsp;В з резистором до GND — це підтяжка вниз (натиснута = HIGH), а в поясненні коду сказано навпаки.</span></div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=CAu4zhg_DIE">Serial Plotter</a></b><span class="small">Хвилина англійською. У PlatformIO вбудованого плотера немає: Teleplot або Arduino IDE 2.</span></div>
+    <div class="vid"><b><a href="https://www.youtube.com/watch?v=gzO1Dx2ru8c">Осцилограф на ESP32</a></b><span class="small">За бажанням: межі «самопального» приладу. Мережеву напругу не повторюйте.</span></div>
+    </details>
+    <p>Статті з LMS: <a href="https://a-radio.com.ua/blog/shcho-take-ostsylohraf-i-dlia-choho-vykorystovuietsia/">що таке осцилограф</a>, <a href="https://sea-tm.com.ua/lohichni-analizatory/">логічні аналізатори</a>, <a href="https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-serial-plotter">Serial Plotter в Arduino IDE 2</a>.</p>
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bounce-test">esp32-s3-bounce-test</a>: стенд з уроку (GPIO21), середовища <code>lab</code> і <code>homework</code>; cpp/ і rust/.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce">esp32-s3-button-bounce</a>: ДЗ «Лабораторія брязкоту» (GPIO16, маркер ISR на GPIO17); cpp/ і rust/.</li>
+    </ul>
+    <p class="small">Проєкти збираються на Arduino-ESP32 2.0.17 (платформа espressif32 7.x)<sup class="cite" data-fact="build-platform"></sup>. <code>attachInterrupt</code> з <code>RISING</code>/<code>FALLING</code>/<code>CHANGE</code><sup class="cite" data-fact="core-interrupt-modes"></sup> в ядрі 3.x не змінився.</p>
+    <h3>Що виправлено порівняно з LMS</h3>
+    <ul>
+      <li>LMS у розділі про брязкіт називає натискання переднім (висхідним) фронтом. З підтяжкою вгору натискання — це <b>спад</b>, HIGH → LOW<sup class="cite" data-fact="lms-err-1-5-press-edge"></sup>.</li>
+      <li>LMS: пін вирішує на порозі «зазвичай половина живлення». ESP32-S3 гарантує LOW лише до 0,25·VDD і HIGH від 0,75·VDD, а між ними рівень не визначений<sup class="cite" data-fact="s3-vil"></sup><sup class="cite" data-fact="s3-vih"></sup>.</li>
+      <li>LMS: брязкіт «зазвичай триває 5–20 мс» і видний на 10&nbsp;мс/под. Виміряно: у кнопки зі стенду медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс без двох аномалій 28 і 52&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>; у вимірюваннях Ганссла на 16 з 18 кнопок у середньому ≈&nbsp;1,6&nbsp;мс, максимум 6,2&nbsp;мс<sup class="cite" data-fact="bounce-ganssle"></sup>. 5–20&nbsp;мс — радше запас для вікна антибрязкоту, а дивитися брязкіт треба на 100&nbsp;мкс/под–1&nbsp;мс/под.</li>
+    </ul>
+    <div id="sources">
+      <h3>Джерела</h3>
+    </div>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <!-- 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const NB = ' ';
+  const tk = () => Study.tokens();
+
+  /* ---------- shared helpers ---------- */
+  // A canvas that refits on resize and redraws on theme change.
+  function scope(cv, draw) {
+    let ctx = Study.fitCanvas(cv);
+    const api = { redraw() { draw(ctx, tk()); }, get ctx() { return ctx; } };
+    let rw = cv.parentElement.clientWidth;
+    new ResizeObserver(() => {
+      const w = cv.parentElement.clientWidth;
+      if (Math.abs(w - rw) < 1) return;
+      rw = w; ctx = Study.fitCanvas(cv); api.redraw();
+    }).observe(cv.parentElement);
+    Study.onTheme(() => api.redraw());
+    api.redraw();
+    return api;
+  }
+  function grid(ctx, t, nx = 10, ny = 8) {
+    const { w, h } = ctx;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = t['panel-2']; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 1; i < nx; i++) { const x = Math.round(i * w / nx) + 0.5; ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+    for (let j = 1; j < ny; j++) { const y = Math.round(j * h / ny) + 0.5; ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    ctx.stroke();
+  }
+  function label(ctx, t, text, x, y, color, align = 'left') {
+    ctx.font = `600 13px ${t['f-mono']}`; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+    const m = ctx.measureText(text).width;
+    const x0 = align === 'right' ? x - m : align === 'center' ? x - m / 2 : x;
+    ctx.fillStyle = t['panel-2']; ctx.globalAlpha = 0.85; ctx.fillRect(x0 - 3, y - 13, m + 6, 17); ctx.globalAlpha = 1;
+    ctx.fillStyle = color || t.muted; ctx.fillText(text, x, y);
+  }
+  function seg(sel, fn) {
+    const btns = $$(sel + ' button');
+    btns.forEach((b) => b.addEventListener('click', () => {
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      fn(b.dataset.v, b);
+    }));
+  }
+  const fmtTime = (s) => {
+    const a = Math.abs(s);
+    if (a >= 1) return fmt.num(s, 2) + NB + 'с';
+    if (a >= 1e-3) return fmt.num(s * 1e3, 2) + NB + 'мс';
+    if (a >= 1e-6 || a === 0) return fmt.num(s * 1e6, 1) + NB + 'мкс';
+    return fmt.num(s * 1e9, 0) + NB + 'нс';
+  };
+  const fmtDiv = (s) => fmtTime(s) + '/под';
+
+  /* ---------- W-trig: mini scope with trigger ---------- */
+  (function () {
+    const T = 1e-3, D = 0.3, SDIV = 0.5e-3, VHI = 3.3;
+    const st = { edge: 'rise', mode: 'auto', lvl: 1.6, sweeps: [0], acc: 0, wait: false };
+    const sig = (tau, ph) => { const x = (((tau + ph) % T) + T) % T; return x < D * T ? VHI : 0; };
+    const fires = () => st.edge !== 'off' && st.lvl > 0.05 && st.lvl < VHI - 0.05;
+    function sweep() {
+      st.wait = false;
+      let ph;
+      if (st.edge === 'off') ph = Math.random() * T;
+      else if (fires()) ph = st.edge === 'rise' ? 0 : D * T;
+      else if (st.mode === 'auto') ph = Math.random() * T;
+      else { st.wait = true; st.sweeps.length = Math.min(st.sweeps.length, 1); return; }
+      st.sweeps.unshift(ph); st.sweeps.length = Math.min(st.sweeps.length, 4);
+    }
+    function status() {
+      let s;
+      if (st.edge === 'off') s = 'Тригер вимкнено: кожен прохід стартує з випадкового місця.';
+      else if (fires()) s = `Trig'd ✓ ${st.edge === 'rise' ? '↑' : '↓'} на ${fmt.num(st.lvl, 1)} В: проходи збігаються, картинка стоїть.`;
+      else if (st.mode === 'auto') s = 'AUTO: сигнал не перетинає рівень, тригер мовчить, тому прилад малює без синхронізації.';
+      else s = 'NORMAL: чекаю на подію тригера… На екрані лишається останній кадр.';
+      $('#trig-status').textContent = s;
+    }
+    const sc = scope($('#trig-cv'), (ctx, t) => {
+      grid(ctx, t);
+      const { w, h } = ctx, dy = h / 8, yv = (v) => h - (v + 2) * dy;
+      const alphas = [1, 0.45, 0.25, 0.12];
+      st.sweeps.forEach((ph, i) => {
+        ctx.globalAlpha = alphas[i] || 0; ctx.strokeStyle = t.nsig2; ctx.lineWidth = 2.5; ctx.beginPath();
+        let prev = null;
+        for (let px = 0; px <= w; px++) {
+          const tau = (px / w - 0.5) * 10 * SDIV, v = sig(tau, ph), y = yv(v);
+          if (prev === null) ctx.moveTo(px, y); else { if (y !== prev) ctx.lineTo(px, prev); ctx.lineTo(px, y); }
+          prev = y;
+        }
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      // ground marker, trigger level, trigger point
+      label(ctx, t, '0 В ▸', 4, yv(0) + 5, t.muted);
+      if (st.edge !== 'off') {
+        ctx.strokeStyle = t.hi; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5; ctx.beginPath();
+        ctx.moveTo(0, yv(st.lvl)); ctx.lineTo(w, yv(st.lvl)); ctx.stroke(); ctx.setLineDash([]);
+        label(ctx, t, '◂ рівень', w - 4, yv(st.lvl) - 4, t['hi-ink'], 'right');
+        ctx.fillStyle = t.hi; ctx.beginPath(); ctx.moveTo(w / 2 - 7, 0); ctx.lineTo(w / 2 + 7, 0); ctx.lineTo(w / 2, 10); ctx.fill();
+      }
+      label(ctx, t, '1 В/под', 6, 18, t.muted);
+      label(ctx, t, '0,5 мс/под', w - 6, h - 8, t.muted, 'right');
+    });
+    const host = $('#trig-cv');
+    const sim = Study.sim(host, (dt) => {
+      st.acc += dt;
+      if (st.acc < 0.14) return;
+      st.acc = 0; sweep(); sc.redraw();
+    });
+    sim.pause();
+    // On any control change rebuild the whole persistence buffer under the new settings,
+    // so old out-of-sync frames never sit under a "Trig'd" status.
+    const upd = () => {
+      const keep = st.sweeps[0];
+      st.sweeps = []; for (let i = 0; i < 4; i++) sweep();
+      if (!st.sweeps.length) st.sweeps = [keep];
+      status(); sc.redraw();
+    };
+    seg('#trig-edge', (v) => { st.edge = v; upd(); });
+    seg('#trig-mode', (v) => { st.mode = v; upd(); });
+    $('#trig-lvl').addEventListener('input', (e) => {
+      st.lvl = +e.target.value; $('#trig-lvl-out').textContent = fmt.num(st.lvl, 1) + NB + 'В'; upd();
+    });
+    status();
+    $('#w-trig').addEventListener('predict', () => { if (!Study.reducedMotion()) sim.play(); });
+  })();
+
+  /* ---------- W-edge: which edge does the button give? ---------- */
+  (function () {
+    const WIN = 2.0; // 10 div × 200 ms
+    const st = { mode: 'up', pressed: false, edges: [], count: 0 };
+    const levelOf = (pressed) => (st.mode === 'up' ? !pressed : pressed);
+    const now = () => performance.now() / 1000;
+    let base = levelOf(false);
+    const codeUp = '// відпущена = HIGH, натиснута = LOW\npinMode(21, INPUT_PULLUP);\nattachInterrupt(digitalPinToInterrupt(21),\n                onPress, <mark>FALLING</mark>);';
+    const codeDown = '// відпущена = LOW, натиснута = HIGH\npinMode(21, INPUT_PULLDOWN);\nattachInterrupt(digitalPinToInterrupt(21),\n                onPress, <mark>RISING</mark>);';
+    const sc = scope($('#edge-cv'), (ctx, t) => {
+      grid(ctx, t, 10, 6);
+      const { w, h } = ctx, yH = h * 0.25, yL = h * 0.75, n = now();
+      const xOf = (tt) => w - (n - tt) / WIN * w;
+      ctx.strokeStyle = t.nsig2; ctx.lineWidth = 3; ctx.beginPath();
+      const vis = st.edges.filter((e) => e.t > n - WIN);
+      let lv = st.edges.filter((e) => e.t <= n - WIN).reduce((a, e) => e.lv, base);
+      ctx.moveTo(0, lv ? yH : yL);
+      for (const e of vis) { const x = xOf(e.t); ctx.lineTo(x, lv ? yH : yL); lv = e.lv; ctx.lineTo(x, lv ? yH : yL); }
+      ctx.lineTo(w, lv ? yH : yL); ctx.stroke();
+      // Edges closer than one label width share a column; each edge gets its own row.
+      ctx.font = `600 13px ${t['f-mono']}`;
+      const LW = ctx.measureText('↓ FALLING · відпустили').width + 12;
+      const clusters = [];
+      for (const e of vis) {
+        const x = xOf(e.t), cl = clusters[clusters.length - 1];
+        if (cl && x - cl.x0 < LW) cl.items.push(e); else clusters.push({ x0: x, items: [e] });
+      }
+      for (const cl of clusters) {
+        const items = cl.items.slice(-2), cx = Math.min(Math.max(cl.x0 + LW / 2 - 6, LW / 2), w - LW / 2);
+        items.forEach((e, k) => {
+          const fall = !e.lv, c = fall ? t['lvl-lo'] : t['lvl-hi'];
+          label(ctx, t, `${fall ? '↓ FALLING' : '↑ RISING'} · ${e.press ? 'натиснули' : 'відпустили'}`, cx, h * 0.5 - 4 + k * 19, c, 'center');
+        });
+      }
+      label(ctx, t, 'HIGH 3,3 В', 6, yH - 8, t.muted);
+      label(ctx, t, 'LOW 0 В', 6, yL + 20, t.muted);
+      label(ctx, t, '200 мс/под', w - 6, h - 6, t.muted, 'right');
+    });
+    const sim = Study.sim($('#edge-cv'), () => sc.redraw());
+    sim.pause();
+    let idleTimer = 0;
+    function kick() { // run the roll only for a while after each event
+      if (!Study.reducedMotion()) { sim.play(); clearTimeout(idleTimer); idleTimer = setTimeout(() => sim.pause(), (WIN + 0.3) * 1000); }
+      sc.redraw();
+    }
+    function show() {
+      const lv = levelOf(st.pressed);
+      $('#edge-read').textContent = lv ? 'HIGH (1)' : 'LOW (0)';
+      $('#edge-pinv').textContent = lv ? '3,3 В' : '0 В';
+      $('#edge-pinv').setAttribute('fill', lv ? 'var(--lvl-hi)' : 'var(--lvl-lo)');
+      $('#edge-count').textContent = String(st.count);
+      $('#edge-code').innerHTML = st.mode === 'up' ? codeUp : codeDown;
+      $('#sch-up').toggleAttribute('hidden', st.mode !== 'up'); $('#sch-down').toggleAttribute('hidden', st.mode === 'up');
+    }
+    function set(p) {
+      if (p === st.pressed) return;
+      st.pressed = p;
+      st.edges.push({ t: now(), lv: levelOf(p), press: p });
+      if (st.edges.length > 40) st.edges.shift();
+      if (p) st.count++;
+      const b = $('#edge-press');
+      b.setAttribute('aria-pressed', String(p)); b.textContent = p ? 'Відпустіть…' : 'Натиснути S1';
+      show(); kick();
+    }
+    const btn = $('#edge-press');
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); set(true); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => btn.addEventListener(ev, () => set(false)));
+    btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); set(true); } });
+    btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); set(false); } });
+    btn.addEventListener('blur', () => set(false));
+    seg('#edge-mode', (v) => { st.mode = v; st.pressed = false; st.edges = []; st.count = 0; base = levelOf(false); show(); sc.redraw(); });
+    show();
+  })();
+
+  /* ---------- W-bounce: real events from the bench, zoomable ---------- */
+  (function () {
+    // gaps in µs between consecutive edges (esp32-s3-bounce-test/docs/bench-11-40.serial.txt)
+    const EV = [
+      { k: 'Натискання #1', start: 1, gaps: [] },
+      { k: 'Відпускання #58', start: 0, gaps: [311, 165, 33, 71] },
+      { k: 'Відпускання #26', start: 0, gaps: [61, 1744] },
+      { k: 'Відпускання #41', start: 0, gaps: [134, 44, 6, 45] },
+    ];
+    const host = $('#b-ev');
+    EV.forEach((e, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.dataset.v = String(i); b.textContent = e.k; b.setAttribute('aria-pressed', String(i === 1));
+      host.append(b);
+    });
+    const st = { ev: 1, sdiv: 0.1 };
+    const times = (e) => { const ts = [0]; e.gaps.forEach((g) => ts.push(ts[ts.length - 1] + g * 1e-6)); return ts; };
+    let visCount = 1;
+    const sc = scope($('#b-cv'), (ctx, t) => {
+      grid(ctx, t, 10, 4);
+      const { w, h } = ctx, e = EV[st.ev], ts = times(e), win = st.sdiv * 10, t0 = -2 * st.sdiv;
+      const yH = h * 0.22, yL = h * 0.72, xOf = (tt) => (tt - t0) / win * w;
+      let lv = e.start;
+      ctx.strokeStyle = t.nsig2; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, lv ? yH : yL);
+      const xs = [];
+      for (const tt of ts) { const x = xOf(tt); xs.push(x); ctx.lineTo(x, lv ? yH : yL); lv = 1 - lv; ctx.lineTo(x, lv ? yH : yL); }
+      ctx.lineTo(w, lv ? yH : yL); ctx.stroke();
+      // each ISR timestamp (micros()) is a dot on its edge: the trace between them is drawn, not recorded
+      ctx.fillStyle = t['hi-ink']; ctx.strokeStyle = t['panel-2']; ctx.lineWidth = 1.5;
+      for (const x of xs) { if (x < -4 || x > w + 4) continue; ctx.beginPath(); ctx.arc(x, (yH + yL) / 2, 4, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }
+      // time-axis ticks from the first timestamp: µs up to 1 ms/div, ms above; as many as fit without overlap
+      const ms = st.sdiv >= 0.01, unit = ms ? 'мс' : 'мкс', k = ms ? 1e3 : 1e6;
+      const tick = (i) => `${fmt.num((t0 + i * st.sdiv) * k, 0)}${NB}${unit}`;
+      ctx.font = `600 13px ${t['f-mono']}`;
+      const tw = Math.max(ctx.measureText(tick(1)).width, ctx.measureText(tick(9)).width) + 10;
+      const every = Math.max(1, Math.ceil(tw / (w / 10)));
+      for (let i = 1; i < 10; i++) if ((i - 2) % every === 0) label(ctx, t, tick(i), i * w / 10, h - 6, t.muted, 'center'); // 0 (i = 2) always labelled
+      // distinct on screen: edges further apart than 2 px
+      visCount = 0; let last = -1e9;
+      for (const x of xs) { if (x < 0 || x > w) continue; if (x - last > 2) visCount++; last = x; }
+      label(ctx, t, e.start ? 'HIGH → LOW' : 'LOW → HIGH', 6, 18, t.muted);
+      label(ctx, t, fmtDiv(st.sdiv), w - 6, 18, t.muted, 'right');
+      const off = xs.filter((x) => x > w).length;
+      if (off) label(ctx, t, `ще ${off} фронт(и) правіше →`, w - 6, 38, t['hi-ink'], 'right');
+    });
+    function out() {
+      const e = EV[st.ev], ts = times(e);
+      $('#b-n').textContent = String(ts.length);
+      $('#b-dur').textContent = ts.length > 1 ? fmtTime(ts[ts.length - 1]) : 'немає (чисто)';
+      $('#b-vis').textContent = String(visCount);
+    }
+    seg('#b-ev', (v) => { st.ev = +v; sc.redraw(); out(); });
+    seg('#b-scale', (v) => { st.sdiv = +v; sc.redraw(); out(); });
+    out();
+  })();
+
+  /* ---------- W-la: scope vs logic analyzer ---------- */
+  (function () {
+    const gaps = [311, 165, 33, 71]; // µs, release #58
+    const edges = [0]; gaps.forEach((g) => edges.push(edges[edges.length - 1] + g));
+    const T0 = -100, T1 = 800, DT = 0.1, TR = 1.2, TF = 0.4, VDD = 3.3, TH = 1.65;
+    const N = Math.round((T1 - T0) / DT) + 1, V = new Float32Array(N);
+    { let v = 0, lv = 0, k = 0;
+      for (let i = 0; i < N; i++) {
+        const tt = T0 + i * DT;
+        while (k < edges.length && tt >= edges[k]) { lv = 1 - lv; k++; }
+        const target = lv ? VDD : 0, tau = lv ? TR : TF;
+        v += (target - v) * (1 - Math.exp(-DT / tau));
+        V[i] = v + 0.025 * Math.sin(tt * 0.09) * (lv ? 1 : 0.5);
+      } }
+    const vAt = (tt) => V[Math.max(0, Math.min(N - 1, Math.round((tt - T0) / DT)))];
+    const st = { fs: 1e4, ph: 0.37 };
+    let seen = 0;
+    const sc = scope($('#la-cv'), (ctx, t) => {
+      const { w, h } = ctx;
+      grid(ctx, t, 9, 8);
+      const xOf = (tt) => (tt - T0) / (T1 - T0) * w;
+      // top lane: voltage
+      const top = 8, bot = h * 0.6, yv = (v) => bot - v / VDD * (bot - top - 18);
+      ctx.fillStyle = t.hi; ctx.globalAlpha = 0.13;
+      ctx.fillRect(0, yv(0.75 * VDD), w, yv(0.25 * VDD) - yv(0.75 * VDD)); ctx.globalAlpha = 1;
+      ctx.strokeStyle = t.nsig2; ctx.lineWidth = 2; ctx.beginPath();
+      for (let px = 0; px <= w; px++) { const tt = T0 + px / w * (T1 - T0), y = yv(vAt(tt)); px ? ctx.lineTo(px, y) : ctx.moveTo(px, y); }
+      ctx.stroke();
+      label(ctx, t, 'осцилограф: напруга', 6, top + 14, t.muted);
+      label(ctx, t, 'невизначено для S3', w - 6, yv(VDD / 2) + 5, t['hi-ink'], 'right');
+      // samples
+      const step = 1e6 / st.fs; // µs
+      const samp = [];
+      for (let tt = T0 + st.ph * step; tt <= T1; tt += step) samp.push([tt, vAt(tt) > TH ? 1 : 0]);
+      // bottom lane: analyzer bits
+      const lt = h * 0.68, lb = h - 22, yb = (b) => (b ? lt + 8 : lb);
+      ctx.strokeStyle = t.nsig3; ctx.lineWidth = 2.5; ctx.beginPath();
+      let prev = samp.length ? samp[0][1] : 0; ctx.moveTo(0, yb(prev)); seen = 0;
+      for (const [tt, b] of samp) { const x = xOf(tt); if (b !== prev) { ctx.lineTo(x, yb(prev)); ctx.lineTo(x, yb(b)); seen++; prev = b; } }
+      ctx.lineTo(w, yb(prev)); ctx.stroke();
+      // real pulses (edge k → edge k+1) that no sample landed in: lost by the analyzer
+      for (let k = 0; k < edges.length - 1; k++) {
+        const a = edges[k], b = edges[k + 1];
+        if (samp.some(([tt]) => tt > a && tt < b)) continue;
+        const xa = xOf(a), xb = xOf(b), yTop = top + 18;
+        ctx.fillStyle = t['lvl-lo']; ctx.globalAlpha = 0.18; ctx.fillRect(xa, yTop, Math.max(2, xb - xa), bot - yTop); ctx.globalAlpha = 1;
+        label(ctx, t, '✕', (xa + xb) / 2, yTop + 12, t['lvl-lo'], 'center');
+      }
+      if (step >= 5) {
+        ctx.fillStyle = t.nsig3;
+        for (const [tt, b] of samp) { const x = xOf(tt); ctx.beginPath(); ctx.arc(x, yv(vAt(tt)), 3.5, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(x, yb(b), 3, 0, 7); ctx.fill(); }
+      }
+      label(ctx, t, 'аналізатор: 0/1', 6, lt + 4, t.muted);
+      label(ctx, t, '100 мкс/под', w - 6, h - 6, t.muted, 'right');
+      $('#la-seen').textContent = `${seen} з 5`;
+      $('#la-dt').textContent = fmtTime(1 / st.fs);
+    });
+    seg('#la-rate', (v) => { st.fs = +v; sc.redraw(); });
+    $('#la-phase').addEventListener('click', () => { st.ph = Math.random(); sc.redraw(); });
+  })();
+
+  /* ---------- worked / faded static screens ---------- */
+  function screen(svg, { sdivTxt, period, high, amp, k0 = 1 }) {
+    const NS = 'http://www.w3.org/2000/svg', X0 = 30, Y0 = 8, C = 24, NX = 10, NY = 7;
+    const el = (n, a, txt) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.append(e); return e; };
+    el('rect', { x: X0, y: Y0, width: NX * C, height: NY * C, fill: 'var(--panel-2)', stroke: 'var(--line)' });
+    let d = '';
+    for (let i = 1; i < NX; i++) d += `M${X0 + i * C} ${Y0}V${Y0 + NY * C}`;
+    for (let j = 1; j < NY; j++) d += `M${X0} ${Y0 + j * C}H${X0 + NX * C}`;
+    el('path', { d, stroke: 'var(--line)', 'stroke-width': 1 });
+    const yLo = Y0 + 6 * C, yHi = yLo - amp * C;
+    let p = `M${X0} ${yLo}`, x = k0;
+    while (x < NX) {
+      const xa = X0 + x * C, xb = X0 + Math.min(NX, x + high) * C;
+      p += `H${xa}V${yHi}H${xb}V${yLo}`; x += period;
+    }
+    p += `H${X0 + NX * C}`;
+    el('path', { d: p, fill: 'none', stroke: 'var(--nsig2)', 'stroke-width': 3 });
+    el('text', { x: 2, y: yLo + 5, 'font-size': 13, fill: 'var(--muted)' }, '0 В');
+    el('text', { x: X0 + NX * C, y: 192, 'font-size': 13, 'text-anchor': 'end', fill: 'var(--muted)' }, `${sdivTxt}/под · 1 В/под`);
+    // period bracket
+    const xa = X0 + k0 * C, xb = X0 + (k0 + period) * C;
+    el('path', { d: `M${xa} ${yHi - 6}V${yHi - 14}H${xb}V${yHi - 6}`, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 });
+    el('text', { x: (xa + xb) / 2, y: yHi - 18, 'font-size': 13, 'text-anchor': 'middle', fill: 'var(--accent)' }, `T = ${period} под`);
+  }
+  screen($('#scr-worked'), { sdivTxt: '0,5 мс', period: 4, high: 1, amp: 3 });
+  screen($('#scr-faded'), { sdivTxt: '100 мкс', period: 5, high: 2, amp: 3 });
+
+  /* ---------- independent drill: random screens ---------- */
+  (function () {
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const UNITS = { 'мкс': 1e-6, 'us': 1e-6, 'µs': 1e-6, 'мс': 1e-3, 'ms': 1e-3, 'с': 1, 's': 1, 'гц': 1, 'hz': 1, 'кгц': 1e3, 'khz': 1e3, 'мгц': 1e6, 'mhz': 1e6, '%': 1, 'в': 1, 'v': 1, 'мв': 1e-3, 'mv': 1e-3 };
+    function readQty(str, scale) {
+      const m = str.trim().replace(/−/g, '-').replace(',', '.').match(/^(-?\d*\.?\d+)\s*([^\d\s]*)$/);
+      if (!m) return NaN;
+      const u = m[2].toLowerCase();
+      if (!u) return +m[1] * scale;
+      return u in UNITS ? +m[1] * UNITS[u] : NaN;
+    }
+    let cur, wrong = 0, streak = 0;
+    function gen() {
+      const type = pick(['square', 'pwm', 'pwm', 'pulse', 'sine']);
+      const sdiv = pick([1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]);
+      let P, hi = 0;
+      if (type === 'square') { P = pick([2, 4]); hi = P / 2; }
+      else if (type === 'pwm') { P = pick([4, 5]); hi = pick([1, 2, 3].filter((x) => x < P)); }
+      else if (type === 'pulse') { P = 5; hi = 0.5; }
+      else P = pick([2, 4, 5]);
+      const vdiv = pick([0.5, 1]), ampDiv = type === 'sine' ? pick([4, 6]) : pick([3, 4, 5]);
+      const qs = type === 'sine' ? ['T', 'f', 'Vpp'] : ['T', 'f', 'D', 'D', 'Vpp'];
+      const q = pick(qs);
+      const Tp = P * sdiv;
+      cur = { type, sdiv, P, hi, vdiv, ampDiv, q, k0: pick([0, 1]), Tp };
+      if (q === 'T') { const sc = Tp >= 1e-3 ? 1e-3 : 1e-6; Object.assign(cur, { ans: Tp, scale: sc, unit: sc === 1e-3 ? 'мс' : 'мкс', text: `Період T, ${sc === 1e-3 ? 'мс' : 'мкс'}?` }); }
+      if (q === 'f') { const f = 1 / Tp, sc = f >= 1000 ? 1e3 : 1; Object.assign(cur, { ans: f, scale: sc, unit: sc === 1 ? 'Гц' : 'кГц', text: `Частота f, ${sc === 1 ? 'Гц' : 'кГц'}?` }); }
+      if (q === 'D') Object.assign(cur, { ans: hi / P * 100, scale: 1, unit: '%', text: 'Коефіцієнт заповнення D, %?' });
+      if (q === 'Vpp') Object.assign(cur, { ans: ampDiv * vdiv, scale: 1, unit: 'В', text: 'Розмах сигналу (від мінімуму до максимуму), В?' });
+      wrong = 0;
+      $('#drill-q').textContent = cur.text;
+      $('#drill-in').value = ''; $('#drill-fb').className = 'fb'; $('#drill-fb').textContent = '';
+      $('#drill-show').hidden = true;
+      sc.redraw();
+    }
+    const sc = scope($('#drill-cv'), (ctx, t) => {
+      grid(ctx, t, 10, 8);
+      if (!cur) return;
+      const { w, h } = ctx, dx = w / 10, dy = h / 8;
+      const c = cur, base = c.type === 'sine' ? h / 2 : h - 1.5 * dy;
+      ctx.strokeStyle = t.nsig2; ctx.lineWidth = 2.5; ctx.beginPath();
+      for (let px = 0; px <= w; px++) {
+        const div = px / dx - c.k0, ph = ((div % c.P) + c.P) % c.P;
+        let y;
+        if (c.type === 'sine') y = base - Math.sin(ph / c.P * 2 * Math.PI) * c.ampDiv / 2 * dy;
+        else y = ph < c.hi ? base - c.ampDiv * dy : base;
+        px ? ctx.lineTo(px, y) : ctx.moveTo(px, y);
+      }
+      ctx.stroke();
+      label(ctx, t, `CH1 ${fmt.num(c.vdiv, 1)} В/под`, 6, 18, t.muted);
+      label(ctx, t, fmtDiv(c.sdiv), w - 6, h - 6, t.muted, 'right');
+    });
+    function solution() {
+      const c = cur, T = fmtTime(c.Tp);
+      if (c.q === 'T') return `T = ${c.P} под × ${fmtTime(c.sdiv)} = ${T}.`;
+      if (c.q === 'f') return `T = ${c.P} × ${fmtTime(c.sdiv)} = ${T}; f = 1 / T = ${fmt.num(c.ans / c.scale, 2)} ${c.unit}.`;
+      if (c.q === 'D') return `HIGH ${fmt.num(c.hi, 1)} под із ${c.P}: D = ${fmt.num(c.hi, 1)} / ${c.P} = ${fmt.num(c.ans, 0)} %.`;
+      return `${c.ampDiv} под × ${fmt.num(c.vdiv, 1)} В/под = ${fmt.num(c.ans, 1)} В.`;
+    }
+    function check() {
+      const v = readQty($('#drill-in').value, cur.scale), fb = $('#drill-fb');
+      if (!Number.isFinite(v)) { fb.className = 'fb'; fb.textContent = 'Введіть число, можна з одиницею: «2,5 мс», «400 Гц», «25 %».'; return; }
+      if (Math.abs(v - cur.ans) <= Math.abs(cur.ans) * 0.03) {
+        streak++; fb.className = 'fb ok'; fb.textContent = 'Так! ' + solution();
+      } else {
+        streak = 0; wrong++; fb.className = 'fb no';
+        fb.textContent = `Ні, спробуйте ще: відповідь ${v < cur.ans ? 'більша' : 'менша'}. Порахуйте поділки й помножте на ціну поділки.`;
+        if (wrong >= 2) $('#drill-show').hidden = false;
+      }
+      $('#drill-streak').textContent = `правильно поспіль: ${streak}`;
+    }
+    $('#drill-check').addEventListener('click', check);
+    $('#drill-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+    $('#drill-new').addEventListener('click', gen);
+    $('#drill-show').addEventListener('click', () => { const fb = $('#drill-fb'); fb.className = 'fb'; fb.textContent = solution(); });
+    gen();
+  })();
+
+  /* ---------- 08 dual figure: breadboard + press ---------- */
+  (function () {
+    const svg = $('#bb-btn');
+    const g = S.svg('g', {}, svg);
+    S.svg('rect', { x: 2, y: 30, width: 58, height: 110, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
+    S.svg('text', { class: 'sch-pin', x: 6, y: 24 }, g).textContent = 'плата';
+    S.svg('text', { class: 'sch-pin net-3v3', 'data-net': 'v33', x: 8, y: 52 }, g).textContent = '3V3';
+    S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 87 }, g).textContent = 'GND';
+    S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio21', x: 8, y: 122 }, g).textContent = '21';
+    const p3 = { x: 50, y: 48 }, pG = { x: 50, y: 83 }, p21 = { x: 50, y: 118 };
+    const bb = S.breadboard(svg, { cols: 16, rails: true, x: 76, y: 0, colLabels: 'bottom' });
+    bb.mark(2, 'top', 'v33', 'net-3v3');
+    bb.mark(7, 'top', 'gpio21', 'net-sig'); bb.mark(7, 'bottom', 'gpio21', 'net-sig');
+    bb.mark(10, 'top', 'gnd', 'net-gnd'); bb.mark(10, 'bottom', 'gnd', 'net-gnd');
+    bb.markRail('top', '+', 'v33', 'net-3v3'); bb.markRail('top', '-', 'gnd', 'net-gnd');
+    const la = S.svg('g', {}, svg);
+    S.svg('rect', { x: 300, y: 70, width: 74, height: 96, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, la);
+    S.svg('text', { class: 'sch-pin', x: 300, y: 64 }, la).textContent = 'аналізатор';
+    S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio21', x: 318, y: 104 }, la).textContent = 'CH1';
+    S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 318, y: 144 }, la).textContent = 'GND';
+    const j3 = S.part(svg, 'jumper', { from: p3, to: bb.rail('top', '+', 1), net: 'v33', cls: 'net-3v3', lift: 14, title: '3V3 плати → шина плюс' });
+    const jG = S.part(svg, 'jumper', { from: pG, to: bb.rail('top', '-', 2), net: 'gnd', cls: 'net-gnd', lift: 30, title: 'GND плати → шина мінус' });
+    const jR = S.part(svg, 'jumper', { from: bb.hole(2, 'a'), to: bb.rail('top', '+', 3), net: 'v33', cls: 'net-3v3', lift: 0, title: 'Стовпчик 2 → шина плюс' });
+    S.part(svg, 'res', { from: bb.hole(2, 'b'), to: bb.hole(7, 'b'), ohms: 10000, label: 'R1' });
+    S.part(svg, 'jumper', { from: p21, to: bb.hole(7, 'c'), net: 'gpio21', cls: 'net-sig', lift: 22, title: 'GPIO21 → стовпчик 7' });
+    const e7 = bb.hole(7, 'e'), f7 = bb.hole(7, 'f');
+    let btnG = S.part(svg, 'btn4', { x: e7.x, y: e7.y, w: 30, h: f7.y - e7.y, label: 'S1' });
+    const jK = S.part(svg, 'jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 10), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 10 → шина мінус' });
+    S.part(svg, 'jumper', { from: bb.hole(7, 'd'), to: { x: 306, y: 100 }, net: 'gpio21', cls: 'net-sig', lift: 70, title: 'Стовпчик 7 → CH1 аналізатора' });
+    S.part(svg, 'jumper', { from: bb.rail('top', '-', 15), to: { x: 306, y: 140 }, net: 'gnd', cls: 'net-gnd', lift: 10, title: 'Шина мінус → GND аналізатора' });
+
+    const fig = $('#dual-btn');
+    const flowW = [[$('#w-v33'), 1], [$('#w-node'), 1], [$('#w-s1g'), 1], [$('#w-pg'), -1], [j3, 1], [jR, -1], [jK, 1], [jG, -1]];
+    let pressed = false;
+    function upd() {
+      S.setNetLevel(fig, 'gpio21', pressed ? 'lo' : 'hi');
+      const i = pressed ? 0.33 : 0;
+      flowW.forEach(([w, dir]) => { if (i) S.flow(w, { mA: i, dir }); else if (w._flow) w._flow.set(0); });
+      $('#s1-open').toggleAttribute('hidden', pressed); $('#s1-closed').toggleAttribute('hidden', !pressed);
+      btnG.remove();
+      btnG = S.part(svg, 'btn4', { x: e7.x, y: e7.y, w: 30, h: f7.y - e7.y, label: 'S1', pressed });
+      $('#c-out').textContent = pressed
+        ? 'S1 замкнена: GPIO21 = 0 В → LOW. Через R1 тече 3,3 В / 10 кОм = 0,33 мА.'
+        : 'S1 розімкнена: струму немає, GPIO21 = 3,3 В через R1 → HIGH.';
+      const b = $('#c-press'); b.setAttribute('aria-pressed', String(pressed)); b.textContent = pressed ? 'Відпустіть…' : 'Утримувати S1';
+    }
+    const b = $('#c-press');
+    const set = (p) => { if (p !== pressed) { pressed = p; upd(); } };
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.setPointerCapture?.(e.pointerId); set(true); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => b.addEventListener(ev, () => set(false)));
+    b.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); set(true); } });
+    b.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); set(false); } });
+    b.addEventListener('blur', () => set(false));
+    upd();
+  })();
+
+  /* ---------- 09 lab summary ---------- */
+  (function () {
+    const tbl = $('table[data-key="1-5-bounce10"]');
+    const vals = (col) => $$(`td[data-col="${col}"] input`, tbl).map((i) => parseFloat(i.value.replace(',', '.'))).filter(Number.isFinite);
+    const median = (a) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+    function sum() {
+      // pair each duration with its edge count (same row), so the median covers bounced events only
+      const pairs = [];
+      $$('tbody tr', tbl).forEach((tr) => [['pe', 'pd'], ['re', 'rd']].forEach(([ce, cd]) => {
+        const n = parseFloat(($(`td[data-col="${ce}"] input`, tr)?.value || '').replace(',', '.'));
+        const ms = parseFloat(($(`td[data-col="${cd}"] input`, tr)?.value || '').replace(',', '.'));
+        if (Number.isFinite(n) && n > 1 && Number.isFinite(ms)) pairs.push(ms);
+      }));
+      const d = [...vals('pd'), ...vals('rd')], e = [...vals('pe'), ...vals('re')];
+      if (!d.length && !e.length) return;
+      const bounced = e.filter((x) => x > 1).length;
+      $('#lab-sum').textContent = `Подій: ${e.length} · з брязкотом: ${bounced} · медіана серед подій з брязкотом: ${pairs.length ? fmt.num(median(pairs), 2) + NB + 'мс' : '—'} · максимум: ${d.length ? fmt.num(Math.max(...d), 2) + NB + 'мс' : '—'} · найбільше фронтів: ${e.length ? Math.max(...e) : '—'}`;
+    }
+    tbl.addEventListener('input', sum);
+    sum();
+  })();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Командні виклики</title>
+<meta name="description" content="Командні виклики курсу ESP32-S3: виклик тижня, усі виклики за уроками, критерії, ролі й генератор ротації, командний залік, значки майстерності і як здати результат.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Page widgets only; colours from study.css tokens. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { min-height: 40px; padding: 6px 12px; border: 0; background: transparent; color: var(--ink); font: 600 15px var(--f-body); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.now-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
+.now-meta li { margin: 0; }
+.countdown { font: 600 15px var(--f-mono); color: var(--hi-ink); }
+.ch-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.mod-filter { margin: 4px 0 12px; }
+details.ch { margin: 8px 0; border: 1px solid var(--line); border-left: 4px solid var(--team, var(--accent)); border-radius: var(--radius); background: var(--panel); }
+details.ch > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 10px 14px; min-height: 44px; }
+details.ch > summary::-webkit-details-marker { display: none; }
+details.ch > summary .n { font: 600 14px var(--f-mono); color: var(--muted); min-width: 3.2ch; }
+details.ch > summary b { font: 700 1.2rem var(--f-display); }
+details.ch > summary .d { margin-left: auto; font: 500 13px var(--f-mono); color: var(--muted); white-space: nowrap; }
+details.ch > .challenge { margin: 0 10px 10px; box-shadow: none; }
+details.ch[open] > summary { border-bottom: 1px dashed var(--line); }
+.rub { display: grid; gap: 10px; }
+.rub-row { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+@media (min-width: 640px) { .rub-row { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+.rub-row p { margin: 0; font-size: 15px; color: var(--muted); }
+.rub-row b { color: var(--ink); }
+.rub-total { font: 700 1.5rem var(--f-display); }
+.rub-say { margin: 4px 0 0; }
+/* rota: one column grid whose children may shrink, so a wide output table scrolls inside instead of
+   widening the page at 375 px. The form stays in the 760 px reading column. */
+.rota { padding: 16px; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.rota > * { min-width: 0; }
+.rota label { display: grid; gap: 4px; font: 600 15px var(--f-body); }
+.rota input, .rota textarea, .rota select { font: 16px var(--f-body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); min-height: 44px; width: 100%; }
+.rota textarea { min-height: 96px; resize: vertical; }
+.rota .row3 { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 420px) { .rota .row3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (min-width: 640px) { .rota .row3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } }
+.rota .row3 input[type="number"] { max-width: 8ch; }
+.rota label, .rota input { min-width: 0; }
+.rota .hint { font-weight: 400; font-size: 14px; color: var(--muted); }
+.rota-out .tbl { overflow-x: auto; max-width: 100%; }
+.rota-out table td.me { font-weight: 600; }
+.rota-out .cov { font-size: 15px; margin: 6px 0 0; }
+/* the current week's row: accent tint plus a «цей тиждень» chip */
+.rota-out tr.cur > * { background: color-mix(in srgb, var(--accent) 11%, var(--panel)) !important; }
+.rota-out tr.cur > th { box-shadow: inset 3px 0 0 var(--accent); }
+.wk-chip { display: inline-block; margin-left: 6px; padding: 0 7px; border: 1px solid var(--accent); border-radius: 999px; font: 600 13px/1.5 var(--f-mono); color: var(--accent); white-space: nowrap; }
+#rules td.num { white-space: nowrap; }
+.tb { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--tc); color: var(--tc); font-weight: 700; }
+/* team disc fallback: zero specificity, so the shared .team-disc[data-team] in study.css wins when present */
+:where(.team-disc) { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--tc, var(--ink)); }
+:where(.team-disc)::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--tc, var(--copper)); }
+:where(.team-disc[data-team="ohm"]) { --tc: var(--team-ohm); }
+:where(.team-disc[data-team="volt"]) { --tc: var(--team-volt); }
+:where(.team-disc[data-team="amp"]) { --tc: var(--team-amp); }
+:where(.team-disc[data-team="farad"]) { --tc: var(--team-farad); }
+.ch-team { margin: -4px 0 10px; font-size: 15px; }
+/* hero eyebrow: the four team discs wrap on phones */
+.hub > header .eyebrow:has(.team-disc) { flex-wrap: wrap; row-gap: 6px; }
+/* scoreboard */
+.score { padding: 16px; }
+.sc-row { display: grid; grid-template-columns: 7rem minmax(0, 1fr) 3.5rem; gap: 10px; align-items: center; margin: 8px 0; }
+.sc-name { display: inline-flex; align-items: center; gap: 8px; font: 700 1.25rem var(--f-display); color: var(--tc); }
+.sc-disc { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid var(--tc); color: var(--tc); background: color-mix(in srgb, var(--tc) 12%, var(--panel)); font: 700 14px/1 var(--f-mono); }
+.sc-track { height: 22px; border-radius: 6px; background: var(--panel-2); border: 1.5px solid var(--tc); overflow: hidden; }
+.sc-fill { height: 100%; width: 0; background: var(--tc); transition: width .8s ease; }
+.sc-pts { font: 700 1.2rem var(--f-mono); text-align: right; }
+.sc-empty { margin: 10px 0; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--panel-2); font-weight: 600; }
+.sc-teams { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 4px; padding: 0; list-style: none; }
+.sc-teams li { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--tc); }
+.sc-wk th.tc { color: var(--tc); }
+.sc-wk th.tc .sc-disc { width: 24px; height: 24px; font-size: 13px; vertical-align: middle; margin-right: 4px; }
+@media (max-width: 599px) { .sc-wk th.tc .sc-tn { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .sc-wk th.tc .sc-disc { margin: 0; } }
+.goal-track { position: relative; height: 16px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line-strong); overflow: hidden; margin: 6px 0; }
+/* ten notches, one per 10 % of the shared goal */
+.goal-track::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), var(--line-strong) calc(10% - 1px) 10%); pointer-events: none; }
+.goal-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--team-ohm), var(--team-volt), var(--team-amp), var(--team-farad)); transition: width .8s ease; }
+/* rubric 0/1/2: equal 44 px segments on touch */
+@media (pointer: coarse) {
+  .rub .seg { display: flex; }
+  .rub .seg button { flex: 1 1 0; min-height: 44px; min-width: 44px; }
+  .seg button { min-height: 44px; }
+}
+/* badges */
+.badges { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.badge { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.badge svg { width: 56px; height: 56px; }
+.badge .hex { fill: var(--panel-2); stroke: var(--line); stroke-width: 3; }
+.badge.got .hex { fill: color-mix(in srgb, var(--hi) 22%, var(--panel)); stroke: var(--hi); }
+.badge .ico { fill: none; stroke: var(--muted); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.badge.got .ico { stroke: var(--hi-ink); }
+.badge h3 { margin: 0 0 2px; font-size: 1.2rem; }
+.badge p { margin: 0 0 6px; font-size: 15px; }
+.badge details summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 15px; min-height: 32px; }
+.badge .claim { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; min-width: 0; }
+.badge > div { min-width: 0; }
+.badge .claim input { flex: 1 1 10rem; min-width: 0; width: 100%; min-height: 38px; font: 15px var(--f-body); padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+.badge .ev { font-size: 14px; color: var(--ok); overflow-wrap: anywhere; }
+@media (pointer: coarse) { .badge summary, .badge .claim input { min-height: 44px; } .badge summary { display: flex; align-items: center; } }
+/* scoreboard: the week that contains today */
+.sc-wk tr.cur > * { background: color-mix(in srgb, var(--accent) 11%, var(--panel)) !important; }
+.sc-wk tr.cur > th { box-shadow: inset 3px 0 0 var(--accent); }
+.pts-note { font-size: 15px; }
+/* call roles on phones: one compact card per call instead of a 5-column table */
+.calls { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.calls > li { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.calls > li.cur { background: color-mix(in srgb, var(--accent) 11%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+.calls .cd { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 600 15px var(--f-mono); margin-bottom: 4px; }
+.calls ul { list-style: none; margin: 0; padding: 0; font-size: 15px; }
+.calls ul li { margin: 2px 0; }
+.calls ul .r { color: var(--muted); }
+.today-chip { display: inline-block; padding: 0 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: 600 13px/1.5 var(--f-mono); white-space: nowrap; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">До змісту</a>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="team">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main" data-toc="Зміст сторінки">
+  <header id="top">
+    <p class="eyebrow">Команди <span class="team-disc" data-team="ohm">Ом</span> · <span class="team-disc" data-team="volt">Вольт</span> · <span class="team-disc" data-team="amp">Ампер</span> · <span class="team-disc" data-team="farad">Фарад</span></p>
+    <h1>Командні <span>виклики</span></h1>
+    <p class="lead">Щопонеділка новий виклик, у суботу о 10:00 здаємо результат, на суботньому дзвінку показуємо. Збирає кожен сам, а за результат команди відповідає той, у кого відповідна роль цього тижня.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><a class="chip" href="#now">Виклик тижня</a></li>
+      <li><a class="chip" href="#roles">Генератор ролей</a></li>
+      <li><a class="chip" href="#points">Командний залік</a></li>
+      <li><a class="chip" href="../start/#roles">Що роблять ролі</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#submit">Як здати результат →</a>
+    </div>
+  </header>
+
+  <section class="hs" id="now">
+    <h2><span class="n">01</span> Виклик тижня</h2>
+    <div id="now-box"><p class="muted">Завантаження…</p></div>
+  </section>
+
+  <section class="hs" id="all">
+    <h2><span class="n">02</span> Усі виклики курсу</h2>
+    <p>Виклики попередніх тижнів теж годяться для повторення: візьміть той, де почуваєтеся найменш упевнено.</p>
+    <div class="seg mod-filter" role="group" aria-label="Модуль" id="mod-filter"></div>
+    <div id="all-box"></div>
+  </section>
+
+  <section class="hs" id="rubric">
+    <h2><span class="n">03</span> Критерії</h2>
+    <p>Бали ставлять за чотирма критеріями конкретного виклику: вони є в його картці вище і на сторінці уроку. Нижче — загальна рамка, яка підходить до будь-якого виклику: перед здачею оцініть свій результат самі. Якщо десь ставите 0 чи 1, ви вже знаєте, що доробити.</p>
+    <div class="panel"><div class="pb">
+      <div class="rub" id="rub"></div>
+      <p class="rub-total" aria-live="polite"><span id="rub-sum">0</span> / 8</p>
+      <p class="small">Самооцінка за критеріями 0–8 — для вашої команди: вона показує, що доробити перед здачею. Бали заліку рахуються окремо (<a href="#points">§05</a>).</p>
+      <p class="rub-say" id="rub-say"></p>
+    </div></div>
+    <div class="tnote"><p>Калібрування раз на модуль: у середу всі оцінюють один і той самий приклад голосуванням, потім обговорюєте розбіжності. Після цього рецензії студентів стають помітно надійнішими.</p></div>
+  </section>
+
+  <section class="hs" id="roles">
+    <h2><span class="n">04</span> Ролі й ротація</h2>
+    <p>Ролі змінюються щопонеділка, і за модуль кожен має побувати в кожній ролі. Тоді ніхто не застрягає на роботі «лише писати звіти». У програмних викликах роль означає ще й свою частину коду: її вказано в картці виклику. Впишіть імена своєї команди, і генератор складе таблицю на модуль.</p>
+    <div class="note plain small"><p>Імена зберігаються лише у вашому браузері й нікуди не надсилаються. Можна писати нікнейми.</p></div>
+    <div class="panel">
+      <div class="rota">
+        <div class="row3">
+          <label>Команда<select id="r-team"></select></label>
+          <label>Перший понеділок<input type="date" id="r-start"></label>
+          <label>Тижнів<input type="number" id="r-weeks" min="1" max="12" value="4"></label>
+        </div>
+        <label>Учасники <span class="hint">3 або 4 імені, кожне з нового рядка або через кому</span><textarea id="r-names" placeholder="Оля&#10;Андрій&#10;Марко&#10;Ірина"></textarea></label>
+        <div class="rota-out" id="r-out"></div>
+        <div class="actions"><button type="button" class="btn primary" id="r-copy">Скопіювати для Slack (Markdown)</button></div>
+      </div>
+    </div>
+    <h3>Ролі на дзвінках для всієї групи</h3>
+    <p>Хронометрист, Чат-монітор, Писар дошки і Підсумовувач змінюються щодзвінка. Порядок імен збережіть сталим, тоді при 10–12 людях кожен отримує роль приблизно раз на тиждень (раз на 2–3 дзвінки).</p>
+    <div class="panel">
+      <div class="rota">
+        <label>Уся група <span class="hint">імена через кому чи з нового рядка; порожньо — візьмемо імена всіх команд вище</span><textarea id="c-names"></textarea></label>
+        <div class="rota-out" id="c-out"></div>
+        <div class="actions"><button type="button" class="btn primary" id="c-copy">Скопіювати для Slack (Markdown)</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hs" id="points">
+    <h2><span class="n">05</span> Командний залік</h2>
+    <p>Бали отримують лише команди і лише за докази вміння. Особистого рейтингу немає, за швидкість і за присутність балів не дають, і бали ніколи не знімають.</p>
+    <div class="panel score" id="score"><p class="muted">Завантаження…</p></div>
+    <h3>За що бали</h3>
+    <p class="pts-note" id="pts-note" hidden></p>
+    <div class="tbl"><table><thead><tr><th>Дія</th><th>Бали</th></tr></thead><tbody id="rules"></tbody></table></div>
+    <p>Команда, що виграла модуль, вибирає тему суботнього квізу або додаткову умову для наступного міні-проєкту. Якщо одна команда виграє три тижні поспіль або в ретро чути, що бали тиснуть, команди перемішуємо чи додаємо бали за поступ.</p>
+    <details class="more"><summary>Як оновлюється таблиця</summary>
+      <p>Щосуботи Доповідачі вписують бали тижня у файл <code>docs/data/scoreboard.json</code> і відкривають pull request; викладач або супровідник сайту його приймає. Заодно це практика роботи з Git, яка знадобиться в будь-якому embedded-проєкті.</p>
+    </details>
+  </section>
+
+  <section class="hs" id="badges">
+    <h2><span class="n">06</span> Значки майстерності</h2>
+    <p>Значок означає, що ви щось уже вмієте, а не що ви прийшли на заняття. Ви заявляєте його самі з посиланням на доказ. Його бачите лише ви в цьому браузері. Якщо хочете показати іншим, викладіть доказ у <a href="https://github.com/grok-rs/platformio-projects/discussions" target="_blank" rel="noopener">Discussions репозиторію</a>.</p>
+    <div class="badges" id="badge-box"></div>
+  </section>
+
+  <section class="hs" id="submit">
+    <h2><span class="n">07</span> Як здати</h2>
+    <ol>
+      <li><b>До суботи 10:00</b> Доповідач створює допис у <a href="https://github.com/grok-rs/platformio-projects/discussions" target="_blank" rel="noopener">репозиторій platformio-projects → Discussions</a>, у категорії «Командні виклики» (посилання також у Slack <code>#announcements</code>).</li>
+      <li>Кожен учасник додає під дописом фото своєї збірки з одним виміряним значенням.</li>
+      <li>Скептик пише коментар «перевірено»: полярність, струми, спільна земля, одиниці.</li>
+      <li>На суботньому дзвінку 3 хвилини: Збирач показує збірку на камеру, Доповідач розповідає, Скептик іншої команди ставить одне питання.</li>
+    </ol>
+    <p>Немає GitHub? Напишіть у Slack <code>#show-and-tell</code>, Доповідач перенесе допис.</p>
+    <h3>Шаблон допису</h3>
+    <pre id="post-tpl">**Команда / тиждень / ролі:** …
+**Мета:** …
+**Схема:** (фото або малюнок)
+**Фото збірки:** …
+**Прогноз (з розрахунком) → виміряно → різниця і чому:** …
+**Що зламалося і як полагодили:** …
+**Відкрите питання до групи:** …</pre>
+    <button type="button" class="btn" id="tpl-copy">Скопіювати шаблон</button>
+    <div id="sources"><h3>Джерела фактів</h3></div>
+  </section>
+
+  <section class="hs" id="talk">
+    <h2><span class="n">08</span> Обговорення</h2>
+    <p>Здача і обговорення викликів уже працюють у <a href="https://github.com/grok-rs/platformio-projects/discussions" target="_blank" rel="noopener">Discussions репозиторію</a> (§07). Не підключені лише коментарі під цією сторінкою сайту.</p>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script>
+document.addEventListener('study:ready', async () => {
+  'use strict';
+  const { $, $$, store } = Study;
+  const C = window.COURSE || { modules: [] };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Data strings may hold <sub>/<sup>/<b>/<code>, and {{cite:id}} becomes a citation.
+  const rich = (s) => esc(s).replace(/&lt;(\/?)(b|i|sub|sup|code)&gt;/g, '<$1$2>').replace(/\{\{cite:([\w-]+)\}\}/g, '<sup class="cite" data-fact="$1"></sup>');
+  const TEAMS = [['ohm', 'Ом'], ['volt', 'Вольт'], ['amp', 'Ампер'], ['farad', 'Фарад']];
+  const ROLE = { builder: 'Збирач', measurer: 'Вимірювач', reporter: 'Доповідач', skeptic: 'Скептик' };
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const dm = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const parseISO = (s) => new Date(s + 'T12:00:00');
+  const mondayOf = (d) => { const m = new Date(d); m.setHours(12, 0, 0, 0); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return m; };
+  const lessons = C.modules.flatMap((m) => (m.lessons || []).map((l) => ({ ...l, module: m })));
+  const lessonById = (id) => lessons.find((l) => l.id === id);
+  const hubOk = (l) => l && (l.status === 'ready' || l.status === 'draft');
+
+  /* ---------------- data */
+  let CH = { challenges: [], rubric: [] };
+  try { CH = await Study.fetchJSON('data/challenges.json'); } catch { /* toast shown by Study */ }
+  const chByLesson = new Map((CH.challenges || []).map((c) => [c.lesson, c]));
+  const ROTA = 'team.rota.v1';
+  const TNAME = Object.fromEntries(TEAMS);
+  // The reader's own team, only if they picked one in the role generator (04); otherwise no team line.
+  const myTeam = () => { const t = (store.get(ROTA, {}) || {}).team; return TNAME[t] ? t : ''; };
+  const myTeamHtml = (t) => (t ? `Ваша команда: <span class="team-disc" data-team="${t}">${esc(TNAME[t])}</span>` : '');
+  // when: 'now' = this week's challenge, 'past' = for revision only, 'next' = a later week (its own Saturday).
+  function card(c, when = 'now') {
+    const l = lessonById(c.lesson);
+    const roles = Object.entries(c.roles || {}).map(([k, v]) => `<li><b>${ROLE[k] || k}:</b> ${rich(v)}</li>`).join('');
+    const crit = (c.criteria && c.criteria.length) ? c.criteria.map(rich).join(' · ') : esc((CH.rubric || []).map((r) => r.t).join(', '));
+    const hubHref = hubOk(l) ? `../${esc(l.hub || 'lessons/' + l.id + '/')}#challenge` : '';
+    const links = [
+      hubHref ? `<a class="btn sm" href="${hubHref}">Повна умова: урок ${esc(l.n)}, розділ 12</a>` : '',
+      l && l.lms ? `<a class="btn ghost sm" href="${esc(C.lmsBase + l.lms)}" target="_blank" rel="noopener">Урок у LMS (потрібен вхід)</a>` : '',
+    ].join('');
+    const mt = myTeam();
+    let due = c.due || 'до суботи 10:00';
+    if (when === 'past') due = 'для повторення, без терміну';
+    else if (when === 'next' && l && l.date) { const s6 = mondayOf(parseISO(l.date)); s6.setDate(s6.getDate() + 5); due = `до суботи ${dm(s6)}, 10:00`; }
+    // Neutral copper band for everyone; the reader's own team colour + disc once they picked a team (04).
+    return `<article class="challenge${mt ? ' is-mine' : ''}"${mt ? ` data-team="${mt}"` : ''}>
+      <span class="tag">Командний виклик · урок ${esc(l ? l.n : c.lesson)}</span>
+      <h3>${esc(c.title)}</h3>
+      <p class="ch-team"${mt ? '' : ' hidden'}>${myTeamHtml(mt)}</p>
+      <dl>
+        <dt>Мета</dt><dd>${rich(c.goal)}</dd>
+        <dt>Здати</dt><dd>${rich(c.deliver)}</dd>
+        <dt>Ролі</dt><dd><ul>${roles}</ul></dd>
+        <dt>Критерії</dt><dd>${crit}: самооцінка по 0–2, разом до 8 — для вашої команди (<a href="#rubric">як оцінити себе</a>).</dd>
+        <dt>Ускладнення</dt><dd>${rich(c.stretch)}</dd>
+        <dt>Термін</dt><dd>${esc(due)}</dd>
+      </dl>
+      <p class="small muted">Тут коротка версія. Якщо щось розходиться, діє умова на сторінці уроку.</p>
+      <div class="ch-links">${links}</div>
+    </article>`;
+  }
+
+  /* ---------------- 01 challenge of the week (?today=YYYY-MM-DD for testing) */
+  const qToday = new URLSearchParams(location.search).get('today');
+  const today = qToday && /^\d{4}-\d{2}-\d{2}$/.test(qToday) ? parseISO(qToday) : new Date();
+  const mon = mondayOf(today), sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const sat = new Date(mon); sat.setDate(mon.getDate() + 5); sat.setHours(10, 0, 0, 0);
+  const week = lessons.filter((l) => l.date && l.date >= iso(mon) && l.date <= iso(sun));
+  const cur = week.map((l) => chByLesson.get(l.id)).find(Boolean);
+  const past = lessons.filter((l) => l.date && l.date < iso(mon) && chByLesson.has(l.id)).pop();
+  const nowBox = $('#now-box');
+  const left = sat - today;
+  const leftTxt = cur && cur.due ? cur.due : left > 0 ? `до здачі ${Math.floor(left / 864e5)} д ${Math.floor(left % 864e5 / 36e5)} год` : 'термін минув, покажіть результат на дзвінку';
+  const weekTxt = `${dm(mon)}–${dm(sun)}`;
+  const weekLessons = week.length ? week.map((l) => `${l.n} ${l.short || l.title}`).join(' · ') : 'дзвінків немає';
+  if (cur) {
+    nowBox.innerHTML = `<ul class="now-meta"><li><span class="chip">Тиждень ${weekTxt}</span></li><li><span class="chip">${esc(weekLessons)}</span></li><li><span class="chip countdown">${leftTxt}</span></li></ul>` + card(cur);
+  } else {
+    nowBox.innerHTML = `<ul class="now-meta"><li><span class="chip">Тиждень ${weekTxt}</span></li><li><span class="chip">${esc(weekLessons)}</span></li></ul>
+      <div class="note"><p>${today.getDay() === 1 ? 'Виклик цього тижня ще не на сайті: викладач оголосить його сьогодні в Slack <code>#announcements</code>.' : 'Виклик цього тижня ще не на сайті: умова — у Slack <code>#announcements</code> (дивіться допис викладача від понеділка).'}${past ? ` Нижче — виклик уроку ${esc(past.n)} <b>для повторення</b>, не для здачі цього тижня.` : ''}</p></div>` +
+      (past ? card(chByLesson.get(past.id), 'past') : '');
+  }
+
+  /* ---------------- 02 all challenges by module */
+  const mods = C.modules.filter((m) => (m.lessons || []).some((l) => chByLesson.has(l.id)));
+  const filt = $('#mod-filter');
+  filt.innerHTML = `<button type="button" data-m="" aria-pressed="true">Усі</button>` + mods.map((m) => `<button type="button" data-m="${esc(m.id)}" aria-pressed="false">${esc(m.short || m.title)}</button>`).join('');
+  const allBox = $('#all-box');
+  allBox.innerHTML = mods.map((m) => `<div data-mod="${esc(m.id)}"><h3>${esc(m.title)}</h3>` +
+    m.lessons.filter((l) => chByLesson.has(l.id)).map((l, i) => {
+      const c = chByLesson.get(l.id);
+      const d = l.date ? `${l.day} ${l.date.slice(8, 10)}.${l.date.slice(5, 7)}` : '';
+      const when = c === cur ? 'now' : l.date && l.date < iso(mon) ? 'past' : 'next';
+      return `<details class="ch"><summary><span class="n">${esc(l.n)}</span><b>${esc(c.title)}</b><span class="d">${esc(d)}</span></summary>${card(c, when)}</details>`;
+    }).join('') + '</div>').join('');
+  filt.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    $$('button', filt).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $$('[data-mod]', allBox).forEach((d) => { d.hidden = !!b.dataset.m && d.dataset.mod !== b.dataset.m; });
+  });
+
+  /* ---------------- 03 rubric self-score */
+  const RK = 'team.rubric.v1';
+  const rs = store.get(RK, {});
+  const rub = $('#rub');
+  rub.innerHTML = (CH.rubric || []).map((r) => `<div class="rub-row"><p><b>${esc(r.t)}.</b> ${esc(r.d)}</p>
+    <div class="seg" role="group" aria-label="${esc(r.t)}">${[0, 1, 2].map((v) => `<button type="button" data-k="${esc(r.k)}" data-v="${v}" aria-pressed="${(rs[r.k] ?? -1) === v}">${v}</button>`).join('')}</div></div>`).join('');
+  const rubSay = () => {
+    const vals = (CH.rubric || []).map((r) => rs[r.k]);
+    const sum = vals.reduce((a, v) => a + (v || 0), 0);
+    $('#rub-sum').textContent = sum;
+    const weak = (CH.rubric || []).filter((r) => rs[r.k] !== undefined && rs[r.k] < 2).map((r) => r.t.toLowerCase());
+    $('#rub-say').textContent = vals.some((v) => v === undefined) ? 'Оцініть усі чотири рядки.'
+      : sum === 8 ? 'Готово до здачі. Попросіть Скептика перевірити ще раз свіжим оком.'
+      : `Що доробити: ${weak.join(', ')}.`;
+  };
+  rub.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    rs[b.dataset.k] = +b.dataset.v; store.set(RK, rs);
+    $$(`button[data-k="${b.dataset.k}"]`, rub).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    rubSay();
+  });
+  rubSay();
+
+  /* ---------------- 04 rota generator (names stay in localStorage) */
+  const st = Object.assign({ team: 'ohm', names: {}, start: '', weeks: 4, cohort: '' }, store.get(ROTA, {}));
+  const nextMon = (() => { const m = mondayOf(today); if (today.getDay() !== 1) m.setDate(m.getDate() + 7); return iso(m); })();
+  $('#r-team').innerHTML = TEAMS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+  $('#r-team').value = st.team; $('#r-start').value = st.start || nextMon; $('#r-weeks').value = st.weeks;
+  $('#r-names').value = st.names[st.team] || ''; $('#c-names').value = st.cohort || '';
+  const split = (s) => String(s || '').split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
+  const save = () => { store.set(ROTA, st); syncTeam(); };
+  const rolesFor = (n) => (n === 3 ? ['Збирач і Вимірювач', 'Доповідач', 'Скептик'] : ['Збирач', 'Вимірювач', 'Доповідач', 'Скептик']);
+  let rotaMd = '', cohortMd = '', namesTouched = false;
+  const thisWeek = (d) => iso(mondayOf(d)) === iso(mon);
+  const WK = ' <span class="wk-chip">цей тиждень</span>';
+  function drawRota() {
+    const names = split(st.names[st.team]).slice(0, 6);
+    const out = $('#r-out');
+    if (names.length < 3) {
+      // Before the reader has finished typing: a neutral hint; the warning only after they leave the field.
+      out.innerHTML = !namesTouched ? '<p class="muted">Таблиця з’явиться, коли впишете 3–4 імені.</p>'
+        : `<p class="note warn">Впишіть щонайменше три імені${names.length === 2 ? ': удвох одна людина мала б дві ролі, і Скептик перевіряв би власну збірку. Попросіть викладача додати когось до команди' : ''}.</p>`;
+      rotaMd = ''; return;
+    }
+    const roles = rolesFor(names.length), weeks = Math.max(1, Math.min(12, +st.weeks || 4));
+    const start = parseISO(st.start || nextMon);
+    const rows = [], seen = new Map(names.map((n) => [n, new Set()]));
+    for (let w = 0; w < weeks; w++) {
+      const d = new Date(start); d.setDate(start.getDate() + 7 * w);
+      const who = roles.map((r, i) => names[(i + w) % names.length]);
+      // With 5–6 people the extra ones are «у резерві» that week and rotate in next week.
+      const spare = names.filter((n) => !who.includes(n));
+      who.forEach((n, i) => seen.get(n).add(roles[i]));
+      rows.push({ d, who, spare });
+    }
+    const all = [...seen.values()].every((s) => s.size === roles.length);
+    const tname = TEAMS.find(([k]) => k === st.team)[1];
+    const extra = names.length > roles.length;
+    out.innerHTML = `<div class="tbl"><table><caption>Команда <span class="tb" style="--tc:var(--team-${st.team})">${esc(tname)}</span></caption>
+      <thead><tr><th>Тиждень з</th>${roles.map((r) => `<th>${esc(r)}</th>`).join('')}${extra ? '<th>Резерв</th>' : ''}</tr></thead>
+      <tbody>${rows.map((r) => `<tr${thisWeek(r.d) ? ' class="cur"' : ''}><th>${dm(r.d)}${thisWeek(r.d) ? WK : ''}</th>${r.who.map((n) => `<td>${esc(n)}</td>`).join('')}${extra ? `<td>${esc(r.spare.join(', '))}</td>` : ''}</tr>`).join('')}</tbody></table></div>
+      <p class="cov">${all ? '✓ Кожен побуває в кожній ролі.' : `Поки не кожен побуває в кожній ролі: потрібно щонайменше ${names.length} тижнів.`}${names.length > 4 ? ' У команді більше 4 людей: краще поділити на дві.' : ''}</p>`;
+    rotaMd = `**Ролі команди ${tname}**\n\n| Тиждень з | ${roles.join(' | ')}${extra ? ' | Резерв' : ''} |\n|${'---|'.repeat(roles.length + 1 + (extra ? 1 : 0))}\n` +
+      rows.map((r) => `| ${dm(r.d)} | ${r.who.join(' | ')}${extra ? ' | ' + r.spare.join(', ') : ''} |`).join('\n');
+  }
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  const CALL_ROLES = ['Хронометрист', 'Чат-монітор', 'Писар дошки', 'Підсумовувач'];
+  const narrow = window.matchMedia('(max-width: 599px)');
+  function drawCohort() {
+    let names = split(st.cohort);
+    if (!names.length) names = TEAMS.flatMap(([k]) => split(st.names[k]));
+    const out = $('#c-out');
+    if (names.length < 4) { out.innerHTML = '<p class="muted">Потрібно щонайменше 4 імені (або заповніть команди вище).</p>'; cohortMd = ''; return; }
+    const start = parseISO(st.start || nextMon), weeks = Math.max(1, Math.min(12, +st.weeks || 4));
+    const calls = [];
+    for (let w = 0; w < weeks; w++) for (const off of [0, 2, 5]) { const d = new Date(start); d.setDate(start.getDate() + 7 * w + off); calls.push(d); }
+    const rows = calls.map((d, k) => ({ d, day: ['пн', 'ср', 'сб'][k % 3], who: CALL_ROLES.map((r, i) => names[(k * 4 + i) % names.length]) }));
+    const firstCur = rows.findIndex((r) => thisWeek(r.d));
+    const isToday = (d) => iso(d) === iso(today);
+    const TD = ' <span class="today-chip">сьогодні</span>';
+    // Phones: one compact card per call («сб 24.10 · сьогодні» + four «роль — ім'я» lines); wider screens: the table.
+    const list = narrow.matches
+      ? `<ol class="calls">${rows.map((r, k) => `<li${thisWeek(r.d) ? ' class="cur"' : ''}><div class="cd">${r.day} ${dm(r.d)}${isToday(r.d) ? TD : k === firstCur ? WK : ''}</div><ul>${r.who.map((n, i) => `<li><span class="r">${CALL_ROLES[i]}</span> — ${esc(n)}</li>`).join('')}</ul></li>`).join('')}</ol>`
+      : `<div class="tbl"><table><thead><tr><th>Дзвінок</th>${CALL_ROLES.map((r) => `<th>${r}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r, k) => `<tr${thisWeek(r.d) ? ' class="cur"' : ''}><th>${r.day} ${dm(r.d)}${isToday(r.d) ? TD : k === firstCur ? WK : ''}</th>${r.who.map((n) => `<td>${esc(n)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    out.innerHTML = `${list}
+      <p class="cov">${names.length} ${plural(names.length, 'людина', 'людини', 'людей')}: ${names.length <= 4 ? 'кожен має роль щодзвінка' : ((x) => `кожен отримує роль приблизно раз на ${String(x).replace('.', ',')} ${Number.isInteger(x) ? plural(x, 'дзвінок', 'дзвінки', 'дзвінків') : 'дзвінка'}`)(Math.round(names.length / 4 * 10) / 10)}.</p>`;
+    cohortMd = `**Ролі на дзвінках**\n\n| Дзвінок | ${CALL_ROLES.join(' | ')} |\n|---|---|---|---|---|\n` + rows.map((r) => `| ${r.day} ${dm(r.d)} | ${r.who.join(' | ')} |`).join('\n');
+  }
+  // Picking a team here also labels the challenge cards above («Ваша команда: …»).
+  // Called from save(), so every change in the generator re-labels and re-colours the cards live.
+  function syncTeam() {
+    const mt = myTeam();
+    $$('.challenge').forEach((a) => { a.classList.toggle('is-mine', !!mt); if (mt) a.dataset.team = mt; else delete a.dataset.team; });
+    $$('.challenge .ch-team').forEach((p) => { p.innerHTML = myTeamHtml(mt); p.hidden = !mt; });
+  }
+  $('#r-team').addEventListener('change', (e) => { st.team = e.target.value; $('#r-names').value = st.names[st.team] || ''; namesTouched = false; save(); drawRota(); });
+  $('#r-names').addEventListener('input', (e) => { st.names[st.team] = e.target.value; namesTouched = false; save(); drawRota(); drawCohort(); });
+  $('#r-names').addEventListener('blur', () => { namesTouched = true; drawRota(); });
+  $('#r-start').addEventListener('change', (e) => { st.start = e.target.value; save(); drawRota(); drawCohort(); });
+  $('#r-weeks').addEventListener('input', (e) => { st.weeks = +e.target.value || 4; save(); drawRota(); drawCohort(); });
+  $('#r-weeks').addEventListener('change', (e) => { st.weeks = Math.max(1, Math.min(12, Math.round(+e.target.value) || 4)); e.target.value = st.weeks; save(); drawRota(); drawCohort(); });
+  $('#c-names').addEventListener('input', (e) => { st.cohort = e.target.value; save(); drawCohort(); });
+  $('#r-copy').addEventListener('click', () => (rotaMd ? Study.copy(rotaMd) : Study.toast('Спершу впишіть імена.', 'bad')));
+  $('#c-copy').addEventListener('click', () => (cohortMd ? Study.copy(cohortMd) : Study.toast('Спершу впишіть імена.', 'bad')));
+  drawRota(); drawCohort();
+  narrow.addEventListener('change', drawCohort);
+
+  /* ---------------- 05 scoreboard */
+  const scoreBox = $('#score');
+  try {
+    const SB = await Study.fetchJSON('data/scoreboard.json');
+    const rules = SB.rules || [];
+    $('#rules').innerHTML = rules.map((r) => `<tr><td>${esc(r.t)}</td><td class="num">${r.pts}${r.cap ? ` (до ${r.cap})` : ''}</td></tr>`).join('');
+    // Two scales, named apart: the 0–8 self-check (§03) is the team's own; the scoreboard counts the rules below.
+    const chRule = rules.find((r) => r.k === 'challenge');
+    if (chRule) {
+      const pn = $('#pts-note');
+      pn.innerHTML = `У залік: ${esc(chRule.t.charAt(0).toLowerCase() + chRule.t.slice(1))} — ${chRule.pts} ${plural(chRule.pts, 'бал', 'бали', 'балів')} (див. <a href="#rubric">критерії</a>).`;
+      pn.hidden = false;
+    }
+    const capOf = Object.fromEntries(rules.map((r) => [r.k, r.cap || Infinity]));
+    const weekSum = (p) => Object.entries(p || {}).reduce((a, [k, v]) => a + Math.min(+v || 0, capOf[k] ?? Infinity), 0);
+    const teams = SB.teams || [];
+    const tot = Object.fromEntries(teams.map((t) => [t.id, (SB.weeks || []).reduce((a, w) => a + weekSum((w.points || {})[t.id]), 0)]));
+    const max = Math.max(1, ...Object.values(tot));
+    const goal = SB.goal || null;
+    const allZero = Object.values(tot).every((v) => !v);
+    const DISC = { ohm: 'Ω', volt: 'V', amp: 'A', farad: 'F' };
+    const disc = (t) => `<span class="sc-disc" aria-hidden="true">${DISC[t.id] || esc(t.name.slice(0, 1))}</span>`;
+    const tc = (t) => `--tc:var(--team-${esc(t.id)})`;
+    // First result: the Saturday of the latest week in scoreboard.json (its start is a Monday).
+    const lastWk = (SB.weeks || []).slice(-1)[0];
+    const firstSat = lastWk && lastWk.start ? ((d) => (d.setDate(d.getDate() + 5), `сб ${dm(d)}`))(parseISO(lastWk.start)) : 'суботу';
+    scoreBox.innerHTML = `<p class="small">Модуль ${esc(SB.module || '')} · оновлено ${esc(Study.fmt.date(SB.updated))}</p>` +
+      (allZero
+        ? `<ul class="sc-teams" aria-label="Команди">${teams.map((t) => `<li style="${tc(t)}">${disc(t)}${esc(t.name)}</li>`).join('')}</ul><p class="sc-empty">Перший підсумок — ${firstSat} після показу команд.${goal ? ` Спільна мета: ${goal.current} з ${goal.target}.` : ''}</p>`
+        : teams.map((t) => `<div class="sc-row" style="${tc(t)}"><span class="sc-name">${disc(t)}${esc(t.name)}</span><div class="sc-track" role="img" aria-label="${esc(t.name)}: ${tot[t.id]} балів"><div class="sc-fill" data-w="${tot[t.id] / max * 100}"></div></div><span class="sc-pts">${tot[t.id]}</span></div>`).join('')) +
+      // All zero: the week table would only repeat the empty note, so it waits for the first result.
+      ((SB.weeks || []).length && !allZero ? `<div class="tbl"><table class="sc-wk"><caption>По тижнях</caption><thead><tr><th scope="col">Тиждень</th>${teams.map((t) => `<th scope="col" class="tc" style="${tc(t)}" title="${esc(t.name)}">${disc(t)}<span class="sc-tn">${esc(t.name)}</span></th>`).join('')}</tr></thead><tbody>${SB.weeks.map((w) => `<tr${w.start && iso(mondayOf(parseISO(w.start))) === iso(mon) ? ' class="cur"' : ''}><th>${esc(w.label || w.start)}${w.start && iso(mondayOf(parseISO(w.start))) === iso(mon) ? WK : ''}</th>${teams.map((t) => `<td class="num">${weekSum((w.points || {})[t.id])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '') +
+      (goal ? `<h3>${esc(goal.title)}</h3><div class="goal-track" role="img" aria-label="${goal.current} з ${goal.target}"><div class="goal-fill" data-w="${Math.min(100, goal.current / goal.target * 100)}"></div></div><p class="small">${allZero ? 'Це' : `${goal.current} з ${goal.target}: це`} спільна мета всієї групи, тут не змагаються.</p>` : '');
+    requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-w]', scoreBox).forEach((f) => { f.style.width = f.dataset.w + '%'; })));
+  } catch { scoreBox.innerHTML = '<p>Не вдалося завантажити таблицю балів.</p>'; }
+
+  /* ---------------- 06 badges (private, local) */
+  const BADGES = [
+    ['meter', 'Майстер мультиметра', 'Напругу, струм і опір виміряно з похибкою до 10 % від прогнозу на трьох різних збірках.', '<circle cx="28" cy="31" r="10"/><path d="M28 31l6-6M18 16h20"/>'],
+    ['sheet', 'Даташит-детектив', 'Знайшли в даташиті параметр, який розв’язав суперечку в команді.', '<path d="M20 14h13l6 6v20H20z"/><path d="M24 26h10M24 31h10M24 36h6"/>'],
+    ['bug', 'Мисливець за багами', 'Знайшли причину несправності під час розбору збірки наживо.', '<ellipse cx="28" cy="31" rx="7" ry="9"/><path d="M28 22v18M17 26l4 2M39 26l-4 2M17 36l4-2M39 36l-4-2M24 20l-2-3M32 20l2-3"/>'],
+    ['teach', 'Вчитель', 'Провели 5-хвилинний міні-урок для групи.', '<path d="M16 24l12-6 12 6-12 6z"/><path d="M21 27v7c4 3 10 3 14 0v-7"/>'],
+    ['safe', 'Безпечні руки', 'Як Скептик помітили помилку, що могла б щось спалити.', '<path d="M28 16l11 4v8c0 7-5 11-11 13-6-2-11-6-11-13v-8z"/><path d="M23 29l4 4 7-8"/>'],
+    ['cards', 'Автор карток', 'П’ять ваших карток прийнято в колоди курсу.', '<rect x="17" y="20" width="18" height="14" rx="2"/><path d="M21 16h18v14"/>'],
+  ];
+  const BK = 'team.badges.v1';
+  const got = store.get(BK, {});
+  const bb = $('#badge-box');
+  const isUrl = (s) => /^https?:\/\/\S+$/i.test(s);
+  function drawBadges() {
+    bb.innerHTML = BADGES.map(([k, t, d, ico]) => {
+      const ev = got[k];
+      return `<div class="badge${ev ? ' got' : ''}">
+        <svg viewBox="0 0 56 56" role="img" aria-label="Значок «${esc(t)}»${ev ? ', отримано' : ''}"><path class="hex" d="M28 3l22 12.5v25L28 53 6 40.5v-25z"/><g class="ico">${ico}</g></svg>
+        <div><h3>${esc(t)}</h3><p>${esc(d)}</p>
+        ${ev ? `<p class="ev">✓ Заявлено: <a href="${esc(ev)}" target="_blank" rel="noopener">доказ</a> · <button type="button" class="btn ghost sm" data-un="${k}">Прибрати</button></p>`
+             : `<details><summary>Заявити значок</summary><div class="claim"><input type="url" placeholder="https://… посилання на доказ" aria-label="Посилання на доказ для значка «${esc(t)}»" data-in="${k}"><button type="button" class="btn sm" data-claim="${k}">Зберегти</button></div></details>`}
+        </div></div>`;
+    }).join('');
+  }
+  bb.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-claim]'), u = e.target.closest('[data-un]');
+    if (c) {
+      const v = $(`[data-in="${c.dataset.claim}"]`, bb).value.trim();
+      if (!isUrl(v)) { Study.toast('Потрібне посилання на доказ: допис, фото чи коміт (https://…).', 'bad'); return; }
+      got[c.dataset.claim] = v; store.set(BK, got); drawBadges();
+    } else if (u) { delete got[u.dataset.un]; store.set(BK, got); drawBadges(); }
+  });
+  drawBadges();
+
+  $('#tpl-copy').addEventListener('click', () => Study.copy($('#post-tpl').textContent));
+  Study.cites(); // challenge cards were rendered after boot
+});
+</script>
+</body>
+</html>

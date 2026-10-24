@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 150" role="img" aria-label="Гнізда мультиметра UT136C+: 10A ліворуч, COM посередині, VΩmA праворуч">
+  <title>Гнізда мультиметра UT136C+: 10A, COM, VΩmA</title>
+  <rect x="4" y="4" width="312" height="142" rx="18" fill="#2b3237" stroke="#e48a1c" stroke-width="6"/>
+  <g font-family="Onest, Arial, sans-serif" font-weight="600" font-size="18" fill="#e6ecf0" text-anchor="middle">
+    <text x="70" y="44">10A</text>
+    <text x="160" y="44">COM</text>
+    <text x="250" y="44">VΩmA</text>
+  </g>
+  <g stroke-width="4">
+    <circle cx="70" cy="86" r="20" fill="#0d1012" stroke="#d0312d"/>
+    <circle cx="160" cy="86" r="20" fill="#0d1012" stroke="#9aa3a9"/>
+    <circle cx="250" cy="86" r="20" fill="#0d1012" stroke="#d0312d"/>
+  </g>
+  <g font-family="JetBrains Mono, monospace" font-size="14" fill="#c3cbd1" text-anchor="middle">
+    <text x="70" y="132">F2 10 A</text>
+    <text x="160" y="132">чорний щуп</text>
+    <text x="250" y="132">F1 0,5 A</text>
+  </g>
+</svg>

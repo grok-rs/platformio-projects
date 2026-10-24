@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 2.3 · Суперцикл і millis()</title>
+<meta name="description" content="Чому delay() робить кнопку «глухою», як суперцикл із millis() виконує кілька справ одночасно, чому now − last переживає переповнення і як описати поведінку автоматом станів.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page-specific widget styles only; colours come from study.css tokens. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.row-ctl { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin: 0 0 12px; }
+.row-ctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; min-height: 40px; }
+.fig-svg { display: block; width: 100%; max-width: 420px; margin-inline: auto; height: auto; }
+.fig-svg text { font-family: var(--f-body); }
+.fig-svg .t { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.fig-svg .m { fill: var(--muted); font-size: 14px; }
+.fig-svg .mono { font-family: var(--f-mono); }
+/* idea figures sit in a ~265 px column at 1280 and ~271 px at 375: 16 units keep labels >= 13 px */
+.idea .fig-svg :is(.t, .m) { font-size: 16px; }
+/* ideas that study.css lays out in one column (with a pre or 4+ paragraphs) draw the figure ~420 px wide at >= 820 px */
+@media (min-width: 820px) { .idea:has(> figure):is(:has(> pre), :has(> p:nth-of-type(4))) .fig-svg :is(.t, .m) { font-size: 14px; } }
+.fig-svg .okc { fill: var(--ok); } .fig-svg .badc { fill: var(--bad); } .fig-svg .acc { fill: var(--accent); }
+
+/* W2-3a timeline */
+#tl-canvas { display: block; width: 100%; height: 262px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; touch-action: manipulation; }
+.tl-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+/* 08: four signal nets need four hues; the button input borrows violet (not red/orange, away from amber/blue/green) */
+.net-in { stroke: var(--teach); color: var(--teach); }
+text.net-in { fill: currentColor; stroke: none; }
+.tl-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.tl-now { margin: 10px 0 0; padding: 8px 12px; border-left: 4px solid var(--accent); background: var(--panel-2); border-radius: 6px; font-size: 15px; min-height: 2.6em; }
+.tl-grid { display: grid; gap: 14px; margin-top: 14px; }
+@media (min-width: 820px) { .tl-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.stat span { display: block; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.stat b { font: 600 20px var(--f-mono); font-variant-numeric: tabular-nums; }
+.stat.ok b { color: var(--ok); } .stat.bad b { color: var(--bad); }
+.cpubar { display: flex; height: 26px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2); }
+.cpubar span { display: block; height: 100%; transition: width .3s; }
+.cpubar .sleep { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 45%, transparent) 0 4px, transparent 4px 8px); }
+.cpubar .poll { background: color-mix(in srgb, var(--accent) 38%, var(--panel)); }
+.cpubar .work { background: var(--hi); }
+.cpulist { list-style: none; padding: 0; margin: 6px 0 0; font-size: 14px; }
+.cpulist li { margin: 2px 0; } .cpulist i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.sw-sleep { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 4px); border: 1px solid var(--muted); }
+.sw-poll { background: color-mix(in srgb, var(--accent) 38%, var(--panel)); border: 1px solid var(--accent); }
+.sw-work { background: var(--hi); }
+.tl-code { margin: 0; font-size: 13.5px; line-height: 1.5; font-variant-ligatures: none; }
+.tl-code .ln { display: block; padding: 0 6px; border-left: 3px solid transparent; }
+.tl-code .ln.on { background: color-mix(in srgb, var(--hi) 22%, transparent); border-left-color: var(--hi); }
+.tl-code .ln.soft { background: color-mix(in srgb, var(--accent) 12%, transparent); border-left-color: var(--accent); }
+.burst-out { font-weight: 600; margin: 8px 0 0; min-height: 1.6em; }
+#tl-press { user-select: none; -webkit-user-select: none; touch-action: none; }
+#tl-press[aria-pressed="true"] { background: var(--hi); border-color: var(--hi); color: #111; }
+
+/* W2-3b overflow */
+.ovf-tbl td, .ovf-tbl th { font-family: var(--f-mono); font-size: 14px; font-variant-ligatures: none; }
+summary code { white-space: nowrap; }
+.scroll-hint { display: none; margin: 0 0 4px; }
+@media (max-width: 700px) { .scroll-hint { display: block; } }
+.ovf-tbl .v-ok { color: var(--ok); } .ovf-tbl .v-bad { color: var(--bad); } .ovf-tbl th { white-space: normal; }
+.range { display: grid; gap: 4px; margin: 6px 0 10px; }
+.range input { width: 100%; min-height: 32px; accent-color: var(--accent); }
+
+/* state machine */
+#fsm { cursor: pointer; border-radius: 8px; }
+#fsm .node { fill: var(--panel); stroke: var(--line); stroke-width: 2.5; transition: fill .2s, stroke .2s; }
+#fsm .ring { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
+#fsm .arr { fill: none; stroke: var(--muted); stroke-width: 2; marker-end: url(#fsm-arrow); }
+#fsm .lbl { fill: var(--ink); font: 600 14px var(--f-body); }
+#fsm .sub { fill: var(--muted); font: 500 14.5px var(--f-mono); }
+
+.mini-code { font-size: 13.5px; }
+#why figure { margin: 12px 0; }
+.lab-steps li { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { .cpubar span { transition: none; } }
+</style>
+</head>
+<body data-lesson="2-3">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:2-3">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 2 · Урок 2.3 · сб 03.10</p>
+    <h1>Суперцикл: <span>кілька справ одночасно без delay()</span></h1>
+    <p class="lead">Одна задача, один цикл, жодного очікування — і плата водночас блимає, слухає кнопку й пише в Serial. Розберемо, як це працює і де ламається.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: плата, 3 LED, 3 × 220&nbsp;Ом, кнопка</a></li>
+      <li><a class="chip" href="../2-1/">Спершу: урок 2.1 (C++ для MCU)</a></li>
+      <li><a class="chip deep" href="../../lab/#two-buttons">Стенд: блокуюча прошивка</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Плата блимає світлодіодом через <code>delay(1000)</code>. Ви тиснете кнопку — нічого. Тиснете довше — спрацювало. Код наче правильний, кнопка справна. Насправді програма весь час <b>чекає</b> і дивиться на кнопку лише раз на секунду.</p>
+    <p>Уявіть кухаря, який поставив варитися яйця й 10 хвилин стоїть над каструлею із секундоміром. Суп на сусідній конфорці тим часом википає. Досвідчений кухар поглядає на годинник і обходить плиту по колу. Цей урок про те, як навчити плату працювати так само.</p>
+    <figure>
+      <svg class="fig-svg" viewBox="0 0 320 150" role="img" aria-label="Два кухарі. Перший стоїть біля яєць 10 хвилин із секундоміром, і суп википає. Другий поглядає на годинник і по колу перевіряє яйця, суп і чайник, тому встигає все.">
+        <text class="t" x="8" y="18">Кухар із секундоміром · delay()</text>
+        <rect x="8" y="28" width="230" height="26" rx="5" fill="var(--muted)" opacity=".25"/>
+        <text class="m" x="16" y="46">стоїть біля яєць 10 хв…</text>
+        <circle cx="270" cy="41" r="13" fill="none" stroke="var(--bad)" stroke-width="2.5"/>
+        <path d="M262 30q4-8 8 0q4-8 8 0" fill="none" stroke="var(--bad)" stroke-width="2"/>
+        <text class="m badc" x="252" y="72">✗ суп</text>
+        <text class="t" x="8" y="96">Кухар із годинником · millis()</text>
+        <g fill="var(--accent)">
+          <rect x="8" y="106" width="26" height="26" rx="5" opacity=".35"/><rect x="38" y="106" width="26" height="26" rx="5" opacity=".35"/><rect x="68" y="106" width="26" height="26" rx="5" opacity=".35"/>
+          <rect x="98" y="106" width="26" height="26" rx="5" opacity=".35"/><rect x="128" y="106" width="26" height="26" rx="5" opacity=".35"/><rect x="158" y="106" width="26" height="26" rx="5" opacity=".35"/>
+          <rect x="188" y="106" width="26" height="26" rx="5" opacity=".35"/><rect x="218" y="106" width="26" height="26" rx="5" opacity=".35"/>
+        </g>
+        <text class="m mono" x="13" y="124">я?</text><text class="m mono" x="43" y="124">с?</text><text class="m mono" x="73" y="124">ч?</text><text class="m mono" x="103" y="124">я?</text>
+        <text class="m mono" x="133" y="124">с?</text><text class="m mono" x="163" y="124">ч?</text><text class="m mono" x="193" y="124">я?</text><text class="m mono" x="223" y="124">с?</text>
+        <text class="m okc" x="252" y="124">✓ усе</text>
+        <text class="m" x="8" y="146">я — яйця, с — суп, ч — чайник</text>
+      </svg>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b>, що саме зупиняє <code>delay()</code> на ESP32 і чому кнопка через нього «глухне»;</li>
+      <li><b>написати</b> неблокуючий таймер <code>now - last &gt;= interval</code> і <b>пояснити</b>, чому він переживає переповнення <code>millis()</code>;</li>
+      <li><b>зібрати</b> суперцикл із трьох незалежних задач: два LED з різними періодами, кнопка і Serial;</li>
+      <li><b>виміряти</b>, скільки разів за секунду виконується <code>loop()</code> і скільки натискань губиться;</li>
+      <li><b>описати</b> довгу дію як автомат станів, а не як ланцюжок пауз.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>delay() зупиняє вашу програму, а не чип</h3>
+      <p>На ESP32 ваші <code>setup()</code> і <code>loop()</code> працюють у задачі FreeRTOS <code>loopTask</code> на ядрі&nbsp;1<sup class="cite" data-fact="core-loop-task"></sup>. <code>delay()</code> — це <code>vTaskDelay()</code>: задача засинає, а ядро тим часом виконує інші задачі<sup class="cite" data-fact="core-delay"></sup>. Таймер далі рахує мілісекунди, переривання спрацьовують. Але весь ваш код у <code>loop()</code> стоїть на одному рядку: кнопку ніхто не читає, LED ніхто не перемикає.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 320 236" role="img" aria-label="Що відбувається під час delay(1000). Ядро 0 і системні задачі працюють. Ядро 1, задача loopTask з вашим loop, спить. Апаратний таймер далі рахує, millis росте від 0 до 1000. Переривання спрацює одразу. Кнопку, яку читають опитуванням, ніхто не перевіряє, натискання пропущено.">
+          <text class="t" x="6" y="15">Ядро 0 · системні задачі, Wi-Fi</text>
+          <g fill="var(--ok)" opacity=".55"><rect x="6" y="22" width="40" height="14" rx="3"/><rect x="58" y="22" width="22" height="14" rx="3"/><rect x="92" y="22" width="56" height="14" rx="3"/><rect x="160" y="22" width="30" height="14" rx="3"/><rect x="202" y="22" width="46" height="14" rx="3"/><rect x="260" y="22" width="54" height="14" rx="3"/></g>
+          <text class="t" x="6" y="57">Ядро 1 · loopTask (ваш loop)</text>
+          <defs><pattern id="hatch-d" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="8" fill="var(--muted)" opacity=".5"/></pattern></defs>
+          <rect x="6" y="64" width="308" height="22" rx="4" fill="url(#hatch-d)" stroke="var(--muted)"/>
+          <text class="t" x="160" y="80" text-anchor="middle">спить у delay(1000)</text>
+          <text class="t" x="6" y="107">Таймер · millis()</text>
+          <path d="M6 128H314" stroke="var(--line)" stroke-width="2"/>
+          <g stroke="var(--accent)" stroke-width="2"><path d="M6 122v12M68 122v12M130 122v12M192 122v12M254 122v12M314 122v12"/></g>
+          <text class="m mono" x="10" y="148">0</text><text class="m mono" x="314" y="148" text-anchor="end">1000 — рахує</text>
+          <text class="t" x="6" y="170">Переривання</text>
+          <path d="M150 158l-8 14h8l-6 12 14-18h-8l6-8z" fill="var(--hi)"/>
+          <text class="m okc" x="168" y="176">✓ спрацює одразу</text>
+          <text class="t" x="6" y="204">Кнопка (опитування)</text>
+          <rect x="150" y="214" width="22" height="14" rx="3" fill="var(--bad)" opacity=".7"/>
+          <text class="m badc" x="316" y="226" text-anchor="end">✗ ніхто не дивиться</text>
+        </svg>
+      </figure>
+      <p class="key"><b>Головне</b>Під час <code>delay()</code> ваш <code>loop()</code> сліпий і глухий, хоча чип не спить.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Суперцикл — це домовленість: кожна функція швидко повертається</h3>
+      <p>Досвідчений кухар не стоїть біля каструлі: обходить плиту по колу і на кожній конфорці лише питає «вже?». Так працює суперцикл. <code>loop()</code> по черзі викликає короткі функції — <code>pollButton()</code>, <code>updateLeds()</code>, <code>report()</code>, — і кожна одразу повертає керування. Ядро робить до 240 мільйонів тактів за секунду<sup class="cite" data-fact="s3-cpu"></sup>, тож коло проходиться дуже часто, і здається, що все відбувається одночасно. Досить одній функції почати чекати — і зупиняється все коло.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 320 200" role="img" aria-label="Коло суперциклу loop: три зупинки — кнопка, LED і Serial; на кожній функція лише перевіряє і йде далі. Збоку камінь delay, який зупиняє все коло.">
+          <defs><marker id="arr-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+          <circle cx="120" cy="104" r="68" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="22 8"/>
+          <path d="M180 72a68 68 0 0 1 4 50" fill="none" stroke="var(--accent)" stroke-width="3" marker-end="url(#arr-loop)"/>
+          <text class="t mono" x="120" y="100" text-anchor="middle">loop()</text>
+          <text class="m" x="120" y="118" text-anchor="middle">коло за колом</text>
+          <g><rect x="78" y="22" width="84" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="120" y="40" text-anchor="middle">кнопка?</text></g>
+          <g><rect x="2" y="150" width="104" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="54" y="168" text-anchor="middle">LED: пора?</text></g>
+          <g><rect x="120" y="150" width="128" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="184" y="168" text-anchor="middle">Serial: пора?</text></g>
+          <g transform="translate(262 62)"><path d="M-30 18q-4-22 14-30q18-10 34 2q16 12 8 30z" fill="var(--muted)" opacity=".55" stroke="var(--ink)"/><text class="t mono" x="0" y="12" text-anchor="middle">delay()</text></g>
+          <text class="m badc" x="262" y="104" text-anchor="middle">✗ зупиняє</text>
+          <text class="m badc" x="262" y="120" text-anchor="middle">усе коло</text>
+        </svg>
+      </figure>
+      <p class="key"><b>Головне</b>Як часто перевіряється кнопка, залежить від найповільнішої функції в циклі.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Опитування: глянути зараз — і далі</h3>
+      <p><code>digitalRead()</code> не чекає натискання: він повертає рівень саме в цю мить. Тому опитування ловить подію лише тоді, коли дивиться частіше, ніж подія триває. На малюнку крапки — моменти перевірки: рідкі пропускають коротке натискання, часті його ловлять.</p>
+      <p>Друге правило: реагуйте на <b>зміну</b>, а не на рівень. Із <code>INPUT_PULLUP</code> натиснута кнопка дає <code>LOW</code><sup class="cite" data-fact="lms-err-1-5-press-edge"></sup>. Запам’ятайте попередній стан і ловіть момент «було відпущено → стало натиснуто»:</p>
+      <pre class="mini-code"><code>bool down = digitalRead(BTN) == LOW;
+// один раз на натискання:
+if (down &amp;&amp; !wasDown) onPress();
+wasDown = down;</code></pre>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 320 172" role="img" aria-label="Натискання кнопки триває коротко: GPIO21 з INPUT_PULLUP на цей час падає з HIGH до LOW. Верхній ряд: перевірки раз на довгий проміжок, жодна не потрапила в натискання — пропущено. Нижній ряд: часті перевірки, кілька потрапили в натискання — помічено.">
+          <text class="t" x="6" y="14">GPIO21: натиснута = LOW</text>
+          <path d="M6 24H150V44H186V24H314" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
+          <rect x="150" y="24" width="36" height="20" fill="var(--hi)" opacity=".35"/>
+          <text class="m" x="168" y="60" text-anchor="middle">натиснута</text>
+          <text class="t" x="6" y="88">Перевірки рідко (delay)</text>
+          <g fill="var(--accent)"><circle cx="40" cy="102" r="5"/><circle cx="130" cy="102" r="5"/><circle cx="220" cy="102" r="5"/><circle cx="310" cy="102" r="5"/></g>
+          <text class="m badc" x="176" y="106" text-anchor="middle">✗</text>
+          <text class="t" x="6" y="132">Перевірки часто (суперцикл)</text>
+          <g fill="var(--accent)"><circle cx="10" cy="146" r="3"/><circle cx="30" cy="146" r="3"/><circle cx="50" cy="146" r="3"/><circle cx="70" cy="146" r="3"/><circle cx="90" cy="146" r="3"/><circle cx="110" cy="146" r="3"/><circle cx="130" cy="146" r="3"/><circle cx="150" cy="146" r="3"/><circle cx="210" cy="146" r="3"/><circle cx="230" cy="146" r="3"/><circle cx="250" cy="146" r="3"/><circle cx="270" cy="146" r="3"/><circle cx="290" cy="146" r="3"/><circle cx="310" cy="146" r="3"/></g>
+          <g fill="var(--ok)"><circle cx="170" cy="146" r="4"/><circle cx="190" cy="146" r="3"/></g>
+          <text class="m okc" x="180" y="168" text-anchor="middle">✓</text>
+        </svg>
+      </figure>
+      <p class="key"><b>Головне</b>Опитування бачить лише те, що триває довше за проміжок між двома перевірками.</p>
+    </article>
+
+    <article class="idea">
+      <h3>З часом не чекають — його вимірюють</h3>
+      <p><code>millis()</code> повертає кількість мілісекунд від старту плати<sup class="cite" data-fact="core-millis"></sup>. Замість «почекай 500&nbsp;мс» кожен прохід питає: «скільки минуло від останнього разу?» Якщо досить — дія і новий відлік. Якщо ні — одразу далі. У кожної задачі своя змінна <code>last</code>, тому таймери не заважають один одному.</p>
+      <pre class="mini-code"><code>uint32_t lastA = 0;
+void updateLedA(uint32_t now) {
+  // минуло ≥ 500 мс?
+  if (now - lastA &gt;= 500) {
+    lastA += 500;  // відлік від «сітки»
+    toggle(LED_A);
+  }  // інакше одразу назад у loop()
+}</code></pre>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 320 104" role="img" aria-label="Числова вісь часу: last, потім now через 320 мілісекунд, а межа — last плюс 500. Різниця now мінус last дорівнює 320, це менше за 500, тому ще не час, функція повертається.">
+          <path d="M8 54H312" stroke="var(--line)" stroke-width="3"/>
+          <circle cx="30" cy="54" r="6" fill="var(--accent)"/><text class="t mono" x="30" y="80" text-anchor="middle">last</text>
+          <path d="M190 40v28" stroke="var(--hi)" stroke-width="3"/><text class="t mono" x="190" y="84" text-anchor="middle">now</text>
+          <path d="M280 36v36" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/><text class="m mono" x="280" y="88" text-anchor="middle">last+500</text>
+          <path d="M30 30H190" stroke="var(--hi)" stroke-width="2.5"/><path d="M30 24v12M190 24v12" stroke="var(--hi)" stroke-width="2"/>
+          <text class="t mono" x="110" y="20" text-anchor="middle">now − last = 320</text>
+          <text class="m" x="160" y="102" text-anchor="middle">320 &lt; 500 → ще ні, повертаємось</text>
+        </svg>
+        <svg class="fig-svg" style="margin-top:14px" viewBox="0 0 320 178" role="img" aria-label="Лічильник millis як циферблат: нуль угорі. last = 2 у 32-й мінус 10 стоїть трохи до нуля, now = 5 трохи після нуля. Дуга між ними — відстань по колу, now мінус last дорівнює 15. Одне повне коло — 2 у 32-й мілісекунд, приблизно 49,7 доби.">
+          <circle cx="160" cy="94" r="58" fill="none" stroke="var(--line)" stroke-width="3"/>
+          <path d="M160 28v16" stroke="var(--bad)" stroke-width="2.5"/>
+          <text class="m badc mono" x="160" y="22" text-anchor="middle">↻ 0</text>
+          <path d="M126.7 46.5A58 58 0 0 1 184.5 41.4" fill="none" stroke="var(--hi)" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="126.7" cy="46.5" r="6" fill="var(--accent)"/>
+          <text class="t mono" x="114" y="40" text-anchor="end">last</text>
+          <text class="m" x="114" y="56" text-anchor="end">2³²−10</text>
+          <circle cx="184.5" cy="41.4" r="5" fill="var(--hi)" stroke="var(--ink)"/>
+          <text class="t mono" x="198" y="38">now</text>
+          <text class="m mono" x="198" y="54">5</text>
+          <path d="M213 90l5 9 5-9z" fill="var(--muted)"/>
+          <text class="t mono" x="160" y="94" text-anchor="middle">now − last</text>
+          <text class="t mono acc" x="160" y="114" text-anchor="middle">= 15</text>
+          <text class="m" x="160" y="172" text-anchor="middle">одне коло = 2³² мс ≈ 49,7 доби</text>
+        </svg>
+      </figure>
+      <p><b>А що буде через 49,7 доби?</b> <code>millis()</code> повертає 32-бітне беззнакове число. Після 4&nbsp;294&nbsp;967&nbsp;295&nbsp;мс (2³²&nbsp;−&nbsp;1) воно знову стає 0, як механічний одометр після 999&nbsp;999&nbsp;км. Одне таке коло — 2³²&nbsp;мс ≈ 49,7 доби<sup class="cite" data-fact="core-millis"></sup>. Беззнакове віднімання теж рахує «по колу». Тому <code>now - last</code> завжди дає відстань від <code>last</code> уперед до <code>now</code>, навіть коли між ними нуль. А от <code>last + interval</code> може сам перескочити через нуль і стати малим числом, і тоді порівняння <code>now &gt;= last + interval</code> помиляється. Перевірите в розділі 05.</p>
+      <p class="key"><b>Головне</b>Пишіть тільки <code>now - last &gt;= interval</code>, а час зберігайте в <code>uint32_t</code>.</p>
+    </article>
+    <details class="more">
+      <summary>Детальніше: last += interval чи last = now?</summary>
+      <p><code>millis()</code> рахує цілими мілісекундами. Якщо прохід циклу коротший за 1&nbsp;мс, перша перевірка, яка бачить «минуло ≥&nbsp;500», трапляється саме тоді, коли <code>now</code> дорівнює <code>last + 500</code>. Тоді <code>last = now</code> і <code>last += 500</code> дають те саме число, і дрейфу немає.</p>
+      <p>Інша справа, коли в циклі є повільна функція (як <code>readSensor()</code> на 40&nbsp;мс у таймлайні). Прохід доходить до перевірки на кілька мілісекунд пізніше. <code>last = now</code> запам’ятовує цей пізній момент, і запізнення додається до наступного періоду. Запізнення на 2&nbsp;мс у кожному періоді 500&nbsp;мс дає 7200 періодів × 2&nbsp;мс ≈ 14&nbsp;с за годину. <code>last += interval</code> запам’ятовує момент, коли подія <i>мала</i> статися, тому сітка 0, 500, 1000… не зсувається.</p>
+      <p>Є й пастка: якщо цикл простояв довше за кілька періодів, <code>+=</code> почне «надолужувати» серією швидких перемикань. У проєкті <a href="https://github.com/grok-rs/platformio-projects/blob/main/esp32-s3-embedded-cpp/cpp/lib/logic/blinker.h">esp32-s3-embedded-cpp · blinker.h</a> після <code>+=</code> стоїть ще одна перевірка: якщо відставання досі більше за період, <code>last = now</code>. Для простого блимання LED зсув на кілька секунд за годину ніхто не помітить, тож там <code>last = now</code> теж годиться. Для годинника, звуку чи журналу вимірювань потрібна рівна сітка.</p>
+    </details>
+
+    <article class="idea">
+      <h3>Довгу дію розбивайте на стани</h3>
+      <p>Світлофор «червоний 3&nbsp;с → зелений 3&nbsp;с → жовтий 1&nbsp;с», написаний через <code>delay()</code>, — це три паузи, під час яких плата нічого не чує. Автомат станів робить інакше: змінна <code>state</code> пам’ятає, де ми, а <code>stateStart</code> — коли сюди потрапили. Кожен прохід перевіряє лише одне: «чи вже час переходити?» Програма завжди знає, де вона, і ніколи не стоїть на місці. Торкніться схеми, щоб зупинити або запустити.</p>
+      <figure>
+        <svg id="fsm" class="fig-svg" viewBox="18 0 284 214" role="img" aria-label="Автомат станів світлофора: червоний 3 секунди, потім зелений 3 секунди, потім жовтий 1 секунда, потім знову червоний. Активний стан підсвічено, кільце показує, скільки часу минуло в стані.">
+          <defs><marker id="fsm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <path class="arr" d="M112 54H206"/>
+          <text class="sub" x="160" y="44" text-anchor="middle">минуло 3 с</text>
+          <path class="arr" d="M234 92L196 134"/>
+          <text class="sub" x="232" y="128">3 с</text>
+          <path class="arr" d="M124 134L86 92"/>
+          <text class="sub" x="62" y="128">1 с</text>
+          <g id="fsm-g0"><circle class="node" cx="70" cy="54" r="40"/><circle class="ring" id="fsm-r0" cx="70" cy="54" r="44" transform="rotate(-90 70 54)"/><text class="lbl" x="70" y="52" text-anchor="middle">Червоний</text><text class="sub" x="70" y="70" text-anchor="middle">3000</text></g>
+          <g id="fsm-g1"><circle class="node" cx="250" cy="54" r="40"/><circle class="ring" id="fsm-r1" cx="250" cy="54" r="44" transform="rotate(-90 250 54)"/><text class="lbl" x="250" y="52" text-anchor="middle">Зелений</text><text class="sub" x="250" y="70" text-anchor="middle">3000</text></g>
+          <g id="fsm-g2"><circle class="node" cx="160" cy="164" r="40"/><circle class="ring" id="fsm-r2" cx="160" cy="164" r="44" transform="rotate(-90 160 164)"/><text class="lbl" x="160" y="162" text-anchor="middle">Жовтий</text><text class="sub" x="160" y="180" text-anchor="middle">1000</text></g>
+        </svg>
+        <figcaption><span class="out" id="fsm-out">state = RED · у стані 0 мс</span></figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Автомат — це «де я», «скільки я тут» і «коли переходити далі».</p>
+    </article>
+    <details class="more">
+      <summary>Код автомата світлофора</summary>
+<pre><code>enum class Light : uint8_t { Red, Green, Yellow };
+Light state = Light::Red;
+uint32_t stateStart = 0;
+
+void enter(Light next, uint32_t now) { state = next; stateStart = now; showLight(next); }
+
+void updateLight(uint32_t now) {
+  const uint32_t inState = now - stateStart;   // скільки ми вже тут
+  switch (state) {
+    case Light::Red:    if (inState &gt;= 3000) enter(Light::Green,  now); break;
+    case Light::Green:  if (inState &gt;= 3000) enter(Light::Yellow, now); break;
+    case Light::Yellow: if (inState &gt;= 1000) enter(Light::Red,    now); break;
+  }                                            // ніде не чекаємо
+}</code></pre>
+    </details>
+    <details class="more">
+      <summary>Детальніше: ядро 3.x, сторожовий таймер і крок <code>delay()</code></summary>
+      <p>Наші проєкти зібрані на ядрі Arduino-ESP32 2.0.17<sup class="cite" data-fact="core-arduino-version"></sup>. У ядрі 3.x тут нічого не змінилося: <code>loopTask</code> так само на ядрі 1, тік FreeRTOS — 1000&nbsp;Гц<sup class="cite" data-fact="core-3x-wdt-loop"></sup>.</p>
+      <p>Зайнятий <code>loop()</code> без жодного <code>delay()</code> плату не перезавантажує: сторож задач стежить лише за idle-задачею ядра 0, а для <code>loopTask</code> його вимкнено<sup class="cite" data-fact="core-task-wdt"></sup>. Ядро 1 при цьому завантажене на 100&nbsp;%, і для батарейних пристроїв це погано.</p>
+      <p><code>delay()</code> рахує в тіках FreeRTOS: 1 тік = 1&nbsp;мс<sup class="cite" data-fact="core-freertos-hz"></sup>. <code>yield()</code> — це не пауза: він лише пропонує планувальнику іншу готову задачу<sup class="cite" data-fact="core-yield"></sup>.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+    <div class="predict" data-ok="1" data-gate="w-tl"
+         data-why="Блокуючий цикл читає кнопку раз на 1000 мс. Натискання на 150 мс накриває момент перевірки з імовірністю приблизно 150 / 1000 ≈ 15 %, тобто в середньому 1–2 рази з 10. Чип при цьому не спить: таймер і переривання працюють, просто ваш код не дивиться на пін.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Блокуюча версія: у <code>loop()</code> два <code>delay(500)</code>, кнопку читають на початку кожного проходу. Ви 10 разів коротко (≈&nbsp;0,15&nbsp;с) натискаєте кнопку у випадкові моменти. Скільки натискань програма помітить?</p>
+      <div class="opts">
+        <button class="opt">Усі 10: кнопка ж фізично натиснута</button>
+        <button class="opt">Приблизно 1–2 з 10</button>
+        <button class="opt">Жодного: під час delay() чип вимкнений</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-tl">
+      <div class="ph"><h3>Таймлайн суперциклу</h3><span class="small">новіше — праворуч, графік сунеться вліво · торкніться — пауза</span></div>
+      <div class="pb">
+        <div class="row-ctl">
+          <div class="seg" role="group" aria-label="Варіант прошивки" id="tl-mode">
+            <button type="button" data-mode="block" aria-pressed="true">delay()</button>
+            <button type="button" data-mode="nb" aria-pressed="false">millis()</button>
+            <button type="button" data-mode="slow" aria-pressed="false">millis() + 40 мс</button>
+          </div>
+          <div class="seg" role="group" aria-label="Швидкість часу" id="tl-speed">
+            <button type="button" data-s="0.25" aria-pressed="false">×¼</button>
+            <button type="button" data-s="0.5" aria-pressed="true">×½</button>
+            <button type="button" data-s="1" aria-pressed="false">×1</button>
+          </div>
+        </div>
+        <div class="row-ctl">
+          <button type="button" class="btn primary" id="tl-press" aria-pressed="false">Натиснути кнопку</button>
+          <button type="button" class="btn" id="tl-burst">10 коротких натискань</button>
+          <label><input type="checkbox" id="tl-auto"> випадкові натискання</label>
+          <button type="button" class="btn ghost sm" id="tl-play">❚❚ Пауза</button>
+        </div>
+        <canvas id="tl-canvas" width="900" height="262" role="img" aria-label="Таймлайн: рядки loop, кнопка, три світлодіоди і Serial. Показує, коли loop спить, коли перевіряє кнопку, які натискання помічено, а які пропущено."></canvas>
+        <div class="tl-legend" aria-hidden="true">
+          <span><i class="sw-sleep"></i>спить у delay()</span>
+          <span><i class="sw-poll"></i>порожні перевірки</span>
+          <span><i class="sw-work"></i>зайнятий роботою</span>
+          <span>▲ перевірка кнопки</span>
+          <span>▼ коли LED мав перемкнутися</span>
+          <span>✓ помічено · ✗ пропущено</span>
+        </div>
+        <p class="tl-now" id="tl-now">—</p>
+        <p class="burst-out" id="tl-burst-out" aria-live="polite"></p>
+        <div class="tl-grid">
+          <div>
+            <div class="stats">
+              <div class="stat ok"><span>помічено</span><b id="tl-caught">0</b></div>
+              <div class="stat bad"><span>пропущено</span><b id="tl-missed">0</b></div>
+              <div class="stat"><span>реакція, мс (макс.)</span><b id="tl-lat">—</b></div>
+            </div>
+            <p class="small" style="margin:0 0 4px">Чим зайняте ядро 1 (останні секунди)</p>
+            <div class="cpubar" id="tl-cpu" aria-hidden="true"><span class="sleep"></span><span class="poll"></span><span class="work"></span></div>
+            <ul class="cpulist" id="tl-cpu-list">
+              <li><i class="sw-sleep"></i>спить у <code>delay()</code>: <b class="out" data-k="sleep">0&nbsp;%</b></li>
+              <li><i class="sw-poll"></i>порожні перевірки: <b class="out" data-k="poll">0&nbsp;%</b></li>
+              <li><i class="sw-work"></i>корисна або повільна робота: <b class="out" data-k="work">0&nbsp;%</b></li>
+            </ul>
+          </div>
+          <pre class="tl-code" id="tl-code" aria-label="Код поточного варіанта"></pre>
+        </div>
+      </div>
+    </div>
+    <div class="note tip">Що порівняти: у <b>delay()</b> LED&nbsp;B мав перемикатися кожні 200&nbsp;мс (▼), а перемикається раз на секунду, бо його чекають усі паузи. У <b>millis() + 40&nbsp;мс</b> натискання, довші за 40&nbsp;мс, не губляться, але реакція стає повільнішою: тепер ритм задає найповільніша функція. Коротше натискання може проскочити між двома перевірками (питання&nbsp;9 самоперевірки).</div>
+
+    <div class="predict" data-ok="1" data-gate="w-ovf"
+         data-why="last + 1000 не вміщається у 32 біти і «загортається» в 500. now = 4 294 966 896, а це більше за 500, тому стара форма каже «true» на 900 мс раніше. Віднімання now − last = 100 дає правильну відповідь: ще рано.">
+      <span class="tag">Спрогнозуйте</span>
+      <p><code>last = 4 294 966 796</code> — до переповнення <code>millis()</code> лишилося 500&nbsp;мс. Минуло лише 100&nbsp;мс. Що поверне стара форма <code>if (now &gt;= last + 1000)</code>?</p>
+      <div class="opts">
+        <button class="opt">false — ще рано, як і має бути</button>
+        <button class="opt">true — спрацює на 900&nbsp;мс раніше</button>
+        <button class="opt">Програма зупиниться з помилкою переповнення</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel" id="w-ovf">
+      <div class="ph"><h3>Переповнення millis()</h3><span class="small">uint32_t, interval = 1000</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Значення last" id="ovf-preset">
+          <button type="button" data-last="5000" aria-pressed="false">last = 5 000</button>
+          <button type="button" data-last="4294966796" aria-pressed="true">за 500 мс до нуля</button>
+          <button type="button" data-last="4294966096" aria-pressed="false">за 1200 мс до нуля</button>
+        </div>
+        <div class="range">
+          <label for="ovf-e">Минуло від <code>last</code>: <b class="out" id="ovf-e-out">100&nbsp;мс</b></label>
+          <input type="range" id="ovf-e" min="0" max="1500" step="10" value="100">
+        </div>
+        <svg class="fig-svg" id="ovf-svg" viewBox="0 0 320 190" role="img" aria-label="Дві шкали. Верхня — час по колу, як рахує віднімання: last, now і межа last плюс 1000. Нижня — звичайна пряма чисел від 0 до 2 в 32-му мінус 1, як порівнює оператор більше або дорівнює.">
+          <text class="t" x="6" y="14">Віднімання: відстань «по колу»</text>
+          <path d="M14 50H306" stroke="var(--line)" stroke-width="3"/>
+          <g id="ovf-wrap"><path d="M0 40v20" stroke="var(--bad)" stroke-width="2" stroke-dasharray="3 2"/><text class="m badc mono" x="0" y="74" text-anchor="middle">↻ 0</text></g>
+          <path id="ovf-span" d="M0 50H0" stroke="var(--hi)" stroke-width="5" stroke-linecap="round"/>
+          <g id="ovf-last"><circle cx="0" cy="50" r="6" fill="var(--accent)"/><text class="t mono" x="0" y="34" text-anchor="end">last</text></g>
+          <g id="ovf-dl"><path d="M0 38v24" stroke="var(--muted)" stroke-width="2"/><text class="m mono" x="0" y="74" text-anchor="middle">межа</text></g>
+          <g id="ovf-now"><path d="M0 36v28" stroke="var(--hi)" stroke-width="3"/><text class="t mono" x="0" y="34">now</text></g>
+          <text class="t" x="6" y="104">Порівняння &gt;=: звичайна пряма</text>
+          <path d="M14 140H306" stroke="var(--line)" stroke-width="3"/>
+          <text class="m mono" x="14" y="166">0</text><text class="m" x="306" y="166" text-anchor="end">2³²−1</text>
+          <g id="ovf-sum"><path d="M0 132v20" stroke="var(--muted)" stroke-width="2" stroke-dasharray="3 2"/><text class="m mono" x="0" y="184">last+1000</text></g>
+          <g id="ovf-now2"><path d="M0 128v24" stroke="var(--hi)" stroke-width="3"/><text class="t mono" x="0" y="124" text-anchor="end">now</text></g>
+          <text class="m" id="ovf-near" x="160" y="124" text-anchor="middle">now і last+1000 злиплися біля 0</text>
+        </svg>
+        <div class="tbl">
+          <table class="ovf-tbl">
+            <thead><tr><th>Вираз</th><th>Обчислено в uint32_t</th></tr></thead>
+            <tbody>
+              <tr><th><code>now</code></th><td id="ovf-now-v"></td></tr>
+              <tr><th><code>now - last<br>&gt;= 1000</code></th><td><span id="ovf-d"></span><br><b id="ovf-d-r"></b></td></tr>
+              <tr><th><code>now &gt;=<br>last + 1000</code></th><td><span id="ovf-s"></span><br><b id="ovf-s-r"></b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small" id="ovf-msg" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад: блимання без delay()</span>
+    <ol class="worked">
+      <li><b>Було:</b> <code>digitalWrite(A, HIGH); delay(500); digitalWrite(A, LOW); delay(500);</code><span class="why">чому погано: 1000&nbsp;мс на кожен прохід, усе інше чекає.</span></li>
+      <li><b>Замість паузи — пам’ять і годинник:</b> <code>uint32_t lastA = 0;</code> і на початку проходу <code>uint32_t now = millis();</code><span class="why">чому: програма пам’ятає, коли востаннє перемикала LED, а всі задачі проходу бачать той самий момент.</span></li>
+      <li><b>Питаємо, а не чекаємо:</b> <code>if (now - lastA &gt;= 500)</code><span class="why">чому: віднімання дає правильну тривалість і після переповнення.</span></li>
+      <li><b>Дія і новий відлік:</b> <code>lastA += 500; ledA = !ledA; digitalWrite(A, ledA);</code><span class="why">чому <code>+=</code>: перемикання лишаються на сітці 0, 500, 1000… мс.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі: LED B кожні 200 мс</span>
+    <ol class="faded">
+      <li><b>Пам’ять:</b> <code>uint32_t lastB; bool ledB;</code></li>
+      <li><b>Умова:</b> <code>if (now - lastB &gt;= 200)</code></li>
+      <li><b>Дія і новий відлік:</b> допишіть тіло <code>if</code> самі (три дії, як у кроці 4 вище), а потім звірте.
+        <details><summary>Звірити</summary><code>{ lastB += 200; ledB = !ledB; digitalWrite(B, ledB); }</code> — новий відлік від сітки, перемкнути стан, вивести на пін.</details>
+      </li>
+      <li>
+        <div class="try" data-ans="1430" data-tol="0" data-unit="мс" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Було <code>lastB = 1230</code>. Прохід запізнився й дійшов до перевірки при <code>now = 1437</code>. Яким стане <code>lastB</code> після <code>lastB += 200</code>?</p>
+          <details><summary>Підказка</summary><code>+=</code> додає до старого <code>lastB</code> (1230), а не до <code>now</code>. Запізнення на 7&nbsp;мс не переходить у наступний період.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="4" data-tol="0" data-unit="мс" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4><code>uint32_t last = 4294967295</code> (найбільше 32-бітне число), <code>now = 3</code>. Скільки дасть <code>now - last</code>?</h4>
+      <details><summary>Підказка</summary>Від 4 294 967 295 один крок до 0, потім ще 3 кроки до 3.</details>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myth" data-mc="E6">
+      <p class="seems"><code>delay()</code> зупиняє весь мікроконтролер.</p>
+      <p class="truth">Зупиняється лише задача, яка його викликала. Таймери, переривання і задачі на ядрі 0 працюють далі<sup class="cite" data-fact="core-delay"></sup>.</p>
+      <p class="test">У скетчі міні-лаби надрукуйте <code>millis()</code> перед <code>delay(5000)</code> і одразу після нього: друге число більше на ≈&nbsp;5000. Поки ваш <code>loop()</code> спав, таймер чипа рахував далі. Якби чип зупинявся, різниця була б 0.</p>
+    </div>
+    <div class="myth" data-mc="overflow">
+      <p class="seems"><code>now &gt;= last + interval</code> — те саме, що <code>now - last &gt;= interval</code>.</p>
+      <p class="truth">У математиці так, а в 32-бітних числах ні: <code>last + interval</code> може переповнитися, і умова спрацює зарано або «застрягне».</p>
+      <p class="test">Віджет «Переповнення millis()» у розділі 05: «за 500&nbsp;мс до нуля» показує спрацювання зарано (повзунок до 500&nbsp;мс), «за 1200&nbsp;мс до нуля» — «застрягання» (повзунок понад 1200&nbsp;мс).</p>
+    </div>
+    <div class="myth" data-mc="level-vs-edge">
+      <p class="seems"><code>if (кнопка натиснута) onPress();</code> — це обробка натискання.</p>
+      <p class="truth">Це обробка <b>рівня</b>: поки палець на кнопці, <code>onPress()</code> викликається в кожному проході, тобто тисячі разів. Натискання — це <b>зміна</b>: <code>down &amp;&amp; !wasDown</code>.</p>
+      <p class="test">У скетчі міні-лаби приберіть <code>&amp;&amp; !wasDown</code>: лічильник натискань полетить угору.</p>
+    </div>
+    <details class="more">
+      <summary>Ще дві помилки: «швидший loop» і точність millis()</summary>
+      <div class="myth" data-mc="fast-loop">
+      <p class="seems">Чим швидше крутиться <code>loop()</code>, тим краще.</p>
+      <p class="truth">Важливо інше: щоб <b>найдовший</b> прохід був коротший за найкоротшу подію. Понад це — лише порожні перевірки, які займають ядро на 100&nbsp;%.</p>
+      <p class="test">Міні-лаба: додайте в неблокуючий <code>loop()</code> <code>delayMicroseconds(1000)</code>. Частота циклу впаде до ≤&nbsp;1000 проходів/с, а кнопка працює так само: натискання триває десятки мілісекунд.</p>
+    </div>
+      <div class="myth" data-mc="ms-precision">
+      <p class="seems"><code>millis()</code> точний до мікросекунди.</p>
+      <p class="truth">Крок <code>millis()</code> — 1&nbsp;мс<sup class="cite" data-fact="core-millis"></sup>. Для коротших інтервалів беріть <code>micros()</code>: шаблон із відніманням той самий, але переповнюється вона вже за ≈&nbsp;71,6&nbsp;хв<sup class="cite" data-fact="core-micros"></sup>.</p>
+      <p class="test">Надрукуйте <code>millis()</code> і <code>micros()</code> двічі поспіль: різниця в мілісекундах майже завжди 0.</p>
+    </div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 08 dual figure -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Три світлодіоди на звичайних GPIO через 220&nbsp;Ом і кнопка на GPIO21 до GND з внутрішньою підтяжкою (<code>INPUT_PULLUP</code>, ≈&nbsp;45&nbsp;кОм<sup class="cite" data-fact="s3-pullup"></sup>). Струм червоного LED: (3,3&nbsp;−&nbsp;1,9)&nbsp;/&nbsp;220 ≈ 6,4&nbsp;мА<sup class="cite" data-fact="led-red-3mm-vf"></sup>, із запасом менше за типову силу виходу ≈&nbsp;20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup>.</p>
+    <figure class="dual wide" id="dual-loop" data-nets="gpio4=GPIO4 · LED A; gpio5=GPIO5 · LED B; gpio15=GPIO15 · LED C; gpio21=GPIO21 · кнопка; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="-14 0 294 244" role="img" aria-label="Схема: GPIO4, GPIO5 і GPIO15 плати U1, кожен через резистор 220 ом до анода свого світлодіода, катоди на землю. GPIO21 через кнопку S1 на землю, підтяжка внутрішня.">
+          <rect class="sch-w" x="-10" y="26" width="72" height="200" rx="3"/>
+          <text class="sch-ref" x="-10" y="16">U1 · ESP32-S3</text>
+
+          <use class="sch-sym net-sig2" href="#mcu-pin" x="82" y="50" transform="rotate(180 82 50)" data-net="gpio4"/>
+          <text class="sch-pin net-sig2" data-net="gpio4" x="50" y="55" text-anchor="end">GPIO4</text>
+          <use class="sch-sym" href="#res" x="90" y="50"/>
+          <path class="sch-w net-sig2" data-net="gpio4" d="M82 50H105"/>
+          <text class="sch-ref" x="120" y="38" text-anchor="middle">R1</text>
+          <text class="sch-val" x="120" y="72" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M150 50H172"/>
+          <use class="sch-sym" href="#led" x="172" y="50"/>
+          <text class="sch-val" x="202" y="72" text-anchor="middle">A черв.</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M212 50H250"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="250" y="50" data-net="gnd"/>
+
+          <use class="sch-sym net-sig3" href="#mcu-pin" x="82" y="102" transform="rotate(180 82 102)" data-net="gpio5"/>
+          <text class="sch-pin net-sig3" data-net="gpio5" x="50" y="107" text-anchor="end">GPIO5</text>
+          <use class="sch-sym" href="#res" x="90" y="102"/>
+          <path class="sch-w net-sig3" data-net="gpio5" d="M82 102H105"/>
+          <text class="sch-ref" x="120" y="90" text-anchor="middle">R2</text>
+          <text class="sch-val" x="120" y="124" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M150 102H172"/>
+          <use class="sch-sym" href="#led" x="172" y="102"/>
+          <text class="sch-val" x="202" y="124" text-anchor="middle">B зел.</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M212 102H250"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="250" y="102" data-net="gnd"/>
+
+          <use class="sch-sym net-sig" href="#mcu-pin" x="82" y="154" transform="rotate(180 82 154)" data-net="gpio15"/>
+          <text class="sch-pin net-sig" data-net="gpio15" x="50" y="159" text-anchor="end">GPIO15</text>
+          <use class="sch-sym" href="#res" x="90" y="154"/>
+          <path class="sch-w net-sig" data-net="gpio15" d="M82 154H105"/>
+          <text class="sch-ref" x="120" y="142" text-anchor="middle">R3</text>
+          <text class="sch-val" x="120" y="176" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M150 154H172"/>
+          <use class="sch-sym" href="#led" x="172" y="154"/>
+          <text class="sch-val" x="202" y="176" text-anchor="middle">C жовт.</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M212 154H250"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="250" y="154" data-net="gnd"/>
+
+          <use class="sch-sym net-in" href="#mcu-pin" x="82" y="206" transform="rotate(180 82 206)" data-net="gpio21"/>
+          <text class="sch-pin net-in" data-net="gpio21" x="50" y="211" text-anchor="end">GPIO21</text>
+          <use class="sch-sym" href="#btn" x="100" y="206"/>
+          <path class="sch-w net-in" data-net="gpio21" id="w-g21" d="M82 206H117.5"/>
+          <text class="sch-ref" x="166" y="190">S1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M142.5 206H190"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="190" y="206" data-net="gnd"/>
+          <text class="sch-val" x="100" y="238">підтяжка всередині U1</text>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-loop" viewBox="0 0 340 222" role="img" aria-label="Макетка: дроти від GPIO4, GPIO5 і GPIO15 у стовпчики 16, 9 і 2; від кожного резистор 220 ом на 4 стовпчики вправо, там анод світлодіода, катод у сусідньому стовпчику, з нього дріт на верхню шину мінус. Кнопка в нижній половині на стовпчиках 3 і 6: стовпчик 3 з'єднаний з GPIO21, стовпчик 6 — з нижньою шиною мінус. Обидві шини мінус з'єднані з GND плати."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах. Жоден із цих пінів не є strapping-піном.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <p><b>Потрібно:</b> плата YD-ESP32-S3, 3 світлодіоди (червоний, зелений, жовтий), 3 резистори 220&nbsp;Ом, тактова кнопка, макетка, дроти.</p>
+    <div class="note warn">Монітор порту під’єднуйте до роз’єму «USB», а не «COM»: у наших проєктах <code>Serial</code> — це вбудований USB CDC<sup class="cite" data-fact="repo-serial-is-usb-cdc"></sup>.</div>
+    <ol class="lab-steps">
+      <li>Зберіть коло з розділу 08.</li>
+      <li>Створіть проєкт за зразком <code>esp32-s3-embedded-cpp</code> (той самий <code>platformio.ini</code>) і вставте скетч нижче з <code>NONBLOCKING&nbsp;0</code>.</li>
+      <li>Запишіть прогнози, прошийте плату. У моніторі порту перепишіть «loops/s», натисніть кнопку 20 разів коротко і запишіть приріст «presses».</li>
+      <li>Поставте <code>NONBLOCKING&nbsp;1</code> і повторіть крок 3.</li>
+      <li>Імітуйте повільну функцію: додайте <code>delayMicroseconds(40000);</code> останнім рядком неблокуючого <code>loop()</code> (це 40&nbsp;мс активного очікування, як <code>readSensor()</code> у таймлайні) і знову виміряйте loops/s та натискання.</li>
+    </ol>
+    <details class="more">
+      <summary>Скетч для міні-лаби: src/main.cpp</summary>
+<pre><code>#include &lt;Arduino.h&gt;
+#define NONBLOCKING 0          // 0 — delay(), 1 — millis()
+
+constexpr uint8_t LED_A = 4, LED_B = 5, LED_C = 15, BTN = 21;
+uint32_t loops = 0, presses = 0;
+uint32_t lastA = 0, lastB = 0, lastReport = 0;
+bool ledA = false, ledB = false, ledC = false, wasDown = false;
+
+void pollButton() {
+  const bool down = digitalRead(BTN) == LOW;  // INPUT_PULLUP: натиснута = LOW
+  if (down &amp;&amp; !wasDown) {                     // зміна: щойно натиснули
+    presses++;
+    ledC = !ledC; digitalWrite(LED_C, ledC);
+  }
+  wasDown = down;
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_A, OUTPUT); pinMode(LED_B, OUTPUT); pinMode(LED_C, OUTPUT);
+  pinMode(BTN, INPUT_PULLUP);
+  lastA = lastB = lastReport = millis();
+}
+
+#if NONBLOCKING
+void loop() {
+  const uint32_t now = millis();
+  pollButton();
+  if (now - lastA &gt;= 500) { lastA += 500; ledA = !ledA; digitalWrite(LED_A, ledA); }
+  if (now - lastB &gt;= 200) { lastB += 200; ledB = !ledB; digitalWrite(LED_B, ledB); }
+  loops++;
+  if (now - lastReport &gt;= 1000) {
+    lastReport += 1000;
+    Serial.printf("loops/s=%u presses=%u\n", (unsigned)loops, (unsigned)presses);
+    loops = 0;
+  }
+}
+#else
+void loop() {
+  pollButton();
+  digitalWrite(LED_A, HIGH); delay(500);
+  digitalWrite(LED_A, LOW);  delay(500);
+  ledB = !ledB; digitalWrite(LED_B, ledB);   // B мав би блимати раз на 200 мс…
+  loops++;
+  if (millis() - lastReport &gt;= 1000) {       // той самий звіт, що й у неблокуючій версії
+    lastReport += 1000;
+    Serial.printf("loops/s=%u presses=%u\n", (unsigned)loops, (unsigned)presses);
+    loops = 0;
+  }
+}
+#endif</code></pre>
+      <p class="small">Скетч однаковий для ядра 2.0.17 і 3.x: <code>millis()</code>, <code>delay()</code> і <code>digitalRead()</code> не змінилися (на відміну від таймерів і LEDC — про них в уроках 2.4 і 3.x). Лічильник може показати <b>більше</b> за 20: це брязкіт контактів (урок 1.5), його приберемо в уроці 2.6.</p>
+    </details>
+    <p class="small scroll-hint">Таблиці ширші за екран: гортайте їх убік →</p>
+    <table class="measure" data-key="2-3-loops" data-calc="diff">
+      <caption>Проходів loop() за секунду</caption>
+      <thead><tr><th>Варіант</th><th>Прогноз, проходів/с</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>delay()</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>millis()</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>millis() + 40&nbsp;мс роботи</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <table class="measure" data-key="2-3-presses" data-calc="diff">
+      <caption>20 коротких натискань: скільки помічено</caption>
+      <thead><tr><th>Варіант</th><th>Прогноз, з 20</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>delay()</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>millis()</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>millis() + 40&nbsp;мс роботи</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <p><b>Розширення: що якщо…</b> додати в неблокуючий <code>loop()</code> <code>delay(1)</code>? А <code>delay(50)</code>? Спрогнозуйте loops/s і скільки натискань загубиться, потім перевірте.</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="2-3" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="2-3" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Світлофор без delay()</h3>
+      <dl>
+        <dt>Мета</dt><dd>Світлофор для машин і кнопка пішохода, жодного <code>delay()</code> у <code>loop()</code>. Часи станів: червоний 5&nbsp;с → зелений 15&nbsp;с → жовтий 2&nbsp;с → знову червоний. Натискання на зеленому скорочує його: зелений гасне через 5&nbsp;с від свого початку або одразу, якщо 5&nbsp;с уже минуло. Натискання на червоному чи жовтому нічого не змінює.</dd>
+        <dt>Здати</dt><dd>Код (посилання на репозиторій або gist), 20-секундне відео, таблиця часів станів, виміряних за логом Serial, і одне речення: «де в коді можна було б заблокуватися і чому ми цього не зробили».</dd>
+        <dt>Ролі</dt><dd><ul>
+          <li><b>Збирач</b> збирає коло (3 LED + кнопка) і пише автомат станів світлофора;</li>
+          <li><b>Вимірювач</b> пише журнал у Serial (кожен перехід з міткою <code>millis()</code>) і складає з нього таблицю часів «план / факт»;</li>
+          <li><b>Доповідач</b> пише обробник кнопки (реакція на зміну, а не на рівень); на демо розповідає 3&nbsp;хв;</li>
+          <li><b>Скептик</b> перевіряє код за списком: немає <code>delay()</code> і <code>while</code>-очікувань, лише <code>now - last</code>, час в <code>uint32_t</code>, кнопка за зміною.</li>
+        </ul></dd>
+        <dt>Критерії</dt><dd><ul>
+          <li><b>Без блокувань:</b> 2 — жодного <code>delay()</code> чи <code>while</code>-очікування; 1 — одне коротке (≤&nbsp;10&nbsp;мс); 0 — більше.</li>
+          <li><b>Мінімальний зелений:</b> 2 — за логом зелений ніколи не коротший за 5&nbsp;с, а натискання після 5-ї секунди гасить його не пізніше ніж за 0,1&nbsp;с; 1 — одне порушення; 0 — правило не працює.</li>
+          <li><b>Кнопка:</b> 2 — помічено 20 з 20 натискань; 1 — 17–19; 0 — менше 17.</li>
+          <li><b>Таблиця і пояснення:</b> 2 — план/факт для всіх станів і речення про блокування; 1 — чогось бракує; 0 — немає.</li>
+        </ul></dd>
+        <dt>Ускладнення</dt><dd>Нічний режим: коли фоторезистор (міні-проєкт 1) показує темряву, жовтий блимає раз на секунду.</dd>
+        <dt>Термін</dt><dd>до сб 10.10, 10:00 (демо на занятті того дня)</dd>
+        <dt>Як здати</dt><dd><a href="https://github.com/grok-rs/platformio-projects/discussions">GitHub Discussions → «Командні виклики»</a></dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p><b>Підготуйте до дзвінка:</b> зібране коло з розділу 08, прошитий скетч міні-лаби з <code>NONBLOCKING&nbsp;0</code>, відкритий монітор порту і прогнози в таблицях. Прочитайте розділи 04–05.</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1</b> (питання 1 самоперевірки, E6): «Під час <code>delay(2000)</code> натиснули й відпустили кнопку. Що станеться?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано: ≈&nbsp;35&nbsp;% «чип зупинений», ≈&nbsp;40&nbsp;% правильна «натискання пропаде», ≈&nbsp;20&nbsp;% «стане в чергу», ≈&nbsp;5&nbsp;% «перерве delay». Якщо правильних 30–70&nbsp;%: 60&nbsp;с суперечки двох студентів з різними відповідями, потім переголосування.</p></details>
+      <p><b>POE наживо (хв 34–46):</b> Збирач із прошитою блокуючою версією на камері. Стіна прогнозів: «скільки з 10 коротких натискань помітить?» Потім 10 натискань на камеру, лічильник у Serial. Далі <code>NONBLOCKING&nbsp;1</code> і ті самі 10 натискань. На екран — таймлайн із розділу 05 (кнопка «10 коротких натискань»).</p>
+      <p><b>ConcepTest 2:</b> «<code>now &gt;= last + interval</code> і <code>now - last &gt;= interval</code> — однакові?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано ≈&nbsp;60&nbsp;% «так». Розв’язка: віджет «Переповнення millis()», режими «за 500&nbsp;мс до нуля» (зарано) і «за 1200&nbsp;мс до нуля» (застрягла).</p></details>
+      <p><b>Знайди помилку (хв 46–55):</b> три фрагменти, учасники пишуть у чат номер фрагмента (1–3) і що в ньому зламано:</p>
+      <ol>
+        <li><code>if (millis() - last &gt;= 500) { toggle(); }</code> — не оновлюється <code>last</code>, і після першого спрацювання LED перемикається в кожному проході.</li>
+        <li><code>uint16_t last;</code> — після 65&nbsp;535&nbsp;мс <code>now - last</code> завжди величезне, тож LED «шаленіє» вже за хвилину після старту.</li>
+        <li><code>while (digitalRead(BTN) == HIGH) {}</code> у <code>loop()</code> — очікування замість опитування, і світлодіоди стоять.</li>
+      </ol>
+      <p><b>Спринт на дошці (хв 90–95):</b> кожен у своєму підфреймі малює таймлайн блокуючого циклу: дві паузи по 500&nbsp;мс, одну перевірку кнопки і коротке натискання, яке між ними пропало.</p>
+      <p><b>Субота, хв 95–108:</b> демо командних викликів цього тижня (з уроків 2.1–2.2, по 3&nbsp;хв) і командний квіз із питань 2, 4, 7, 9. Виклик «Світлофор без delay()» оголосіть сьогодні: його демо — у сб 10.10.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому кнопка «не чує» натискань, коли в loop() є delay(1000)."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip deep" href="../../lab/#two-buttons">Стенд: «Дві кнопки» + прапорець «Блокуючий delay()»</a></li>
+      <li><a class="chip deep" href="../../bounce-lab/">Брязкіт кнопки: чому лічильник показує більше</a></li>
+      <li><a class="chip" href="../2-1/">Урок 2.1 · C++ для MCU</a></li>
+      <li><a class="chip" href="../2-4/">Урок 2.4 · Переривання</a></li>
+    </ul>
+    <p>На стенді увімкніть на вкладці «Дві кнопки» варіант із <code>delay()</code> і потримайте кнопку менше ніж 200&nbsp;мс: побачите, що прошивка її не читає, поки стоїть у затримці.</p>
+
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s8raopi08136eo15xrg">Урок 2.3 у LMS</a> (потрібен вхід).</li>
+      <li>Відео: <a href="https://www.youtube.com/watch?v=kSghXUExrIE">«I was wrong about millis: how to write non blocking code»</a> (Playduino, англійською; вмикайте автоперекладені субтитри). <b>На що дивитися:</b> як автор перетворює <code>delay()</code> на перевірку часу і веде кілька незалежних таймерів. У відео плата Arduino Uno без FreeRTOS, тож про задачі там не йдеться, але шаблон <code>millis()</code> той самий.</li>
+      <li><a href="https://docs.arduino.cc/built-in-examples/digital/BlinkWithoutDelay">Arduino: BlinkWithoutDelay</a> — класичний приклад неблокуючого блимання.</li>
+      <li><a href="https://en.wikibooks.org/wiki/Embedded_Systems/Super_Loop_Architecture">Wikibooks: Super Loop Architecture</a> — коротко про архітектуру і енергоспоживання.</li>
+      <li><a href="https://www.geeksforgeeks.org/operating-systems/difference-between-interrupt-and-polling/">Interrupt vs polling</a> — краще читати перед уроком 2.4.</li>
+    </ul>
+
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-embedded-cpp">esp32-s3-embedded-cpp</a>: <code>cpp/src/modes.cpp</code> — суперцикл без очікувань і замір тривалості проходу; <code>cpp/lib/logic/blinker.h</code> — таймер з <code>+=</code>, ресинхронізацією і тестом на переповнення; <code>rust/</code> — те саме на Rust.</li>
+    </ul>
+
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на даташити й код ядра</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+
+    <h3>Що виправлено порівняно з LMS</h3>
+    <ul>
+      <li><b>Уточнення: «блокується лише те ядро або той потік виконання, де викликано delay()».</b> LMS дає два варіанти, і правильний — другий: блокується лише задача <code>loopTask</code>. <code>delay()</code> = <code>vTaskDelay()</code>, і поки <code>loopTask</code> спить, те саме ядро 1 виконує інші задачі<sup class="cite" data-fact="core-delay"></sup><sup class="cite" data-fact="core-loop-task"></sup>.</li>
+      <li><b>Опитування кнопки <code>if (BUTTON_PIN == PRESSED)</code>.</b> Так порівнюється номер піна з константою, а не стан піна. В Arduino: <code>digitalRead(BUTTON_PIN) == LOW</code>, бо з <code>INPUT_PULLUP</code> натиснута кнопка дає LOW<sup class="cite" data-fact="lms-err-1-5-press-edge"></sup>.</li>
+      <li><b>Уточнення: рівень проти зміни.</b> У прикладі LMS <code>handle_press()</code> викликається в кожному проході, поки кнопку тримають, тобто тисячі разів на одне натискання. Потрібна перевірка зміни (<code>down &amp;&amp; !wasDown</code>), а згодом і debounce (урок 2.6).</li>
+      <li><b>Уточнення: <code>int main() { while (true) … }</code>.</b> В Arduino-ESP32 <code>main()</code> не пишуть: ядро саме створює задачу <code>loopTask</code>, яка один раз викликає <code>setup()</code>, а потім нескінченно <code>loop()</code><sup class="cite" data-fact="core-loop-task"></sup>. Сенс суперциклу той самий.</li>
+      <li><b>Уточнення: <code>last_toggle = now</code>.</b> Працює, але накопичує дрейф, щойно прохід циклу буває довшим за 1&nbsp;мс. Для рівної сітки — <code>last_toggle += interval</code> (розділ 04, «Детальніше»).</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const NB = ' ';
+  let T = Study.tokens();
+  const redraws = [];
+  Study.onTheme((t) => { T = t; redraws.forEach((f) => f()); });
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const pressSeg = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+
+  // Small deterministic PRNG: the same press pattern on every visit (screenshots and the teacher demo stay stable).
+  const prng = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+  /* =====================================================================
+     W2-3a «Таймлайн суперциклу»: a 1-ms step model of three firmwares.
+       block: pollButton(); A on; delay(500); A off; delay(500); toggle B; Serial  (one pass = 1000 ms)
+       nb:    every ms: pollButton + three millis() timers (passes are µs long; the model samples each ms)
+       slow:  the same + readSensor() that takes 40 ms → one pass every 40 ms
+     ===================================================================== */
+  const CODE = {
+    block: [
+      ['void loop() {'],
+      ['  pollButton();            // кнопка: раз на прохід', 'read'],
+      ['  digitalWrite(LED_A, HIGH);'],
+      ['  delay(500);              // спимо', 'd1'],
+      ['  digitalWrite(LED_A, LOW);'],
+      ['  delay(500);              // спимо', 'd2'],
+      ['  toggle(LED_B);           // хотіли раз на 200 мс'],
+      ['  Serial.println(n++);'],
+      ['}'],
+    ],
+    nb: [
+      ['void loop() {'],
+      ['  uint32_t now = millis();', 'body'],
+      ['  pollButton();            // кожен прохід', 'body'],
+      ['  if (now - lastA >= 500)  { lastA += 500;  toggle(LED_A); }', 'body'],
+      ['  if (now - lastB >= 200)  { lastB += 200;  toggle(LED_B); }', 'body'],
+      ['  if (now - lastS >= 1000) { lastS += 1000; Serial.println(n); }', 'body'],
+      ['}'],
+    ],
+    slow: [
+      ['void loop() {'],
+      ['  uint32_t now = millis();', 'body'],
+      ['  pollButton();', 'body'],
+      ['  if (now - lastA >= 500)  { lastA += 500;  toggle(LED_A); }', 'body'],
+      ['  if (now - lastB >= 200)  { lastB += 200;  toggle(LED_B); }', 'body'],
+      ['  if (now - lastS >= 1000) { lastS += 1000; Serial.println(n); }', 'body'],
+      ['  readSensor();            // 40 мс роботи', 'sensor'],
+      ['}'],
+    ],
+  };
+  const LANES = [
+    { k: 'cpu', name: 'loop()', sub: 'ядро 1' }, { k: 'btn', name: 'Кнопка', sub: 'GPIO21' },
+    { k: 'A', name: 'LED A', sub: '500 мс' }, { k: 'B', name: 'LED B', sub: '200 мс' },
+    { k: 'C', name: 'LED C', sub: 'кнопка' }, { k: 'S', name: 'Serial', sub: '1 с' },
+  ];
+  const LH = 38, TOP = 4;
+  const canvas = $('#tl-canvas');
+  let ctx = Study.fitCanvas(canvas);
+  let rnd = prng(5);
+  let speed = 0.5, auto = false, st;
+
+  function fresh(mode) {
+    rnd = prng(5);
+    return {
+      mode, t: 0, tf: 0, wake: 0, pc: 0, nextPass: 0, prevDown: false, line: '',
+      last: { A: 0, B: 0, S: 0 }, led: { A: 0, B: 0, C: 0 },
+      ev: { A: [[0, 0]], B: [[0, 0]], C: [[0, 0]] }, presses: [], samples: [], cpu: [], ser: [],
+      nextAuto: 400, burstLeft: 0, burstNext: 0, burst: null,
+      caught: 0, missed: 0, latMax: 0, manual: null,
+    };
+  }
+  const isDown = (t) => st.presses.some((p) => p.s <= t && (p.e == null || t < p.e));
+  // a new simulated press starts only after ≥ 60 ms of «released», so every release is visible to a 40-ms poll
+  const quiet = (t) => !st.presses.some((p) => p.s <= t && (p.e == null || t < p.e + 60));
+  function cpu(s, e, k) {
+    const L = st.cpu[st.cpu.length - 1];
+    if (L && L.k === k && Math.abs(L.e - s) < 1e-6) L.e = e; else st.cpu.push({ s, e, k });
+  }
+  function setLed(k, v, t) { st.led[k] = v; st.ev[k].push([t, v]); }
+  function sample(t) {
+    if (st.mode !== 'nb') st.samples.push(t);
+    const d = isDown(t);
+    if (d && !st.prevDown) {
+      const p = st.presses.find((q) => !q.caught && q.s <= t && (q.e == null || t < q.e));
+      if (p) { p.caught = true; p.at = t; st.caught++; st.latMax = Math.max(st.latMax, t - p.s); }
+      setLed('C', st.led.C ? 0 : 1, t);
+    }
+    st.prevDown = d;
+  }
+  function timers(t) {
+    for (const [k, per] of [['A', 500], ['B', 200]]) {
+      if (t - st.last[k] >= per) { st.last[k] += per; setLed(k, st.led[k] ? 0 : 1, t); }
+    }
+    if (t - st.last.S >= 1000) { st.last.S += 1000; st.ser.push(t); }
+  }
+  function addPress(t, dur, tag) { const p = { s: t, e: dur == null ? null : t + dur, tag }; st.presses.push(p); return p; }
+
+  function tick(t) {
+    // the outside world: random presses and the 10-press experiment
+    if (auto && !st.burst && t >= st.nextAuto && !st.manual && quiet(t)) {
+      const dur = 80 + Math.round(rnd() * 170);
+      addPress(t, dur, 'auto');
+      st.nextAuto = t + dur + 400 + Math.round(rnd() * 1100);
+    }
+    if (st.burstLeft > 0 && t >= st.burstNext && quiet(t)) {
+      st.burst.list.push(addPress(t, 150, 'burst'));
+      st.burstLeft--;
+      st.burstNext = t + 150 + 350 + Math.round(rnd() * 600);
+    }
+    for (const p of st.presses) {
+      if (!p.done && p.e != null && t >= p.e) { p.done = true; if (!p.caught) st.missed++; }
+    }
+    if (st.burst && !st.burstLeft && st.burst.list.length && st.burst.list.every((p) => p.done)) {
+      const n = st.burst.list.filter((p) => p.caught).length;
+      $('#tl-burst-out').textContent = `Із 10 коротких натискань (по 150${NB}мс) варіант «${modeName()}» помітив ${n}.`;
+      st.burst = null;
+    }
+    // the firmware
+    if (st.mode === 'block') {
+      while (t >= st.wake) {
+        if (st.pc === 0) { sample(t); cpu(t, t + 0.6, 'work'); st.line = 'read'; st.pc = 1; }
+        else if (st.pc === 1) { setLed('A', 1, t); st.wake = t + 500; cpu(t + 0.6, t + 500, 'sleep'); st.line = 'd1'; st.pc = 2; }
+        else if (st.pc === 2) { setLed('A', 0, t); st.wake = t + 500; cpu(t, t + 500, 'sleep'); st.line = 'd2'; st.pc = 3; }
+        else { setLed('B', st.led.B ? 0 : 1, t); st.ser.push(t); st.pc = 0; }
+      }
+    } else if (st.mode === 'nb') {
+      sample(t); timers(t); cpu(t, t + 1, 'poll'); st.line = 'body';
+    } else if (t >= st.nextPass) {
+      sample(t); timers(t); cpu(t, t + 40, 'work'); st.nextPass = t + 40; st.line = 'sensor';
+    }
+    // forget what scrolled away
+    if (t % 1000 === 0) {
+      const old = t - 7000;
+      st.cpu = st.cpu.filter((g) => g.e > old);
+      st.samples = st.samples.filter((x) => x > old);
+      st.ser = st.ser.filter((x) => x > old);
+      st.presses = st.presses.filter((p) => p.e == null || p.e > old || (st.burst && st.burst.list.includes(p)));
+      for (const k of ['A', 'B', 'C']) { const ev = st.ev[k]; let i = 0; while (ev.length - i > 1 && ev[i + 1][0] < old) i++; if (i) ev.splice(0, i); }
+    }
+  }
+  const modeName = () => ({ block: 'delay()', nb: 'millis()', slow: 'millis() + 40 мс' })[st.mode];
+
+  function reset(mode) {
+    st = fresh(mode);
+    $('#tl-burst-out').textContent = '';
+    renderCode();
+    tick(0);
+    draw();
+  }
+
+  let codeLines = [];
+  function renderCode() {
+    const pre = $('#tl-code');
+    pre.innerHTML = CODE[st.mode].map(([txt, key], i) => `<span class="ln" data-i="${i}" data-key="${key || ''}">${esc(txt)}</span>`).join('');
+    codeLines = $$('.ln', pre);
+  }
+  let shownLine = null;
+  function markCode() {
+    if (shownLine === st.line + st.mode) return;
+    shownLine = st.line + st.mode;
+    codeLines.forEach((el) => {
+      const k = el.dataset.key;
+      el.classList.toggle('on', !!k && k === st.line && k !== 'body');
+      el.classList.toggle('soft', k === 'body' && st.line === 'body');
+    });
+  }
+
+  function draw() {
+    if (!ctx || !st) return;
+    const c = ctx, W = c.w, H = c.h;
+    c.clearRect(0, 0, W, H);
+    const narrow = W < 480;
+    const x0 = narrow ? 66 : 92, pw = W - x0 - 8;
+    const win = narrow ? 3000 : 5000;
+    const tS = Math.max(0, st.t - win), tE = tS + win;
+    const X = (tm) => x0 + (tm - tS) / win * pw;
+    const cx = (tm) => Math.max(x0, Math.min(x0 + pw, X(tm)));
+    const fBody = T['f-body'] || 'sans-serif', fMono = T['f-mono'] || 'monospace';
+
+    LANES.forEach((L, i) => {
+      const y = TOP + i * LH;
+      if (i % 2 === 0) { c.fillStyle = T['panel-2']; c.fillRect(0, y, W, LH); }
+      c.fillStyle = T.ink; c.font = `600 13px ${fBody}`; c.fillText(L.name, 6, y + 16);
+      c.fillStyle = T.muted; c.font = `500 13px ${fMono}`; c.fillText(L.sub, 6, y + 32);
+    });
+    c.strokeStyle = T.line; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(x0 - 2, TOP); c.lineTo(x0 - 2, TOP + LANES.length * LH); c.stroke();
+
+    // lane 0: what the loop task is doing
+    const yc = TOP + 7, hc = 24;
+    for (const g of st.cpu) {
+      if (g.e < tS || g.s > Math.min(tE, st.t)) continue;
+      const a = cx(g.s), b = Math.max(cx(Math.min(g.e, st.t)), a + 2);
+      if (g.k === 'sleep') {
+        c.globalAlpha = 0.18; c.fillStyle = T.muted; c.fillRect(a, yc, b - a, hc); c.globalAlpha = 1;
+        c.save(); c.beginPath(); c.rect(a, yc, b - a, hc); c.clip();
+        c.strokeStyle = T.muted; c.globalAlpha = 0.55; c.lineWidth = 1.5;
+        c.beginPath(); for (let x = a - hc; x < b; x += 7) { c.moveTo(x, yc + hc); c.lineTo(x + hc, yc); } c.stroke();
+        c.restore(); c.globalAlpha = 1;
+        if (b - a > 78) { c.fillStyle = T.ink; c.font = `600 13px ${fMono}`; c.fillText('delay(500)', a + 6, yc + 17); }
+      } else if (g.k === 'poll') {
+        c.globalAlpha = 0.32; c.fillStyle = T.accent; c.fillRect(a, yc, b - a, hc); c.globalAlpha = 1;
+        if (b - a > 150) { c.fillStyle = T.ink; c.font = `500 13px ${fBody}`; c.fillText('перевіряє, перевіряє…', a + 6, yc + 17); }
+      } else {
+        c.fillStyle = T.hi; c.fillRect(a, yc, Math.max(b - a - (st.mode === 'slow' ? 1 : 0), 2), hc);
+      }
+    }
+
+    // lane 1: the button (pressed = raised block), check marks, caught/missed labels
+    const yb = TOP + LH + 28;
+    c.strokeStyle = T.muted; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(x0, yb); c.lineTo(cx(st.t), yb); c.stroke();
+    for (const p of st.presses) {
+      const pe = p.e == null ? st.t : Math.min(p.e, st.t);
+      if (pe < tS || p.s > st.t) continue;
+      const a = cx(p.s), b = Math.max(cx(pe), a + 2);
+      const col = p.caught ? T.ok : p.done ? T.bad : T.ink;
+      c.fillStyle = col; c.globalAlpha = p.caught || p.done ? 0.85 : 0.55; c.fillRect(a, yb - 16, b - a, 16); c.globalAlpha = 1;
+      c.font = `700 13px ${fBody}`; c.fillStyle = col;
+      if (p.caught) { const xa = cx(p.at); c.fillRect(xa - 1, yb - 22, 2, 22); c.fillText('✓', xa + 3, yb - 18); }
+      else if (p.done) c.fillText('✗', (a + b) / 2 - 4, yb - 19);
+    }
+    c.fillStyle = T.accent;
+    if (st.mode === 'nb') {
+      c.strokeStyle = T.accent; c.lineWidth = 2; c.setLineDash([2, 2]);
+      c.beginPath(); c.moveTo(x0, yb + 5); c.lineTo(cx(st.t), yb + 5); c.stroke(); c.setLineDash([]);
+    } else {
+      for (const s of st.samples) {
+        if (s < tS || s > st.t) continue;
+        const x = X(s);
+        c.beginPath(); c.moveTo(x, yb + 2); c.lineTo(x - 4, yb + 9); c.lineTo(x + 4, yb + 9); c.closePath(); c.fill();
+      }
+    }
+
+    // lanes 2–4: LEDs (filled = on), ▼ = when the LED was supposed to toggle
+    const LEDC = { A: T.n5, B: T.nsig3, C: T.hi };
+    ['A', 'B', 'C'].forEach((k, j) => {
+      const y = TOP + (2 + j) * LH, lo = y + 30, hi = y + 12;
+      const ev = st.ev[k];
+      c.strokeStyle = LEDC[k]; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(x0, lo);
+      for (let i = 0; i < ev.length; i++) {
+        const [t0, v] = ev[i];
+        const t1 = i + 1 < ev.length ? ev[i + 1][0] : st.t;
+        if (t1 < tS) continue;
+        const a = cx(t0), b = cx(t1);
+        const yy = v ? hi : lo;
+        c.lineTo(a, yy); c.lineTo(b, yy);
+        if (v && b > a) { c.globalAlpha = 0.28; c.fillStyle = LEDC[k]; c.fillRect(a, hi, b - a, lo - hi); c.globalAlpha = 1; }
+      }
+      c.stroke();
+      const per = k === 'A' ? 500 : k === 'B' ? 200 : 0;
+      if (per) {
+        c.fillStyle = T.muted;
+        for (let m = Math.ceil(tS / per) * per; m <= st.t; m += per) {
+          if (m === 0) continue;
+          const x = X(m);
+          c.beginPath(); c.moveTo(x - 4, y + 3); c.lineTo(x + 4, y + 3); c.lineTo(x, y + 9); c.closePath(); c.fill();
+        }
+      }
+    });
+
+    // lane 5: Serial prints
+    const ys = TOP + 5 * LH;
+    c.font = `500 13px ${fMono}`;
+    for (const s of st.ser) {
+      if (s < tS || s > st.t) continue;
+      const x = X(s);
+      c.fillStyle = T.accent; c.fillRect(x, ys + 10, 4, 18);
+      c.fillStyle = T.ink; c.fillText('print', x + 7, ys + 24);
+    }
+
+    // time axis and the «now» line
+    const ya = TOP + LANES.length * LH;
+    c.strokeStyle = T.line; c.lineWidth = 1; c.fillStyle = T.muted; c.font = `500 13px ${fMono}`;
+    for (let m = Math.ceil(tS / 500) * 500; m <= tE; m += 500) {
+      const x = X(m);
+      c.beginPath(); c.moveTo(x, ya); c.lineTo(x, ya + (m % 1000 ? 4 : 8)); c.stroke();
+      if (m % 1000 === 0 && x < W - 30) c.fillText(fmt.num(m / 1000, 0) + NB + 'с', x + 3, ya + 18);
+    }
+    const xn = cx(st.t);
+    c.strokeStyle = T.accent; c.setLineDash([4, 3]); c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(xn, TOP); c.lineTo(xn, ya); c.stroke(); c.setLineDash([]);
+
+    // readouts
+    $('#tl-caught').textContent = st.caught;
+    $('#tl-missed').textContent = st.missed;
+    $('#tl-lat').textContent = st.caught ? fmt.num(st.latMax, 0) : '—';
+    const tot = { sleep: 0, poll: 0, work: 0 };
+    for (const g of st.cpu) { const a = Math.max(g.s, tS), b = Math.min(g.e, st.t); if (b > a) tot[g.k] += b - a; }
+    const sum = tot.sleep + tot.poll + tot.work || 1;
+    const bar = $$('#tl-cpu span');
+    ['sleep', 'poll', 'work'].forEach((k, i) => {
+      const pc = tot[k] / sum * 100;
+      bar[i].style.width = pc + '%';
+      $(`#tl-cpu-list [data-k="${k}"]`).textContent = fmt.num(pc, pc < 1 && pc > 0 ? 1 : 0) + NB + '%';
+    });
+    let now;
+    if (st.mode === 'block') {
+      now = st.pc === 2 || st.pc === 3
+        ? `<b>loop() спить у delay(500)</b>, лишилося ${fmt.num(st.wake - st.t, 0)}${NB}мс. Кнопку зараз ніхто не читає.`
+        : 'loop() прокинувся: одна перевірка кнопки і знову спати.';
+    } else if (st.mode === 'nb') {
+      now = '<b>loop() крутиться без пауз</b>: кнопку перевіряють щонайменше раз на мілісекунду, кожен таймер сам вирішує, чи пора.';
+    } else {
+      now = `<b>loop() у readSensor()</b>, лишилося ${fmt.num(Math.max(0, st.nextPass - st.t), 0)}${NB}мс. Кнопку перевіряють раз на 40${NB}мс: реакція повільніша; натискання, довші за 40${NB}мс, не губляться, коротші можуть проскочити.`;
+    }
+    $('#tl-now').innerHTML = now;
+    markCode();
+  }
+
+  const tl = Study.sim(canvas, (dt) => {
+    if (!st) return;
+    st.tf += dt * 1000 * speed;
+    const target = Math.floor(st.tf);
+    while (st.t < target) { st.t++; tick(st.t); }
+    draw();
+  });
+  tl.pause();
+  const playBtn = $('#tl-play');
+  const syncPlay = () => { playBtn.textContent = tl.running ? '❚❚ Пауза' : '▶ Пуск'; };
+  new MutationObserver(syncPlay).observe(canvas, { attributes: true, attributeFilter: ['data-sim'] });
+  playBtn.addEventListener('click', () => { tl.toggle(); syncPlay(); });
+  syncPlay();
+
+  $$('#tl-mode button').forEach((b) => b.addEventListener('click', () => {
+    pressSeg($('#tl-mode'), b);
+    reset(b.dataset.mode);
+  }));
+  $$('#tl-speed button').forEach((b) => b.addEventListener('click', () => {
+    pressSeg($('#tl-speed'), b);
+    speed = +b.dataset.s;
+  }));
+  $('#tl-auto').addEventListener('change', (e) => { auto = e.target.checked; if (st) st.nextAuto = st.t + 300; });
+  function startBurst() {
+    st.burstLeft = 10; st.burstNext = st.t + 200; st.burst = { list: [] };
+    if (Study.reducedMotion()) {
+      // no animation: run the model straight to the end of the series and show the result at once
+      tl.pause(); syncPlay();
+      for (let n = 0; st.burst && n < 20000; n++) { st.t++; tick(st.t); }
+      st.tf = st.t; draw();
+      return;
+    }
+    $('#tl-burst-out').textContent = `Іде серія з 10 натискань у режимі «${modeName()}»…`;
+    if (!tl.running) { tl.play(); syncPlay(); }
+  }
+  $('#tl-burst').addEventListener('click', startBurst);
+
+  // «Натиснути кнопку»: held as long as the pointer (or Space/Enter) is down, at least 40 ms of model time.
+  const pressBtn = $('#tl-press');
+  const down = () => {
+    if (!st || st.manual) return;
+    st.manual = addPress(st.t, null, 'manual');
+    pressBtn.setAttribute('aria-pressed', 'true');
+    if (!tl.running) { tl.play(); syncPlay(); }
+  };
+  const up = () => {
+    if (!st || !st.manual) return;
+    st.manual.e = Math.max(st.t, st.manual.s + 40);
+    st.manual = null;
+    pressBtn.setAttribute('aria-pressed', 'false');
+  };
+  pressBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); pressBtn.setPointerCapture?.(e.pointerId); down(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => pressBtn.addEventListener(ev, up));
+  pressBtn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); down(); } });
+  pressBtn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); up(); } });
+  pressBtn.addEventListener('click', (e) => e.preventDefault());
+
+  new ResizeObserver(() => { ctx = Study.fitCanvas(canvas); draw(); }).observe(canvas.parentElement);
+  redraws.push(draw);
+  reset('block');
+
+  // The prediction unlocks the widget; a fresh answer starts the 10-press experiment in the blocking version.
+  $('#w-tl').addEventListener('predict', (e) => {
+    if (e.detail && e.detail.restored) { if (!Study.reducedMotion()) { auto = true; $('#tl-auto').checked = true; tl.play(); syncPlay(); } return; }
+    pressSeg($('#tl-mode'), $('#tl-mode [data-mode="block"]'));
+    reset('block');
+    startBurst();
+  });
+
+  /* =====================================================================
+     W2-3b «Переповнення millis()»: both comparison forms in uint32 arithmetic
+     ===================================================================== */
+  const U32 = 4294967296;
+  const u32 = (x) => ((x % U32) + U32) % U32;
+  const ovf = { last: 4294966796, e: 100 };
+  const big = (v) => fmt.num(v, 0);
+  const place = (id, x) => $(id).setAttribute('transform', `translate(${x.toFixed(1)} 0)`);
+  function ovfDraw() {
+    const I = 1000, { last, e } = ovf;
+    const now = u32(last + e), diff = u32(now - last), sum = u32(last + I);
+    const r1 = diff >= I, r2 = now >= sum, truth = e >= I;
+    $('#ovf-e-out').textContent = `${big(e)}${NB}мс`;
+    $('#ovf-now-v').textContent = big(now);
+    $('#ovf-d').textContent = `${big(diff)} >= 1000`;
+    $('#ovf-s').textContent = `${big(now)} >= ${big(sum)}`;
+    const cell = (el, r) => {
+      const good = r === truth;
+      el.textContent = `→ ${r ? 'так' : 'ні'} ${good ? '✓ правильно' : '✗ помилка'}`;
+      el.className = good ? 'v-ok' : 'v-bad';
+    };
+    cell($('#ovf-d-r'), r1); cell($('#ovf-s-r'), r2);
+    let msg = truth ? 'Інтервал минув: обидві форми мали б сказати «так».' : 'Інтервал ще не минув: правильна відповідь «ні».';
+    if (r2 !== truth) msg += r2 ? ' Стара форма спрацювала зарано: last + 1000 «загорнулося» в мале число.' : ' Стара форма «застрягла»: now уже перейшов через нуль і менший за last + 1000.';
+    else msg += ' Тут обидві форми збігаються.';
+    $('#ovf-msg').textContent = msg;
+    // top strip: offsets from last, −200…1500 ms
+    const xo = (off) => 14 + (off + 200) / 1700 * 292;
+    place('#ovf-last', xo(0)); place('#ovf-dl', xo(I)); place('#ovf-now', xo(e));
+    $('#ovf-now text').setAttribute('text-anchor', xo(e) > 270 ? 'end' : 'start');
+    $('#ovf-now text').setAttribute('x', xo(e) > 270 ? '-4' : '4');
+    const wrapOff = U32 - last;
+    $('#ovf-wrap').style.display = wrapOff <= 1500 ? '' : 'none';
+    place('#ovf-wrap', xo(Math.min(wrapOff, 1500)));
+    $('#ovf-span').setAttribute('d', `M${xo(0).toFixed(1)} 50H${xo(e).toFixed(1)}`);
+    // bottom strip: absolute value 0 … 2³²−1
+    const xa = (v) => 14 + v / U32 * 292;
+    place('#ovf-sum', xa(sum)); place('#ovf-now2', xa(now));
+    $('#ovf-sum text').setAttribute('text-anchor', xa(sum) > 200 ? 'end' : 'start');
+    const nearLeft = xa(now) < 60;
+    $('#ovf-now2 text').setAttribute('text-anchor', nearLeft ? 'start' : 'end');
+    $('#ovf-now2 text').setAttribute('x', nearLeft ? '4' : '-4');
+    const glued = Math.abs(xa(now) - xa(sum)) < 3;
+    $('#ovf-near').style.display = glued ? '' : 'none';
+    $('#ovf-now2 text').style.display = glued ? 'none' : '';
+  }
+  $$('#ovf-preset button').forEach((b) => b.addEventListener('click', () => {
+    pressSeg($('#ovf-preset'), b);
+    ovf.last = +b.dataset.last;
+    ovfDraw();
+  }));
+  $('#ovf-e').addEventListener('input', (e) => { ovf.e = +e.target.value; ovfDraw(); });
+  ovfDraw();
+
+  /* =====================================================================
+     State machine: traffic light, one variable + the moment we entered it
+     ===================================================================== */
+  const FSM = [
+    { name: 'RED', ms: 3000, col: 'n5' }, { name: 'GREEN', ms: 3000, col: 'nsig3' }, { name: 'YELLOW', ms: 1000, col: 'hi' },
+  ];
+  const fs = { i: 0, start: 0, now: 0 };
+  const RING = 2 * Math.PI * 44;
+  function fsmDraw() {
+    FSM.forEach((s, i) => {
+      const node = $(`#fsm-g${i} .node`), ring = $(`#fsm-r${i}`);
+      const on = i === fs.i;
+      node.style.fill = on ? `color-mix(in srgb, var(--${s.col}) 30%, var(--panel))` : '';
+      node.style.stroke = on ? `var(--${s.col})` : '';
+      const frac = on ? Math.min(1, (fs.now - fs.start) / s.ms) : 0;
+      ring.setAttribute('stroke-dasharray', `${(frac * RING).toFixed(1)} ${RING.toFixed(1)}`);
+      ring.style.opacity = on ? '1' : '0';
+    });
+    $('#fsm-out').textContent = `state = ${FSM[fs.i].name} · now − stateStart = ${fmt.num(fs.now - fs.start, 0)}${NB}мс із ${fmt.num(FSM[fs.i].ms, 0)}`;
+  }
+  Study.sim($('#fsm'), (dt) => {
+    fs.now += dt * 1000;
+    while (fs.now - fs.start >= FSM[fs.i].ms) { fs.start += FSM[fs.i].ms; fs.i = (fs.i + 1) % FSM.length; }
+    fsmDraw();
+  });
+  fsmDraw();
+
+  /* =====================================================================
+     08 breadboard: three LED branches in the top half, the button in the bottom half
+     ===================================================================== */
+  const bbSvg = $('#bb-loop');
+  const g = S.svg('g', {}, bbSvg);
+  S.svg('rect', { x: 2, y: 34, width: 58, height: 182, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
+  S.svg('text', { class: 'sch-pin', x: 6, y: 26 }, g).textContent = 'плата';
+  const pin = (label, net, cls, y) => {
+    S.svg('text', { class: `sch-pin ${cls}`, 'data-net': net, x: 8, y: y + 5 }, g).textContent = label;
+    return { x: 52, y };
+  };
+  const p4 = pin('4', 'gpio4', 'net-sig2', 56), p5 = pin('5', 'gpio5', 'net-sig3', 80), p15 = pin('15', 'gpio15', 'net-sig', 104);
+  const p21 = pin('21', 'gpio21', 'net-in', 160), pG = pin('GND', 'gnd', 'net-gnd', 200);
+  const bb = S.breadboard(bbSvg, { cols: 22, rails: true, x: 76, y: 0, colLabels: 'bottom' });
+  const branch = (c0, from, net, cls, color, label, lift) => {
+    bb.mark(c0, 'top', net, cls);
+    S.part(bbSvg, 'jumper', { from, to: bb.hole(c0, 'c'), net, cls, lift, title: `Дріт ${net.toUpperCase()} → стовпчик ${c0}` });
+    S.part(bbSvg, 'res', { from: bb.hole(c0, 'a'), to: bb.hole(c0 + 4, 'a'), ohms: 220 });
+    S.part(bbSvg, 'led', { anode: bb.hole(c0 + 4, 'e'), cathode: bb.hole(c0 + 5, 'e'), color, label, h: 22 });
+    bb.mark(c0 + 5, 'top', 'gnd', 'net-gnd');
+    S.part(bbSvg, 'jumper', { from: bb.hole(c0 + 5, 'b'), to: bb.rail('top', '-', c0 + 5), net: 'gnd', cls: 'net-gnd', lift: 0, title: `Катод → шина мінус` });
+  };
+  bb.markRail('top', '-', 'gnd', 'net-gnd');
+  bb.markRail('bottom', '-', 'gnd', 'net-gnd');
+  // the top pin goes to the farthest column, so the three wires nest instead of crossing
+  branch(16, p4, 'gpio4', 'net-sig2', 'red', 'A', 40);
+  branch(9, p5, 'gpio5', 'net-sig3', 'green', 'B', 26);
+  branch(2, p15, 'gpio15', 'net-sig', 'yellow', 'C', 10);
+  bb.mark(3, 'bottom', 'gpio21', 'net-in');
+  bb.mark(6, 'bottom', 'gnd', 'net-gnd');
+  S.part(bbSvg, 'btn4', { x: bb.hole(3, 'f').x, y: bb.hole(3, 'f').y, w: 30, h: 30, label: 'S1' });
+  S.part(bbSvg, 'jumper', { from: p21, to: bb.hole(3, 'j'), net: 'gpio21', cls: 'net-in', lift: 0, title: 'Дріт GPIO21 → стовпчик 3 (кнопка)' });
+  S.part(bbSvg, 'jumper', { from: bb.hole(6, 'j'), to: bb.rail('bottom', '-', 6), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Кнопка → нижня шина мінус' });
+  S.part(bbSvg, 'jumper', { from: pG, to: bb.rail('bottom', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → нижня шина мінус' });
+  S.part(bbSvg, 'jumper', { from: bb.rail('bottom', '-', 22), to: bb.rail('top', '-', 22), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Перемичка між шинами мінус' });
+});
+</script>
+</body>
+</html>

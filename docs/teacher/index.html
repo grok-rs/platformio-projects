@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Для викладача</title>
+<meta name="description" content="Методичка для викладача курсу ESP32-S3: мінімальний пілот, сценарій заняття на 120 хвилин без сесійних кімнат, активності, коди помилкових уявлень, банк ConcepTest-ів, розминка, шаблон дошки tldraw, записи.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Page widgets only; colours from study.css tokens. Block types: ret, pi, poe, build, board, exit, brk, oth. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { min-height: 40px; padding: 6px 12px; border: 0; background: transparent; color: var(--ink); font: 600 15px var(--f-body); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+/* Activity categories: non-team tokens (--team-* stay reserved for the four teams), each with its own glyph (--kg),
+   so a category never reads by colour alone. The break is a hatched band. */
+.k-ret { --bc: var(--accent); --kg: "↺"; } .k-pi { --bc: var(--hl); --kg: "⇄"; } .k-poe { --bc: var(--hi); --kg: "?"; }
+.k-build { --bc: var(--copper); --kg: "+"; } .k-board { --bc: var(--ok); --kg: "□"; } .k-exit { --bc: var(--teach); --kg: "✓"; }
+.k-brk { --bc: var(--line-strong); --kg: "‖"; } .k-oth { --bc: var(--muted); --kg: "·"; }
+.tl-ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+.tl { display: flex; height: 54px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2); position: relative; }
+.tl button { position: relative; flex: var(--w) 1 0; min-width: 0; border: 0; border-right: 1px solid var(--panel); background: var(--bc); cursor: pointer; padding: 0; opacity: .9; }
+.tl button:last-child { border-right: 0; }
+.tl button[aria-pressed="true"] { opacity: 1; box-shadow: inset 0 0 0 3px var(--ink); }
+.tl.pilot button:not(.pilot) { opacity: .18; }
+.tl button .now { position: absolute; top: -2px; bottom: -2px; width: 3px; background: var(--bad); left: var(--p); }
+.tl-scale { display: flex; justify-content: space-between; font: 500 13px var(--f-mono); color: var(--muted); margin-top: 4px; }
+.tl-det { margin-top: 12px; padding: 12px 14px; border-left: 5px solid var(--bc); border-radius: 0 8px 8px 0; background: var(--panel); }
+.tl-det h3 { margin: 0 0 4px; }
+.tl-det .t { font: 600 14px var(--f-mono); color: var(--muted); }
+.tl-det p { margin: 6px 0 0; }
+.tl-now { font: 600 15px var(--f-mono); color: var(--bad); margin: 8px 0 0; min-height: 1.4em; }
+.legend-k { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; padding: 0; margin: 10px 0 0; font-size: 14px; }
+.legend-k li { margin: 0; display: flex; gap: 6px; align-items: center; }
+.legend-k li::before { content: var(--kg, ""); display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: var(--bc); color: var(--panel); font: 700 13px/1 var(--f-mono); }
+.legend-k li.k-brk::before { background: repeating-linear-gradient(135deg, var(--line-strong) 0 3px, var(--panel-2) 3px 7px); color: var(--ink); }
+.tl button.k-brk { background: repeating-linear-gradient(135deg, var(--line-strong) 0 3px, var(--panel-2) 3px 8px); }
+.tl-det h3::before, .act h3::before, .pilot-cards b.h::before { content: var(--kg, ""); display: inline-grid; place-items: center; width: 1.25em; height: 1.25em; margin-right: 8px; border-radius: 4px; background: var(--bc); color: var(--panel); font: 700 .7em/1 var(--f-mono); vertical-align: .12em; }
+.tl-det.k-brk h3::before { background: repeating-linear-gradient(135deg, var(--line-strong) 0 3px, var(--panel-2) 3px 7px); color: var(--ink); }
+main .tbl > table { min-width: 600px; }
+@media (max-width: 600px) {
+  /* Phones: every table row becomes a small card; cells carry their column name (data-l, set by the script). */
+  main .tbl > table { min-width: 0; font-size: 15px; }
+  main .tbl thead { display: none; }
+  main .tbl tbody tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  main .tbl tbody th, main .tbl tbody td { display: block; border: 0; padding: 2px 10px; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+  main .tbl tbody td[data-l]::before { content: attr(data-l) ": "; font: 600 13px var(--f-mono); color: var(--muted); }
+  main .tbl td.k { border-left: 0; }
+  #call-tbl { display: none; } /* the timeline list above already shows it; the table stays for print */
+}
+.tl button .tl-lbl { display: none; }
+@media (max-width: 600px) {
+  .tl { flex-direction: column; height: auto; background: var(--panel); }
+  .tl button { flex: none; min-height: 40px; display: flex; align-items: center; padding: 4px 10px; background: var(--panel); border-right: 0; border-left: 10px solid var(--bc); border-bottom: 1px solid var(--line); text-align: left; color: var(--ink); opacity: 1; }
+  .tl button:last-child { border-bottom: 0; }
+  .tl button .tl-lbl { display: block; font: 500 14px var(--f-body); }
+  .tl button .tl-lbl b { font: 600 13px var(--f-mono); color: var(--muted); margin-right: 6px; }
+  .tl button .tl-lbl::before { content: var(--kg, ""); display: inline-block; width: 1.4em; font: 700 14px var(--f-mono); color: var(--ink); }
+  .tl button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); background: var(--panel-2); }
+  .tl button .now { top: 0; bottom: 0; }
+  .tl + .tl-scale { display: none; }
+}
+/* touch: the timeline rows and the Пн/Ср/Сб keys are 44 px */
+@media (pointer: coarse) { .tl button, .seg button { min-height: 44px; } }
+.pilot-say { font-size: 15px; margin: 8px 0 0; }
+main .tbl tbody th { white-space: normal; min-width: 7rem; }
+td.k { border-left: 5px solid var(--bc); white-space: nowrap; font-family: var(--f-mono); font-size: 14px; }
+.pilot-cards { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); counter-reset: pc; }
+@media (min-width: 640px) { .pilot-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.pilot-cards > div { padding: 12px 14px; border: 1px solid var(--line); border-top: 4px solid var(--bc); border-radius: var(--radius); background: var(--panel); }
+.pilot-cards b.h { display: block; font: 700 1.25rem var(--f-display); }
+.pilot-cards .t { font: 600 14px var(--f-mono); color: var(--muted); }
+.pilot-cards p { margin: 6px 0 0; font-size: 15px; }
+.acts { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 820px) { .acts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.act { padding: 14px 16px; border: 1px solid var(--line); border-top: 4px solid var(--bc); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); break-inside: avoid; }
+.act h3 { margin: 0 0 2px; font-size: 1.35rem; }
+.act .t { font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .04em; }
+.act p { margin: 8px 0 0; font-size: 15px; }
+.act ol { margin: 6px 0 0; font-size: 15px; }
+.act .say { font-style: italic; }
+.act .trap { color: var(--warn); }
+.pi-h { display: grid; gap: 10px; padding: 16px; }
+.pi-h input[type=range] { width: 100%; accent-color: var(--accent); }
+.pi-out b { font: 700 1.6rem var(--f-display); }
+.pi-zone { display: flex; height: 14px; border-radius: 7px; overflow: hidden; }
+.pi-zone span { display: block; height: 100%; }
+.pi-zone + .tl-scale { margin-top: 2px; }
+.ct-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 10px; }
+.ct-lesson { margin-top: 20px; }
+.ct { padding: 12px 14px; margin: 10px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); break-inside: avoid; }
+.ct .stem { font-weight: 600; margin: 0 0 6px; }
+.ct ol { list-style: upper-alpha; margin: 0 0 6px; font-size: 15px; }
+.ct ol li::marker { font-family: var(--f-mono); }
+.ct li .why { display: none; color: var(--muted); font-size: 14px; }
+.ct-bank.show .ct li.ok { color: var(--ok); font-weight: 600; }
+.ct-bank.show .ct li.ok::after { content: "  ✓"; }
+.ct-bank.show .ct li .why { display: block; font-weight: 400; }
+.ct .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; }
+.mc-chip { font: 600 13px var(--f-mono); padding: 1px 7px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
+@media (pointer: coarse) { .mc-chip { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 10px; } }
+.board-wrap { display: grid; gap: 14px; padding: 14px; }
+@media (min-width: 820px) { .board-wrap { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; } }
+.board-svg { width: 100%; max-width: 460px; display: block; margin: 0 auto; }
+.board-svg .fr { fill: var(--panel); stroke: var(--line); stroke-width: 2; }
+.board-svg g[data-f] { cursor: pointer; }
+.board-svg g[data-f]:focus-visible { outline: none; }
+.board-svg g[data-f].on .fr { stroke: var(--accent); stroke-width: 3.5; }
+/* keyboard focus: probe blue, thinner and dashed, so it never reads as the green «selected» frame (also over the team frames' inline colours) */
+.board-svg g[data-f]:focus-visible .fr { stroke: var(--focus) !important; stroke-width: 3; stroke-dasharray: 7 4; }
+.board-svg .ft { font: 700 16px var(--f-display); fill: var(--ink); }
+.board-svg .fs { font: 500 14px var(--f-mono); fill: var(--muted); }
+.board-svg .stk { stroke: none; }
+.chk { list-style: none; padding: 0; }
+.chk li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; margin: 0; border-bottom: 1px dashed var(--line); }
+.chk input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--ok); flex: none; }
+.chk .who { font: 600 13px var(--f-mono); color: var(--muted); white-space: nowrap; }
+blockquote.dm { margin: 10px 0; padding: 12px 14px; border-left: 4px solid var(--accent); background: var(--panel); border-radius: 0 8px 8px 0; }
+@media print {
+  .tl-ctl, .tl, .tl-scale, .tl-det, .tl-now, .legend-k, .pi-h, .ct-tools, .board-svg + p.small { display: none !important; }
+  .ct li.ok { font-weight: 700; } .ct li.ok::after { content: "  ✓"; }
+  .act, .ct { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">До змісту</a>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="teacher">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main" data-toc="Зміст методички">
+  <header id="top">
+    <p class="eyebrow">Методичка · 10–12 дорослих · Zoom без сесійних кімнат · запис</p>
+    <h1>Для <span>викладача</span></h1>
+    <p class="lead">Як провести двогодинний дзвінок, де кожен відповідає щонайменше раз на 10 хвилин, а все цінне потрапляє в запис. Почніть з мінімального пілоту: він не потребує підготовки.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><a class="chip" href="#pilot">Пілот: +12 хв, без підготовки</a></li>
+      <li><a class="chip" href="#bank">Банк ConcepTest-ів</a></li>
+      <li><a class="chip" href="../warmup/">Розминка</a></li>
+      <li><a class="chip" href="../team/">Командні виклики</a></li>
+    </ul>
+    <div class="actions">
+      <button type="button" class="btn primary" id="print">Надрукувати методичку</button>
+    </div>
+  </header>
+
+  <section class="hs" id="pilot">
+    <h2><span class="n">01</span> Мінімальний пілот</h2>
+    <p>Три рутини, які додають приблизно 12 хвилин і не потребують підготовки. Проведіть їх 2 тижні, перш ніж додавати щось іще: нова рутина починає йти сама приблизно з другого повторення.</p>
+    <div class="pilot-cards">
+      <div class="k-ret"><b class="h">Розминка</b><span class="t">5 хв · на початку</span><p>Покажіть екран <a href="../warmup/">розминки</a>: питання з попередніх уроків уже підібрані. Відповіді літерою в чат на «3-2-1».</p></div>
+      <div class="k-poe"><b class="h">Прогноз перед демо</b><span class="t">3–5 хв · у демо, яке ви й так робите</span><p>Перед вимірюванням на камеру — опитування «що покаже прилад?». Потім вимірювання і «чому?».</p></div>
+      <div class="k-exit"><b class="h">Квиток на вихід</b><span class="t">2 хв · наприкінці</span><p>Одне речення, найменш зрозуміле місце, впевненість 1–5. З двох найчастіших неясностей почніть наступний дзвінок.</p></div>
+    </div>
+    <p class="small">Через 2 тижні подивіться на три числа: скільки людей відповідає в опитуваннях, скільки квитків здано, що кажуть на ретро.</p>
+  </section>
+
+  <section class="hs" id="call">
+    <h2><span class="n">02</span> Сценарій заняття на 120 хвилин</h2>
+    <p>Жоден блок пояснення не триває довше 10–12 хвилин без відповіді від усієї групи. Сесійних кімнат немає, тож усе відбувається в головній кімнаті і потрапляє в запис.</p>
+    <div class="panel wide"><div class="pb">
+      <div class="tl-ctl">
+        <div class="seg" role="group" aria-label="День тижня" id="day"><button type="button" data-d="mon" aria-pressed="true">Пн</button><button type="button" data-d="wed" aria-pressed="false">Ср</button><button type="button" data-d="sat" aria-pressed="false">Сб</button></div>
+        <button type="button" class="btn sm" id="pilot-btn" aria-pressed="false">Лише пілот</button>
+      </div>
+      <div class="tl" id="tl" role="group" aria-label="Блоки заняття на шкалі часу"></div>
+      <div class="tl-scale"><span>0</span><span>30</span><span>60</span><span>90</span><span>120 хв</span></div>
+      <p class="tl-now" id="tl-now" aria-live="polite"></p>
+      <div class="tl-det" id="tl-det"></div>
+      <p class="pilot-say" id="pilot-say" hidden>Пілот — це <b>5 + 3–5 + 2 ≈ 12 хв</b> усередині трьох підсвічених блоків. Решту часу цих блоків і всі інші блоки ведіть, як звикли.</p>
+      <ul class="legend-k">
+        <li class="k-ret">пригадування</li><li class="k-pi">взаємне навчання</li><li class="k-poe">прогноз → перевірка</li><li class="k-build">збирання</li><li class="k-board">дошка</li><li class="k-exit">рефлексія</li><li class="k-brk">перерва</li><li class="k-oth">інше</li>
+      </ul>
+    </div></div>
+    <div class="tbl" id="call-tbl"><table><caption>Повна таблиця для друку</caption>
+      <thead><tr><th>Хв</th><th>Блок</th><th>Як</th></tr></thead>
+      <tbody id="call-table"></tbody></table></div>
+    <h3>Ритм тижня</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>День</th><th>Блок 95–108 хв</th><th>Після дзвінка</th></tr></thead>
+      <tbody>
+        <tr><th>Пн 19:00</th><td>Випуск командного виклику, ролі тижня на екрані, 2 хв у приватних повідомленнях з напарником: «перший крок?»</td><td>Міні-лаба, старт виклику, напарники #1</td></tr>
+        <tr><th>Ср 19:00</th><td>Розбір несправної збірки наживо (з #help, за згодою) або два міні-уроки студентів по 5 хв, через тиждень</td><td>Домашнє завдання, рецензії двох робіт за критеріями, напарники #2</td></tr>
+        <tr><th>Сб 10:00</th><td>Показ команд 3–4 × 3 хв і командний квіз на 5 питань (<a href="../warmup/">розминка</a> з відповідями команд у чат)</td><td>5 карток на тиждень, ретро, підсумок запису</td></tr>
+      </tbody></table></div>
+    <p class="small">Тиждень міні-проєкту: у понеділок збираємо разом і формуємо команди проєкту; у середу галерея на дошці, «Музей помилок» і калібрування рецензій; у суботу гнучка тема за голосуванням, ретро модуля і перемішування команд.</p>
+  </section>
+
+  <section class="hs" id="acts">
+    <h2><span class="n">03</span> Активності: як провести</h2>
+    <div class="acts">
+      <article class="act k-ret"><h3>Водоспад у чаті</h3><span class="t">1–2 хв · уся група</span>
+        <p>Незалежні відповіді від усіх, і ніхто не підлаштовується під першу.</p>
+        <ol><li>Поставте питання з варіантами А/Б/В/Г.</li><li><span class="say">«Пишіть, але не натискайте Enter.»</span></li><li><span class="say">«3, 2, 1, надсилайте!»</span></li><li>Прочитайте розподіл уголос, запросіть одного пояснити, без тиску: <span class="say">«Ви вже написали, поясніть?»</span></li></ol>
+        <p class="trap">Пастка: хтось надсилає раніше. Просто нагадуйте правило, без докорів.</p></article>
+      <article class="act k-poe"><h3>Прогноз в опитуванні (POE)</h3><span class="t">5–8 хв · демо на камеру</span>
+        <p>Хто лише дивиться демо, розуміє його не краще за тих, хто його не бачив; прогноз це змінює.</p>
+        <ol><li>Покажіть коло й питання: «що покаже прилад?»</li><li>Опитування або стікер на «Стіні прогнозів».</li><li>Виміряйте наживо на камеру.</li><li><span class="say">«Хто голосував за Б: що змусило вас так думати?»</span></li></ol>
+        <p class="trap">Пастка: показати результат до голосування. Спершу прогноз, потім щупи.</p></article>
+      <article class="act k-pi"><h3>Публічна пара</h3><span class="t">3–5 хв · після ConcepTest</span>
+        <p>Взаємне навчання без сесійних кімнат.</p>
+        <ol><li>Перше голосування. Якщо правильних 30–70 %, продовжуйте.</li><li>Запросіть двох із різними відповідями: кожен 60 с у мікрофон.</li><li>Або: кожен пише одне речення-обґрунтування на стікер, читає один чужий, що відрізняється.</li><li>Друге голосування, покажіть зсув, поясніть.</li></ol>
+        <p class="trap">Пастка: назвати правильну відповідь до другого голосування.</p></article>
+      <article class="act k-board"><h3>Спринт на дошці</h3><span class="t">4–6 хв · кожен у своїй рамці</span>
+        <p>Кожен створює щось своє, і всім видно, хто де застряг.</p>
+        <ol><li>Завдання на одну дію: «намалюйте шлях струму», «підпишіть пін».</li><li>Кожен у своїй підрамці команди, з підписом.</li><li>Пройдіться по 3–4 роботах, починаючи з тих, де є помилка, але не називайте автора.</li></ol>
+        <p class="trap">Пастка: завдання, на яке треба більше 3 хвилин.</p></article>
+      <article class="act k-build"><h3>Розбір збірки наживо</h3><span class="t">10–15 хв · середа</span>
+        <p>Показує метод пошуку несправностей — головне вміння в embedded.</p>
+        <ol><li>Заздалегідь візьміть несправну збірку з #help, за згодою автора.</li><li>Автор показує збірку; гіпотези — водоспадом.</li><li>Голосування «що міряти першим?»; автор міряє.</li><li>Озвучуйте порядок: живлення → земля → сигнали → код.</li></ol>
+        <p class="trap">Пастка: полагодити самому. Нехай міряє автор, а ви лише ведете.</p></article>
+      <article class="act k-pi"><h3>Міні-урок студента</h3><span class="t">5 хв + 1 питання · через тиждень</span>
+        <p>Хто готується пояснювати, організовує матеріал краще і пам'ятає довше.</p>
+        <ol><li>У суботу назвіть двох доповідачів і теми.</li><li>5 хвилин, одна схема або один віджет сайту.</li><li>Доповідач ставить групі одне питання (водоспад).</li><li>Ви додаєте 1 хв: одна сильна сторона, одне уточнення.</li></ol>
+        <p class="trap">Пастка: 15 хвилин замість 5. Тримайте таймер на екрані.</p></article>
+      <article class="act k-board"><h3>Галерея</h3><span class="t">10 хв · субота</span>
+        <p>Кожен бачить чужі рішення і дає відгук.</p>
+        <ol><li>Команди переносять результати в рамку «05 Галерея».</li><li>Кожен лишає 2 підписані стікери в чужих рамках: «Мені подобається…» і «Цікаво, а…».</li><li>Ви зачитуєте кілька стікерів уголос.</li></ol>
+        <p class="trap">Пастка: стікери «👍». Просіть повне речення.</p></article>
+      <article class="act k-exit"><h3>Квиток на вихід</h3><span class="t">2–3 хв · кінець кожного дзвінка</span>
+        <p>Метод «найменш зрозуміле місце»: майже без підготовки, а інформації дає багато.</p>
+        <ol><li>Розділ 14 сторінки уроку: одне речення, найменш зрозуміле місце, впевненість 1–5.</li><li>Студенти копіюють і надсилають вам приватно в чат Zoom або у форму.</li><li>Читання займає близько 10 хв; дві найчастіші неясності — на початок наступного дзвінка, з <b>новим</b> прикладом.</li></ol>
+        <p class="trap">Пастка: збирати квитки й не відповідати. Люди швидко перестануть писати.</p></article>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="ph"><h3>Перше голосування: що далі?</h3><span class="small">правило 30–70 %</span></div>
+      <div class="pi-h">
+        <label for="pi">Скільки відповіли правильно в першому голосуванні: <b id="pi-v">50 %</b></label>
+        <input type="range" id="pi" min="0" max="100" step="5" value="50">
+        <div class="pi-zone" aria-hidden="true"><span style="flex:30;background:var(--bad)"></span><span style="flex:40;background:var(--ok)"></span><span style="flex:30;background:var(--accent)"></span></div>
+        <div class="tl-scale" aria-hidden="true"><span>0 %</span><span>30</span><span>70</span><span>100 %</span></div>
+        <p class="pi-out" id="pi-out" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="hs" id="mc">
+    <h2><span class="n">04</span> Коди помилкових уявлень</h2>
+    <p>Ті самі коди стоять у квізах (поле <code>mc</code> питання), на картках «Типові помилки» і в банку нижче. Код позначає уявлення, яке перевіряє питання загалом; які саме хибні варіанти з ним пов'язані, видно з пояснень до варіантів («Показати відповіді» в банку).</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Код</th><th>Уявлення</th><th>Як воно звучить</th><th>Як спростувати</th></tr></thead>
+      <tbody>
+        <tr id="mc-M1"><th>M1</th><td>Струм «витрачається»</td><td>«Після LED струм менший»</td><td>Два амперметри до і після LED</td></tr>
+        <tr id="mc-M2"><th>M2</th><td>Батарея дає сталий струм</td><td>«Батарея завжди дає 1 А, на дві лампи по половині»</td><td>Додати паралельну гілку і виміряти загальний струм</td></tr>
+        <tr id="mc-M3"><th>M3</th><td>Послідовне міркування</td><td>«Резистор перед LED захищає, а після — ні»</td><td>Переставити R і LED, порівняти струм</td></tr>
+        <tr id="mc-M4"><th>M4</th><td>Локальне міркування</td><td>«Зміна в одній гілці не впливає на інші»</td><td>Розімкнути гілку і поміряти решту кола</td></tr>
+        <tr id="mc-M5"><th>M5</th><td>Плутанина напруги і струму</td><td>«Струму немає, отже напруги теж»</td><td>Вольтметр на розімкненому вимикачі</td></tr>
+        <tr id="mc-M6"><th>M6</th><td>Досить одного дроту; GND не частина кола</td><td>«GND — це просто мінус»</td><td>Від'єднати землю й побачити, що нічого не працює</td></tr>
+        <tr id="mc-M7"><th>M7</th><td>Зустрічні струми</td><td>«Струм виходить з обох полюсів і зустрічається в лампі»</td><td>Амперметр у різних точках показує той самий напрямок</td></tr>
+        <tr id="mc-M8"><th>M8</th><td>Перемичка нічого не змінює</td><td>«Дріт навколо лампи — і що?»</td><td>Закоротити деталь і поміряти</td></tr>
+        <tr id="mc-M9"><th>M9</th><td>Більший R бере більше струму; паралельні R збільшують опір</td><td>«10 кОм тягне більше»</td><td>Поміряти загальний опір двох паралельних резисторів</td></tr>
+        <tr id="mc-M10"><th>M10</th><td>Помилки з підключенням приладу і гніздами</td><td>Амперметр паралельно; перемикач забули на mA; щуп лишився в 10A</td><td>Ритуал після вимірювання струму: перемикач на V, червоний щуп із 10A — у VΩmA<sup class="cite" data-fact="ut136-jacks"></sup></td></tr>
+        <tr id="mc-E1"><th>E1</th><td>Вхід без підтяжки читає 0</td><td>«Нічого не підключено — отже нуль»</td><td>100 читань, торкаючись дроту</td></tr>
+        <tr id="mc-E2"><th>E2</th><td>Підтяжка «штовхає струм у пін»</td><td>«Через підтяжку завжди тече струм»</td><td>Амперметр у колі підтяжки: натиснуто і відпущено</td></tr>
+        <tr id="mc-E3"><th>E3</th><td>HIGH = 5 В, піни витримують 5 В</td><td>«Підключу 5-вольтовий датчик напряму»</td><td>Таблиця граничних значень у даташиті</td></tr>
+        <tr id="mc-E4"><th>E4</th><td>GPIO може живити навантаження</td><td>«Мотор прямо на пін»</td><td>Порівняти струм навантаження зі струмом виводу</td></tr>
+        <tr id="mc-E5"><th>E5</th><td>Напис на платі = номер GPIO</td><td>«Пін 13 на шовкографії — це GPIO13»</td><td>Схема плати і розпіновка</td></tr>
+        <tr id="mc-E6"><th>E6</th><td><code>delay()</code> зупиняє весь чип</td><td>«Під час delay нічого не працює»</td><td>Таймер і переривання під час delay</td></tr>
+        <tr id="mc-E7"><th>E7</th><td><code>volatile</code> робить доступ атомарним</td><td>«Поставив volatile — і все безпечно»</td><td><code>count++</code> з ISR і з loop одночасно</td></tr>
+        <tr id="mc-E8"><th>E8</th><td>Переривання «чекає» на кнопку</td><td>«CPU стоїть, поки не натиснуть»</td><td>Лічильник циклів loop під час очікування</td></tr>
+        <tr id="mc-E9"><th>E9</th><td>Натискання = HIGH / зростаючий фронт</td><td>«Натиснув — отже 1»</td><td>INPUT_PULLUP і Serial: натиснуто → 0</td></tr>
+      </tbody></table></div>
+    <h3>Тематичні коди: АЦП (урок 1.6), C++ для MCU (урок 2.1) і суперцикл (урок 2.3)</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Код</th><th>Уявлення</th><th>Як воно звучить</th><th>Як спростувати</th></tr></thead>
+      <tbody>
+        <tr id="mc-adc-3v3"><th>adc-3v3</th><td>Шкала АЦП — рівно 0…3,3&nbsp;В</td><td>«4095 — це 3,3&nbsp;В, рахую raw · 3300 / 4095»</td><td><code>analogReadMilliVolts()</code> поруч із розрахунком; калібрований діапазон за замовчуванням — до ≈ 2,9&nbsp;В<sup class="cite" data-fact="core-adc-default-atten"></sup></td></tr>
+        <tr id="mc-adc-dir"><th>adc-dir</th><td>Темніше — завжди більше число</td><td>«Закрив долонею — число зросте»</td><td>Порахувати подільник для обох положень LDR (зверху і знизу)</td></tr>
+        <tr id="mc-adc-ohm"><th>adc-ohm</th><td>Опір фоторезистора росте зі світлом</td><td>«Світліше — більший опір»</td><td>Омметр на LDR у темряві і під ліхтариком</td></tr>
+        <tr id="mc-adc-noise"><th>adc-noise</th><td>Стрибання відліків — несправність</td><td>«АЦП зламаний, числа скачуть»</td><td>Середнє з N вимірів: розкид падає як 1/√N</td></tr>
+        <tr id="mc-adc-pin"><th>adc-pin</th><td>Будь-який пін з АЦП годиться</td><td>«Візьму вільний пін ADC2 разом з Wi-Fi»</td><td>ADC2 не працює разом з Wi-Fi — беремо ADC1, GPIO1–10<sup class="cite" data-fact="s3-adc2-wifi"></sup></td></tr>
+        <tr id="mc-const-flash"><th>const-flash</th><td>Усе <code>const</code> лежить у flash</td><td>«<code>const int k = analogRead(4);</code> — теж у flash»</td><td>Порівняти <code>constexpr</code>-таблицю і <code>const</code>, обчислений під час запуску</td></tr>
+        <tr id="mc-exc-free"><th>exc-free</th><td>Винятки нічого не коштують, поки не кинуті</td><td>«<code>throw</code>/<code>catch</code> безкоштовні, якщо помилок немає»</td><td>Зібрати скетч з одним <code>throw</code> і без нього, порівняти рядок «Flash: … used»</td></tr>
+        <tr id="mc-fast-loop"><th>fast-loop</th><td>Чим швидше крутиться <code>loop()</code>, тим краще</td><td>«Мільйон проходів за секунду — отже прошивка хороша»</td><td>Додати в неблокуючий <code>loop()</code> <code>delayMicroseconds(1000)</code>: кнопка працює так само; важливо, щоб найдовший прохід був коротший за найкоротшу подію</td></tr>
+        <tr id="mc-heap"><th>heap</th><td>Вільна купа = найбільший блок</td><td>«200&nbsp;КБ вільно, отже 30&nbsp;КБ виділиться»</td><td><code>ESP.getFreeHeap()</code> проти <code>ESP.getMaxAllocHeap()</code></td></tr>
+        <tr id="mc-level-vs-edge"><th>level-vs-edge</th><td>Рівень сигналу = подія натискання</td><td>«<code>if (кнопка натиснута) onPress();</code>»</td><td>Прибрати <code>&amp;&amp; !wasDown</code> у міні-лабі: лічильник натискань летить угору</td></tr>
+        <tr id="mc-millis"><th>millis</th><td>Інтервал перевіряють порівнянням моментів</td><td>«<code>if (millis() &gt; last + interval)</code>»</td><td>Переповнення <code>millis()</code>: лише <code>now - last &gt;= interval</code> в <code>uint32_t</code></td></tr>
+        <tr id="mc-ms-precision"><th>ms-precision</th><td><code>millis()</code> точний до мікросекунди</td><td>«Відміряю 300&nbsp;мкс через <code>millis()</code>»</td><td>Надрукувати <code>millis()</code> і <code>micros()</code> двічі поспіль: крок <code>millis()</code> — 1&nbsp;мс; для коротших інтервалів — <code>micros()</code></td></tr>
+        <tr id="mc-new-ban"><th>new-ban</th><td><code>new</code> заборонений завжди</td><td>«У прошивці жодного <code>new</code>»</td><td>Одне виділення в <code>setup()</code> прийнятне; шкодить постійне виділення й звільнення</td></tr>
+        <tr id="mc-overflow"><th>overflow</th><td><code>now &gt;= last + interval</code> — те саме, що <code>now - last &gt;= interval</code></td><td>«Це ж та сама нерівність»</td><td>Віджет «Переповнення <code>millis()</code>» в уроці 2.3: <code>last + interval</code> переповнюється, умова спрацьовує зарано або «застрягає»</td></tr>
+        <tr id="mc-rtti"><th>rtti</th><td>Доступні всі можливості C++</td><td>«<code>dynamic_cast</code> і <code>typeid</code> працюють»</td><td>Скомпілювати приклад: ядро збирає з <code>-fno-rtti</code></td></tr>
+        <tr id="mc-stl-ban"><th>stl-ban</th><td>Контейнери STL безпечні в <code>loop()</code></td><td>«<code>push_back</code> щосекунди — нормально»</td><td>Купа і найбільший блок через годину роботи</td></tr>
+        <tr id="mc-superloop"><th>superloop</th><td>Функція в суперциклі може чекати події</td><td>«<code>while (!ready) {}</code> — і все»</td><td>Найдовший прохід <code>loop()</code> через <code>micros()</code></td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="hs" id="bank">
+    <h2><span class="n">05</span> Банк ConcepTest-ів</h2>
+    <p>Питання рівня «розуміння» з квізів уроків. Хибні варіанти складено з типових помилкових уявлень, а пояснення до кожного варіанта («Показати відповіді») кажуть, яке саме уявлення за ним стоїть. Тож розподіл голосів показує, що незрозуміло. Будь-яке питання можна відкрити на екрані через розминку.</p>
+    <div class="ct-tools">
+      <button type="button" class="btn sm" id="ct-show" aria-pressed="false">Показати відповіді</button>
+      <label class="small">Урок <select id="ct-lesson" style="min-height:38px"></select></label>
+      <a class="btn ghost sm" id="ct-all" href="../warmup/">Усі вибрані — на проєктор</a>
+    </div>
+    <div class="ct-bank" id="ct-bank"><p class="muted">Завантаження…</p></div>
+  </section>
+
+  <section class="hs" id="warmup">
+    <h2><span class="n">06</span> Як запустити розминку</h2>
+    <ol>
+      <li>Відкрийте <a href="../warmup/">сторінку «Розминка»</a> і покажіть екран у Zoom. Питання вже підібрані: 5 питань — 2 з останніх уроків, 1 з минулого тижня, 2 давніші.</li>
+      <li>Кожне питання — опитуванням або водоспадом у чаті: літера А/Б/В/Г, Enter на «3-2-1».</li>
+      <li>Якщо правильних 30–70 %, двоє пояснюють свій вибір, потім «Голосування 2» (клавіша <kbd>V</kbd>).</li>
+      <li>«Показати відповідь» (<kbd>Enter</kbd>), одна людина пояснює своїми словами, далі <kbd>→</kbd>.</li>
+    </ol>
+    <div class="tbl"><table><thead><tr><th>Посилання</th><th>Що робить</th></tr></thead><tbody>
+      <tr><td><a href="../warmup/?mix=last:2,week:1,old:2"><code>warmup/?mix=last:2,week:1,old:2</code></a></td><td>2 питання з останніх уроків, 1 з минулого тижня, 2 давніші (типово)</td></tr>
+      <tr><td><a href="../warmup/?current=2-4"><code>warmup/?current=2-4</code></a></td><td>Розминка до уроку 2.4: лише з попередніх уроків</td></tr>
+      <tr><td><a href="../warmup/?q=1-4-q03,1-1-q07"><code>warmup/?q=1-4-q03,1-1-q07</code></a></td><td>Конкретні питання в заданому порядку (id з банку вище)</td></tr>
+      <tr><td><a href="../warmup/?t=45"><code>warmup/?t=45</code></a></td><td>Таймер 45 с замість 60</td></tr>
+      <tr><td><a href="../warmup/?mode=self"><code>warmup/?mode=self</code></a></td><td>Самоперевірка для студентів (без проєктора)</td></tr>
+    </tbody></table></div>
+    <p class="small">Добірка однакова протягом дня, тож посилання, надіслане в Slack заздалегідь, покаже ті самі питання.</p>
+  </section>
+
+  <section class="hs" id="board">
+    <h2><span class="n">07</span> Шаблон дошки tldraw</h2>
+    <p>Зараз дошка — одне велике полотно, де змішано довідку, начерки і роботи студентів. Пропозиція: старе полотно лишити архівом «Модулі 1–2», для кожного модуля новий файл, для кожного уроку окрема сторінка з однаковими рамками. Шаблон сторінки робите один раз, далі лише дублюєте.</p>
+    <div class="panel wide"><div class="board-wrap">
+      <svg class="board-svg" id="board-svg" viewBox="0 0 360 500" role="group" aria-label="Схема сторінки дошки: зверху рамки 00 Розминка і 01 Ключові ідеї з позначкою «перевірено»; далі 02 Чернетка викладача і 04 Паркінг питань; широка 03 Стіна прогнозів із зонами А, Б, В; чотири командні рамки Ом, Вольт, Ампер, Фарад з підрамками учасників; унизу 05 Галерея і 06 Ретро (лише в суботу).">
+        <g data-f="0" tabindex="0" role="button" aria-label="00 Розминка"><rect class="fr" x="6" y="6" width="140" height="74" rx="6"/><text class="ft" x="16" y="30">00 Розминка</text><text class="fs" x="16" y="52">знімок питань</text></g>
+        <g data-f="1" tabindex="0" role="button" aria-label="01 Ключові ідеї"><rect class="fr" x="154" y="6" width="200" height="74" rx="6"/><text class="ft" x="164" y="30">01 Ключові ідеї</text><rect x="164" y="44" width="104" height="24" rx="12" fill="var(--ok)"/><text x="216" y="61" text-anchor="middle" style="font:600 13px var(--f-mono);fill:var(--paper)">✓ перевірено</text></g>
+        <g data-f="2" tabindex="0" role="button" aria-label="02 Чернетка викладача"><rect class="fr" x="6" y="88" width="170" height="70" rx="6"/><text class="ft" x="16" y="112">02 Чернетка</text><path d="M20 140c15-14 30 8 45-4s25 10 45-6" fill="none" stroke="var(--muted)" stroke-width="2"/></g>
+        <g data-f="4" tabindex="0" role="button" aria-label="04 Паркінг питань"><rect class="fr" x="184" y="88" width="170" height="70" rx="6"/><text class="ft" x="194" y="112">04 Паркінг</text><rect class="stk" x="196" y="124" width="22" height="22" fill="var(--hi)" opacity=".7"/><rect class="stk" x="224" y="124" width="22" height="22" fill="var(--hi)" opacity=".7"/><text class="fs" x="254" y="140">питання</text></g>
+        <g data-f="3" tabindex="0" role="button" aria-label="03 Стіна прогнозів"><rect class="fr" x="6" y="166" width="348" height="96" rx="6"/><text class="ft" x="16" y="190">03 Стіна прогнозів</text>
+          <g class="fs"><text x="40" y="214">А</text><text x="156" y="214">Б</text><text x="272" y="214">В</text></g>
+          <path d="M122 200V254M238 200V254" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 4"/>
+          <g fill="var(--accent)" opacity=".75"><rect class="stk" x="58" y="222" width="18" height="18"/><rect class="stk" x="80" y="222" width="18" height="18"/><rect class="stk" x="146" y="222" width="18" height="18"/><rect class="stk" x="168" y="222" width="18" height="18"/><rect class="stk" x="190" y="222" width="18" height="18"/><rect class="stk" x="262" y="222" width="18" height="18"/></g></g>
+        <g data-f="5" tabindex="0" role="button" aria-label="Командні рамки">
+          <rect class="fr" x="6" y="270" width="170" height="76" rx="6" style="stroke:var(--team-ohm)"/><text class="ft" x="16" y="292" style="fill:var(--team-ohm)">Ом</text>
+          <rect class="fr" x="184" y="270" width="170" height="76" rx="6" style="stroke:var(--team-volt)"/><text class="ft" x="194" y="292" style="fill:var(--team-volt)">Вольт</text>
+          <rect class="fr" x="6" y="354" width="170" height="76" rx="6" style="stroke:var(--team-amp)"/><text class="ft" x="16" y="376" style="fill:var(--team-amp)">Ампер</text>
+          <rect class="fr" x="184" y="354" width="170" height="76" rx="6" style="stroke:var(--team-farad)"/><text class="ft" x="194" y="376" style="fill:var(--team-farad)">Фарад</text>
+          <g fill="none" stroke="var(--line)" stroke-width="1.5">
+            <rect x="16" y="300" width="34" height="36" rx="3"/><rect x="56" y="300" width="34" height="36" rx="3"/><rect x="96" y="300" width="34" height="36" rx="3"/><rect x="136" y="300" width="34" height="36" rx="3"/>
+            <rect x="194" y="300" width="34" height="36" rx="3"/><rect x="234" y="300" width="34" height="36" rx="3"/><rect x="274" y="300" width="34" height="36" rx="3"/><rect x="314" y="300" width="34" height="36" rx="3"/>
+            <rect x="16" y="384" width="34" height="36" rx="3"/><rect x="56" y="384" width="34" height="36" rx="3"/><rect x="96" y="384" width="34" height="36" rx="3"/><rect x="136" y="384" width="34" height="36" rx="3"/>
+            <rect x="194" y="384" width="34" height="36" rx="3"/><rect x="234" y="384" width="34" height="36" rx="3"/><rect x="274" y="384" width="34" height="36" rx="3"/>
+          </g></g>
+        <g data-f="6" tabindex="0" role="button" aria-label="05 Галерея"><rect class="fr" x="6" y="438" width="170" height="56" rx="6"/><text class="ft" x="16" y="462">05 Галерея</text><text class="fs" x="16" y="482">результати команд</text></g>
+        <g data-f="7" tabindex="0" role="button" aria-label="06 Ретро"><rect class="fr" x="184" y="438" width="170" height="56" rx="6" stroke-dasharray="6 4"/><text class="ft" x="194" y="462">06 Ретро (сб)</text><text class="fs" x="194" y="482">3 колонки</text></g>
+      </svg>
+      <div>
+        <h3 id="bf-h">Натисніть рамку</h3>
+        <p id="bf-p">Кожна рамка має одне призначення. Натисніть будь-яку на схемі, щоб прочитати, хто там пише і що.</p>
+        <h4>Правила для всіх</h4>
+        <ul>
+          <li>Кожен стікер і зображення підписані іменем.</li>
+          <li>Чуже не рухаємо і не видаляємо.</li>
+          <li>Еталон — лише рамка 01; неперевірені схеми лишаються в командних рамках.</li>
+          <li>Щосуботи Писар дошки експортує сторінки тижня в PNG і викладає в Slack <code>#recordings</code> (не на сайт: там імена).</li>
+        </ul>
+        <div class="note warn"><p>Посилання на дошку дає право редагувати, тому на сайті його немає і не буде. Воно лише в Slack.</p></div>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="hs" id="recordings">
+    <h2><span class="n">08</span> Записи: розділи і підсумок</h2>
+    <p>Двогодинний запис корисний, лише якщо по ньому можна переходити розділами. Тому найцінніше (демо з прогнозом, розбір наживо, показ команд, міні-уроки) завжди робимо в головній кімнаті.</p>
+    <ol>
+      <li><b>Хронометрист</b> під час дзвінка пише в чат мітки: <code>[00:31] Прогноз: напруга на подільнику LDR</code>.</li>
+      <li><b>Підсумовувач</b> протягом доби публікує в Slack <code>#recordings</code> закріплений допис за шаблоном нижче. Ви витрачаєте 3 хвилини на виправлення.</li>
+      <li>На сторінці уроку в «Матеріалах» лише зміст з мітками часу і «запис — у LMS». Самих посилань на записи на сайті немає.</li>
+      <li>Якщо ліцензія Zoom має AI Companion Smart Recording, автоматичний зміст стане чернеткою для Підсумовувача (технічні терміни там часто плутаються).</li>
+      <li>Короткі фрагменти по 3–6 хв (найкращий прогноз, найкращий розбір) — лише з дозволу школи і згоди студентів у кадрі.</li>
+    </ol>
+    <pre id="recap-tpl">*Запис:* (посилання з LMS)
+*Розділи:*
+00:00 …
+*5 головних думок:*
+1. …
+*Якщо маєте лише 5 хвилин:* розділ …
+*3 питання для наступної розминки:*
+1. …</pre>
+    <button type="button" class="btn sm" data-copy="#recap-tpl">Скопіювати шаблон підсумку</button>
+  </section>
+
+  <section class="hs" id="teams">
+    <h2><span class="n">09</span> Команди, ролі, бали</h2>
+    <ul>
+      <li><b>Команди</b> Ом, Вольт, Ампер, Фарад по 3–4 людини. Змішуйте досвід (запитайте про нього в першому квитку на вихід). Склад діє один модуль.</li>
+      <li><b>Ролі тижня</b> (Збирач, Вимірювач, Доповідач, Скептик) змінюються щопонеділка. Без ротації одні люди постійно опиняються на нетехнічних ролях. Генератор ротації — на <a href="../team/#roles">сторінці викликів</a>.</li>
+      <li><b>Ролі на дзвінку</b>: Хронометрист, Чат-монітор, Писар дошки, Підсумовувач — щодзвінка нові люди.</li>
+      <li><b>Бали</b> лише командні, лише за докази вміння, без штрафів. Значки майстерності приватні. Семестрове дослідження з обов'язковими значками і рейтингом показало нижчу мотивацію і нижчі оцінки на іспиті (Hanus &amp; Fox 2015). Якщо одна команда виграє тричі поспіль, перемішайте команди.</li>
+    </ul>
+    <p class="small">Орієнтовний час викладача: квитки 10 хв на дзвінок, підсумок запису 5 хв, бали й відгуки на дописи команд 30–40 хв на тиждень.</p>
+  </section>
+
+  <section class="hs" id="propose">
+    <h2><span class="n">10</span> Звідки ця сторінка і що ми пропонуємо</h2>
+    <p>Сайт зробили студенти групи як конспект і тренажер. Ми не пропонуємо переробляти курс, лише спробувати мінімальний пілот на 2 тижні. Просимо про три речі:</p>
+    <ol>
+      <li>Чи можна на сайті переказувати уроки LMS своїми словами й посилатися на них (без копіювання тексту і зображень)?</li>
+      <li>Чи можна просити студентів про квиток на вихід (2 хвилини наприкінці)?</li>
+      <li>Чи можна сформувати команди з ролями для позадзвінкових викликів?</li>
+    </ol>
+    <p>Через 2 тижні покажемо три числа: частку тих, хто відповідає в опитуваннях, кількість зданих квитків, відвідування сторінок (якщо група погодиться на аналітику без стеження). Що залишити, вирішує ретро. Помилки на сайті виправляє супровідник; студенти пропонують картки й експонати «Музею помилок» через Discussions.</p>
+    <details class="more"><summary>Чернетка першого повідомлення в Slack (для власника сайту)</summary>
+      <blockquote class="dm" id="dm">Добрий день! Я зробив(ла) для себе й групи сайт-конспект уроків: коротка сторінка на кожен урок з інтерактивом, картками для повторення і самоперевіркою. Там є сторінка «Розминка» — кілька питань з попередніх уроків для початку заняття, 3–5 хвилин і без підготовки з вашого боку. Може, спробуємо її два тижні? Якщо побачите помилки, я виправлю. Якщо вам цікаво, можу ще допомогти з командами чи дошкою.</blockquote>
+      <button type="button" class="btn sm" data-copy="#dm">Скопіювати</button>
+    </details>
+    <h3>Хто що робить</h3>
+    <p class="small">Позначки зберігаються лише у вашому браузері.</p>
+    <ul class="chk" id="chk">
+      <li><input type="checkbox" id="c1"><label for="c1">Погодити пілот на 2 тижні</label><span class="who">викладач</span></li>
+      <li><input type="checkbox" id="c2"><label for="c2">Опитування в Zoom (потрібен ліцензований організатор) або водоспади в чаті</label><span class="who">викладач</span></li>
+      <li><input type="checkbox" id="c3"><label for="c3">Форма для квитка на вихід (за бажанням, можна анонімно)</label><span class="who">викладач</span></li>
+      <li><input type="checkbox" id="c4"><label for="c4">Сформувати команди або затвердити список студентів</label><span class="who">викладач</span></li>
+      <li><input type="checkbox" id="c5"><label for="c5">Новий файл tldraw на модуль, сторінка на урок</label><span class="who">викладач</span></li>
+      <li><input type="checkbox" id="c6"><label for="c6">Згода на фрагменти записів</label><span class="who">викладач</span></li>
+      <li><input type="checkbox" id="c7"><label for="c7">Увімкнути GitHub Discussions і категорії, встановити giscus</label><span class="who">власник</span></li>
+      <li><input type="checkbox" id="c8"><label for="c8">Додати викладача як співавтора репозиторію; ліцензія і сторонні ліцензії</label><span class="who">власник</span></li>
+      <li><input type="checkbox" id="c9"><label for="c9">Акаунти GitHub (псевдоніми можна), ролі, картки, дописи Доповідачів</label><span class="who">студенти</span></li>
+    </ul>
+  </section>
+
+  <section class="hs" id="more">
+    <h2><span class="n">11</span> Джерела</h2>
+    <ul class="small">
+      <li>Freeman та ін. (2014). Active learning increases student performance in science, engineering, and mathematics. <i>PNAS</i>. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4060654/" target="_blank" rel="noopener">PMC</a></li>
+      <li>Crouch, Mazur (2001). Peer Instruction: ten years of experience and results. <a href="https://mazur.harvard.edu/publications/peer-instruction-ten-years-experience-and-results" target="_blank" rel="noopener">mazur.harvard.edu</a>; правило 30–70 %: <a href="https://serc.carleton.edu/introgeo/conceptests/how.html" target="_blank" rel="noopener">SERC</a></li>
+      <li>Crouch та ін. (2004). Classroom demonstrations: learning tools or entertainment? <a href="https://www.compadre.org/IntroPhys/items/detail.cfm?ID=2329" target="_blank" rel="noopener">ComPADRE</a></li>
+      <li>Smith та ін. (2009). Why peer discussion improves student performance on in-class concept questions. <i>Science</i>. <a href="https://vivo.colorado.edu/display/pubid_30275" target="_blank" rel="noopener">запис</a></li>
+      <li>Hanus, Fox (2015). Assessing the effects of gamification in the classroom. <a href="https://www.smhp.psych.ucla.edu/pdfdocs/gamil.pdf" target="_blank" rel="noopener">огляд</a></li>
+      <li>Angelo, Cross: «Muddiest Point». <a href="https://itlecs.okstate.edu/PDF/itle/TeachingTips/Classroom_Assessment_Techniques_MuddiestPoint.pdf" target="_blank" rel="noopener">OSU</a></li>
+      <li>Guo, Kim, Rubin (2014). How video production affects student engagement. <a href="https://www.cs.rochester.edu/hci/pubs/pdfs/edX-MOOC-video-production-and-engagement_LAS-2014.pdf" target="_blank" rel="noopener">PDF</a></li>
+      <li>Записи Zoom і сесійні кімнати (хмарний запис фіксує лише головну кімнату): <a href="https://kb.iu.edu/d/arwb" target="_blank" rel="noopener">IU KB</a></li>
+      <li>Ролі POGIL: <a href="https://ctl.wustl.edu/resources/using-roles-in-group-work/" target="_blank" rel="noopener">WashU</a></li>
+      <li>Коди M1–M10: Engelhardt &amp; Beichner (2004) <a href="https://arxiv.org/abs/physics/0304040" target="_blank" rel="noopener">arXiv</a>; IOP Spark <a href="https://spark.iop.org/many-students-think-battery-supplies-same-current-regardless-circuit-which-it-used" target="_blank" rel="noopener">(батарея)</a>. E1–E9 — з практики викладання.</li>
+    </ul>
+    <div id="sources"><h3>Факти про залізо</h3></div>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/quiz.js" defer></script>
+<script>
+document.addEventListener('study:ready', async () => {
+  'use strict';
+  const { $, $$, store } = Study;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safe = (s) => esc(s).replace(/&lt;(\/?)(b|i|sub|sup|br|code)\s*\/?&gt;/gi, '<$1$2>');
+
+  $('#print').addEventListener('click', () => window.print());
+  $$('[data-copy]').forEach((b) => b.addEventListener('click', () => Study.copy($(b.dataset.copy).textContent.trim())));
+
+  /* ==== 02 call timeline ==== */
+  const DAY = {
+    mon: ['Пн: випуск виклику', 'Покажіть командний виклик тижня і критерії, ролі тижня на екрані, рамки команд на дошці. 2 хв у приватних повідомленнях з напарником: «з чого почнеш?»'],
+    wed: ['Ср: розбір наживо / міні-уроки', 'Через тиждень: несправна збірка студента з #help (за згодою), гіпотези водоспадом, голосування «що міряти першим?» — або два міні-уроки студентів по 5 хв.'],
+    sat: ['Сб: показ команд + квіз', 'Команди по 3 хв: Збирач на камері, Доповідач розповідає, Скептик іншої команди питає. Потім командний квіз на 5 питань на сторінці розминки, відповіді команд у чат.'],
+  };
+  const B = [
+    [0, 3, 'oth', 'Збір', 'Водоспад: «одне слово: що зібрали або спалили?» Сторінка дошки на сьогодні вже відкрита.', 0],
+    [3, 11, 'ret', 'Розминка', 'Екран сторінки розминки. Кожне питання — опитування або водоспад, відповідь, одне запрошення пояснити (без тиску).', '5'],
+    [11, 15, 'oth', 'Найменш зрозуміле', '1–2 найчастіші неясності з квитків минулого дзвінка, з новим прикладом.', 0],
+    [15, 18, 'pi', 'Підсумок від студента', '3 хв: студент за графіком переказує минулий урок; група додає одне уточнення в чат.', 0],
+    [18, 22, 'oth', 'Навіщо + цілі', '«Навіщо це» і «Після уроку ви зможете» зі сторінки уроку.', 0],
+    [22, 34, 'pi', 'Пояснення 1 + ConcepTest', '≤ 10 хв розповіді, потім ConcepTest: голосування → якщо 30–70 %, публічна пара або стікери-обґрунтування → друге голосування → пояснення.', 0],
+    [34, 46, 'poe', 'Прогноз → демо', 'Прогноз на «Стіні прогнозів» або в опитуванні → вимірювання наживо на камеру (ви або Збирач) чи віджет сайту → «чому?».', '3–5'],
+    [46, 55, 'pi', 'Пояснення 2 + «Знайди помилку»', 'Схема або код з 1–3 закладеними помилками; рядок чи деталь — водоспадом.', 0],
+    [55, 62, 'brk', 'Перерва', 'Охочі можуть лишити камеру на макетці, щоб отримати допомогу.', 0],
+    [62, 90, 'build', 'Збирання разом', 'Ви збираєте на камеру, студенти паралельно вдома. Контрольні точки кожні ~5 хв: реакція 👍, коли LED світиться, або виміряне значення водоспадом. Чат-монітор збирає тих, хто застряг, у гілку #help.', 0],
+    [90, 95, 'board', 'Спринт на дошці', 'Кожен малює чи підписує одну річ у своїй підрамці. Пройдіться по 3–4 роботах.', 0],
+    [95, 108, 'oth', 'Блок дня', '', 0],
+    [108, 116, 'exit', 'Квиток на вихід', 'Квиток (2–3 хв): розділ 14 сторінки уроку → приватне повідомлення вам у чаті або форма. Решта блоку — «картка дня»: кожен пропонує ідею однієї картки, і відповіді на 1–2 питання з квитків.', '2'],
+    [116, 120, 'oth', 'Завершення', 'Назвіть ролі на наступний дзвінок; Хронометрист підтверджує список розділів.', 0],
+  ];
+  let day = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+  if (!DAY[day]) day = 'mon';
+  const tl = $('#tl');
+  const text = (b) => (b[3] === 'Блок дня' ? DAY[day][1] : b[4]);
+  const title = (b) => (b[3] === 'Блок дня' ? DAY[day][0] : b[3]);
+  tl.innerHTML = B.map((b, i) => `<button type="button" class="k-${b[2]}${b[5] ? ' pilot' : ''}" style="--w:${b[1] - b[0]}" data-i="${i}" aria-pressed="false" aria-label="${b[0]}–${b[1]} хв: ${esc(b[3])}"><span class="tl-lbl" aria-hidden="true"><b>${b[0]}–${b[1]}</b>${esc(b[3])}</span></button>`).join('');
+  let sel = 1;
+  function show(i) {
+    sel = i;
+    const b = B[i];
+    $$('button', tl).forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.i === i)));
+    const det = $('#tl-det');
+    det.className = 'tl-det k-' + b[2];
+    det.innerHTML = `<span class="t">${b[0]}–${b[1]} хв · ${b[1] - b[0]} хв${b[5] ? ` · пілот: ${b[5]} хв у межах блоку` : ''}</span><h3>${esc(title(b))}</h3><p>${esc(text(b))}</p>`;
+  }
+  function table() {
+    $('#call-table').innerHTML = B.map((b) => `<tr class="k-${b[2]}"><td class="k">${b[0]}–${b[1]}</td><th>${esc(title(b))}</th><td>${esc(text(b))}</td></tr>`).join('');
+    labelCells();
+  }
+  // Column names on cells, shown as labels when the tables stack on phones.
+  function labelCells() {
+    $$('main .tbl > table').forEach((t) => {
+      const heads = $$('thead th', t).map((h) => h.textContent.trim());
+      $$('tbody tr', t).forEach((tr) => [...tr.children].forEach((c, i) => { if (c.tagName === 'TD' && heads[i] && i > 0) c.dataset.l = heads[i]; }));
+    });
+  }
+  tl.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(+b.dataset.i); });
+  $$('#day button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.d === day));
+    b.addEventListener('click', () => { day = b.dataset.d; $$('#day button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); show(sel); table(); tick(); });
+  });
+  $('#pilot-btn').addEventListener('click', (e) => {
+    const on = !tl.classList.contains('pilot');
+    tl.classList.toggle('pilot', on);
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    $('#pilot-say').hidden = !on;
+    if (on) show(1);
+  });
+  // «Зараз» marker during a real call (Mon/Wed 19:00, Sat 10:00). ?now=19:40 to test.
+  function tick() {
+    const q = new URLSearchParams(location.search).get('now');
+    const d = new Date();
+    let mins = d.getHours() * 60 + d.getMinutes();
+    if (q && /^\d{1,2}:\d{2}$/.test(q)) { const [h, m] = q.split(':'); mins = +h * 60 + +m; }
+    const start = day === 'sat' ? 600 : 1140;
+    const m = mins - start;
+    $$('.now', tl).forEach((x) => x.remove());
+    const todayIs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()] === day || !!q;
+    if (!todayIs || m < 0 || m >= 120) { $('#tl-now').textContent = ''; return; }
+    const i = B.findIndex((b) => m >= b[0] && m < b[1]);
+    const btn = $$('button', tl)[i];
+    const mark = document.createElement('span');
+    mark.className = 'now'; mark.style.setProperty('--p', ((m - B[i][0]) / (B[i][1] - B[i][0]) * 100) + '%');
+    btn.append(mark);
+    $('#tl-now').textContent = `Зараз ми на ${m}-й хвилині дзвінка: ${title(B[i])}, до кінця блоку ${B[i][1] - m} хв.`;
+    if (sel !== i) show(i);
+  }
+  show(1); table(); tick();
+  setInterval(tick, 30000);
+
+  /* ==== 03 30–70 % helper ==== */
+  const pi = $('#pi');
+  const piSay = () => {
+    const v = +pi.value;
+    $('#pi-v').textContent = v + ' %';
+    $('#pi-out').innerHTML = v < 30
+      ? '<b>Пояснити ще раз.</b> Обговорення мало що дасть: правильну відповідь майже ніхто не знає. Дайте новий приклад або демо, потім подібне питання.'
+      : v <= 70
+      ? '<b>Обговорення в парах.</b> Ідеальна зона: двоє з різними відповідями пояснюють 60 с, потім друге голосування. Покажіть зсув між голосуваннями.'
+      : '<b>Коротко пояснити і йти далі.</b> Більшість розуміє. Попросіть одного пояснити своїми словами і переходьте до наступного.';
+  };
+  pi.addEventListener('input', piSay); piSay();
+
+  /* ==== 05 ConcepTest bank from data/quiz/*.json (level: concept) ==== */
+  const bank = $('#ct-bank');
+  const Q = window.StudyQuiz;
+  const C = window.COURSE;
+  const lessons = C ? C.modules.flatMap((m) => m.lessons || []) : [];
+  // Fetch only quizzes that COURSE says exist, so nothing 404s; else the demo file.
+  // Draft lessons with their own hub (no `hub` override, e.g. not the flex slot) already have quiz files.
+  const hasQuiz = (l) => l.deck !== false && (typeof l.quiz === 'number' ? l.quiz > 0 : l.status === 'ready' || (l.status === 'draft' && !l.hub));
+  let ids = lessons.filter(hasQuiz).map((l) => l.id), demo = false;
+  if (!ids.length) { ids = ['_sample']; demo = true; }
+  let items = [];
+  try { items = Q ? (await Q.load(ids)).filter((q) => q.level === 'concept' && q.kind === 'mcq') : []; } catch { items = []; }
+  const byLesson = new Map();
+  items.forEach((q) => { const k = demo ? '_sample' : q.lesson; if (!byLesson.has(k)) byLesson.set(k, []); byLesson.get(k).push(q); });
+  const lsel = $('#ct-lesson');
+  const nameOf = (id) => (id === '_sample' ? 'демо-набір' : `урок ${(Q && Q.lessonN) ? Q.lessonN(id) : id}`);
+  lsel.innerHTML = `<option value="">усі</option>` + [...byLesson.keys()].map((k) => `<option value="${esc(k)}">${esc(nameOf(k))}</option>`).join('');
+  const warmHref = (qs) => '../warmup/?q=' + qs.map((q) => encodeURIComponent(q.id)).join(',');
+  function drawBank() {
+    const f = lsel.value;
+    const groups = [...byLesson.entries()].filter(([k]) => !f || k === f);
+    if (!groups.length) { bank.innerHTML = '<p class="muted">Питань рівня «розуміння» поки немає. Вони з’являться, коли квізи уроків буде опубліковано.</p>'; $('#ct-all').hidden = true; return; }
+    bank.innerHTML = (demo ? '<div class="note"><p>Квізи уроків ще не підключені до карти курсу, тому тут показано демо-набір. Щойно уроки буде опубліковано, банк заповниться сам.</p></div>' : '') +
+      groups.map(([k, qs]) => `<div class="ct-lesson"><h3>${esc(nameOf(k))} · ${qs.length}</h3>` + qs.map((q) => `<div class="ct">
+        <p class="stem">${safe(q.stem)}</p>
+        <ol>${q.options.map((o) => `<li class="${o.ok ? 'ok' : ''}">${safe(o.t)}${o.why ? `<span class="why">${safe(o.why)}</span>` : ''}</li>`).join('')}</ol>
+        <div class="meta"><code>${esc(q.id)}</code>${q.mc.map((m) => `<a class="mc-chip" href="#mc-${esc(m)}">${esc(m)}</a>`).join('')}<a class="btn ghost sm" href="${warmHref([q])}">На проєктор</a></div>
+      </div>`).join('') + '</div>').join('');
+    const all = groups.flatMap(([, qs]) => qs);
+    $('#ct-all').hidden = false;
+    $('#ct-all').href = warmHref(all.slice(0, 12));
+  }
+  // Default to the latest lesson so the page stays short; «усі» is one click away.
+  if (!demo && byLesson.size > 1) lsel.value = [...byLesson.keys()].pop();
+  lsel.addEventListener('change', drawBank);
+  $('#ct-show').addEventListener('click', (e) => {
+    const on = !bank.classList.contains('show');
+    bank.classList.toggle('show', on);
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    e.currentTarget.textContent = on ? 'Сховати відповіді' : 'Показати відповіді';
+  });
+  drawBank();
+
+  /* ==== 07 board frames ==== */
+  const FR = [
+    ['00 Розминка', 'Знімок питань розминки на початку дзвінка. Пише викладач, 1 хв.'],
+    ['01 Ключові ідеї (перевірено)', 'Єдина еталонна рамка. Редагують лише викладач і Писар дошки. Зелена позначка «перевірено»: звідси можна перемальовувати.'],
+    ['02 Чернетка викладача', 'Вільні начерки під час пояснення. Після дзвінка найкраще Писар переносить у 01.'],
+    ['03 Стіна прогнозів', 'Три зони А/Б/В. Кожен кладе один підписаний стікер на кожен прогноз. Розподіл видно одразу, і він лишається в записі.'],
+    ['04 Паркінг питань', 'Питання, на які зараз немає часу. Наприкінці дзвінка або на початку наступного розбираємо.'],
+    ['Командні рамки', 'Рамка кожної команди в її кольорі, у ній підрамка для кожного учасника: фото збірки, виміряне значення, начерк. Неперевірені схеми лишаються тут.'],
+    ['05 Галерея', 'Готові результати команд для суботньої галереї: кожен лишає 2 підписані стікери в чужих рамках.'],
+    ['06 Ретро (лише субота)', 'Три колонки: Залишити / Змінити / Спробувати. Кожен — щонайменше один стікер; група вибирає одну зміну на тиждень.'],
+  ];
+  const svg = $('#board-svg');
+  const pick = (g) => {
+    $$('g[data-f]', svg).forEach((x) => x.classList.toggle('on', x === g));
+    const [h, p] = FR[+g.dataset.f];
+    $('#bf-h').textContent = h; $('#bf-p').textContent = p;
+  };
+  $$('g[data-f]', svg).forEach((g) => {
+    g.addEventListener('click', () => pick(g));
+    g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(g); } });
+  });
+
+  /* ==== 10 checklist (local) ==== */
+  const CK = 'teacher.check.v1';
+  const ck = store.get(CK, {});
+  $$('#chk input').forEach((i) => { i.checked = !!ck[i.id]; i.addEventListener('change', () => { ck[i.id] = i.checked; store.set(CK, ck); }); });
+});
+</script>
+</body>
+</html>

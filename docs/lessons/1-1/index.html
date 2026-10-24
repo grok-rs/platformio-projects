@@ -1,0 +1,1672 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 1.1 · Мультиметр і закон Ома</title>
+<meta name="description" content="Мультиметр як дебагер для заліза: як міряти напругу паралельно, струм послідовно, опір без живлення, і як закон Ома та баланс напруг пояснюють покази. Віртуальний мультиметр, мотузкова модель, кольоровий код і макетка зсередини.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. Device colours (meter body, LCD) are fixed on purpose:
+   they look the same as the real instrument in both themes. */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); }
+.seg button { min-height: 40px; padding: 6px 13px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.seg button:hover { color: var(--accent); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); box-shadow: 0 1.5px 0 var(--accent-deep); }
+.row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.row > .lbl { font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.svgfig { display: block; width: 100%; height: auto; }
+.svgfig text { font-family: var(--f-body); }
+#rope-svg, #bbx-svg { max-width: 560px; margin-inline: auto; }
+
+/* ---- why: debug trace */
+/* a bench log: four probe readings written down like debug output (not a serial monitor: these are meter readings) */
+.trace { margin: 8px 0 6px; padding: 0 16px 12px; border: 1px solid var(--line); border-left: 3px solid var(--copper-hi); border-radius: 4px var(--radius) var(--radius) 4px;
+  background: var(--sunk); box-shadow: var(--shadow-inset); font: 14px/1.7 var(--f-mono); overflow-x: auto; }
+.trace::before { content: "журнал вимірювань · DC V"; display: block; margin: 0 -16px 10px; padding: 7px 16px;
+  border-bottom: 1px dashed var(--line-2); font: 600 13px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--copper); }
+.trace .c { color: var(--muted); }
+@media (max-width: 560px) { .trace .r { display: block; padding-left: 2ch; } }
+.trace .ok { color: var(--ok); font-weight: 600; }
+.trace .bad { color: var(--bad); font-weight: 600; }
+
+/* ---- W1-1a virtual multimeter */
+.mm-top { display: grid; gap: 10px; margin-bottom: 10px; }
+.mm-grid { display: grid; gap: 12px; align-items: start; }
+@media (min-width: 760px) { .mm-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
+.mm-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); padding: 6px; min-width: 0; }
+.mm-circ .pt { cursor: pointer; }
+.mm-circ .pt circle.ring { fill: var(--panel); stroke: var(--accent); stroke-width: 2.5; }
+.mm-circ .pt:hover circle.ring, .mm-circ .pt:focus-visible circle.ring { fill: var(--accent); }
+.mm-circ .pt text { fill: var(--accent); font: 700 16px var(--f-mono); }
+.mm-circ .pt:focus { outline: none; }
+.mm-circ .pt:focus-visible circle.hit { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 3 3; }
+.mm-circ .hit { fill: transparent; }
+.mm-circ .cut { cursor: pointer; }
+.mm-circ .cut rect { fill: var(--panel); stroke: var(--line); }
+.mm-circ .cut:hover rect, .mm-circ .cut:focus-visible rect { stroke: var(--accent); stroke-width: 2; }
+.mm-circ .cut[aria-pressed="true"] rect { fill: color-mix(in srgb, var(--hi) 22%, var(--panel)); stroke: var(--hi-ink); }
+.mm-circ .cut text { fill: var(--ink); font: 600 15px var(--f-body); }
+.mm-circ .cut:focus { outline: none; }
+.mm-circ .bridge { stroke: var(--ink); }
+.mm-circ .probe { cursor: grab; touch-action: none; }
+.mm-circ .probe.sel .pbody { stroke: var(--accent); stroke-width: 3; }
+.mm-circ .probe:focus { outline: none; }
+.mm-circ .probe:focus-visible .pbody { stroke: var(--accent); stroke-width: 3; }
+.mm-circ .cable { fill: none; stroke-width: 3; stroke-linecap: round; }
+.mm-circ .park { fill: none; stroke: var(--line); stroke-dasharray: 4 4; }
+.mm-circ .lbl { fill: var(--muted); font: 500 15px var(--f-mono); }
+.mm-circ .lbl-ink { fill: var(--ink); font: 600 16px var(--f-body); }
+.led-glow { transition: opacity .25s; }
+.led-dead .led-sym { color: var(--muted); }
+.smoke circle { fill: #8c949a; opacity: 0; }
+.smoke.go circle { animation: smoke 1.6s ease-out forwards; }
+.smoke.go circle:nth-child(2) { animation-delay: .15s; }
+.smoke.go circle:nth-child(3) { animation-delay: .3s; }
+@keyframes smoke { 0% { opacity: .75; transform: translate(0, 0) scale(.6); } 100% { opacity: 0; transform: translate(6px, -46px) scale(2.2); } }
+.smoke circle { transform-box: fill-box; transform-origin: center; }
+.mm-meter .knob-ptr { transition: transform .25s ease; transform-origin: 150px 268px; }
+.mm-meter .pos { cursor: pointer; }
+.mm-meter .pos text { fill: #e6ecf0; font: 600 15px var(--f-body); }
+.mm-meter .pos.on text { fill: #ffc04d; }
+.mm-meter .pos .hit { fill: transparent; }
+.mm-meter .pos:focus { outline: none; }
+.mm-meter .pos:focus-visible .hit, .mm-meter .jack:focus-visible .hit, .mm-meter .selbtn:focus-visible rect { stroke: #ffc04d; stroke-width: 2.5; }
+.mm-meter .jack { cursor: pointer; }
+.mm-meter .jack:focus, .mm-meter .selbtn:focus { outline: none; }
+.mm-meter .jack .hit { fill: transparent; }
+.mm-meter .selbtn { cursor: pointer; }
+.mm-meter .lcd-d { font: 600 50px var(--f-mono); fill: #1d2619; }
+.mm-meter .lcd-u { font: 600 22px var(--f-mono); fill: #1d2619; }
+.mm-meter .ann { font: 600 14px var(--f-mono); fill: #1d2619; opacity: .14; }
+.mm-meter .ann.on { opacity: 1; }
+.mm-meter .lcd-flash { opacity: 0; fill: #fff6d0; }
+.mm-meter .lcd-flash.go { animation: flash .6s ease-out; }
+@keyframes flash { 0% { opacity: .95; } 100% { opacity: 0; } }
+.mm-meter .fil { stroke: #b07a2a; stroke-width: 2; fill: none; }
+.mm-meter .blown .fil { stroke: #3a2a1a; }
+.mm-meter .blown .glass { fill: #3d3a36; }
+.mm-meter .fuse-glow { opacity: 0; fill: #ff8a1f; }
+.mm-meter .fuse-glow.go { animation: fuseglow .9s ease-out; }
+@keyframes fuseglow { 0% { opacity: 0; } 30% { opacity: .95; } 100% { opacity: 0; } }
+/* stacked under the circuit: full card width on phones, so the 13-unit dial labels render at ≥ 12.5 px */
+@media (max-width: 759px) { #mm-meter { max-width: 320px; margin-inline: auto; } }
+/* Cause and effect together: circuit, probe selects right under it, then the meter (spanning both rows on desktop). */
+@media (min-width: 760px) {
+  .mm-grid { grid-template-areas: "circ meter" "probes meter"; }
+  .mm-grid > :nth-child(1) { grid-area: circ; }
+  .mm-grid > .mm-probes { grid-area: probes; }
+  .mm-grid > :nth-child(4) { grid-area: meter; }
+}
+.mm-lcd { display: none; }
+@media (max-width: 560px) {
+  .mm-lcd {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px;
+    position: sticky; top: 8px; z-index: 3; padding: 6px 12px; border-radius: 10px;
+    background: #c5d2b9; color: #1d2619; border: 2px solid #2b3237; box-shadow: 0 6px 14px -8px rgba(0, 0, 0, .55);
+  }
+  .mm-lcd-mode { font: 600 14px var(--f-body); }
+  .mm-lcd-val { font: 600 24px/1.2 var(--f-mono); font-variant-numeric: tabular-nums; }
+}
+.mm-probes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+.mm-probes label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+.mm-probes select { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; font: 15px var(--f-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.mm-status { margin: 12px 0 0; }
+.mm-status .disp { font: 600 15px var(--f-mono); }
+.mm-miss { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; font-size: 15px; }
+@media (min-width: 640px) { .mm-miss { grid-template-columns: 1fr 1fr; column-gap: 18px; } }
+.mm-miss li { margin: 0; padding-left: 26px; position: relative; color: var(--muted); }
+.mm-miss li::before { content: "○"; position: absolute; left: 4px; top: 0; font-weight: 700; color: var(--muted); }
+.mm-miss li.done { color: var(--ink); }
+.mm-miss li.done::before { content: "✓"; color: var(--ok); }
+.kvl-out { font: 600 14px var(--f-mono); }
+
+/* ---- W1-1b rope loop */
+.rope-ctl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 18px; margin-top: 8px; }
+.rope-ctl input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+.rope-svg { cursor: pointer; }
+.rope-svg .rope { fill: none; stroke: #b88b4e; stroke-width: 9; stroke-linejoin: round; }
+.rope-svg .marks { fill: none; stroke: #4a3218; stroke-width: 9; stroke-dasharray: 4 16; }
+.rope-svg .hand { fill: #e8b98f; stroke: #8c5a32; stroke-width: 1.5; }
+.rope-svg .lab { fill: var(--ink); font: 600 15px var(--f-body); }
+.rope-svg .sub { fill: var(--muted); font: 500 14px var(--f-mono); }
+.rope-svg .ctr rect { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+.rope-svg .ctr text { fill: var(--ink); font: 600 14px var(--f-mono); }
+.rope-svg .heat { fill: #ff7a1a; }
+
+/* ---- W1-1c colour code */
+.cc { display: grid; gap: 10px; }
+.cc-pal { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-pal button { min-width: 44px; min-height: 44px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer; font: 600 13px var(--f-body);
+  padding: 2px 6px; }
+.cc-pal button[aria-pressed="true"] { outline: 3px solid var(--accent); outline-offset: 1px; }
+.cc-svg .band { cursor: pointer; }
+.cc-svg .band.cur { stroke: var(--accent); stroke-width: 3; }
+.cc-svg text { fill: var(--muted); font: 500 15px var(--f-mono); }
+.cc-out { font: 600 18px var(--f-mono); }
+.cc-drill { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cc-drill input { min-height: 40px; width: 9.5em; font: 16px var(--f-mono); padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+@media (pointer: coarse) { .seg button, .cc-drill input, .rope-ctl input[type="range"] { min-height: 44px; } } /* desktop keeps the compact size above */
+
+/* ---- W1-1d breadboard */
+.bbx-metal { stroke: #c9a032; stroke-width: 3; stroke-linecap: round; opacity: .85; pointer-events: none; }
+.bbx-part { cursor: pointer; }
+.bbx-part:focus { outline: none; }
+.bbx-part:focus-visible .bbx-hl, .bbx-part.picked .bbx-hl { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 4 3; }
+.bbx-hl { fill: transparent; stroke: transparent; }
+.probe-lead { fill: none; stroke-width: 3; stroke-linecap: round; }
+.pl-red { stroke: #d0312d; }
+.pl-blk { stroke: var(--ink); }
+.mbox rect { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.mbox text { fill: var(--ink); font: 700 15px var(--f-mono); }
+
+/* ---- idea figures */
+.fig-lbl { fill: var(--ink); font: 600 14px var(--f-body); }
+.fig-sub { fill: var(--muted); font: 500 13px var(--f-mono); }
+@media (prefers-reduced-motion: reduce) {
+  .smoke.go circle, .lcd-flash.go, .fuse-glow.go { animation: none; }
+  .mm-meter .knob-ptr { transition: none; }
+}
+</style>
+</head>
+<body data-lesson="1-1">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:1-1">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 1 · Урок 1.1 · пн 07.09</p>
+    <h1>Мультиметр — ваш <span>дебагер</span>: напруга, струм, закон Ома</h1>
+    <p class="lead">У коді є дебагер і логи, у залізі — мультиметр. Навчимося міряти напругу, струм і опір без шкоди для приладу та пояснювати кожне число законом Ома.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: мультиметр, макетка, MB-102, LED, 220&nbsp;Ом / 1&nbsp;кОм / 10&nbsp;кОм</a></li>
+      <li><a class="chip" href="../../schematics/">Спершу: Як читати схеми</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Ви зібрали коло, а світлодіод не світить. Код? Дріт? Резистор? Гадати можна весь вечір. А можна зробити чотири вимірювання, як чотири <code>Serial.println</code>, і за хвилину знайти місце, де зникає напруга.</p>
+    <div class="trace" role="img" aria-label="Приклад налагодження чотирма вимірюваннями: між плюсом і GND 4,98 вольта, на резисторі нуль, між правим виводом резистора і GND 4,98 вольта, отже розрив десь після резистора; між анодом світлодіода і GND нуль, отже розрив між резистором і анодом світлодіода.">
+      <div><span class="c">// LED не світить. Міряємо, а не гадаємо:</span></div>
+      <div>V(+ → GND)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 4,98 В&nbsp;<span class="r ok">✓ живлення є</span></div>
+      <div>V(на R1)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0,00 В&nbsp;<span class="r bad">✗ струму немає</span></div>
+      <div>V(після R1 → GND) = 4,98 В&nbsp;<span class="r c">→ розрив десь після R1</span></div>
+      <div>V(анод LED → GND) = 0,00 В&nbsp;<span class="r bad">→ розрив між R1 і анодом LED</span></div>
+    </div>
+    <p class="small muted">Наприкінці уроку ви зможете прочитати цей «лог» самі: де струму немає, на резисторі падіння нуль, а напруга «стрибає» саме на розриві. Якби останній рядок показав кілька вольт, розрив був би далі: у самому LED або між ним і GND.</p>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>виміряти</b> постійну напругу на компоненті, приклавши щупи паралельно;</li>
+      <li><b>виміряти</b> струм: розірвати коло і вставити амперметр у розрив;</li>
+      <li><b>прочитати</b> номінал резистора за смужками й <b>перевірити</b> його омметром без живлення;</li>
+      <li><b>розрахувати</b> струм за законом Ома й підтвердити вимірюванням з різницею до 10&nbsp;% (для 220&nbsp;Ом і 1&nbsp;кОм);</li>
+      <li><b>пояснити</b>, чому V<sub>R</sub> + V<sub>LED</sub> = V<sub>джерела</sub>.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up (first lesson: recall of the pre-course theory) -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <p>Це перший урок модуля, тож згадуємо теорію з підготовчих тем LMS. Три питання, без оцінок.</p>
+    <div class="predict" id="wu-1" data-ok="1" data-why="Напруга — це різниця потенціалів, тому вона завжди «між двома точками». Фраза «напруга в точці» означає «між цією точкою і GND».">
+      <span class="tag">Розминка 1</span>
+      <p>Напругу міряють…</p>
+      <div class="opts">
+        <button class="opt">в одній точці кола</button>
+        <button class="opt">між двома точками</button>
+        <button class="opt">лише на батарейці</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="predict" id="wu-2" data-ok="2" data-why="Струм тече лише тоді, коли петля замкнена: від «+» джерела через навантаження назад до «−». Немає петлі — немає струму.">
+      <span class="tag">Розминка 2</span>
+      <p>Світлодіод підключили до «+» батарейки одним дротом, другий вивід висить у повітрі. Він…</p>
+      <div class="opts">
+        <button class="opt">світить слабо</button>
+        <button class="opt">світить нормально, бо «+» уже є</button>
+        <button class="opt">не світить: петля не замкнена</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="predict" id="wu-3" data-ok="0" data-why="Опір «гальмує» струм: за тієї самої напруги більший опір дає менший струм. Це і є закон Ома I = U / R.">
+      <span class="tag">Розминка 3</span>
+      <p>Напругу не змінюємо, опір збільшуємо вдвічі. Струм…</p>
+      <div class="opts">
+        <button class="opt">зменшиться вдвічі</button>
+        <button class="opt">збільшиться вдвічі</button>
+        <button class="opt">не зміниться</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Коло — замкнена петля, і струм у ній усюди однаковий</h3>
+      <p>Уявіть мотузку-петлю: батарейка її тягне, а резистор стискає руками й гальмує. Мотузка рухається вся одразу й однаково швидко в кожній точці.</p>
+      <p>Так і заряди в колі без розгалужень: скільки пройшло крізь резистор, стільки ж і крізь LED. Витрачається енергія (руки гріються), а не мотузка. Тягне = напруга, тримає = опір, швидкість = струм; живу мотузку побачите в розділі 05.</p>
+      <p class="key"><b>Головне</b>У послідовному колі струм однаковий у всіх точках; між деталями ділиться напруга, а не струм.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Напругу міряють між двома точками, не розриваючи коло</h3>
+      <p>Вольтметр порівнює дві точки, тож щупи просто прикладають до обох виводів деталі, паралельно їй. Чорний щуп — у COM, червоний — у VΩmA<sup class="cite" data-fact="ut136-jacks"></sup>.</p>
+      <p>Усередині вольтметра ≈ 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>: крізь нього йде мізерний струм, і коло майже не помічає приладу.</p>
+      <figure>
+        <svg class="svgfig" viewBox="0 0 260 172" role="img" aria-label="Вольтметр підключено паралельно резистору R1: червоний щуп на лівий вивід, чорний COM на правий; коло не розірване.">
+          <path class="sch-w" d="M20 110H70M130 110H160M220 110H240"/>
+          <use class="sch-sym" href="#res" x="70" y="110"/>
+          <use class="sch-sym" href="#led" x="160" y="110"/>
+          <text class="fig-lbl" x="100" y="140" text-anchor="middle">R1</text>
+          <text class="fig-lbl" x="190" y="140" text-anchor="middle">LED1</text>
+          <path class="probe-lead pl-red" d="M70 110V56H85"/>
+          <path class="probe-lead pl-blk" d="M130 110V56H115"/>
+          <use class="sch-sym" href="#meter-v" x="70" y="56"/>
+          <text class="fig-sub" x="40" y="44" text-anchor="middle">VΩmA</text>
+          <text class="fig-sub" x="160" y="44" text-anchor="middle">COM</text>
+          <text class="fig-sub" x="130" y="164" text-anchor="middle">≈10 МОм — майже 0 струму</text>
+        </svg>
+        <figcaption>Вольтметр «дивиться збоку»: коло не розривають.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Вольтметр — паралельно, бо напруга існує лише між двома точками.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Щоб виміряти струм, амперметр стає частиною петлі</h3>
+      <p>Струм рахують, пропускаючи його крізь прилад: коло розривають і «латають» розрив амперметром, послідовно. Його опір ≈ 0, щоб не гальмувати струм.</p>
+      <p>Звідси небезпека: паралельно амперметр — це «дріт» в обхід деталі. Якщо струм більше ніщо не обмежує (щупи на «+» і GND), згоряє запобіжник 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>.</p>
+      <figure>
+        <svg class="svgfig" viewBox="0 0 260 150" role="img" aria-label="Коло розірване між R1 і LED1; амперметр вставлено в розрив, весь струм петлі проходить крізь нього.">
+          <path class="sch-w" d="M10 60H30M90 60H110"/>
+          <use class="sch-sym" href="#res" x="30" y="60"/>
+          <text class="fig-lbl" x="60" y="44" text-anchor="middle">R1</text>
+          <path class="sch-w" d="M170 60H190"/>
+          <use class="sch-sym" href="#led" x="190" y="60"/>
+          <text class="fig-lbl" x="214" y="92" text-anchor="middle">LED1</text>
+          <path class="probe-lead pl-red" d="M110 60V100H115"/>
+          <path class="probe-lead pl-blk" d="M170 60V100H165"/>
+          <use class="sch-sym" href="#meter-a" x="110" y="100"/>
+          <text class="fig-sub" x="140" y="56" text-anchor="middle">розрив</text>
+          <text class="fig-lbl" x="140" y="140" text-anchor="middle">амперметр ≈ 0 Ом</text>
+          <path d="M14 55l7 5-7 5z" fill="var(--flow)"/>
+        </svg>
+        <figcaption>Розірвали → вставили прилад → весь струм іде крізь нього.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Амперметр — послідовно, у розрив. Паралельно він — коротке замикання ділянки.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Закон Ома і баланс напруг пояснюють кожен показ</h3>
+      <p>На кожній деталі «падає» частина напруги, а разом — рівно напруга джерела: V<sub>R</sub> + V<sub>LED</sub> = V<sub>джерела</sub> (другий закон Кірхгофа). Червоний LED забирає ≈ 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup> — це його <b>пряма напруга</b> V<sub>F</sub>; решта лягає на резистор.</p>
+      <p>Струм дає закон Ома I = U<sub>R</sub> / R: при 5&nbsp;В і 220&nbsp;Ом це (5 − 1,9) / 220 ≈ 14&nbsp;мА. Більший R — менший струм.</p>
+      <figure>
+        <svg class="svgfig" viewBox="0 0 260 156" role="img" aria-label="Сходинки потенціалу: на плюсі джерела 5 вольт; схил на резисторі R1 — падіння 3,1 вольта; рівна ділянка дроту між R1 і LED на рівні 1,9 вольта; схил на світлодіоді — падіння 1,9 вольта; далі 0 вольт. Разом 3,1 плюс 1,9 дорівнює 5 вольт.">
+          <path d="M30 128H244" stroke="var(--line)" stroke-width="1.5"/>
+          <path d="M30 24H105L135 92H180L205 128H244" fill="none" stroke="var(--n5)" stroke-width="3" stroke-linejoin="round"/>
+          <text class="fig-sub" x="30" y="16">+5 В</text>
+          <text class="fig-sub" x="157" y="84" text-anchor="middle">1,9 В</text>
+          <text class="fig-sub" x="236" y="146" text-anchor="middle">0 В</text>
+          <path d="M88 92H135M180 92H222" stroke="var(--muted)" stroke-dasharray="3 3"/>
+          <path d="M83 24H93M88 24V92M83 92H93" stroke="var(--ink)" stroke-width="1.5" fill="none"/>
+          <text class="fig-lbl" x="80" y="56" text-anchor="end">R1</text>
+          <text class="fig-lbl" x="80" y="73" text-anchor="end">3,1 В</text>
+          <path d="M213 92H221M217 92V128M213 128H221" stroke="var(--ink)" stroke-width="1.5" fill="none"/>
+          <text class="fig-lbl" x="224" y="106">LED</text>
+          <text class="fig-lbl" x="224" y="122">1,9 В</text>
+          <text class="fig-sub" x="157" y="112" text-anchor="middle">дріт</text>
+          <text class="fig-sub" x="110" y="150" text-anchor="middle">3,1 + 1,9 = 5 В</text>
+        </svg>
+        <figcaption>Потенціал «спускається» сходинками: схили — це деталі (там падає напруга), рівні ділянки — дроти (там напруга та сама). Що забрав резистор, те не дісталося LED.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>I = U / R, а сума падінь напруги в петлі дорівнює напрузі джерела.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Опір міряють тільки без живлення; макетка з'єднує п'ятірками</h3>
+      <p>Омметр сам подає малий струм і з нього рахує опір, тож чужа напруга збиває показ: живлення вимикають<sup class="cite" data-fact="ut136-ohm-notes"></sup>. «OL» — більше за діапазон, тобто розрив.</p>
+      <p>У макетці 5 отворів стовпчика (a–e або f–j) з'єднані смужкою, канавка їх розділяє<sup class="cite" data-fact="breadboard-strips"></sup>. Дві ніжки в одній смужці — деталь закорочена.</p>
+      <p>Шини «+» і «−» уздовж країв — це довгі горизонтальні смужки на весь ряд. На частині плат вони розірвані посередині<sup class="cite" data-fact="breadboard-strips"></sup>: перевірте продзвонкою, перш ніж живити другу половину.</p>
+      <figure>
+        <svg class="svgfig" viewBox="0 0 260 150" role="img" aria-label="Фрагмент макетки: вертикальні смужки по 5 отворів з'єднані; канавка посередині; резистор з обома ніжками в одній смужці закорочений.">
+          <rect x="10" y="10" width="240" height="130" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
+          <rect x="16" y="68" width="228" height="14" rx="3" fill="color-mix(in srgb, var(--ink) 9%, var(--panel-2))"/>
+          <g fill="color-mix(in srgb, var(--ink) 55%, var(--panel-2))">
+            <rect x="37" y="18" width="5" height="5"/><rect x="37" y="28" width="5" height="5"/><rect x="37" y="38" width="5" height="5"/><rect x="37" y="48" width="5" height="5"/><rect x="37" y="58" width="5" height="5"/>
+            <rect x="57" y="18" width="5" height="5"/><rect x="57" y="28" width="5" height="5"/><rect x="57" y="38" width="5" height="5"/><rect x="57" y="48" width="5" height="5"/><rect x="57" y="58" width="5" height="5"/>
+            <rect x="37" y="88" width="5" height="5"/><rect x="37" y="98" width="5" height="5"/><rect x="37" y="108" width="5" height="5"/><rect x="37" y="118" width="5" height="5"/><rect x="37" y="128" width="5" height="5"/>
+            <rect x="57" y="88" width="5" height="5"/><rect x="57" y="98" width="5" height="5"/><rect x="57" y="108" width="5" height="5"/><rect x="57" y="118" width="5" height="5"/><rect x="57" y="128" width="5" height="5"/>
+          </g>
+          <path d="M39.5 18V63M59.5 18V63M39.5 88V133M59.5 88V133" stroke="#c9a032" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+          <text class="fig-sub" x="74" y="30">смужка</text>
+          <text class="fig-sub" x="74" y="46">5 отворів</text>
+          <text class="fig-sub" x="74" y="80">канавка</text>
+          <path d="M186 20V60" stroke="#8d979e" stroke-width="2"/>
+          <rect x="180" y="28" width="12" height="24" rx="4" fill="#dcc394" stroke="#9c855a"/>
+          <path d="M186 20V60" stroke="none"/>
+          <rect x="183.5" y="17.5" width="5" height="5" fill="color-mix(in srgb, var(--ink) 55%, var(--panel-2))"/>
+          <rect x="183.5" y="57.5" width="5" height="5" fill="color-mix(in srgb, var(--ink) 55%, var(--panel-2))"/>
+          <text class="fig-lbl" x="200" y="104" text-anchor="middle">✗ R в одній</text>
+          <text class="fig-lbl" x="200" y="122" text-anchor="middle">смужці</text>
+        </svg>
+        <figcaption>Металева смужка під п'ятьма отворами — це один вузол кола.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Ω — лише на знеструмленій схемі; одна смужка макетки = один вузол.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: обмежена аналогія з водою</summary>
+      <p>Вам могли пояснювати струм як воду в трубах: тиск = напруга, потік = струм, вузька труба = опір. Аналогія обмежена: вода витікає з розірваної труби, а заряди з розірваного кола не «виливаються» — струм просто зупиняється всюди одночасно. Тому в курсі ми тримаємося мотузки.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <h3>Мотузкова модель: чи «з'їдає» резистор струм?</h3>
+    <div class="predict" data-ok="1" data-gate="w-rope"
+         data-why="Мотузка нерозривна: скільки міток пройшло повз A1, стільки пройде й повз A2. Резистор гальмує всю петлю одразу (і гріється), але не «забирає» мотузку. Так само амперметри до і після резистора показують однаковий струм.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Резистор гальмує мотузку руками. Лічильник A1 стоїть перед ним, A2 — після. Скільки міток за секунду порахують лічильники?</p>
+      <div class="opts">
+        <button class="opt">A1 більше: руки «з'їдають» частину руху</button>
+        <button class="opt">Однаково</button>
+        <button class="opt">A2 більше: після рук мотузка розганяється</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-rope">
+      <div class="ph"><h3>Мотузка-петля</h3><span class="small">клацніть по малюнку: пауза / рух</span></div>
+      <div class="pb">
+        <svg class="svgfig rope-svg" id="rope-svg" viewBox="0 0 340 210" role="img" aria-label="Анімована мотузка-петля. Батарейка зліва тягне, резистор угорі тримає руками. Лічильники A1 перед резистором і A2 після нього окремо рахують, скільки міток проходить повз них за секунду, і показують однакове число.">
+          <circle class="heat" id="rope-heat" cx="170" cy="40" r="26" opacity="0"/>
+          <path class="rope" id="rope-path" d="M90 40H250A50 50 0 0 1 300 90V120A50 50 0 0 1 250 170H90A50 50 0 0 1 40 120V90A50 50 0 0 1 90 40Z"/>
+          <path class="marks" id="rope-marks" d="M90 40H250A50 50 0 0 1 300 90V120A50 50 0 0 1 250 170H90A50 50 0 0 1 40 120V90A50 50 0 0 1 90 40Z"/>
+          <ellipse class="hand" cx="170" cy="29" rx="14" ry="8"/>
+          <ellipse class="hand" cx="170" cy="51" rx="14" ry="8"/>
+          <text class="lab" x="170" y="16" text-anchor="middle">резистор тримає</text>
+          <ellipse class="hand" cx="29" cy="105" rx="8" ry="14"/>
+          <ellipse class="hand" cx="51" cy="105" rx="8" ry="14"/>
+          <text class="lab" x="62" y="96">батарейка</text>
+          <text class="lab" x="62" y="114">тягне ↑</text>
+          <g class="ctr" id="rope-a1"><rect x="68" y="56" width="90" height="26" rx="5"/><text x="113" y="74" text-anchor="middle">A1: —</text></g>
+          <g class="ctr" id="rope-a2"><rect x="182" y="56" width="90" height="26" rx="5"/><text x="227" y="74" text-anchor="middle">A2: —</text></g>
+          <text class="sub" x="170" y="132" text-anchor="middle">на лічильниках: міток/с</text>
+          <text class="sub" x="170" y="152" text-anchor="middle" id="rope-speed">швидкість 1,0</text>
+          <text class="sub" x="170" y="200" text-anchor="middle">мотузка рухається за годинниковою стрілкою</text>
+        </svg>
+        <div class="rope-ctl">
+          <div class="ctl"><label for="rope-pull">Тягне (напруга) <b id="rope-pull-v">2</b></label><input type="range" id="rope-pull" min="1" max="5" step="1" value="2"></div>
+          <div class="ctl"><label for="rope-grip">Тримає (опір) <b id="rope-grip-v">2</b></label><input type="range" id="rope-grip" min="1" max="5" step="1" value="2"></div>
+        </div>
+        <p class="out" id="rope-out" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <h3>Віртуальний мультиметр</h3>
+    <div class="predict" data-ok="1" data-gate="w-meter"
+         data-why="Амперметр має майже нульовий опір. Паралельно LED він стає «дротом» в обхід світлодіода: LED гасне, а струм тепер іде крізь прилад. Його обмежує резистор 220 Ом, тому це ≈ 5 / 220 ≈ 23 мА — запобіжник 0,5 А витримає. Згоряє він тоді, коли струм не обмежує ніщо: щупи прямо на «+» і GND джерела.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Коло 5&nbsp;В → 220&nbsp;Ом → червоний LED світиться. Мультиметр у режимі <b>mA</b> (червоний щуп у VΩmA) торкається <b>обох виводів світлодіода</b>. Що станеться?</p>
+      <div class="opts">
+        <button class="opt">Покаже струм світлодіода, ≈ 14 мА, LED світить далі</button>
+        <button class="opt">LED згасне, прилад покаже ≈ 23 мА: струм пішов крізь прилад</button>
+        <button class="opt">Миттєво згорить запобіжник приладу</button>
+        <button class="opt">Покаже напругу на LED, ≈ 1,9&nbsp;В</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-meter">
+      <div class="ph"><h3>Мультиметр на кшталт UT136C+</h3><span class="small">перетягніть щупи на точки A–F</span></div>
+      <div class="pb">
+        <div class="mm-top">
+          <div class="row">
+            <span class="lbl">Живлення</span>
+            <div class="seg" role="group" aria-label="Живлення модуля MB-102" id="mm-pwr">
+              <button type="button" data-v="1" aria-pressed="true">Увімк.</button>
+              <button type="button" data-v="0" aria-pressed="false">Вимк.</button>
+            </div>
+            <div class="seg" role="group" aria-label="Напруга джерела" id="mm-vs">
+              <button type="button" data-v="5" aria-pressed="true">5 В</button>
+              <button type="button" data-v="3.3" aria-pressed="false">3,3 В</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lbl">R1</span>
+            <div class="seg" role="group" aria-label="Резистор R1" id="mm-r">
+              <button type="button" data-v="220" aria-pressed="true">220 Ом</button>
+              <button type="button" data-v="1000" aria-pressed="false">1 кОм</button>
+              <button type="button" data-v="10000" aria-pressed="false">10 кОм</button>
+            </div>
+            <button type="button" class="btn sm" id="mm-fix-fuse" hidden>Замінити запобіжник</button>
+            <button type="button" class="btn sm" id="mm-fix-led" hidden>Новий LED</button>
+          </div>
+        </div>
+        <div class="mm-grid">
+          <div class="mm-card">
+            <svg class="svgfig mm-circ" id="mm-circ" viewBox="0 -40 340 376" role="group" aria-label="Коло: джерело MB-102, резистор R1, світлодіод LED1. Точки для щупів A–F, три місця, де коло можна розірвати.">
+              <g id="mm-wires"></g>
+              <use class="sch-sym" href="#vsrc" x="40" y="110" transform="rotate(90 40 110)"/>
+              <text class="lbl-ink" x="62" y="146" id="mm-vs-lbl">5 В</text>
+              <text class="lbl" x="62" y="164">MB-102</text>
+              <use class="sch-sym" href="#res" x="140" y="50"/>
+              <text class="lbl-ink" x="170" y="34" text-anchor="middle">R1</text>
+              <text class="lbl" x="170" y="80" text-anchor="middle" id="mm-r-lbl">220 Ом</text>
+              <circle class="led-glow" id="mm-glow" cx="290" cy="140" r="24" fill="#ff3b2f" opacity="0"/>
+              <g id="mm-led"><use class="sch-sym led-sym" href="#led" x="290" y="110" transform="rotate(90 290 110)"/></g>
+              <text class="lbl-ink" x="258" y="132" text-anchor="end">LED1</text>
+              <text class="lbl" x="258" y="150" text-anchor="end">червоний</text>
+              <g id="mm-crack" hidden>
+                <circle cx="290" cy="140" r="17" fill="color-mix(in srgb, var(--muted) 45%, var(--panel))" stroke="var(--bad)" stroke-width="2.5"/>
+                <path d="M282 132l16 16M298 132l-16 16" stroke="var(--bad)" stroke-width="3.5" stroke-linecap="round"/>
+                <text x="318" y="176" text-anchor="middle" fill="var(--bad)" style="font:700 15px var(--f-body)">згорів</text>
+              </g>
+              <g class="smoke" id="mm-led-smoke" transform="translate(296 116)"><circle r="5"/><circle r="4" cx="4"/><circle r="5" cx="-3"/></g>
+              <use class="sch-sym" href="#gnd" x="140" y="250"/>
+              <text class="lbl" x="152" y="276">GND</text>
+              <g id="mm-cuts"></g>
+              <g id="mm-flowg"></g>
+              <g id="mm-pts"></g>
+              <rect class="park" x="40" y="292" width="140" height="34" rx="8"/>
+              <text class="lbl" x="110" y="314" text-anchor="middle">щупи тут</text>
+              <g id="mm-probes"></g>
+            </svg>
+          </div>
+          <div class="mm-probes">
+            <label>Червоний щуп
+              <select id="mm-red"></select>
+            </label>
+            <label>Чорний щуп (COM)
+              <select id="mm-blk"></select>
+            </label>
+          </div>
+          <!-- phone only: a compact copy of the display, sticky while the meter is in view (the meter itself is announced via #mm-status) -->
+          <div class="mm-lcd" aria-hidden="true"><span class="mm-lcd-mode" id="mm-lcd-mode"></span><span class="mm-lcd-val" id="mm-lcd-val"></span></div>
+          <div class="mm-card" style="background:transparent;border:0;padding:0">
+            <svg class="svgfig mm-meter" id="mm-meter" viewBox="0 0 300 460" role="group" aria-label="Мультиметр: дисплей, перемикач режимів, гнізда 10A, COM і VΩmA.">
+              <rect x="6" y="6" width="288" height="448" rx="30" fill="#e48a1c"/>
+              <rect x="18" y="18" width="264" height="424" rx="22" fill="#2b3237"/>
+              <rect x="34" y="32" width="232" height="108" rx="8" fill="#c5d2b9" stroke="#8a967f"/>
+              <rect class="lcd-flash" id="mm-flash" x="34" y="32" width="232" height="108" rx="8"/>
+              <text class="ann" id="ann-auto" x="44" y="52">AUTO</text>
+              <text class="ann" id="ann-dc" x="94" y="52">DC</text>
+              <text class="ann" id="ann-ac" x="122" y="52">AC</text>
+              <text class="ann" id="ann-beep" x="150" y="52">•)))</text>
+              <text class="ann" id="ann-dio" x="190" y="52">→|</text>
+              <text class="ann" id="ann-neg" x="44" y="112" style="font-size:30px">−</text>
+              <text class="lcd-d" id="mm-digits" x="214" y="112" text-anchor="end"></text>
+              <text class="lcd-u" id="mm-unit" x="258" y="112" text-anchor="end"></text>
+              <!-- fuse window (inside view) -->
+              <g id="mm-fuse">
+                <circle class="fuse-glow" id="mm-fuse-glow" cx="64" cy="168" r="22"/>
+                <rect x="34" y="161" width="8" height="14" rx="1" fill="#b9bec2"/>
+                <rect x="86" y="161" width="8" height="14" rx="1" fill="#b9bec2"/>
+                <rect class="glass" x="42" y="160" width="44" height="16" rx="3" fill="#cfe3ec" fill-opacity=".55" stroke="#9fb3bd"/>
+                <path class="fil" id="mm-fil" d="M42 168H86"/>
+                <text x="64" y="194" text-anchor="middle" fill="#e6ecf0" style="font:600 13px var(--f-mono)">F1 0,5A</text>
+              </g>
+              <g class="smoke" id="mm-fuse-smoke" transform="translate(64 160)"><circle r="5"/><circle r="4" cx="5"/><circle r="5" cx="-4"/></g>
+              <g class="selbtn" id="mm-select" role="button" tabindex="0" aria-label="Кнопка SELECT: перемкнути діод / продзвонку">
+                <rect x="198" y="156" width="74" height="26" rx="13" fill="#3e474d" stroke="#11161a"/>
+                <text x="235" y="174" text-anchor="middle" fill="#e6ecf0" style="font:600 13px var(--f-mono)">SELECT</text>
+              </g>
+              <circle cx="150" cy="268" r="50" fill="#20262a"/>
+              <g class="knob-ptr" id="mm-knob">
+                <circle cx="150" cy="268" r="44" fill="#3b444b" stroke="#11161a" stroke-width="2"/>
+                <rect x="144" y="226" width="12" height="84" rx="6" fill="#1b2024"/>
+                <path d="M150 226l-7 12h14z" fill="#ffc04d"/>
+              </g>
+              <g id="mm-dial"></g>
+              <g id="mm-jacks"></g>
+            </svg>
+          </div>
+        </div>
+        <div class="note mm-status" id="mm-status" aria-live="polite"></div>
+        <p class="kvl-out" id="mm-kvl" aria-live="polite"></p>
+        <h4>Місії</h4>
+        <ol class="mm-miss" id="mm-miss">
+          <li data-m="vs">Виміряйте напругу джерела</li>
+          <li data-m="vr">Виміряйте напругу на R1</li>
+          <li data-m="vled">Виміряйте напругу на LED1</li>
+          <li data-m="i">Виміряйте струм: ✂ розрив + режим mA</li>
+          <li data-m="i2">Той самий струм в іншому розриві</li>
+          <li data-m="ohm">Опір R1 без живлення</li>
+          <li data-m="gap">Напруга на розриві (коло розірване)</li>
+          <li data-m="fuse">Бонус: спаліть запобіжник (тут безкоштовно)</li>
+        </ol>
+        <details class="more">
+          <summary>Як влаштована модель</summary>
+          <p>Розрахунок — справжній розв'язок кола (вузлові потенціали). Джерело: 4,98&nbsp;В або 3,29&nbsp;В, обмеження струму ≈ 1&nbsp;А, як у стабілізатора AMS1117<sup class="cite" data-fact="ams1117-limits"></sup> (так при живленні від DC-роз'єму; від USB 5&nbsp;В іде на шину напряму, і межу задає порт чи блок живлення<sup class="cite" data-fact="mb102-module"></sup>). Резистори відхиляються від номіналу на долі відсотка, як справжні. LED: 1,9&nbsp;В при 10&nbsp;мА<sup class="cite" data-fact="led-red-3mm-vf"></sup>, «згорає», якщо струм у кілька разів більший за абсолютний максимум 30&nbsp;мА<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>.</p>
+          <p>Прилад: 4000 відліків з автодіапазоном<sup class="cite" data-fact="ut136-counts"></sup>, вольтметр 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>, межа mA — 400&nbsp;мА<sup class="cite" data-fact="ut136-ma-range"></sup>, запобіжник F1 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>, продзвонка пищить до 10&nbsp;Ом<sup class="cite" data-fact="ut136-continuity"></sup>, режим діода — ≈1&nbsp;мА і до 3&nbsp;В<sup class="cite" data-fact="ut136-diode-test"></sup>. Опір шунтів (2&nbsp;Ом для mA, 100&nbsp;Ом для мкА, 0,05&nbsp;Ом для 10A) — <b>припущення</b>: інструкція їх не наводить<sup class="cite" data-fact="ut136-ammeter-burden"></sup>. Дисплей показує крапку, як справжній прилад; у тексті ми пишемо кому.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent + colour code drill -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад</h2>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Що відомо:</b> джерело 5&nbsp;В, R1 = 220&nbsp;Ом, червоний LED з V<sub>F</sub> ≈ 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>.<span class="why">чому: без напруги джерела, R і падіння на LED струм не порахувати.</span></li>
+      <li><b>Напруга на резисторі:</b> <span class="formula">U<sub>R</sub> = 5 − 1,9 = 3,1 В</span><span class="why">чому: баланс напруг — LED забрав 1,9 В, решта лягла на R.</span></li>
+      <li><b>Закон Ома для резистора:</b> <span class="formula">I = 3,1 В / 220 Ом ≈ 0,0141 А</span><span class="why">чому: закон Ома застосовуємо до однієї деталі з відомим опором — до R.</span></li>
+      <li><b>Одиниці:</b> <span class="formula">0,0141 А = 14,1 мА</span><span class="why">чому: мультиметр у режимі mA покаже саме мА; цей самий струм тече і крізь LED.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Відомо:</b> перемичку MB-102 переставили на 3,3&nbsp;В; червоний LED 1,9&nbsp;В, R1 = 1&nbsp;кОм.</li>
+      <li>
+        <div class="try" data-ans="1.4" data-tol="0.03" data-unit="В" data-dec="1">
+          <span class="tag">Ваша черга</span>
+          <p>Яка напруга на резисторі, у вольтах?</p>
+          <details><summary>Підказка</summary>Як у кроці 2 розібраного прикладу: від напруги джерела відніміть V<sub>F</sub> світлодіода.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="1.4" data-tol="0.03" data-unit="мА" data-dec="1">
+          <span class="tag">Ваша черга</span>
+          <p>Який струм? Відповідь у міліамперах.</p>
+          <details><summary>Підказка</summary>I = U<sub>R</sub> / R. Ділите вольти на оми — отримаєте ампери; × 1000 → мА.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="2.8" data-tol="0.03" data-unit="мА" data-dec="1">
+      <span class="tag">Самостійно</span>
+      <h4>Джерело 5&nbsp;В, R1 = 1&nbsp;кОм, зелений LED з V<sub>F</sub> ≈ 2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>. Який струм, у міліамперах?</h4>
+      <details><summary>Підказка</summary>Той самий шлях: спершу напруга на R, потім закон Ома для R.</details>
+    </div>
+    <details class="more">
+    <summary>Додаткова задача: баланс напруг</summary>
+    <div class="try" data-ans="1.85" data-tol="0.02" data-unit="В" data-dec="2">
+      <span class="tag">Додатково</span>
+      <h4>Джерело показує 4,98&nbsp;В, на резисторі ви виміряли 3,13&nbsp;В. Скільки покаже вольтметр на світлодіоді?</h4>
+      <details><summary>Підказка</summary>Баланс напруг: V<sub>LED</sub> = V<sub>джерела</sub> − V<sub>R</sub>.</details>
+    </div>
+    </details>
+
+    <details class="more" id="cc-more">
+    <summary>Тренажер: кольоровий код резисторів (номінал за смужками)</summary>
+    <p>Смужки читають від краю, протилежного до смужки допуску. Золота чи срібна смужка — завжди остання; перед нею зазвичай ширший проміжок<sup class="cite" data-fact="iec-colour-code"></sup>. Але останнє слово за омметром: бліді смужки легко сплутати.</p>
+    <div class="panel wide" id="w-cc">
+      <div class="ph"><h3>Смужки ↔ номінал</h3><span class="small">торкніться смужки, потім кольору</span></div>
+      <div class="pb cc">
+        <div class="row">
+          <div class="seg" role="group" aria-label="Кількість смужок" id="cc-n">
+            <button type="button" data-n="4" aria-pressed="true">4 смужки</button>
+            <button type="button" data-n="5" aria-pressed="false">5 смужок</button>
+          </div>
+          <div class="seg" role="group" aria-label="Режим" id="cc-mode">
+            <button type="button" data-m="build" aria-pressed="true">Складати</button>
+            <button type="button" data-m="drill" aria-pressed="false">Тренування</button>
+          </div>
+        </div>
+        <svg class="svgfig cc-svg" id="cc-svg" viewBox="0 0 340 110" role="group" aria-label="Резистор з кольоровими смужками"></svg>
+        <div class="cc-pal" id="cc-pal" role="group" aria-label="Колір смужки"></div>
+        <p class="cc-out" id="cc-out" aria-live="polite"></p>
+        <div class="cc-drill" id="cc-drill" hidden>
+          <label for="cc-in">Номінал:</label>
+          <input id="cc-in" type="text" inputmode="decimal" placeholder="напр. 4,7 кОм" autocomplete="off">
+          <button type="button" class="btn primary sm" id="cc-check">Перевірити</button>
+          <button type="button" class="btn sm" id="cc-next">Інший резистор</button>
+          <span class="out" id="cc-score"></span>
+        </div>
+        <p class="small muted" id="cc-fb" aria-live="polite"></p>
+      </div>
+    </div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth" data-mc="M1">
+        <p class="seems">Світлодіод «з'їдає» частину струму, тож після нього струм менший.</p>
+        <p class="truth">Струм до і після LED однаковий. LED забирає частину <b>енергії</b> зарядів, тому на ньому падає напруга; кількість зарядів за секунду (струм) лишається та сама.</p>
+        <p class="test">Віртуальний мультиметр: виміряйте струм у розриві ✂ між R1 і LED, потім між LED і GND.</p>
+      </div>
+      <div class="myth" data-mc="M10">
+        <p class="seems">Струм міряють так само, як напругу: щупи на виводи деталі.</p>
+        <p class="truth">Так ви закоротите деталь. Амперметр ставлять у розрив, послідовно. Паралельно джерелу в режимі mA він закорочує його, і згоряє запобіжник F1.</p>
+        <p class="test">Режим mA, щупи на обидва виводи LED: LED гасне. Щупи на A і F: запобіжник F1 згоряє.</p>
+      </div>
+      <div class="myth" data-mc="M5">
+        <p class="seems">Струму немає — значить, і напруги ніде немає.</p>
+        <p class="truth">У розірваному колі струму немає, тож на R1 падіння нуль, і на розриві стоїть більша частина напруги джерела: кілька вольт, а не 0. (Без LED у колі — майже вся напруга; LED навіть від мікроструму вольтметра забирає ≈ 1,4&nbsp;В<sup class="cite" data-fact="led-red-vf-low-current"></sup>, тому з ним виходить ≈ 3,5&nbsp;В із 5.)</p>
+        <p class="test">Віртуальний мультиметр: розріжте ✂ між R1 і LED, режим V, щупи по обидва боки розриву — ≈ 3,6&nbsp;В, а не 0.</p>
+      </div>
+      <div class="myth" data-mc="M3">
+        <p class="seems">Резистор захищає LED, лише коли стоїть <b>перед</b> ним.</p>
+        <p class="truth">У петлі порядок не важить: струм однаковий усюди, і резистор обмежує його для всієї петлі.</p>
+        <p class="test">Міні-лаба, розширення: поміняйте R і LED місцями, порівняйте струм.</p>
+      </div>
+      <div class="myth" data-mc="M8">
+        <p class="seems">Обидві ніжки в одному стовпчику макетки — нормально, аби деталь трималася.</p>
+        <p class="truth">П'ять отворів стовпчика з'єднані: деталь закорочена, ніби її немає.</p>
+        <p class="test">Продзвонка між двома отворами одного стовпчика пищить. Задача «Знайди коротке» нижче.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 08 dual figure + breadboard internals -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <div class="row" style="margin-bottom:10px">
+      <div class="seg" role="group" aria-label="Варіант схеми" id="s1-mode">
+        <button type="button" data-m="plain" aria-pressed="true">S1: коло</button>
+        <button type="button" data-m="v" aria-pressed="false">S1-V: вольтметр</button>
+        <button type="button" data-m="a" aria-pressed="false">S1-A: амперметр</button>
+      </div>
+    </div>
+    <figure class="dual wide" id="dual-s1" data-nets="v5=+5 В; mid=R1 → LED1; led_a=Анод LED1 (після розриву); gnd=GND">
+      <div class="view" data-view="sch">
+        <svg class="svgfig" viewBox="0 0 300 230" role="img" aria-label="Схема S1: джерело 5 вольт, резистор R1 220 ом, світлодіод LED1, земля. Варіанти: вольтметр паралельно R1 або амперметр у розриві між R1 і LED1.">
+          <use class="sch-sym net-5v" href="#vsrc" x="40" y="100" transform="rotate(90 40 100)"/>
+          <text class="sch-val" x="56" y="132">+5 В</text>
+          <text class="sch-pin" x="56" y="150">MB-102</text>
+          <path class="sch-w net-5v" data-net="v5" d="M40 100V70H90"/>
+          <use class="sch-sym" href="#res" x="90" y="70"/>
+          <text class="sch-ref" x="120" y="100" text-anchor="middle">R1</text>
+          <text class="sch-val" x="120" y="116" text-anchor="middle">220 Ом</text>
+          <g data-show="plain v"><path class="sch-w net-sig" data-net="mid" d="M150 70H250V100"/></g>
+          <g data-show="a">
+            <path class="sch-w net-sig" data-net="mid" d="M150 70H170"/>
+            <use class="sch-sym" href="#meter-a" x="170" y="70"/>
+            <path class="sch-w net-sig2" data-net="led_a" d="M230 70H250V100"/>
+            <text class="sch-pin" x="200" y="50" text-anchor="middle">mA</text>
+          </g>
+          <g data-show="v">
+            <path class="sch-w net-5v" data-net="v5" d="M90 70V30"/>
+            <path class="sch-w net-sig" data-net="mid" d="M150 70V30"/>
+            <use class="sch-sym" href="#meter-v" x="90" y="30"/>
+          </g>
+          <use class="sch-sym" href="#led" x="250" y="100" transform="rotate(90 250 100)"/>
+          <text class="sch-ref" x="236" y="140" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M250 160V200H40V160"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="145" y="200"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg class="svgfig" id="bb-s1" viewBox="0 0 290 290" role="img" aria-label="Макетка S1: шина плюс 5 вольт з'єднана дротом зі стовпчиком 3, резистор R1 зі стовпчика 3 у стовпчик 9, світлодіод анодом у 9, катодом у 10, дріт зі стовпчика 10 на шину мінус. Для амперметра світлодіод переставлено в стовпчики 14–15, а щупи замикають розрив між 9 і 14."></svg>
+      </div>
+      <figcaption id="s1-cap">Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах. Шини живить модуль MB-102, перемичка на 5&nbsp;В<sup class="cite" data-fact="mb102-module"></sup>.</figcaption>
+    </figure>
+
+    <h3>Макетка зсередини: знайдіть коротке</h3>
+    <p>Світлодіод у цьому колі спалахнув надто яскраво й згас — згорів, хоча резистор начебто є. Одна з деталей стоїть неправильно. Торкніться її.</p>
+    <div class="panel wide" id="w-bb">
+      <div class="pb">
+        <div class="row" style="margin-bottom:8px">
+          <button type="button" class="btn sm" id="bbx-metal" aria-pressed="false">Показати смужки всередині</button>
+          <button type="button" class="btn sm" id="bbx-fix" aria-pressed="false">Показати виправлення</button>
+        </div>
+        <svg class="svgfig" id="bbx-svg" viewBox="0 0 230 222" role="group" aria-label="Макетка із задачею: резистор R1 лежить обома ніжками в шині плюс, дріт з шини плюс у стовпчик 9, світлодіод анодом у 9, катодом у 10, дріт зі стовпчика 10 на шину мінус. Торкніться деталі, що стоїть неправильно."></svg>
+        <p class="out" id="bbx-out" aria-live="polite">Торкніться деталі, що стоїть неправильно. Підказка: кнопка «Показати смужки всередині».</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома</h2>
+    <p><b>Набір:</b> мультиметр UT136C+, макетка MB-102 із модулем живлення, червоний LED 3&nbsp;мм, резистори 220&nbsp;Ом, 1&nbsp;кОм, 10&nbsp;кОм, 3–4 перемички (<a href="../../atlas/#multimeter">атлас: мультиметр</a>, <a href="../../atlas/#breadboard">атлас: макетка</a>).</p>
+    <div class="note danger">Режим струму — тільки в розрив. Ніколи не торкайтеся щупами двох шин живлення, коли прилад у режимі струму: це коротке замикання. Червоний щуп у VΩmA (µA/mA) — згорить запобіжник F1 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>. Червоний щуп у 10A — запобіжник F2 на 10&nbsp;А<sup class="cite" data-fact="ut136-fuse-10a"></sup> вціліє, зате ви закоротите саме джерело: при живленні від DC-роз'єму стабілізатор MB-102 упирається в межу ≈ 1&nbsp;А<sup class="cite" data-fact="ams1117-limits"></sup> і перегрівається, від USB — може вимкнутися порт; гріються щупи й макетка.</div>
+    <ol>
+      <li>Перевірте вихід модуля MB-102 вольтметром ще <b>до</b> того, як ставити деталі: перемичка на 5&nbsp;В<sup class="cite" data-fact="mb102-module"></sup>.</li>
+      <li>Без живлення виміряйте омметром кожен резистор і запишіть справжнє значення.</li>
+      <li>Зберіть S1 з 220&nbsp;Ом (<a href="#circuit">схема й макетка — розділ 08</a>). <b>Полярність LED:</b> довша ніжка (анод, «+») — у стовпчик R1, коротша (катод, з боку пласкої грані корпусу) — у стовпчик, з якого дріт іде на шину «−». Навпаки LED просто не світитиме. Порахуйте прогноз струму (Vs − 1,9) / R і впишіть у таблицю.</li>
+      <li>Розірвіть коло між R1 і LED: витягніть анод LED у вільний стовпчик (на схемі S1-A — стовпчики 14–15). Червоний щуп — у гніздо VΩmA, перемикач на mA. Потім <b>червоний щуп — у стовпчик правого виводу R1 (9), чорний — у стовпчик, куди ви переставили анод (14)</b>. Прилад замкнув розрив — LED світить, на дисплеї струм.</li>
+      <li>Поверніть LED на місце, перемикач на V. Виміряйте V<sub>R</sub>, V<sub>LED</sub> і V<sub>джерела</sub>.</li>
+      <li>Повторіть для 1&nbsp;кОм і 10&nbsp;кОм. Для 10&nbsp;кОм струм лише ≈ 0,3&nbsp;мА: перемкніть на <b>µA</b> (той самий VΩmA). На mA прилад покаже «0.31» — похибка ±(1&nbsp;% + 3 одиниці) там означає ±0,03&nbsp;мА, тобто ≈ ±10&nbsp;%; на µA роздільність 1&nbsp;мкА, і похибка ≈ ±2&nbsp;%<sup class="cite" data-fact="ut136-dca-accuracy"></sup>.</li>
+      <li>Після вимірювань: перемикач на V або OFF. Наступне вимірювання з помилковим режимом — найчастіша причина згорілих запобіжників.</li>
+    </ol>
+    <table class="measure" data-key="1-1-ohm" data-calc="diff">
+      <caption>Закон Ома: струм через LED</caption>
+      <thead><tr><th>R1</th><th>Прогноз I, мА</th><th>Виміряно I, мА</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>220 Ом</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>1 кОм</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>10 кОм</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    <table class="measure" data-key="1-1-kvl" data-calc="diff">
+      <caption>Баланс напруг: V<sub>R</sub> + V<sub>LED</sub> = V<sub>джерела</sub>?</caption>
+      <thead><tr><th>R1</th><th>V<sub>R</sub>, В</th><th>V<sub>LED</sub>, В</th><th>V джерела, В</th><th>V<sub>R</sub> + V<sub>LED</sub>, В</th><th>Різниця, %</th></tr></thead>
+      <tbody>
+        <tr><th>220 Ом</th><td data-col="vr"></td><td data-col="vled"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td></tr>
+        <tr><th>1 кОм</th><td data-col="vr"></td><td data-col="vled"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td></tr>
+        <tr><th>10 кОм</th><td data-col="vr"></td><td data-col="vled"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td></tr>
+      </tbody>
+    </table>
+    <p class="small muted">Стовпчик «V<sub>R</sub> + V<sub>LED</sub>» заповнюється сам, коли ви вписали обидва доданки. Чого чекати від приладу: V<sub>R</sub> і V<sub>LED</sub> (до 4&nbsp;В) він міряє на діапазоні 4&nbsp;В з похибкою ±(0,5&nbsp;% + 2)<sup class="cite" data-fact="ut136-dcv-accuracy"></sup>, а V<sub>джерела</sub> ≈ 5&nbsp;В — на діапазоні 40&nbsp;В, ±(0,7&nbsp;% + 3) ≈ ±0,07&nbsp;В<sup class="cite" data-fact="ut136-dcv-40v-range"></sup>. Разом це ≈ ±0,1&nbsp;В, тобто ±2&nbsp;%. Струм: ±(1&nbsp;% + 3 одиниці), де «одиниця» — остання цифра дисплея (0,01&nbsp;мА на діапазоні 40&nbsp;мА)<sup class="cite" data-fact="ut136-dca-accuracy"></sup>.</p>
+    <p class="small muted"><b>Підказка для «Чому так?»:</b> виміряний струм зазвичай трохи більший за прогноз, і що менший струм, то більша різниця. Причина: V<sub>F</sub> = 1,9&nbsp;В даташит дає для 10&nbsp;мА, а при 0,3&nbsp;мА вона лише ≈ 1,6–1,7&nbsp;В<sup class="cite" data-fact="led-red-vf-low-current"></sup>. Тому для 10&nbsp;кОм різниця 5–10&nbsp;% — це не ваша помилка.</p>
+    <p><b>Розширення: що якщо…</b> поміняти місцями R1 і LED (LED ближче до «+»)? Спершу запишіть прогноз струму, потім виміряйте. А якщо замість червоного взяти зелений LED (≈ 2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>)?</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="1-1" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="1-1" data-n="8"></div>
+    <p class="small"><a href="../../cards/">Усі картки в тренажері →</a> · Є ідея картки? Запропонуйте її в обговоренні внизу сторінки.</p>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Детективи напруги</h3>
+      <dl>
+        <dt>Мета</dt><dd>У «чорній скриньці» Falstad (посилання від викладача) сховано резистор і світлодіод невідомого кольору, послідовно з джерелом 5&nbsp;В. Назовні виведено три контрольні точки: <b>«+»</b>, <b>«середина»</b> (між R і LED) і <b>GND</b>. Номінали всередині приховані, але редагування увімкнене: вольтметр і амперметр ви додаєте самі (амперметр — лише в розрив, який ви робите на виводі скриньки). Знайдіть R і V<sub>F</sub> за <b>найменшу кількість вимірювань</b>, потім відтворіть коло на макетці з будь-яким резистором з набору.</dd>
+        <dt>Здати</dt><dd>Журнал вимірювань (що, де, яким режимом), розрахунок R і V<sub>F</sub>, фото макетки з приладом.</dd>
+        <dt>Ролі</dt><dd><p class="small">Утрьох: Збирач також вимірює.</p><ul>
+          <li><b>Вимірювач</b> робить вимірювання в Falstad і на макетці;</li>
+          <li><b>Збирач</b> відтворює коло фізично й показує на камеру;</li>
+          <li><b>Доповідач</b> публікує результат у Discussions;</li>
+          <li><b>Скептик</b> перевіряє одиниці та що амперметр ніде не стояв паралельно.</li></ul></dd>
+        <dt>Критерії</dt><dd>0–2 бали кожен: правильні R (±5&nbsp;%) і V<sub>F</sub> (±0,1&nbsp;В); мінімум вимірювань із поясненням вибору; безпечне підключення приладу; фото і висновок.</dd>
+        <dt>Ускладнення</dt><dd>Поясніть, звідки різниця між вашими й справжніми значеннями: допуск резистора, точність приладу, нагрів LED.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd><a href="https://github.com/grok-rs/platformio-projects/discussions" target="_blank" rel="noopener">GitHub Discussions ↗</a>, категорія «Командні виклики» (або Slack #show-and-tell, якщо команда без GitHub).</dd>
+      </dl>
+    </article>
+    <p class="small"><a href="https://www.falstad.com/circuit/circuitjs.html" target="_blank" rel="noopener">Falstad Circuit Simulator ↗</a> · Підказка: двох вимірювань може вистачити.</p>
+    <div class="tnote">
+      <p><b>Для викладача.</b> Скриньку збирають у Falstad: джерело 5&nbsp;В, R (наприклад, 680&nbsp;Ом) і LED із нестандартною моделлю обгортають у підсхему (custom composite) з трьома виводами «+», «середина», GND, щоб значення не показувались при наведенні; редагування схеми лишається увімкненим. Посилання — у Slack, не на сайті. Ідеальний розв'язок (2 вимірювання): V<sub>LED</sub> вольтметром між «серединою» і GND + I амперметром у розриві на виводі GND → V<sub>F</sub> = V<sub>LED</sub>, R = (5 − V<sub>LED</sub>) / I.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p><b>Підготуйте до дзвінка:</b> мультиметр із перевіреною батареєю, макетку з модулем MB-102 на 5&nbsp;В, червоний LED, резистори 220&nbsp;Ом і 1&nbsp;кОм. Прочитайте розділи 04–05 і зробіть хоча б три місії віртуального мультиметра.</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1 «Два амперметри»</b> (віджет мотузки, розділ 05).</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуваний розподіл: 55–65&nbsp;% «однаково», 25–35&nbsp;% «A1 більше» (M1), 5–10&nbsp;% «A2 більше».</p></details>
+      <p>Якщо правильних 30–70&nbsp;% — пара з різними відповідями сперечається 60&nbsp;с, повторне голосування.</p>
+      <p><b>ConcepTest 2 «Амперметр паралельно LED»</b>.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікування: 30–45&nbsp;% правильно (LED гасне, ≈ 23&nbsp;мА), 35–50&nbsp;% «згорить запобіжник», 10–20&nbsp;% «покаже струм LED».</p></details>
+      <p>Ідеально для peer instruction; потім покажіть віртуальний мультиметр і спаліть запобіжник щупами на A і F.</p>
+      <p><b>ConcepTest 3 «Вольтметр на розриві»</b> (коло 5&nbsp;В → R → LED, розрив між R і LED).</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильна відповідь: «кілька вольт (≈ 3,5&nbsp;В), не 0» — LED навіть від мікроструму вольтметра забирає ≈ 1,4&nbsp;В. Очікування: 20–40&nbsp;% «кілька вольт / ≈ 5&nbsp;В», 50–70&nbsp;% «0 В» (M5).</p></details>
+      <p>Демонстрація на камеру: розімкніть коло й прикладіть щупи до розриву; якщо хтось відповів «рівно 5&nbsp;В», покажіть те саме без LED (лише R) — там буде майже 5&nbsp;В.</p>
+      <p><b>POE наживо:</b> спершу опитування «скільки покаже V<sub>R</sub> + V<sub>LED</sub>?», потім вимірювання на камеру з 220&nbsp;Ом, потім заміна на 1&nbsp;кОм і прогноз струму в чаті.</p>
+      <p><b>Водоспад у чаті:</b> «Куди червоний щуп і на що перемикач, щоб виміряти 15&nbsp;мА?» — усі пишуть, Enter на «3-2-1». <b>Спринт на дошці:</b> кожен малює у своїй рамці tldraw, де стоїть амперметр у колі S1.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>3–11</td><td>Розминка</td><td>розділ 03 цієї сторінки</td></tr>
+          <tr><td>11–15</td><td>Найнезрозуміліше: 1–2 питання з чату, новий приклад</td><td>чат / дошка</td></tr>
+          <tr><td>15–18</td><td>Повторення від студента</td><td>теорія з підготовчих тем LMS</td></tr>
+          <tr><td>18–22</td><td>Навіщо + цілі</td><td>розділи 01–02, «лог» налагодження</td></tr>
+          <tr><td>22–34</td><td>Ідеї + ConcepTest 1</td><td>розділ 04, віджет мотузки</td></tr>
+          <tr><td>34–46</td><td>POE: амперметр паралельно</td><td>віртуальний мультиметр</td></tr>
+          <tr><td>46–55</td><td>«Знайди коротке»</td><td>розділ 08, макетка</td></tr>
+          <tr><td>55–62</td><td>Перерва</td><td>—</td></tr>
+          <tr><td>62–90</td><td>Збирання разом: міні-лаба</td><td>камера + таблиці розділу 09</td></tr>
+          <tr><td>90–95</td><td>Спринт на дошці</td><td>tldraw: де амперметр</td></tr>
+          <tr><td>95–108</td><td>Видача виклику «Детективи напруги», розподіл ролей</td><td>розділ 12</td></tr>
+          <tr><td>108–116</td><td>Квиток на вихід</td><td>розділ 14</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому амперметр вмикають послідовно, а вольтметр — паралельно."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips">
+      <li><a class="chip deep" href="../../atlas/#multimeter">Атлас: мультиметр</a></li>
+      <li><a class="chip deep" href="../../atlas/#breadboard">Атлас: макетка</a></li>
+      <li><a class="chip deep" href="../../schematics/">Як читати схеми</a></li>
+      <li><a class="chip deep" href="../1-2/">Далі: урок 1.2 — розрахунок резистора</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7jaooa0813bkp58q3f" target="_blank" rel="noopener">Урок 1.1 у LMS ↗</a> (потрібен вхід).</li>
+      <li><a href="https://www.youtube.com/watch?v=n54SHip59v0" target="_blank" rel="noopener">Відео: як користуватися мультиметром ↗</a> — зверніть увагу, яке гніздо використовують для кожного режиму і куди повертають щуп після вимірювання струму.</li>
+      <li><a href="https://www.youtube.com/watch?v=aBO4wDQxjtU" target="_blank" rel="noopener">Відео: макетна плата ↗</a> — як ідуть смужки всередині: стовпчики по 5 отворів і довгі шини живлення.</li>
+      <li><a href="https://www.youtube.com/watch?v=4DrZjoeiPtU" target="_blank" rel="noopener">Відео: як виміряти силу струму ↗</a> — момент розриву кола і чому прилад вмикають послідовно.</li>
+      <li>Статті: <a href="https://radiodetali.com.ua/ua/articles/persha-shodinka-rezistori-chastina-persha-34" target="_blank" rel="noopener">резистори і кольоровий код ↗</a>, <a href="https://electronoff.ua/ua/academy/post/kak-polzovatsya-multimetrom-chast-1.php" target="_blank" rel="noopener">як користуватися мультиметром ↗</a>, <a href="https://minicomp.com.ua/ua/blog-ua/maketni-plati-ta-yih-osoblivosti" target="_blank" rel="noopener">макетні плати ↗</a>, <a href="https://18000.ck.ua/formula-zakonu-oma-dlia-dilianky-kola-poiasnennia-ta-zastosuvannia/" target="_blank" rel="noopener">закон Ома ↗</a>.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <p>У цьому уроці коду немає: тут лише прилад і коло. Перша прошивка — в уроці 1.3.</p>
+    <details class="more" id="src-more">
+      <summary>Джерела: звідки кожне число на сторінці</summary>
+      <div id="sources"></div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+    <h3>Що виправлено порівняно з LMS</h3>
+    <details class="more">
+    <summary>П'ять уточнень до матеріалів LMS</summary>
+    <ul>
+      <li><b>«Вольтметр не впливає на схему».</b> Уточнено: впливає мало, бо його вхідний опір ≈ 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>, але не нуль; у високоомних колах це вже помітно.</li>
+      <li><b>«Коротке замикання — струм іде шляхом найменшого опору в обхід навантаження».</b> Уточнено: струм ділиться між шляхами обернено до їхнього опору, просто майже весь іде крізь ≈ 0&nbsp;Ом. А чи згорить запобіжник 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>, залежить від того, що ще обмежує струм: паралельно LED у колі з 220&nbsp;Ом прилад покаже ≈ 23&nbsp;мА і вціліє, а на клемах джерела — згорить.</li>
+      <li><b>«Червоний щуп у VΩmA» для струму.</b> Доповнено: так можна лише до 400&nbsp;мА; більші струми — тільки через гніздо 10A<sup class="cite" data-fact="ut136-ma-range"></sup>.</li>
+      <li><b>«Перевірте резистор омметром».</b> Доповнено: тільки на знеструмленій схемі, і з поправкою на опір щупів 0,1–0,2&nbsp;Ом<sup class="cite" data-fact="ut136-ohm-notes"></sup>.</li>
+      <li><b>«Світлодіод — будь-якого кольору».</b> Уточнено: колір змінює V<sub>F</sub> (червоний ≈ 1,9&nbsp;В, зелений ≈ 2,2&nbsp;В, синій ≈ 3,3&nbsp;В<sup class="cite" data-fact="led-blue-3mm-vf"></sup>), тож і прогноз струму; при 3,3&nbsp;В синій чи білий LED світитиме тьмяно, а струм буде погано передбачуваним.</li>
+    </ul>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+/* Page widgets of lesson 1-1. Inline scripts ignore `defer`, so everything waits for study:ready. */
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const S = window.Schem;
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent = null) => S.svg(tag, attrs, parent);
+  const reduced = () => Study.reducedMotion();
+  const segBind = (sel, fn) => $$(sel + ' button').forEach((b) => b.addEventListener('click', () => {
+    $$(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    fn(b.dataset);
+  }));
+  const keyClick = (node, fn) => {
+    node.addEventListener('click', fn);
+    node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(e); } });
+  };
+
+  /* =================================================================== W1-1b rope loop */
+  (function rope() {
+    const svg = $('#rope-svg'), path = $('#rope-path'), marks = $('#rope-marks');
+    const pull = $('#rope-pull'), grip = $('#rope-grip');
+    let pos = 0, t = 0;
+    // Each counter has its own position on the rope and records its own crossings; the rate is crossings in the last 2 s.
+    const CTR = [{ id: '#rope-a1', at: 23, last: 0, hits: [] }, { id: '#rope-a2', at: 137, last: 0, hits: [] }];
+    const speed = () => +pull.value / +grip.value; // speed = pull / grip (Ohm's law in rope words)
+    function text() {
+      const v = speed(), p = +pull.value * v;
+      $('#rope-pull-v').textContent = pull.value;
+      $('#rope-grip-v').textContent = grip.value;
+      $('#rope-speed').textContent = `швидкість ${fmt.num(v, 2, true)}`;
+      $('#rope-heat').setAttribute('opacity', String(Math.min(0.75, p / 12)));
+      $('#rope-out').textContent = `Швидкість (струм) = тягне ÷ тримає = ${pull.value} ÷ ${grip.value} = ${fmt.num(v, 2)}. ` +
+        `Тепло в руках резистора ∝ тягне × швидкість = ${fmt.num(p, 2)}. Кожен лічильник рахує сам, і числа виходять однакові.`;
+    }
+    const draw = () => {
+      marks.style.strokeDashoffset = String(-pos);
+      CTR.forEach((c, k) => {
+        const h = c.hits, rate = h.length > 2 ? (h.length - 1) / (h[h.length - 1] - h[0]) : null; // marks per second between this counter's own crossings
+        $(c.id + ' text').textContent = `A${k + 1}: ${rate == null ? '…' : fmt.num(rate, 1, true) + '/с'}`;
+      });
+    };
+    const sim = Study.sim(svg, (dt) => {
+      pos += speed() * 40 * dt; t += dt;
+      CTR.forEach((c) => {
+        const n = Math.floor((pos + c.at) / 20);
+        for (; c.last < n; c.last++) c.hits.push(t);
+        while (c.hits.length > 2 && c.hits[0] < t - 3) c.hits.shift();
+      });
+      draw();
+    });
+    [pull, grip].forEach((i) => i.addEventListener('input', () => { text(); t = 0; CTR.forEach((c) => { c.hits = []; c.last = Math.floor((pos + c.at) / 20); }); if (!sim.running) draw(); }));
+    text(); draw();
+    $('#w-rope').addEventListener('predict', () => { if (!reduced()) sim.play(); });
+  })();
+
+  /* =================================================================== W1-1a virtual multimeter */
+  (function meter() {
+    const circ = $('#mm-circ'), mtr = $('#mm-meter');
+    // Probe points (nodes n0..n5) and where they sit on the drawing.
+    const PTS = [
+      { n: 'A', x: 70, y: 50, d: 'A: «+» джерела' }, { n: 'B', x: 122, y: 50, d: 'B: лівий вивід R1' },
+      { n: 'C', x: 218, y: 50, d: 'C: правий вивід R1' }, { n: 'D', x: 272, y: 50, d: 'D: анод LED1' },
+      { n: 'E', x: 272, y: 250, d: 'E: катод LED1' }, { n: 'F', x: 218, y: 250, d: 'F: GND (мінус джерела)' },
+    ];
+    const CUTS = [ // break k joins nodes [a,b]; the gap is drawn at gx
+      { a: 0, b: 1, x: 96, y: 50, lab: 'A–B' }, { a: 2, b: 3, x: 245, y: 50, lab: 'C–D' }, { a: 4, b: 5, x: 245, y: 250, lab: 'E–F' },
+    ];
+    const R_TRUE = { 220: 218.7, 1000: 1004, 10000: 9958 };
+    const VS_TRUE = { 5: 4.98, 3.3: 3.29 };
+    const RS = 15;                         // LED series resistance of the model, Ом
+    const I_BURN = 0.1;                    // model burn-out threshold (abs max is 30 мА: led-red-3mm-abs-max)
+    const R_W = 0.02, R_INT = 0.05, I_LIM = 1.0;
+    const SH = { ua: 100, ma: 2, a: 0.05 }; // ASSUMED shunts (ut136-ammeter-burden: not in the manual)
+    const RV = 10e6, LEADS = 0.15, FUSE = 0.5;
+    const st = {
+      power: true, vs: 5, r: 220, cut: [false, false, false], dial: 'vdc', jack: 'vma', sub: 'diode',
+      red: null, blk: null, fuseOk: true, ledOk: true, sel: 'red', open: false,
+    };
+    const done = new Set(Study.store.get('l11.missions', []));
+    let lastBreakI = {}; // break index → current measured there (same config)
+    let lastV = {};      // 'vr' / 'vled' / 'vs' → value for the KVL line
+    let flick = null, busy = false;
+
+    /* ---------- circuit drawing */
+    const wiresG = $('#mm-wires'), flowG = $('#mm-flowg');
+    const W = (d, extra = {}) => el('path', { class: 'sch-w', d, ...extra }, wiresG);
+    // Fixed wires (around the cut gaps)
+    W('M40 110V50H86'); W('M106 50H140'); W('M200 50H235'); W('M255 50H290V110');
+    W('M290 170V250H255'); W('M235 250H40V170');
+    const bridges = CUTS.map((c) => W(`M${c.x - 10} ${c.y}H${c.x + 10}`, { class: 'sch-w bridge' }));
+    // Flow overlays: invisible paths with their own currents
+    const FP = (d) => el('path', { d, fill: 'none', stroke: 'none' }, flowG);
+    const fl = {
+      src: FP('M40 110V50H70'), w01: FP('M70 50H122'), r: FP('M122 50H218'), w23: FP('M218 50H272'),
+      led: FP('M272 50H290V250H272'), w45: FP('M272 250H218'), ret: FP('M218 250H40V170'),
+    };
+    let meterPath = null;
+    // Cut toggles
+    const cutsG = $('#mm-cuts');
+    const cutBtns = CUTS.map((c, k) => {
+      const g = el('g', { class: 'cut', role: 'button', tabindex: '0', 'aria-pressed': 'false', 'aria-label': `Розірвати коло між ${c.lab}` }, cutsG);
+      const yy = c.y === 50 ? c.y + 14 : c.y + 10;
+      el('rect', { x: c.x - 22, y: yy, width: 44, height: 32, rx: 7 }, g);
+      const t = el('text', { x: c.x, y: yy + 21, 'text-anchor': 'middle' }, g);
+      t.textContent = '✂';
+      keyClick(g, () => { st.cut[k] = !st.cut[k]; update(); });
+      return g;
+    });
+    // Points
+    const ptsG = $('#mm-pts');
+    PTS.forEach((p, i) => {
+      const g = el('g', { class: 'pt', role: 'button', tabindex: '0', 'aria-label': `Точка ${p.d}: поставити сюди вибраний щуп` }, ptsG);
+      el('circle', { class: 'hit', cx: p.x, cy: p.y, r: 20 }, g);
+      el('circle', { class: 'ring', cx: p.x, cy: p.y, r: 6 }, g);
+      const top = p.y === 50;
+      const t = el('text', { x: top ? p.x : p.x + (p.n === 'F' ? -16 : 16), y: top ? p.y - 12 : p.y + 24, 'text-anchor': 'middle' }, g);
+      t.textContent = p.n;
+      keyClick(g, () => { place(st.sel, i); st.sel = st.sel === 'red' ? 'blk' : 'red'; markSel(); });
+    });
+
+    /* ---------- probes */
+    const probesG = $('#mm-probes');
+    const PARK = { red: { x: 80, y: 318 }, blk: { x: 140, y: 318 } };
+    const probe = {};
+    for (const k of ['red', 'blk']) {
+      const col = k === 'red' ? '#d0312d' : '#3a4248';
+      const cab = el('path', { class: 'cable', stroke: k === 'red' ? col : '#6b767e' }, probesG);
+      const g = el('g', { class: 'probe', tabindex: '0', role: 'button', 'aria-label': k === 'red' ? 'Червоний щуп: перетягніть на точку' : 'Чорний щуп COM: перетягніть на точку' }, probesG);
+      const inner = el('g', {}, g);
+      el('path', { d: 'M0 0L0 -12', stroke: '#c5ccd1', 'stroke-width': 3, 'stroke-linecap': 'round' }, inner);
+      el('rect', { class: 'pbody', x: -6, y: -54, width: 12, height: 42, rx: 4, fill: col, stroke: k === 'red' ? '#7a1512' : '#8a949b', 'stroke-width': 1.5 }, inner);
+      el('rect', { x: -9, y: -24, width: 18, height: 5, rx: 2, fill: col, stroke: k === 'red' ? '#7a1512' : '#8a949b' }, inner);
+      probe[k] = { g, inner, cab, x: PARK[k].x, y: PARK[k].y };
+      // drag
+      let drag = false, moved = false;
+      const toSvg = (e) => { const pt = circ.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(circ.getScreenCTM().inverse()); };
+      g.addEventListener('pointerdown', (e) => { drag = true; moved = false; g.setPointerCapture(e.pointerId); st.sel = k; markSel(); e.preventDefault(); });
+      g.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const p = toSvg(e); moved = true;
+        probe[k].x = Math.max(8, Math.min(332, p.x)); probe[k].y = Math.max(16, Math.min(332, p.y));
+        drawProbe(k);
+      });
+      const end = () => {
+        if (!drag) return; drag = false;
+        if (!moved) return;
+        let best = null, bd = 30;
+        PTS.forEach((p, i) => { const d = Math.hypot(p.x - probe[k].x, p.y - probe[k].y); if (d < bd) { bd = d; best = i; } });
+        place(k, best);
+      };
+      g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+      g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); st.sel = k; markSel(); } });
+    }
+    function markSel() { for (const k of ['red', 'blk']) probe[k].g.classList.toggle('sel', st.sel === k); }
+    function drawProbe(k) {
+      const p = probe[k], tilt = k === 'red' ? -22 : 22;
+      p.inner.setAttribute('transform', `translate(${p.x} ${p.y}) rotate(${tilt})`);
+      const a = tilt * Math.PI / 180;
+      const topX = p.x + 54 * Math.sin(a), topY = p.y - 54 * Math.cos(a);
+      const f = (v) => v.toFixed(1);
+      const ey = k === 'red' ? -34 : -26;
+      p.cab.setAttribute('d', p.y < 150
+        ? `M${f(topX)} ${f(topY)}C${f(topX)} ${ey} ${f(Math.max(topX + 30, 300))} ${ey} 340 ${ey}`
+        : `M${f(topX)} ${f(topY)}C${f(topX + 10)} ${f(topY - 24)} 326 ${k === 'red' ? 282 : 296} 340 ${k === 'red' ? 300 : 316}`);
+    }
+    function place(k, i) {
+      st[k] = i == null ? null : i;
+      const p = i == null ? PARK[k] : PTS[i];
+      probe[k].x = p.x; probe[k].y = p.y;
+      drawProbe(k);
+      $(k === 'red' ? '#mm-red' : '#mm-blk').value = i == null ? '' : String(i);
+      update();
+    }
+    // selects
+    for (const [sel, k] of [['#mm-red', 'red'], ['#mm-blk', 'blk']]) {
+      const s = $(sel);
+      s.append(new Option('— не торкається —', ''));
+      PTS.forEach((p, i) => s.append(new Option(p.d, String(i))));
+      s.addEventListener('change', () => place(k, s.value === '' ? null : +s.value));
+    }
+
+    /* ---------- meter drawing: dial + jacks */
+    const DIAL = [
+      { k: 'off', t: 'OFF' }, { k: 'vdc', t: 'V', dc: true }, { k: 'vac', t: 'V~' }, { k: 'ohm', t: 'Ω' },
+      { k: 'dio', t: '→| •)))' }, { k: 'ua', t: 'µA' }, { k: 'ma', t: 'mA' }, { k: 'a', t: 'A' },
+    ];
+    const DIAL_UK = { off: 'вимкнено', vdc: 'постійна напруга V', vac: 'змінна напруга V~', ohm: 'опір Ω', dio: 'діод / продзвонка', ua: 'мікроампери µA', ma: 'міліампери mA', a: 'ампери A' };
+    const dialG = $('#mm-dial');
+    const posEls = DIAL.map((d, i) => {
+      const ang = (-90 + i * 45) * Math.PI / 180;
+      const x = 150 + 80 * Math.cos(ang), y = 268 + 80 * Math.sin(ang);
+      const g = el('g', { class: 'pos', role: 'button', tabindex: '0', 'aria-label': `Перемикач: ${DIAL_UK[d.k]}` }, dialG);
+      el('circle', { class: 'hit', cx: x, cy: y, r: d.k === 'dio' ? 30 : 19 }, g);
+      const t = el('text', { x, y: y + 5, 'text-anchor': 'middle' }, g);
+      t.textContent = d.t;
+      if (d.dc) el('path', { d: `M${x + 9} ${y - 6}h12M${x + 9} ${y}h3M${x + 14} ${y}h2M${x + 18} ${y}h3`, stroke: '#e6ecf0', 'stroke-width': 2 }, g);
+      keyClick(g, () => { st.dial = d.k; update(); });
+      return g;
+    });
+    const JACKS = [{ k: '10a', x: 66, t: '10A' }, { k: 'com', x: 150, t: 'COM' }, { k: 'vma', x: 234, t: 'VΩmA' }];
+    const jacksG = $('#mm-jacks');
+    const plug = {};
+    JACKS.forEach((j) => {
+      const g = el('g', { class: 'jack', ...(j.k !== 'com' ? { role: 'button', tabindex: '0', 'aria-label': `Перевставити червоний щуп у гніздо ${j.t}` } : {}) }, jacksG);
+      el('circle', { class: 'hit', cx: j.x, cy: 408, r: 26 }, g);
+      el('text', { x: j.x, y: 380, 'text-anchor': 'middle', fill: '#e6ecf0', style: 'font:600 14px var(--f-mono)' }, g).textContent = j.t;
+      el('circle', { cx: j.x, cy: 408, r: 14, fill: '#0d1012', stroke: j.k === 'com' ? '#9aa3a9' : '#d0312d', 'stroke-width': 3 }, g);
+      plug[j.k] = el('circle', { cx: j.x, cy: 408, r: 9, fill: j.k === 'com' ? '#1b1f22' : '#d0312d', stroke: '#e6ecf0', 'stroke-width': 1.5 }, g);
+      if (j.k !== 'com') keyClick(g, () => { st.jack = j.k; update(); });
+    });
+    el('text', { x: 66, y: 437, 'text-anchor': 'middle', fill: '#c3cbd1', style: 'font:500 13px var(--f-mono)' }, jacksG).textContent = 'A ≤10A';
+    el('text', { x: 234, y: 437, 'text-anchor': 'middle', fill: '#c3cbd1', style: 'font:500 13px var(--f-mono)' }, jacksG).textContent = 'mA ≤400mA';
+    keyClick($('#mm-select'), () => { st.sub = st.sub === 'diode' ? 'cont' : 'diode'; update(); });
+
+    /* ---------- controls */
+    segBind('#mm-pwr', (d) => { st.power = d.v === '1'; lastBreakI = {}; lastV = {}; update(); });
+    segBind('#mm-vs', (d) => { st.vs = +d.v; lastBreakI = {}; lastV = {}; update(); });
+    segBind('#mm-r', (d) => { st.r = +d.v; lastBreakI = {}; lastV = {}; update(); });
+    // Repairs park both probes first: otherwise the same wrong connection would destroy the new part at once.
+    function parkBoth() {
+      for (const k of ['red', 'blk']) {
+        st[k] = null; probe[k].x = PARK[k].x; probe[k].y = PARK[k].y; drawProbe(k);
+        $(k === 'red' ? '#mm-red' : '#mm-blk').value = '';
+      }
+    }
+    $('#mm-fix-fuse').addEventListener('click', () => { st.fuseOk = true; $('#mm-fuse').classList.remove('blown'); parkBoth(); update({ fixed: 'fuse' }); });
+    $('#mm-fix-led').addEventListener('click', () => { st.ledOk = true; parkBoth(); update({ fixed: 'led' }); });
+
+    /* ---------- solver: nodal analysis. Nodes 0..5 = A..F (5 = GND), 6 = inside the LED (junction | Rs).
+       The only nonlinear part is the LED junction: its Thevenin equivalent comes from two linear solves,
+       then the junction current is found by bisection. */
+    const uIx = (n) => (n === 5 ? -1 : n === 6 ? 5 : n);
+    function lin(o, iD) {
+      const N = 6, G = Array.from({ length: N }, () => new Array(N).fill(0)), J = new Array(N).fill(0);
+      const g = (a, b, v) => {
+        const x = uIx(a), y = uIx(b);
+        if (a === b) return;
+        if (x >= 0) G[x][x] += v; if (y >= 0) G[y][y] += v;
+        if (x >= 0 && y >= 0) { G[x][y] -= v; G[y][x] -= v; }
+      };
+      const j = (n, i) => { const x = uIx(n); if (x >= 0) J[x] += i; };
+      for (let n = 0; n < N; n++) G[n][n] += 1e-9;
+      if (o.power) { g(0, 5, 1 / R_INT); j(0, o.vs / R_INT); }
+      if (!st.cut[0]) g(0, 1, 1 / R_W);
+      g(1, 2, 1 / R_TRUE[st.r]);
+      if (!st.cut[1]) g(2, 3, 1 / R_W);
+      g(6, 4, 1 / RS);
+      j(3, -iD); j(6, iD);                       // LED junction as a current source 3 → 6
+      if (!st.cut[2]) g(4, 5, 1 / R_W);
+      const m = o.meter;
+      if (m && st.red != null && st.blk != null && st.red !== st.blk) {
+        if (m.R) g(st.red, st.blk, 1 / m.R);
+        if (m.I) { j(st.red, m.I); j(st.blk, -m.I); }
+      }
+      const A = G.map((r, i) => [...r, J[i]]);
+      for (let c = 0; c < N; c++) {
+        let p = c; for (let r = c + 1; r < N; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+        [A[c], A[p]] = [A[p], A[c]];
+        for (let r = 0; r < N; r++) {
+          if (r === c) continue;
+          const f = A[r][c] / A[c][c];
+          for (let k = c; k <= N; k++) A[r][k] -= f * A[c][k];
+        }
+      }
+      const X = A.map((r, i) => r[N] / r[i]);
+      return [X[0], X[1], X[2], X[3], X[4], 0, X[5]];
+    }
+    // Junction: I = IS·(e^(V/NVT) − 1); with Rs = 15 Ом it gives 1,90 В at 10 мА (led-red-3mm-vf).
+    const NVT = 0.0384, IS = 0.01 / Math.exp((1.9 - 0.01 * RS) / NVT);
+    const vJ = (i) => NVT * Math.log(i / IS + 1);
+    function solveFull(o) {
+      let iD = 0;
+      if (st.ledOk && !o.ledOff) {
+        const a = lin(o, 0), b = lin(o, 1e-3);
+        const voc = a[3] - a[6], rth = Math.max(1e-6, (voc - (b[3] - b[6])) / 1e-3);
+        if (voc > 0) {
+          let lo = 0, hi = voc / rth;
+          for (let k = 0; k < 80; k++) { const mid = (lo + hi) / 2; if (voc - mid * rth - vJ(mid) > 0) lo = mid; else hi = mid; }
+          iD = lo;
+        }
+      }
+      const V = lin(o, iD);
+      return { V, iD, iSrc: o.power ? (o.vs - V[0]) / R_INT : 0 };
+    }
+    function circuit(meter, opts = {}) {
+      const vsT = VS_TRUE[st.vs];
+      let r = solveFull({ power: st.power, vs: vsT, meter, ...opts });
+      let limited = false;
+      if (st.power && r.iSrc > I_LIM) { // regulator current limit: lower the effective voltage until I = I_LIM
+        limited = true;
+        let lo = 0, hi = vsT;
+        for (let k = 0; k < 40; k++) {
+          const mid = (lo + hi) / 2, t = solveFull({ power: true, vs: mid, meter, ...opts });
+          if (t.iSrc > I_LIM) hi = mid; else lo = mid;
+        }
+        r = solveFull({ power: true, vs: lo, meter, ...opts });
+      }
+      const V = r.V, iLed = r.iD;
+      const iM = meter && meter.R && st.red != null && st.blk != null && st.red !== st.blk ? (V[st.red] - V[st.blk]) / meter.R : (meter && meter.I ? meter.I : 0);
+      return { V, iLed, iM, iSrc: r.iSrc, limited,
+        iw: [st.cut[0] ? 0 : (V[0] - V[1]) / R_W, st.cut[1] ? 0 : (V[2] - V[3]) / R_W, st.cut[2] ? 0 : (V[4] - V[5]) / R_W],
+        iR: (V[1] - V[2]) / R_TRUE[st.r] };
+    }
+    // Meter as a circuit element for the current dial + jack.
+    function meterEl() {
+      if (st.jack === '10a') return { R: SH.a, kind: 'shunt10' };
+      switch (st.dial) {
+        case 'off': return null;
+        case 'vdc': case 'vac': return { R: RV, kind: 'v' };
+        case 'ohm': return st.power ? { R: RV, kind: 'ohm' } : { I: 1e-4, kind: 'ohm' };
+        case 'dio': return st.power ? { R: RV, kind: 'dio' } : { I: 1e-3, kind: 'dio' };
+        case 'ua': return st.fuseOk ? { R: SH.ua, kind: 'i' } : null;
+        case 'ma': return st.fuseOk ? { R: SH.ma, kind: 'i' } : null;
+        default: return null; // 'a' with the red lead in VΩmA: not a measuring path
+      }
+    }
+    const ON = (st_) => st_.red != null && st_.blk != null;
+
+    /* ---------- LCD formatting (4000 counts, autorange) */
+    const RANGES = {
+      v: [[0.4, 1e3, 1, 'mV'], [4, 1, 3, 'V'], [40, 1, 2, 'V'], [400, 1, 1, 'V']],
+      ohm: [[400, 1, 1, 'Ω'], [4e3, 1e-3, 3, 'kΩ'], [4e4, 1e-3, 2, 'kΩ'], [4e5, 1e-3, 1, 'kΩ'], [4e6, 1e-6, 3, 'MΩ'], [4e7, 1e-6, 2, 'MΩ']],
+      ua: [[400e-6, 1e6, 1, 'µA'], [4000e-6, 1e6, 0, 'µA']],
+      ma: [[0.04, 1e3, 2, 'mA'], [0.4, 1e3, 1, 'mA']],
+      a: [[4, 1, 3, 'A'], [10, 1, 2, 'A']],
+      dio: [[3, 1, 3, 'V']],
+    };
+    const UK = { mV: 'мВ', V: 'В', 'Ω': 'Ом', 'kΩ': 'кОм', 'MΩ': 'МОм', 'µA': 'мкА', mA: 'мА', A: 'А' };
+    function lcd(x, kind) {
+      const rs = RANGES[kind], ax = Math.abs(x);
+      for (const [max, sc, dec, u] of rs) {
+        if (ax < max) {
+          const s = (ax * sc).toFixed(dec);
+          return { txt: s, unit: u, neg: x < 0 && +s !== 0, val: x, uk: `${x < 0 && +s !== 0 ? '−' : ''}${s.replace('.', ',')} ${UK[u]}` };
+        }
+      }
+      return { txt: 'OL', unit: rs[rs.length - 1][3], neg: false, ol: true, uk: 'OL (поза діапазоном)' };
+    }
+
+    /* ---------- effects */
+    function puff(id) {
+      const s = $(id);
+      if (reduced()) return;
+      s.classList.remove('go'); void s.getBBox(); s.classList.add('go');
+    }
+    function flash() { const f = $('#mm-flash'); if (reduced()) return; f.classList.remove('go'); void f.getBBox(); f.classList.add('go'); }
+    function blowFuse(i, pair) {
+      busy = true;
+      showLCD({ txt: 'OL', unit: st.dial === 'ua' ? 'µA' : 'mA' }, st.dial);
+      const g = $('#mm-fuse-glow');
+      if (!reduced()) { g.classList.remove('go'); void g.getBBox(); g.classList.add('go'); }
+      setTimeout(() => {
+        st.fuseOk = false; $('#mm-fuse').classList.add('blown'); puff('#mm-fuse-smoke'); flash();
+        busy = false;
+        done.add('fuse'); saveMiss();
+        update({ blown: i, pair });
+      }, reduced() ? 0 : 650);
+    }
+    function burnLed(i) {
+      busy = true;
+      setTimeout(() => { st.ledOk = false; puff('#mm-led-smoke'); busy = false; update({ burnt: i }); }, reduced() ? 0 : 500);
+    }
+    function showLCD(r, dial) {
+      const on = dial !== 'off';
+      $('#mm-digits').textContent = on ? r.txt : '';
+      $('#mm-unit').textContent = on ? (r.unit || '') : '';
+      $('#ann-neg').classList.toggle('on', on && !!r.neg);
+      $('#ann-auto').classList.toggle('on', on && dial !== 'dio');
+      $('#ann-dc').classList.toggle('on', on && ['vdc', 'ua', 'ma', 'a'].includes(dial));
+      $('#ann-ac').classList.toggle('on', on && dial === 'vac');
+      $('#ann-beep').classList.toggle('on', on && dial === 'dio' && st.sub === 'cont');
+      $('#ann-dio').classList.toggle('on', on && dial === 'dio' && st.sub === 'diode');
+      // phone strip (≤ 560 px): the same reading next to the probes
+      $('#mm-lcd-mode').textContent = dial === 'dio' ? (st.sub === 'cont' ? 'продзвонка' : 'діод') : DIAL_UK[dial];
+      $('#mm-lcd-val').textContent = on ? `${r.neg ? '−' : ''}${r.txt || ''} ${r.unit || ''}`.trim() || '—' : '—';
+    }
+    const flowMap = (a) => { const m = Math.abs(a) * 1000; return m < 0.005 ? 0 : 6 * Math.log2(1 + m) * Math.sign(a); };
+    function setFlows(c, meter) {
+      const live = st.open;
+      const F = (p, a) => S.flow(p, { mA: live ? flowMap(a) : 0 });
+      F(fl.src, c.iSrc); F(fl.w01, c.iw[0]); F(fl.r, c.iR); F(fl.w23, c.iw[1]); F(fl.led, c.iLed); F(fl.w45, c.iw[2]); F(fl.ret, c.iSrc);
+      if (meterPath) { if (meterPath._flow) meterPath._flow.remove(); meterPath.remove(); meterPath = null; }
+      if (meter && ON(st) && st.red !== st.blk && Math.abs(c.iM) > 2e-6) {
+        const a = PTS[st.red], b = PTS[st.blk];
+        const mx = (a.x + b.x) / 2 + (a.y === b.y ? 0 : 40), my = (a.y + b.y) / 2 + (a.y === b.y ? (a.y < 150 ? -36 : 36) : 0);
+        meterPath = el('path', { d: `M${a.x} ${a.y}Q${mx} ${my} ${b.x} ${b.y}`, fill: 'none', stroke: 'var(--hi-ink)', 'stroke-width': 1.5, 'stroke-dasharray': '2 4', opacity: '.8' }, flowG);
+        F(meterPath, c.iM);
+      }
+    }
+
+    /* ---------- main update */
+    function update(ev = {}) {
+      if (busy) return;
+      if (flick) { clearInterval(flick); flick = null; }
+      const meter = meterEl();
+      // Ω and continuity: the model keeps the LED dark (small test voltage); diode mode lets it conduct.
+      const ledOff = !st.power && (st.dial === 'ohm' || (st.dial === 'dio' && st.sub === 'cont'));
+      const c = circuit(meter, ledOff ? { ledOff: true } : {});
+      const base = circuit(null);
+      const dial = st.dial, on = ON(st), same = on && st.red === st.blk;
+      const msgs = []; let kind = 'tip';
+      const iPath = meter && meter.kind === 'i';
+
+      // Reading
+      let r;
+      const dV = on ? c.V[st.red] - c.V[st.blk] : 0;
+      if (dial === 'off') r = { txt: '', unit: '' };
+      else if (dial === 'vdc') r = st.jack === '10a' ? lcd(0, 'v') : lcd(dV, 'v');
+      else if (dial === 'vac') r = lcd(0, 'v');
+      else if (dial === 'ohm') {
+        if (st.jack === '10a' || !on) r = lcd(Infinity, 'ohm');
+        else if (st.power) { r = lcd(Math.random() * 900, 'ohm'); }
+        else r = lcd((same ? 0 : dV / 1e-4) + LEADS, 'ohm');
+      } else if (dial === 'dio') {
+        if (st.jack === '10a' || !on) r = st.sub === 'diode' ? lcd(Infinity, 'dio') : lcd(Infinity, 'ohm');
+        else if (st.power) r = lcd(Math.random() * 2, 'dio');
+        else if (st.sub === 'diode') r = same ? lcd(0, 'dio') : lcd(dV > 3 ? Infinity : dV, 'dio');
+        else { const rv = (same ? 0 : dV / 1e-4) + LEADS; r = rv < 400 ? lcd(rv, 'ohm') : lcd(Infinity, 'ohm'); r.beep = rv <= 10; }
+      } else if (dial === 'ua' || dial === 'ma') r = st.jack === '10a' || !st.fuseOk ? lcd(0, dial) : lcd(c.iM, dial);
+      else if (dial === 'a') r = st.jack === '10a' ? lcd(c.iM, 'a') : lcd(0, 'a');
+      draw(c, meter, r);
+
+      // Destruction (fuse first: it opens the meter path)
+      if (iPath && st.fuseOk && Math.abs(c.iM) > FUSE) return blowFuse(c.iM, `${PTS[st.red].n} (червоний) і ${PTS[st.blk].n} (COM)`);
+      if (st.ledOk && c.iLed > I_BURN) return burnLed(c.iLed);
+
+      // Messages
+      const disp = dial === 'off' ? 'дисплей порожній' : `дисплей: ${r.uk}`;
+      const nm = (i) => PTS[i].n;
+      const pair = on ? `${nm(st.red)} (червоний) і ${nm(st.blk)} (COM)` : '';
+      const breakIdx = on ? CUTS.findIndex((cu, k) => st.cut[k] && ((cu.a === st.red && cu.b === st.blk) || (cu.b === st.red && cu.a === st.blk))) : -1;
+      const vBase = on ? Math.abs(base.V[st.red] - base.V[st.blk]) : 0;
+      if (ev.blown != null) {
+        kind = 'danger';
+        msgs.push(`<b>Запобіжник F1 згорів!</b> Через гніздо VΩmA пішов струм понад 0,5 А. Амперметр став «дротом» між ${ev.pair || pair}, і струм обмежувало лише джерело. Тепер режими µA і mA показують 0, доки ви не заміните запобіжник (0,5 А, швидкодіючий).`);
+      } else if (ev.burnt != null) {
+        kind = 'danger';
+        msgs.push(`<b>LED1 згорів.</b> Крізь нього пішло ≈ ${fmt.num(ev.burnt * 1000, 0)} мА при абсолютному максимумі 30 мА. Прилад з опором ≈ 0 Ом паралельно R1 закоротив резистор, і струм більше ніщо не обмежувало.`);
+      } else if ((dial === 'ua' || dial === 'ma') && st.jack === 'vma' && !st.fuseOk) {
+        kind = 'warn';
+        msgs.push('<b>Запобіжник F1 згорів</b> — у режимах µA і mA прилад тепер завжди показує 0, навіть у правильному розриві. Натисніть «Замінити запобіжник» (щупи повернуться на стоянку).');
+      } else if (st.jack === '10a' && dial !== 'a' && on && Math.abs(c.iM) > 0.05) {
+        kind = 'danger';
+        msgs.push(`<b>Коротке замикання через гніздо 10A!</b> Червоний щуп у 10A, а там шунт ≈ 0 Ом незалежно від перемикача. Крізь прилад іде ${fmt.num(Math.abs(c.iM), 2)} А${c.limited ? ', стабілізатор модуля впирається в межу ≈ 1 А і гріється' : ''}. Поверніть щуп у VΩmA.`);
+      } else if (st.jack === '10a' && dial !== 'a' && dial !== 'off') {
+        kind = 'warn';
+        msgs.push('Червоний щуп у гнізді 10A: для цього режиму він має бути у VΩmA. Гніздо 10A — лише для режиму A.');
+      } else if (dial === 'a' && st.jack === 'vma') {
+        kind = 'warn'; msgs.push('Положення A працює лише з червоним щупом у гнізді 10A. Для струмів до 400 мА краще mA.');
+      } else if (iPath || (dial === 'a' && st.jack === '10a')) {
+        if (!on) msgs.push('Режим струму. Розріжте коло ✂ і поставте щупи по обидва боки розриву.');
+        else if (breakIdx >= 0 && st.power && !st.ledOk) {
+          kind = 'warn';
+          msgs.push(`Амперметр стоїть правильно, у розриві ${CUTS[breakIdx].lab}, але струму немає: LED1 згорів, і коло розірване всередині нього. Натисніть «Новий LED».`);
+        } else if (breakIdx >= 0 && st.power) {
+          kind = 'ok';
+          msgs.push(`<b>Правильно:</b> амперметр став частиною петлі в розриві ${CUTS[breakIdx].lab}.` + (r.ol ? '' : ` Струм кола ${r.uk}.`));
+          if (!r.ol && Math.abs(c.iM) > 1e-6) {
+            lastBreakI[breakIdx] = Math.abs(c.iM);
+            done.add('i');
+            const ks = Object.keys(lastBreakI);
+            if (ks.length > 1) { done.add('i2'); msgs.push(`В інших розривах: ${ks.map((k) => `${CUTS[k].lab} — ${fmt.num(lastBreakI[k] * 1000, 2)} мА`).join(', ')}. Однаково — струм не витрачається.`); }
+          }
+          if (r.ol && dial === 'ua') msgs.push('OL: струм більший за 4000 мкА. Перемкніть на mA.');
+        } else if (same || vBase < 0.005) {
+          msgs.push(`Показує майже нуль: між ${pair} немає розриву і немає напруги. Струм іде дротом в обхід приладу. Розріжте коло ✂ між цими точками.`);
+          if (st.cut.every((x) => !x) && same === false) kind = 'warn';
+        } else if (st.power) {
+          kind = 'warn';
+          const ledOff = base.iLed > 1e-4 && c.iLed < 1e-5;
+          const what = ledOff ? 'світлодіод: LED гасне, а струм тече крізь прилад' : (c.iLed > base.iLed * 2 ? 'резистор: LED більше ніщо не обмежує' : 'ділянку кола');
+          msgs.push(`<b>Амперметр паралельно!</b> Між ${pair} була напруга ${fmt.num(vBase, 2)} В, а прилад ≈ 0 Ом закоротив ${what}. Прилад показує ${r.uk} — це не струм кола.`);
+        }
+      } else if (dial === 'vdc') {
+        if (st.power && on && !same) {
+          msgs.push(`Напруга між ${pair}: ${r.uk}.`);
+          if (r.neg) msgs.push('Мінус означає лише, що червоний щуп на нижчому потенціалі. Приладу це не шкодить.');
+          const cutBetween = st.cut.some((x) => x) && Math.abs(dV) > 0.5 && base.iSrc < 1e-6;
+          if (cutBetween && st.cut.filter(Boolean).length === 1 && breakIdx >= 0) { kind = 'ok'; done.add('gap'); msgs.push(`Коло розірване: струму майже немає, на R1 падіння ≈ 0, і на розриві стоять кілька вольт. Не 0! Чому не всі ${fmt.num(VS_TRUE[st.vs], 2)} В: крізь вольтметр 10 МОм іде мікрострум, і навіть від нього LED забирає ≈ ${fmt.num(Math.abs(VS_TRUE[st.vs]) - Math.abs(dV), 1)} В. Без LED у колі був би майже повний показ джерела.`); }
+          const has = (a, b) => (Math.abs(c.V[st.red] - c.V[a]) < 1e-3 && Math.abs(c.V[st.blk] - c.V[b]) < 1e-3) || (Math.abs(c.V[st.red] - c.V[b]) < 1e-3 && Math.abs(c.V[st.blk] - c.V[a]) < 1e-3);
+          const allClosed = st.cut.every((x) => !x);
+          if (allClosed && has(0, 5) && Math.abs(dV) > 1) { done.add('vs'); lastV.vs = Math.abs(dV); }
+          if (allClosed && has(1, 2) && st.red !== st.blk && Math.abs(c.V[1] - c.V[2]) > 0.01) { done.add('vr'); lastV.vr = Math.abs(dV); }
+          if (allClosed && has(3, 4) && Math.abs(c.V[3] - c.V[4]) > 0.5) { done.add('vled'); lastV.vled = Math.abs(dV); }
+        } else if (!st.power) msgs.push('Живлення вимкнене: напруги немає.');
+        else msgs.push('Перетягніть щупи на дві різні точки: напруга буває лише між двома точками.');
+      } else if (dial === 'vac') {
+        msgs.push('Режим V~ (змінна напруга). У нашому колі постійна напруга, тому прилад показує ≈ 0. Перемкніть на V з прямою рискою.');
+      } else if (dial === 'ohm') {
+        if (st.power && on && !same) { kind = 'warn'; msgs.push('<b>Ω на живленій схемі:</b> прилад подає свій маленький струм, а чужа напруга його збиває. Цифри стрибають і нічого не означають. Вимкніть живлення.'); flick = setInterval(() => { if (!busy) showLCD(lcd(Math.random() * 900, 'ohm'), 'ohm'); }, 450); }
+        else if (!st.power && on) {
+          msgs.push(`Опір між ${pair}: ${r.uk}.${r.ol ? ' OL — більше за межу приладу: шлях розірваний або його перекриває діод.' : ''}`);
+          const rr = R_TRUE[st.r];
+          if (!r.ol && Math.abs(r.val - LEADS - rr) / rr < 0.01) { kind = 'ok'; done.add('ohm'); msgs.push(`Номінал ${fmt.si(st.r, 'Ом')}, а справжній ${fmt.num(rr, 1)} Ом: різниця в межах допуску.`); }
+        } else msgs.push('Режим Ω: вимкніть живлення і прикладіть щупи до виводів R1 (B і C).');
+      } else if (dial === 'dio') {
+        if (st.power && on) { kind = 'warn'; msgs.push('Діод і продзвонку теж перевіряють лише без живлення.'); }
+        else if (st.sub === 'diode' && on && !r.ol) msgs.push(`Режим діода: прилад пропускає ≈ 1 мА і показує падіння ${r.uk}.${c.iLed > 1e-4 ? ' LED ледь світиться.' : ''} Щупи навпаки дадуть OL.`);
+        else if (st.sub === 'diode' && on && r.ol) msgs.push(same ? 'Щупи на одній точці.' : 'OL: у цьому напрямку струм не тече — діод закритий (або на шляху розрив). Для LED це нормально, коли червоний щуп на катоді.');
+        else if (st.sub === 'cont' && on) msgs.push(r.beep ? '<b>Біп!</b> Опір ≤ 10 Ом: точки з\'єднані. Так перевіряють смужки макетки й дроти.' : 'Тиша: опір більший за поріг продзвонки, точки не з\'єднані напряму.');
+        else msgs.push('Кнопка SELECT перемикає діод ↔ продзвонку.');
+      } else if (dial === 'off') msgs.push('Прилад вимкнено. Оберіть режим на перемикачі.');
+      else if (dial === 'a') msgs.push('');
+      if (!on && dial !== 'off' && !msgs.length) msgs.push('Перетягніть щупи на точки кола або оберіть їх у списках.');
+
+      if (ev.fixed) {
+        if (kind === 'tip') kind = 'ok';
+        msgs.unshift(ev.fixed === 'fuse' ? '<b>Новий запобіжник F1 на місці.</b> Щупи повернуто на стоянку, щоб та сама помилка не спалила його знову.'
+          : '<b>Новий LED1 на місці.</b> Щупи повернуто на стоянку, щоб той самий «дріт» паралельно R1 не спалив його знову.');
+      }
+      const st_ = $('#mm-status');
+      st_.className = `note mm-status ${kind === 'tip' ? '' : kind}`.trim();
+      st_.innerHTML = `<span class="disp">${disp}</span><br>${msgs.filter(Boolean).join(' ')}`;
+      // KVL line
+      const kvl = $('#mm-kvl');
+      if (lastV.vr != null && lastV.vled != null) {
+        kvl.innerHTML = `V<sub>R</sub> + V<sub>LED</sub> = ${fmt.num(lastV.vr, 2, true)} + ${fmt.num(lastV.vled, 2, true)} = ${fmt.num(lastV.vr + lastV.vled, 2, true)} В` +
+          (lastV.vs != null ? `; джерело ${fmt.num(lastV.vs, 2, true)} В` : '') + ' — баланс напруг сходиться.';
+      } else kvl.textContent = '';
+      saveMiss();
+    }
+    function draw(c, meter, r) {
+      // knob, plugs, cuts, LED
+      const i = DIAL.findIndex((d) => d.k === st.dial);
+      $('#mm-knob').style.transform = `rotate(${i * 45}deg)`;
+      posEls.forEach((g, k) => g.classList.toggle('on', k === i));
+      plug['10a'].style.display = st.jack === '10a' ? '' : 'none';
+      plug.vma.style.display = st.jack === 'vma' ? '' : 'none';
+      cutBtns.forEach((g, k) => { g.setAttribute('aria-pressed', String(st.cut[k])); });
+      bridges.forEach((b, k) => { b.style.display = st.cut[k] ? 'none' : ''; });
+      const glow = $('#mm-glow');
+      glow.setAttribute('opacity', String(st.ledOk ? Math.min(0.85, Math.sqrt(c.iLed / 0.015) * 0.7) : 0));
+      $('#mm-led').classList.toggle('led-dead', !st.ledOk);
+      $('#mm-crack').hidden = st.ledOk;
+      $('#mm-fix-fuse').hidden = st.fuseOk;
+      $('#mm-fix-led').hidden = st.ledOk;
+      $('#mm-vs-lbl').textContent = st.power ? fmt.si(st.vs, 'В') : 'вимк.';
+      $('#mm-r-lbl').textContent = fmt.si(st.r, 'Ом');
+      showLCD(r, st.dial);
+      setFlows(c, meter);
+      $$('#mm-miss li').forEach((li) => li.classList.toggle('done', done.has(li.dataset.m)));
+    }
+    function saveMiss() {
+      Study.store.set('l11.missions', [...done]);
+      $$('#mm-miss li').forEach((li) => li.classList.toggle('done', done.has(li.dataset.m)));
+    }
+
+    drawProbe('red'); drawProbe('blk'); markSel();
+    update();
+    $('#w-meter').addEventListener('predict', () => {
+      st.open = true;
+      // Start in a useful state: V mode, probes across the source.
+      if (st.red == null && st.blk == null) { place('red', 0); place('blk', 5); } else update();
+    });
+  })();
+
+  /* =================================================================== W1-1c colour code */
+  (function colour() {
+    const svg = $('#cc-svg'), pal = $('#cc-pal');
+    const DIG = S.BAND_HEX ? ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'] : [];
+    const MULT = [...DIG.slice(0, 8), 'gold', 'silver'];
+    const TOLC = ['brown', 'red', 'green', 'blue', 'violet', 'grey', 'gold', 'silver'];
+    let n = 4, bands = ['red', 'red', 'brown', 'gold'], cur = 0, mode = 'build', target = null, streak = 0, deckIx = 0;
+    const KIT = [220, 1000, 10000];
+    const allowed = (i) => {
+      const digits = n - 2;
+      if (i < digits) return i === 0 ? DIG.slice(1) : DIG;
+      if (i === digits) return MULT;
+      return TOLC;
+    };
+    const darkText = (c) => ['white', 'yellow', 'gold', 'silver', 'grey', 'orange'].includes(c);
+    function render() {
+      svg.textContent = '';
+      el('path', { d: 'M8 55H70M270 55H332', stroke: '#8d979e', 'stroke-width': 4, 'stroke-linecap': 'round' }, svg);
+      el('rect', { x: 66, y: 28, width: 208, height: 54, rx: 22, fill: '#dcc394', stroke: '#9c855a', 'stroke-width': 2 }, svg);
+      const xs = n === 5 ? [100, 128, 156, 184, 238] : [104, 136, 168, 236];
+      bands.forEach((c, i) => {
+        const r = el('rect', { class: `band${i === cur && mode === 'build' ? ' cur' : ''}`, x: xs[i] - 8, y: 28, width: 16, height: 54, fill: S.BAND_HEX[c],
+          role: 'button', tabindex: mode === 'build' ? '0' : '-1', 'aria-label': `Смужка ${i + 1}: ${S.BAND_UK[c]}` }, svg);
+        keyClick(r, () => { if (mode !== 'build') return; cur = i; render(); });
+        el('text', { x: xs[i], y: 102, 'text-anchor': 'middle' }, svg).textContent = String(i + 1);
+      });
+      el('text', { x: 205, y: 20, 'text-anchor': 'middle' }, svg).textContent = 'ширший проміжок';
+      el('path', { d: `M${xs[n - 2] + 10} 24H${xs[n - 1] - 10}`, stroke: 'var(--muted)', 'stroke-width': 1.5 }, svg);
+      // palette
+      pal.textContent = '';
+      if (mode === 'build') {
+        allowed(cur).forEach((c) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = S.BAND_UK[c];
+          // the swatch label needs 4.5:1: white on the band green is only 4.36:1, so this button uses a darker green
+          b.style.background = c === 'green' ? '#2a7a35' : S.BAND_HEX[c];
+          b.style.color = darkText(c) ? '#111' : '#fff';
+          b.setAttribute('aria-pressed', String(bands[cur] === c));
+          b.addEventListener('click', () => { bands[cur] = c; cur = Math.min(n - 1, cur + 1); render(); });
+          pal.append(b);
+        });
+      }
+      const v = S.fromBands(bands);
+      const out = $('#cc-out');
+      if (mode === 'build') {
+        if (v) {
+          const e12 = S.E12 && S.E12.some((m) => Math.abs(v.ohms / Math.pow(10, Math.floor(Math.log10(v.ohms))) * 10 - m) < 0.01);
+          out.textContent = `${fmt.si(v.ohms, 'Ом')} ±${fmt.num(v.tol, 2)} %` + (e12 ? ' · є в ряду E12' : '');
+        } else out.textContent = 'Такої комбінації не буває';
+      } else out.textContent = '';
+    }
+    function newTarget() {
+      let ohms;
+      if (deckIx < KIT.length) ohms = KIT[deckIx++];
+      else {
+        const m = S.E12[Math.floor(Math.random() * S.E12.length)], e = Math.floor(Math.random() * 5);
+        ohms = Math.round(m * Math.pow(10, e) * (m < 10 ? 10 : 1));
+      }
+      target = ohms;
+      bands = S.colorBands(ohms, n);
+      render();
+      $('#cc-in').value = '';
+      $('#cc-fb').textContent = 'Прочитайте смужки зліва направо й введіть номінал (можна «4,7 кОм» або «4k7»).';
+    }
+    segBind('#cc-n', (d) => {
+      n = +d.n;
+      if (mode === 'drill') { bands = S.colorBands(target, n); render(); return; }
+      const v = S.fromBands(bands);
+      bands = S.colorBands(v ? v.ohms : 220, n);
+      cur = 0; render();
+    });
+    segBind('#cc-mode', (d) => {
+      mode = d.m;
+      $('#cc-drill').hidden = mode !== 'drill';
+      if (mode === 'drill') newTarget(); else { $('#cc-fb').textContent = ''; render(); }
+    });
+    const check = () => {
+      const x = Study.parseNum($('#cc-in').value.replace(/\s*(ом|Ом|ohm|Ω)\s*$/i, ''));
+      const ok = Number.isFinite(x) && Math.abs(x - target) / target < 0.005;
+      streak = ok ? streak + 1 : 0;
+      $('#cc-score').textContent = streak ? `серія: ${streak}` : '';
+      const nm = S.colorBands(target, n).map((c) => S.BAND_UK[c]).join(' – ');
+      $('#cc-fb').textContent = ok ? `Так! ${fmt.si(target, 'Ом')}: ${nm}.` :
+        `Ні. Перші ${n - 2} смужки — цифри, наступна — скільки нулів дописати. Правильно: ${fmt.si(target, 'Ом')}.`;
+    };
+    $('#cc-check').addEventListener('click', check);
+    $('#cc-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+    $('#cc-next').addEventListener('click', newTarget);
+    render();
+  })();
+
+  /* =================================================================== S1 dual figure (schematic + breadboard) */
+  (function dualS1() {
+    const svg = $('#bb-s1'), fig = $('#dual-s1');
+    const bb = S.breadboard(svg, { cols: 24, rails: true, x: 4, y: 64, colLabels: 'bottom' });
+    bb.markRail('top', '+', 'v5', 'net-5v');
+    bb.markRail('top', '-', 'gnd', 'net-gnd');
+    bb.mark(3, 'top', 'v5', 'net-5v');
+    bb.mark(9, 'top', 'mid', 'net-sig');
+    S.part(svg, 'jumper', { from: bb.rail('top', '+', 2), to: bb.hole(3, 'a'), net: 'v5', cls: 'net-5v', lift: 0, title: 'Шина +5 В → стовпчик 3' });
+    S.part(svg, 'res', { from: bb.hole(3, 'c'), to: bb.hole(9, 'c'), ohms: 220, label: 'R1' });
+    const gPlain = S.svg('g', { 'data-show': 'plain v' }, svg), gA = S.svg('g', { 'data-show': 'a' }, svg), gV = S.svg('g', { 'data-show': 'v' }, svg);
+    S.part(svg, 'led', { anode: bb.hole(9, 'e'), cathode: bb.hole(10, 'e'), color: 'red', label: 'LED1', parent: gPlain });
+    S.part(svg, 'jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 10), net: 'gnd', cls: 'net-gnd', lift: 0, parent: gPlain });
+    S.part(svg, 'led', { anode: bb.hole(14, 'e'), cathode: bb.hole(15, 'e'), color: 'red', label: 'LED1', parent: gA });
+    S.part(svg, 'jumper', { from: bb.hole(15, 'a'), to: bb.rail('top', '-', 15), net: 'gnd', cls: 'net-gnd', lift: 0, parent: gA });
+    const mbox = (g, x, t) => {
+      const m = S.svg('g', { class: 'mbox' }, g);
+      S.svg('rect', { x: x - 20, y: 4, width: 40, height: 28, rx: 6 }, m);
+      S.svg('text', { x, y: 24, 'text-anchor': 'middle' }, m).textContent = t;
+    };
+    const lead = (g, from, to, cls) => S.svg('path', { class: `probe-lead ${cls}`, d: `M${from.x} ${from.y}Q${from.x} ${to.y + 6} ${to.x} ${to.y}` }, g);
+    // ammeter: red at column 9 (row b), black (COM) at column 14 (row b)
+    mbox(gA, 115, 'mA');
+    lead(gA, bb.hole(9, 'b'), { x: 104, y: 32 }, 'pl-red');
+    lead(gA, bb.hole(14, 'b'), { x: 126, y: 32 }, 'pl-blk');
+    // voltmeter across R1: columns 3 and 9
+    mbox(gV, 60, 'V');
+    lead(gV, bb.hole(3, 'b'), { x: 49, y: 32 }, 'pl-red');
+    lead(gV, bb.hole(9, 'b'), { x: 71, y: 32 }, 'pl-blk');
+    const CAP = {
+      plain: 'S1: R1 і LED1 у різних стовпчиках, петля замикається через шину мінус.',
+      v: 'S1-V: вольтметр на R1 — щупи у стовпчики 3 і 9, коло не розривали.',
+      a: 'S1-A: LED1 переставлено в стовпчики 14–15, між 9 і 14 розрив, його замикає амперметр: червоний щуп у 9, COM у 14.',
+    };
+    const show = (m) => {
+      $$('[data-show]', fig).forEach((g) => { g.style.display = g.dataset.show.split(' ').includes(m) ? '' : 'none'; });
+      $('#s1-cap').firstChild.textContent = CAP[m] + ' Наведіть на дріт або вузол — він підсвітиться на обох видах. Шини живить модуль MB-102, перемичка на 5 В';
+    };
+    let cur = 'plain';
+    const legend = () => $$('.net-btn[data-for="led_a"]', fig).forEach((b) => { b.hidden = cur !== 'a'; });
+    segBind('#s1-mode', (d) => { cur = d.m; show(d.m); legend(); });
+    show('plain');
+    setTimeout(legend, 0); // the legend buttons are generated by Schem.link after this handler
+  })();
+
+  /* =================================================================== W1-1d breadboard: find the short */
+  (function bbShort() {
+    const svg = $('#bbx-svg');
+    const metal = S.svg('g', { style: 'display:none' }, svg);
+    const bb = S.breadboard(svg, { cols: 19, rails: true, x: 4, y: 0, colLabels: 'bottom' });
+    svg.append(metal); // above the board, below the parts
+    for (let c = 1; c <= 19; c++) for (const side of ['top', 'bottom']) {
+      const p = bb.strip(c, side);
+      S.svg('path', { class: 'bbx-metal', d: `M${p[0].x} ${p[0].y}V${p[4].y}` }, metal);
+    }
+    for (const side of ['top', 'bottom']) for (const sg of ['+', '-']) {
+      const a = bb.rail(side, sg, 1), b = bb.rail(side, sg, 19);
+      S.svg('path', { class: 'bbx-metal', d: `M${a.x} ${a.y}H${b.x}` }, metal);
+    }
+    const bad = S.svg('g', {}, svg), good = S.svg('g', { style: 'display:none' }, svg);
+    const pick = (g, label, txt, ok) => {
+      g.classList.add('bbx-part');
+      g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', label);
+      const b = g.getBBox();
+      const hl = S.svg('rect', { class: 'bbx-hl', x: b.x - 4, y: b.y - 4, width: b.width + 8, height: b.height + 8, rx: 4 }, g);
+      g.insertBefore(hl, g.firstChild);
+      keyClick(g, () => {
+        $$('.bbx-part', svg).forEach((x) => x.classList.toggle('picked', x === g));
+        $('#bbx-out').innerHTML = (ok ? '<b>Знайшли!</b> ' : '<b>Ні, ця деталь у порядку.</b> ') + txt;
+      });
+    };
+    const part = (kind, o, parent) => S.part(svg, kind, { ...o, parent });
+    const wrap = (parent) => S.svg('g', {}, parent);
+    let g;
+    g = wrap(bad); part('res', { from: bb.rail('top', '+', 2), to: bb.rail('top', '+', 7), ohms: 220, label: 'R1' }, g);
+    pick(g, 'Резистор R1', 'Обидві ніжки R1 стоять у шині «+». Шина з\'єднує їх напряму, тож R1 закорочений і нічого не обмежує. LED отримує 5 В через дріт без жодного опору: струм у сотні мА при максимумі 30 мА — LED згоряє за мить. Продзвонка між ніжками R1 пищала б.', true);
+    g = wrap(bad); part('jumper', { from: bb.rail('top', '+', 9), to: bb.hole(9, 'a'), net: 'v5', cls: 'net-5v', lift: 0 }, g);
+    pick(g, 'Дріт з шини плюс у стовпчик 9', 'Дріт подає «+» на стовпчик 9 — сам по собі він правильний. Але між «+» і LED тепер немає резистора: подивіться, куди встромлено R1.', false);
+    g = wrap(bad); part('led', { anode: bb.hole(9, 'e'), cathode: bb.hole(10, 'e'), color: 'red', label: 'LED1' }, g);
+    pick(g, 'Світлодіод LED1', 'LED1 у стовпчиках 9 і 10 — різні смужки, довга ніжка (анод) до «+». Він підключений правильно; біда в тому, що перед ним.', false);
+    g = wrap(bad); part('jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 11), net: 'gnd', cls: 'net-gnd', lift: 0 }, g);
+    pick(g, 'Дріт зі стовпчика 10 на шину мінус', 'Дріт зі стовпчика 10 на шину «−» замикає петлю на GND — так і треба.', false);
+    // corrected layout
+    part('jumper', { from: bb.rail('top', '+', 3), to: bb.hole(3, 'a'), net: 'v5', cls: 'net-5v', lift: 0 }, good);
+    part('res', { from: bb.hole(3, 'c'), to: bb.hole(9, 'c'), ohms: 220, label: 'R1' }, good);
+    part('led', { anode: bb.hole(9, 'e'), cathode: bb.hole(10, 'e'), color: 'red', label: 'LED1' }, good);
+    part('jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 10), net: 'gnd', cls: 'net-gnd', lift: 0 }, good);
+    $('#bbx-metal').addEventListener('click', (e) => {
+      const on = metal.style.display === 'none';
+      metal.style.display = on ? '' : 'none';
+      e.currentTarget.setAttribute('aria-pressed', String(on));
+      e.currentTarget.textContent = on ? 'Сховати смужки' : 'Показати смужки всередині';
+    });
+    $('#bbx-fix').addEventListener('click', (e) => {
+      const on = good.style.display === 'none';
+      good.style.display = on ? '' : 'none'; bad.style.display = on ? 'none' : '';
+      e.currentTarget.setAttribute('aria-pressed', String(on));
+      e.currentTarget.textContent = on ? 'Показати помилку' : 'Показати виправлення';
+      $('#bbx-out').textContent = on ? 'Виправлено: дріт з «+» у стовпчик 3, R1 — зі стовпчика 3 у 9 (різні смужки), LED1 — у 9 і 10. Петля: +5 В → 3 → R1 → 9 → LED1 → 10 → GND.' : 'Знайдіть деталь, що стоїть неправильно.';
+    });
+  })();
+
+  /* =================================================================== sources live in a <details>: open it for [n] links */
+  const srcBox = $('#src-more');
+  const openSrc = () => { if (srcBox) srcBox.open = true; };
+  document.addEventListener('click', (e) => { if (e.target.closest('a[href^="#src-"]')) openSrc(); }, true);
+  if (/^#src-/.test(location.hash)) { openSrc(); const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+
+  /* =================================================================== KVL table: V_R + V_LED filled in automatically */
+  (function kvlTable() {
+    const t = $('table[data-key="1-1-kvl"]');
+    if (!t) return;
+    const sync = () => $$('tbody tr', t).forEach((tr) => {
+      const a = Study.parseNum(($('[data-col="vr"] input', tr) || {}).value || ''), b = Study.parseNum(($('[data-col="vled"] input', tr) || {}).value || '');
+      const out = $('[data-col="meas"] input', tr);
+      if (!out || !Number.isFinite(a) || !Number.isFinite(b)) return;
+      const v = fmt.num(a + b, 2);
+      if (out.value !== v) { out.value = v; out.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+    t.addEventListener('input', (e) => { if (e.target.closest('[data-col="vr"],[data-col="vled"]')) sync(); });
+  })();
+});
+</script>
+</body>
+</html>

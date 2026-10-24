@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Як ми вчимося</title>
+<meta name="description" content="Посібник студента курсу ESP32-S3: цикл «до заняття → на занятті → після», чому самоперевірка краща за перечитування, картки по 10 хвилин, команди й ролі, як просити допомоги, приватність.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. Phase colours: before = accent, call = hi, after = ok. */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: transparent; color: var(--ink); font: 600 15px var(--f-body); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* 01 learning loop */
+.loop-wrap { display: grid; gap: 14px; padding: 16px; }
+@media (min-width: 820px) { .loop-wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; } }
+.loop-svg { width: 100%; max-width: 420px; margin: 0 auto; display: block; }
+.loop-svg .arc { fill: none; stroke-width: 26; stroke-linecap: round; cursor: pointer; opacity: .35; transition: opacity .2s; }
+.loop-svg .arc.on { opacity: 1; }
+.loop-svg .arc:focus-visible { outline: none; stroke-dasharray: 6 4; opacity: 1; }
+.loop-svg .lbl { font: 700 18px var(--f-display); fill: var(--ink); }
+.loop-svg .lbl2 { font: 600 14px var(--f-mono); fill: var(--muted); }
+.loop-svg .ctr { font: 700 22px var(--f-display); fill: var(--ink); }
+.loop-svg .ctr2 { font: 600 15px var(--f-mono); fill: var(--muted); }
+.loop-svg #me { cursor: pointer; }
+.c-before { stroke: var(--accent); color: var(--accent); }
+.c-call { stroke: var(--hi); color: var(--hi-ink); }
+.c-after { stroke: var(--ok); color: var(--ok); }
+.phase-card h3 { margin: 0 0 6px; }
+.phase-card .tag { margin-bottom: 4px; }
+.phase-card ol { margin-bottom: 6px; }
+.phase-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.phase-btns button { min-height: 40px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid currentColor; background: var(--panel); font: 600 14px var(--f-body); cursor: pointer; }
+.phase-btns button[aria-pressed="true"] { background: color-mix(in srgb, currentColor 14%, var(--panel)); }
+.week { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); margin: 14px 0; }
+@media (min-width: 640px) { .week { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.day { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.day b.d { display: block; font: 700 1.3rem var(--f-display); }
+.day .t { font: 600 13px var(--f-mono); color: var(--muted); }
+.day p { margin: 6px 0 0; font-size: 15px; }
+
+/* 02 retrieval chart + self-test */
+.bars { width: 100%; max-width: 480px; display: block; margin: 6px auto 0; }
+.bars .bar { transition: height .8s ease, y .8s ease; }
+.bars text { font: 600 16px var(--f-mono); fill: var(--ink); }
+.bars .ax { font: 500 15px var(--f-body); fill: var(--muted); }
+.legend-row { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; font-size: 14px; color: var(--muted); }
+.legend-row i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+.selftest { margin-top: 18px; padding: 14px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--panel-2); }
+.selftest h4 { margin-top: 0; }
+.st-facts li { margin-bottom: 4px; }
+.st-timer { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin: 8px 0 12px; }
+.st-timer > span { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; }
+.st-q { display: grid; gap: 4px; margin: 0 0 10px; }
+.st-q label { font-size: 15px; }
+.st-q input { min-height: 42px; font: 16px var(--f-body); padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); max-width: 260px; }
+.st-q.ok input { border-color: var(--ok); }
+.st-q.no input { border-color: var(--bad); }
+.st-q .ans { font-size: 14px; color: var(--muted); }
+.st-res { font-size: 1.05rem; }
+.st-res b { font: 700 1.4rem var(--f-display); }
+.evid { list-style: none; padding: 0; display: grid; gap: 10px; }
+.evid li { padding: 10px 12px 10px 14px; border-left: 4px solid var(--accent); background: var(--panel); border-radius: 0 8px 8px 0; margin: 0; }
+.evid li b { display: block; }
+.evid li .small { display: block; margin-top: 2px; }
+
+/* 03 hub map */
+.hubmap { display: grid; gap: 14px; }
+@media (min-width: 720px) { .hubmap { grid-template-columns: 250px minmax(0, 1fr); align-items: start; } }
+.phone { margin: 0 auto; width: 100%; max-width: 250px; padding: 14px 10px; border: 2px solid var(--line); border-radius: 26px; background: var(--panel); }
+.phone ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.phone li { margin: 0; }
+.phone button { width: 100%; display: flex; gap: 8px; align-items: center; min-height: 32px; padding: 4px 8px; border: 0; border-left: 5px solid currentColor; border-radius: 4px;
+  background: color-mix(in srgb, currentColor 9%, var(--panel)); font: 500 14px var(--f-body); text-align: left; cursor: pointer; }
+.phone button .n { font: 600 13px var(--f-mono); color: var(--ink); min-width: 2ch; } /* muted fails 4.5:1 on the tinted key in dark */
+.phone button span:nth-child(2) { color: var(--ink); flex: 1 1 auto; }
+.phone button .ph-k { font: 600 13px var(--f-mono); color: currentColor; white-space: nowrap; }
+.phone button[aria-pressed="true"] { background: color-mix(in srgb, currentColor 24%, var(--panel)); outline: 2px solid currentColor; outline-offset: 1px; }
+@media (pointer: coarse) { .phone button { min-height: 44px; } }
+.p-before { color: var(--accent); } .p-call { color: var(--hi-ink); } .p-after { color: var(--ok); } .p-any { color: var(--muted); }
+.hub-say { padding: 14px; }
+.hub-say h3 { margin-top: 0; }
+.key-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; margin: 8px 0 0; padding: 0; list-style: none; }
+.key-legend li { margin: 0; display: flex; gap: 6px; align-items: center; }
+.key-legend li::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: currentColor; }
+
+/* 04 cards */
+#curve-mode { display: flex; }
+#curve-mode button { flex: 1 1 auto; padding: 8px 10px; }
+.curve { width: 100%; max-width: 620px; display: block; margin: 8px auto 0; }
+.curve .ax { stroke: var(--line); }
+.curve text { font: 500 16px var(--f-body); fill: var(--muted); }
+.curve .c-line { fill: none; stroke-width: 3; }
+.curve .rev { fill: var(--ok); }
+.habit { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+.habit label { position: relative; display: grid; place-items: center; gap: 2px; min-height: 58px; padding: 6px 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; font: 600 13px var(--f-mono); color: var(--muted); }
+/* touch: the core 44 px checkbox-label rule (id-weighted, display:flex) would turn each day key into a wide row and
+   overflow the 7-column grid at 375 px; the keys are 58 px tall already, so keep their grid layout. */
+@media (hover: none), (pointer: coarse) { :root:not(#\#) #habit.habit label { display: grid; min-height: 58px; } }
+.habit input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+/* an empty box (>= 3:1 boundary) until checked; the ✓ only shows once checked */
+.habit .mark { display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--line-strong); border-radius: 5px; font-size: 15px; line-height: 1; color: transparent; }
+.habit label:has(input:checked) { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel)); color: var(--ok); }
+.habit label:has(input:checked) .mark { color: var(--panel); background: var(--ok); border-color: var(--ok); }
+.habit label.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.habit label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cmp { display: grid; gap: 10px; }
+@media (min-width: 640px) { .cmp { grid-template-columns: 1fr 1fr; } }
+.cmp > div { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
+.cmp .bad-ex { border-left: 4px solid var(--bad); }
+.cmp .good-ex { border-left: 4px solid var(--ok); }
+.cmp .tag { display: block; margin-bottom: 4px; }
+
+/* 05 roles */
+.roles { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.role { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.role svg { width: 52px; height: 52px; }
+.role h3 { margin: 0 0 2px; font-size: 1.25rem; }
+.role p { margin: 0; font-size: 15px; }
+.role .en { font: 600 13px var(--f-mono); color: var(--muted); }
+.teams { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; }
+.teams li { margin: 0; display: inline-flex; align-items: center; min-height: 40px; padding: 4px 14px 4px 8px; border-radius: 999px; border: 1.5px solid var(--line-2); background: var(--panel); font: 700 1.1rem var(--f-display); }
+
+/* 06 where + sorter */
+#where .tbl > table { min-width: 560px; }
+#where .tbl tbody th { white-space: normal; }
+@media (max-width: 600px) {
+  #where .tbl > table { min-width: 0; }
+  #where thead { display: none; }
+  #where tbody tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  #where tbody th, #where tbody td { display: block; border: 0; padding: 2px 10px; }
+  #where tbody td:nth-of-type(1)::before { content: "Де: "; font-weight: 600; color: var(--muted); }
+  #where tbody td:nth-of-type(2)::before { content: "Чому: "; font-weight: 600; color: var(--muted); }
+}
+#st-guess { display: flex; flex-wrap: wrap; gap: 8px; }
+#st-guess .opt { width: auto; min-width: 48px; justify-content: center; }
+.sorter .sq { padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.sorter .sq:last-child { border-bottom: 0; }
+.sorter .sq p { margin: 0 0 8px; font-weight: 500; }
+
+/* 07 help generator */
+.helpgen { display: grid; gap: 14px; padding: 16px; }
+@media (min-width: 820px) { .helpgen { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.helpgen label { display: grid; gap: 4px; font-weight: 600; font-size: 15px; }
+.helpgen input, .helpgen textarea { font: 16px var(--f-body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); min-height: 42px; width: 100%; }
+.helpgen textarea { min-height: 64px; resize: vertical; }
+.helpgen .fields { display: grid; gap: 10px; }
+.helpgen pre { white-space: pre-wrap; margin: 0; min-height: 160px; }
+.helpgen .hint { font-weight: 400; font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">До змісту</a>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="start">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main" data-toc="Зміст сторінки">
+  <header id="top">
+    <p class="eyebrow">Почніть тут · прочитайте один раз у перший тиждень</p>
+    <h1>Як ми <span>вчимося</span></h1>
+    <p class="lead">Три дзвінки на тиждень дають знайомство з темою. Запам'ятовується вона між дзвінками, коли ви пригадуєте, міряєте і пояснюєте. Тут описано, як це влаштовано в нашій групі.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><span class="chip"><span class="k">≈</span> 15 хв читання</span></li>
+      <li><a class="chip" href="#retrieve">Експеримент на собі: 2 хв</a></li>
+      <li><a class="chip" href="../cards/">Картки</a></li>
+      <li><a class="chip" href="../team/">Командні виклики</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#retrieve">Перевірте, як працює ваша пам'ять →</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 loop -->
+  <section class="hs" id="loop">
+    <h2><span class="n">01</span> Цикл: до заняття → на занятті → після</h2>
+    <p>Кожен урок проходить три фази. Найважливіша з них остання: на дзвінку ви бачите тему вперше, а пам'ятати її будете завдяки тому, що зробите після.</p>
+    <div class="panel wide">
+      <div class="loop-wrap">
+        <svg class="loop-svg" viewBox="0 0 360 310" role="group" aria-label="Кільце з трьох дуг: до заняття, на занятті, після заняття. Точка «ви» біжить по колу, бо цикл повторюється тричі на тиждень. Дуги — кнопки вибору фази.">
+          <defs>
+            <marker id="ah-b" viewBox="0 0 10 10" refX="3" refY="5" markerUnits="userSpaceOnUse" markerWidth="30" markerHeight="30" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
+            <marker id="ah-c" viewBox="0 0 10 10" refX="3" refY="5" markerUnits="userSpaceOnUse" markerWidth="30" markerHeight="30" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--hi)"/></marker>
+            <marker id="ah-a" viewBox="0 0 10 10" refX="3" refY="5" markerUnits="userSpaceOnUse" markerWidth="30" markerHeight="30" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ok)"/></marker>
+          </defs>
+          <path class="arc c-before on" data-ph="before" tabindex="0" role="button" aria-label="До заняття" d="M189.2 45.4 A105 105 0 0 1 275.2 194.4" marker-end="url(#ah-b)"/>
+          <path class="arc c-call" data-ph="call" tabindex="0" role="button" aria-label="На занятті" d="M266.0 210.2 A105 105 0 0 1 94.0 210.2" marker-end="url(#ah-c)"/>
+          <path class="arc c-after" data-ph="after" tabindex="0" role="button" aria-label="Після заняття" d="M84.8 194.4 A105 105 0 0 1 170.8 45.4" marker-end="url(#ah-a)"/>
+          <text class="lbl" x="312" y="20" text-anchor="middle">До заняття</text>
+          <text class="lbl2" x="312" y="38" text-anchor="middle">≈ 20 хв</text>
+          <text class="lbl" x="180" y="286" text-anchor="middle">На занятті</text>
+          <text class="lbl2" x="180" y="304" text-anchor="middle">120 хв</text>
+          <text class="lbl" x="52" y="20" text-anchor="middle">Після</text>
+          <text class="lbl2" x="52" y="38" text-anchor="middle">щодня 10–30 хв</text>
+          <text class="ctr" x="180" y="146" text-anchor="middle">3 рази</text>
+          <text class="ctr" x="180" y="170" text-anchor="middle">на тиждень</text>
+          <text class="ctr2" x="180" y="192" text-anchor="middle">пн · ср · сб</text>
+          <g id="me" role="button" aria-label="Точка «ви»: натисніть, щоб зупинити або запустити рух"><circle r="15" fill="var(--ink)"/><text y="5" text-anchor="middle" style="font:700 14px var(--f-mono);fill:var(--paper)">ви</text></g>
+        </svg>
+        <div>
+          <div class="phase-btns" role="group" aria-label="Фаза циклу">
+            <button type="button" class="c-before" data-ph="before" aria-pressed="true">До заняття</button>
+            <button type="button" class="c-call" data-ph="call" aria-pressed="false">На занятті</button>
+            <button type="button" class="c-after" data-ph="after" aria-pressed="false">Після</button>
+          </div>
+          <div class="phase-card" data-ph="before">
+            <span class="tag c-before">≈ 20 хв напередодні</span>
+            <h3>Підготуйте голову і стіл</h3>
+            <ol>
+              <li>Відкрийте сторінку уроку на карті курсу і пройдіть розминку: 5 питань з минулих уроків.</li>
+              <li>Прочитайте «Головні ідеї» і зробіть прогноз у розділі 05. Помилитися тут нормально: прогноз готує пам'ять до відповіді.</li>
+              <li>Покладіть на стіл те, що перелічено в «Підготуйте до дзвінка»: збирати будемо разом.</li>
+              <li>Запишіть одне питання, яке хочете поставити.</li>
+            </ol>
+          </div>
+          <div class="phase-card" data-ph="call" hidden>
+            <span class="tag c-call">120 хв, у записі</span>
+            <h3>Відповідайте щоразу, навіть коли не впевнені</h3>
+            <ol>
+              <li>Розминка: питання з попередніх уроків, відповідь буквою в чат на «3-2-1».</li>
+              <li>Прогноз перед кожною демонстрацією: голосування або стікер на дошці.</li>
+              <li>Збирання разом із викладачем: свою макетку тримайте перед камерою чи телефоном.</li>
+              <li>Короткий спринт на дошці tldraw (спільна онлайн-дошка для малювання) у вашій рамці.</li>
+              <li>Квиток на вихід: одне речення, найменш зрозуміле місце і впевненість від 1 до 5.</li>
+            </ol>
+          </div>
+          <div class="phase-card" data-ph="after" hidden>
+            <span class="tag c-after">щодня, короткими порціями</span>
+            <h3>Пригадайте, поміряйте, поясніть</h3>
+            <ol>
+              <li>Міні-лаба з таблицею «прогноз → виміряно → чому».</li>
+              <li>Самоперевірка на сторінці уроку, а через день іще раз помилкові питання.</li>
+              <li>Картки 10 хв на день: тренажер сам вирішує, що повторити сьогодні.</li>
+              <li>Своя частина командного виклику за роллю цього тижня.</li>
+              <li>Фото збірки з одним виміряним значенням у Discussions (форум під кожною сторінкою уроку, див. розділ 06).</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3>Тиждень</h3>
+    <div class="week">
+      <div class="day"><b class="d">Понеділок</b><span class="t">19:00–21:00 · новий урок</span><p>Викладач випускає командний виклик тижня, нові ролі видно на екрані. Наприкінці 2 хв із напарником: «з чого почнемо?»</p></div>
+      <div class="day"><b class="d">Середа</b><span class="t">19:00–21:00 · новий урок</span><p>Розбір чиєїсь несправної збірки наживо (за згодою автора) або два міні-уроки від студентів по 5 хв.</p></div>
+      <div class="day"><b class="d">Субота</b><span class="t">10:00–12:00 · новий урок</span><p>Команди показують результати по 3 хв, потім командний квіз. Після дзвінка кожен пише 5 карток за тиждень.</p></div>
+    </div>
+    <p class="small">Кожен третій тиждень присвячено міні-проєкту: у понеділок збираємо, у середу розбираємо, у суботу гнучка тема, яку група вибирає голосуванням.</p>
+    <div class="tnote"><p>Покажіть це кільце на першому дзвінку тижня (2 хв) і повертайтеся до нього, коли хтось каже «я переглянув запис, але нічого не пам'ятаю».</p></div>
+  </section>
+
+  <!-- ============================================================ 02 retrieval -->
+  <section class="hs" id="retrieve">
+    <h2><span class="n">02</span> Чому перевіряти себе, а не перечитувати</h2>
+    <div class="predict" data-ok="1" data-gate="w-rk"
+         data-why="Перечитування дає відчуття «я це знаю», бо текст здається знайомим. Але знайомість не означає, що ви це згадаєте. Спроба пригадати сама зміцнює пам'ять, і через тиждень ця перевага велика.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>У відомому експерименті студенти читали навчальний текст. Потім одна група прочитала його ще раз, а друга натомість записала все, що згадала, без підказок. Хто більше пам'ятав <b>через тиждень</b>?</p>
+      <div class="opts">
+        <button class="opt">Ті, хто перечитав: бачили текст двічі</button>
+        <button class="opt">Ті, хто пригадував, хоча текст бачили лише раз</button>
+        <button class="opt">Однаково: час на навчання був той самий</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel" id="w-rk">
+      <div class="ph"><h3>Roediger &amp; Karpicke, 2006: частка згаданого</h3><span class="small">експеримент 1, без зворотного зв'язку</span></div>
+      <div class="pb">
+        <svg class="bars" id="rk-bars" viewBox="0 0 360 250" role="img" aria-label="Стовпчики: через 5 хвилин перечитування 81 %, пригадування 75 %; через 2 дні 54 % проти 68 %; через тиждень 42 % проти 56 %. Перечитування виграє лише в короткому тесті."></svg>
+        <div class="legend-row"><span><i style="background:var(--muted)"></i>перечитали ще раз</span><span><i style="background:var(--accent)"></i>пригадували без тексту</span></div>
+        <p style="margin-top:10px">Через 5 хвилин перечитування трохи виграє, тому воно й здається кращим. Але вже через 2 дні картина перевертається: ті, хто пригадував, через <b>тиждень</b> пам'ятали стільки ж, скільки ті, хто перечитував, через <b>два дні</b>. У другому експерименті ті, хто лише читав, були найбільш упевнені, що запам'ятають, а запам'ятали найменше.</p>
+      </div>
+    </div>
+
+    <div class="selftest" id="selftest">
+      <h4>Експеримент на собі: 2 хвилини</h4>
+      <div class="st-step" data-step="1">
+        <p>Прочитайте ці шість фактів із перших уроків. Можна кілька разів, у вас 30 секунд.</p>
+        <ol class="st-facts">
+          <li>Амперметр вмикають у коло <b>послідовно</b>, розірвавши його.</li>
+          <li>Вольтметр під'єднують <b>паралельно</b> до деталі, на обидва її виводи.</li>
+          <li>У послідовному колі струм <b>однаковий</b> у кожній точці.</li>
+          <li>З <code>INPUT_PULLUP</code> натиснута кнопка до GND дає <b>LOW</b>.</li>
+          <li>Внутрішня підтяжка ESP32-S3 типово <b>45&nbsp;кОм</b><sup class="cite" data-fact="s3-pullup"></sup>.</li>
+          <li>Кнопка BOOT на платі YD-ESP32-S3 підключена до <b>GPIO0</b><sup class="cite" data-fact="yd-boot-gpio0"></sup>.</li>
+        </ol>
+        <div class="st-timer" aria-hidden="true"><span id="st-bar"></span></div>
+        <button type="button" class="btn primary" id="st-go">Почати 30 секунд</button>
+        <button type="button" class="btn ghost" id="st-skip" hidden>Я прочитав(ла), далі</button>
+      </div>
+      <div class="st-step" data-step="2" hidden>
+        <p><b>Факти сховано.</b> Скільки з шести ви згадаєте просто зараз?</p>
+        <div class="opts" id="st-guess" role="group" aria-label="Скільки фактів згадаєте"></div>
+      </div>
+      <div class="st-step" data-step="3" hidden>
+        <p>Заповніть пропуски з пам'яті. Не підглядайте: помилка теж корисна, якщо одразу побачити правильну відповідь.</p>
+        <div id="st-qs"></div>
+        <button type="button" class="btn primary" id="st-check">Перевірити</button>
+      </div>
+      <div class="st-step" data-step="4" hidden>
+        <p class="st-res" id="st-res" aria-live="polite"></p>
+        <p>Ці шість фактів ви тепер пам'ятаєте краще, ніж якби прочитали їх ще раз, і особливо ті, на яких помилилися й побачили відповідь. Саме так працюють розминка, самоперевірка і картки.</p>
+        <button type="button" class="btn ghost sm" id="st-again">Пройти ще раз</button>
+      </div>
+    </div>
+
+    <h3>П'ять фактів про навчання, на яких побудовано курс</h3>
+    <ul class="evid">
+      <li><b>Пригадувати краще, ніж перечитувати.</b> Один із найкраще відтворених результатів психології пам'яті; огляд Dunlosky та ін. (2013) відносить самоперевірку до двох найкорисніших способів навчання. Звідси розминка, самоперевірка і картки.<span class="small">Roediger &amp; Karpicke 2006; Karpicke &amp; Blunt 2011</span></li>
+      <li><b>Розподіляти краще, ніж зубрити за раз.</b> Те саме, повторене через дні, тримається довше, ніж години за один вечір. Тому картки потроху щодня, а розминка бере питання з різних тижнів.<span class="small">Cepeda та ін. 2008</span></li>
+      <li><b>Прогноз перед демонстрацією.</b> Хто лише дивився демонстрацію, розумів її не краще за тих, хто не бачив її взагалі. Хто спершу записав прогноз, розумів помітно краще. Тому кожен віджет закритий, доки ви не спрогнозуєте.<span class="small">Crouch та ін. 2004</span></li>
+      <li><b>Змішувати задачі.</b> Коли в одному наборі є і закон Ома, і подільник, і підтяжка, ви вчитеся спершу вибирати інструмент. На реальному проєкті саме це й доведеться робити.<span class="small">Rohrer та ін. 2015</span></li>
+      <li><b>Робити, а не слухати.</b> Метааналіз 225 досліджень з природничих і технічних курсів: на курсах з активним навчанням студенти помітно рідше провалювали іспит, ніж на курсах із самими лекціями (21,8&nbsp;% проти 33,8&nbsp;%).<span class="small">Freeman та ін. 2014</span></li>
+    </ul>
+    <p class="key"><b>Головне</b>Якщо пригадувати важко, це не означає, що навчання не працює. Саме таке зусилля і закріплює знання в пам'яті.</p>
+  </section>
+
+  <!-- ============================================================ 03 hub -->
+  <section class="hs" id="hub">
+    <h2><span class="n">03</span> Як користуватися сторінкою уроку (за 90 секунд)</h2>
+    <p>Майже всі сторінки уроків (крім розбору міні-проєкту) мають ті самі 16 розділів у тому самому порядку, тож нічого не доводиться шукати. Колір і підпис праворуч показують, коли який розділ потрібен. Натисніть рядок.</p>
+    <div class="hubmap">
+      <div class="phone" role="group" aria-label="Розділи сторінки уроку">
+        <ol id="hub-list"></ol>
+      </div>
+      <div class="panel hub-say">
+        <h3 id="hub-h">01 · Навіщо це</h3>
+        <p id="hub-p"></p>
+        <ul class="key-legend">
+          <li class="p-before">до заняття</li><li class="p-call">на занятті</li><li class="p-after">після</li><li class="p-any">будь-коли</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note tip"><p>Якщо тему вже знаєте, натисніть угорі сторінки уроку «Я це знаю → до самоперевірки». Пройшли на 9 з 10? Переходьте одразу до командного виклику.</p></div>
+  </section>
+
+  <!-- ============================================================ 04 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">04</span> Звичка: картки 10 хвилин на день</h2>
+    <p>Забування найшвидше в перші дні. Кожне вдале пригадування робить слід міцнішим, тому наступне повторення може бути пізніше. Тренажер карток розподіляє це за вас: показує картку саме тоді, коли ви от-от її забудете.</p>
+    <div class="panel">
+      <div class="ph"><h3>Крива забування</h3><span class="small">схематично, щоб показати ідею, а не дані</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Варіант навчання" id="curve-mode">
+          <button type="button" data-m="0" aria-pressed="true">Без повторень</button>
+          <button type="button" data-m="1" aria-pressed="false">Повтори 1-3-7-21</button>
+        </div>
+        <svg class="curve" id="curve" viewBox="0 0 380 230" role="img" aria-label="Графік: частка, яку ви пам'ятаєте, залежно від днів після уроку. Без повторень крива за кілька днів падає приблизно до третини і там лишається. З повтореннями на 1, 3, 7 і 21 день кожне повторення піднімає її до верху, а спад після нього стає дедалі повільнішим."></svg>
+        <p class="small" id="curve-say" aria-live="polite"></p>
+      </div>
+    </div>
+    <h3>Ваш тиждень</h3>
+    <p>Позначайте дні, коли зробили картки. Ці позначки бачите лише ви, вони зберігаються тільки в цьому браузері.</p>
+    <div class="habit" id="habit" role="group" aria-label="Дні тижня, коли ви повторили картки"></div>
+    <p id="habit-say" class="small" aria-live="polite"></p>
+    <div class="actions">
+      <a class="btn primary" href="../cards/">Повторити сьогодні →</a>
+      <a class="btn ghost" href="../cards/#export">Експорт в Anki</a>
+    </div>
+    <h3>Як написати добру картку</h3>
+    <p>У суботу кожен пише 5 карток за тиждень: коли формулюєте картку самі, це вже повторення. Три правила:</p>
+    <ol>
+      <li><b>Один факт на картку.</b> Перелік із п'яти пунктів розбийте на п'ять карток.</li>
+      <li><b>Лише після уроку.</b> Картка для того, що ви вже зрозуміли, а не для нового.</li>
+      <li><b>Питання, на яке можна відповісти однозначно.</b> Найкраще працюють картки з пропуском (cloze).</li>
+    </ol>
+    <div class="cmp">
+      <div class="bad-ex"><span class="tag">Погано</span>«Поясніть, як працює мультиметр»</div>
+      <div class="good-ex"><span class="tag">Добре</span>«Струм міряють, увімкнувши амперметр {{c1::послідовно}}» і окрема картка «Струм до 400&nbsp;мА мультиметр UT136C+ міряє через гніздо {{c1::VΩmA}}, а не 10A»<sup class="cite" data-fact="ut136-jacks"></sup><sup class="cite" data-fact="ut136-ma-range"></sup>.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 05 roles -->
+  <section class="hs" id="roles">
+    <h2><span class="n">05</span> Команди й ролі</h2>
+    <p>Група ділиться на команди по 3–4 людини. Склад команд діє один модуль, потім команди перемішуються. У кожній команді є хтось, кому ближчий код, і хтось, кому ближче залізо.</p>
+    <ul class="teams" aria-label="Команди">
+      <li><span class="team-disc" data-team="ohm">Ом</span></li><li><span class="team-disc" data-team="volt">Вольт</span></li><li><span class="team-disc" data-team="amp">Ампер</span></li><li><span class="team-disc" data-team="farad">Фарад</span></li>
+    </ul>
+    <p>Щопонеділка ролі змінюються, тож за модуль кожен побуває в кожній. <b>Збирає і міряє кожен сам у себе вдома</b>: роль визначає лише те, хто відповідає за командний результат.</p>
+    <div class="roles">
+      <div class="role">
+        <svg viewBox="0 0 52 52" role="img" aria-label="Значок: макетна плата"><rect x="5" y="12" width="42" height="28" rx="3" fill="none" stroke="var(--accent)" stroke-width="2.5"/><g fill="var(--accent)"><circle cx="13" cy="20" r="2"/><circle cx="21" cy="20" r="2"/><circle cx="29" cy="20" r="2"/><circle cx="37" cy="20" r="2"/><circle cx="13" cy="32" r="2"/><circle cx="21" cy="32" r="2"/><circle cx="29" cy="32" r="2"/><circle cx="37" cy="32" r="2"/></g><path d="M21 20C21 8 37 8 37 20" fill="none" stroke="var(--hi)" stroke-width="2.5"/></svg>
+        <div><h3>Збирач <span class="en">Builder</span></h3><p>Збирає еталонне коло для виклику і показує його на камеру (телефон як друга камера в Zoom).</p></div>
+      </div>
+      <div class="role">
+        <svg viewBox="0 0 52 52" role="img" aria-label="Значок: мультиметр"><rect x="11" y="4" width="30" height="44" rx="5" fill="none" stroke="var(--accent)" stroke-width="2.5"/><rect x="16" y="9" width="20" height="10" rx="2" fill="var(--accent)" opacity=".25"/><circle cx="26" cy="32" r="7" fill="none" stroke="var(--accent)" stroke-width="2.5"/><path d="M26 32L30 27" stroke="var(--hi)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <div><h3>Вимірювач <span class="en">Measurer</span></h3><p>Веде таблицю «прогноз → виміряно → різниця» і на дзвінку зачитує одне число.</p></div>
+      </div>
+      <div class="role">
+        <svg viewBox="0 0 52 52" role="img" aria-label="Значок: хмарка мовлення"><path d="M8 10h36a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H22l-10 8v-8H8a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z" fill="none" stroke="var(--accent)" stroke-width="2.5"/><path d="M13 20h26M13 27h18" stroke="var(--hi)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <div><h3>Доповідач <span class="en">Reporter</span></h3><p>Публікує результат команди в Discussions і в рамці на дошці, у суботу 3 хв розповідає.</p></div>
+      </div>
+      <div class="role">
+        <svg viewBox="0 0 52 52" role="img" aria-label="Значок: лупа"><circle cx="22" cy="22" r="13" fill="none" stroke="var(--accent)" stroke-width="2.5"/><path d="M32 32L45 45" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><text x="22" y="28" text-anchor="middle" style="font:700 17px var(--f-display);fill:var(--hi)">?</text></svg>
+        <div><h3>Скептик <span class="en">Skeptic</span></h3><p>Перевіряє безпеку (полярність, струми, спільна земля, захисний діод біля реле й мотора — з уроку 2.2), одиниці й твердження з даташита. У суботу ставить одне складне питання іншій команді.</p></div>
+      </div>
+    </div>
+    <p class="small">У програмних викликах роль означає ще й свою частину коду: її вказано в картці виклику. У команді з трьох людей Збирач і Вимірювач — одна людина. Таблиця ротації: <a href="../team/#roles">Командні виклики → Ролі</a>.</p>
+    <h3>Ролі на дзвінку: по 2 хвилини зусиль</h3>
+    <ul>
+      <li><b>Хронометрист</b> пише в чат Zoom мітку на кожній зміні теми, наприклад <code>[00:23] Дільник напруги</code>. З цих міток складається зміст запису.</li>
+      <li><b>Чат-монітор</b> наприкінці кожного блоку нагадує викладачу про питання без відповіді.</li>
+      <li><b>Писар дошки</b> переносить ключові схеми викладача в рамку «Ключові ідеї» з підписами.</li>
+      <li><b>Підсумовувач</b> наступного дня публікує в Slack <code>#recordings</code> короткий підсумок (див. розділ 08).</li>
+    </ul>
+    <h3>Напарник</h3>
+    <p>У вас є напарник з іншої команди. Двічі на тиждень ви обмінюєтеся в Slack не обіцянками, а доказами:</p>
+    <pre id="buddy-tpl">Зроблено: …
+Виміряно: …
+Застряг(ла): …
+До середи: …</pre>
+    <button type="button" class="btn sm" data-copy="#buddy-tpl">Скопіювати шаблон</button>
+  </section>
+
+  <!-- ============================================================ 06 where -->
+  <section class="hs" id="where">
+    <h2><span class="n">06</span> Що куди писати</h2>
+    <p>Для кожної справи є одне місце, тож нічого не губиться.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Що</th><th>Де</th><th>Чому там</th></tr></thead>
+      <tbody>
+        <tr><th>Перевірені матеріали, квізи, картки</th><td>Цей сайт</td><td>Стабільно, з пошуком і історією змін</td></tr>
+        <tr><th>Малюнки й прогнози під час дзвінка</th><td>Дошка tldraw: окремий файл на модуль, окрема сторінка на урок</td><td>Працює наживо і без входу</td></tr>
+        <tr><th>«Застряг просто зараз», оголошення</th><td>Slack: <code>#help</code>, <code>#announcements</code>, <code>#team-…</code></td><td>Швидко; але історія в Slack не вічна</td></tr>
+        <tr><th>Фото збірок, результати викликів, свої картки, «Музей помилок»</th><td>GitHub Discussions (внизу кожної сторінки уроку)</td><td>Назавжди, прив'язано до уроку, є код і фото</td></tr>
+        <tr><th>Квиток на вихід</th><td>Форма викладача або приватне повідомлення в чаті Zoom</td><td>Можна чесно написати, що незрозуміло</td></tr>
+        <tr><th>Записи занять</th><td>LMS; посилання в Slack <code>#recordings</code></td><td>Записи не публікуються на відкритому сайті</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">Немає акаунта GitHub? Пишіть у Slack <code>#show-and-tell</code>, а Доповідач команди перенесе допис. Псевдонім у GitHub цілком годиться.</p>
+    <h3>Куди це?</h3>
+    <div class="sorter" id="sorter"></div>
+  </section>
+
+  <!-- ============================================================ 07 help -->
+  <section class="hs" id="help">
+    <h2><span class="n">07</span> Як просити допомоги</h2>
+    <p>Добре питання складається з чотирьох частин: <b>фото + схема + що очікували + що виміряли</b>. Часто відповідь знаходиться вже тоді, коли ви берете мультиметр, щоб заповнити останню частину.</p>
+    <div class="cmp">
+      <div class="bad-ex"><span class="tag">Важко допомогти</span>«Кнопка не працює, допоможіть»</div>
+      <div class="good-ex"><span class="tag">Легко допомогти</span>«Урок 1.4, кнопка на GPIO7 до GND, <code>INPUT_PULLUP</code>. Фото і схема нижче. Очікую LOW при натисканні. Мультиметр показує ту саму напругу на GPIO7 з натиснутою і з відпущеною кнопкою. Уже переставив кнопку на 90°.»</div>
+    </div>
+    <div class="panel wide">
+      <div class="helpgen" id="helpgen">
+        <div class="fields">
+          <label>Що робите <span class="hint">урок, завдання, пін</span><input id="hg-what" autocomplete="off" placeholder="Урок 1.4, кнопка на GPIO7"></label>
+          <label>Фото і схема <span class="hint">додасте до повідомлення в Slack</span><input id="hg-pic" autocomplete="off" placeholder="фото збірки + схема від руки"></label>
+          <label>Що очікували<textarea id="hg-exp" placeholder="При натисканні digitalRead дає LOW"></textarea></label>
+          <label>Що виміряли <span class="hint">число з одиницею або вивід Serial</span><textarea id="hg-meas" placeholder="Напруга на піні однакова в обох станах кнопки"></textarea></label>
+          <label>Що вже спробували<textarea id="hg-tried" placeholder="Переставив кнопку на 90°"></textarea></label>
+        </div>
+        <div>
+          <p class="small" style="margin-bottom:6px">Попередній перегляд для Slack <code>#help</code>:</p>
+          <pre id="hg-out" aria-live="polite"></pre>
+          <div class="actions">
+            <button type="button" class="btn primary" id="hg-copy">Скопіювати</button>
+            <button type="button" class="btn ghost sm" id="hg-clear">Очистити</button>
+          </div>
+          <p class="small">Чернетка зберігається лише в цьому браузері.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 08 recordings -->
+  <section class="hs" id="recordings">
+    <h2><span class="n">08</span> Записи: дивитися з користю</h2>
+    <p>Записати двогодинний дзвінок легко, а от вчитися з такого запису важко: просто переглянути здається продуктивним, але це те саме перечитування.</p>
+    <details class="more"><summary>Три правила перегляду</summary>
+    <ol>
+      <li><b>Ніколи не дивіться пасивно.</b> На кожному голосуванні чи прогнозі зупиніть відео, дайте свою відповідь і лише тоді дивіться далі.</li>
+      <li><b>Стрибайте за розділами.</b> Хронометрист пише мітки часу, а Підсумовувач протягом доби публікує в Slack <code>#recordings</code> зміст, 5 головних думок і пораду «якщо маєте лише 5 хвилин, дивіться цей розділ».</li>
+      <li><b>Спершу самоперевірка, потім запис.</b> Пройдіть квіз уроку, і дивіться лише ті місця, де помилилися.</li>
+    </ol>
+    </details>
+    <p class="small">Посилання на записи й дошку живуть лише в Slack і LMS: сайт відкритий для всіх.</p>
+  </section>
+
+  <!-- ============================================================ 09 board -->
+  <section class="hs" id="board">
+    <h2><span class="n">09</span> Правила дошки</h2>
+    <p>На дошці tldraw для кожного уроку окрема сторінка з однаковими рамками: розминка, ключові ідеї, стіна прогнозів, рамка вашої команди з місцем для кожного, паркінг питань, галерея.</p>
+    <details class="more"><summary>Чотири правила дошки</summary>
+    <ul>
+      <li><b>Підписуйте</b> кожен стікер і кожне зображення.</li>
+      <li><b>Не рухайте і не видаляйте</b> чужого.</li>
+      <li><b>Еталон — лише рамка «01 Ключові ідеї (перевірено)».</b> Схеми з командних рамок можуть мати помилки: не перемальовуйте їх як правильні.</li>
+      <li>Питання, на яке зараз немає часу, кладіть у «Паркінг питань»: на нього відповідять пізніше.</li>
+    </ul>
+    </details>
+  </section>
+
+  <!-- ============================================================ 10 privacy -->
+  <section class="hs" id="privacy">
+    <h2><span class="n">10</span> Приватність</h2>
+    <ul>
+      <li>Сайт <b>публічний</b>. Справжнє ім'я тут з'являється лише з вашої згоди; у GitHub можна мати псевдонім.</li>
+      <li>Посилання на дошку tldraw (за ним будь-хто може редагувати) і записи дзвінків на сайт <b>не потрапляють</b>, вони лише в Slack.</li>
+      <li>Ваш прогрес (прогнози, бали квізів, картки, таблиці, чернетки) зберігається <b>лише в цьому браузері</b>. Сайт нічого не надсилає сам: квиток на вихід і результати ви копіюєте вручну.</li>
+      <li>Записи дзвінків бачать лише учасники курсу в LMS. Короткі фрагменти з вами можна виокремити лише з вашої згоди.</li>
+    </ul>
+    <div class="actions">
+      <button type="button" class="btn ghost sm" id="wipe">Стерти мій прогрес на цьому сайті</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ 11 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">11</span> Квиток на вихід</h2>
+    <p>Спробуйте той самий формат, що й наприкінці кожного дзвінка.</p>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому пригадування дає більше, ніж перечитування."></form>
+  </section>
+
+  <!-- ============================================================ 12 sources -->
+  <section class="hs" id="more">
+    <h2><span class="n">12</span> Джерела</h2>
+    <h3>Дослідження</h3>
+    <ul class="small">
+      <li>Roediger, Karpicke (2006). Test-enhanced learning. <i>Psychological Science</i> 17(3). <a href="https://psychology.ecu.edu/wp-content/pv-uploads/sites/216/2019/03/Roediger-Karpicke-2006.pdf" target="_blank" rel="noopener">PDF</a> (числа на графіку — з експерименту 1)</li>
+      <li>Karpicke, Blunt (2011). Retrieval practice produces more learning than elaborative studying with concept mapping. <i>Science</i> 331. <a href="https://www.purdue.edu/newsroom/research/2011/110120KarpickeScience.html" target="_blank" rel="noopener">огляд</a></li>
+      <li>Dunlosky та ін. (2013). Improving students' learning with effective learning techniques. <i>PSPI</i> 14(1). <a href="https://www.psychologicalscience.org/news/releases/which-study-strategies-make-the-grade.html" target="_blank" rel="noopener">огляд</a></li>
+      <li>Cepeda та ін. (2008). Spacing effects in learning. <i>Psychological Science</i> 19(11). <a href="https://pubmed.ncbi.nlm.nih.gov/19076480/" target="_blank" rel="noopener">PubMed</a></li>
+      <li>Crouch, Fagen, Callan, Mazur (2004). Classroom demonstrations: learning tools or entertainment? <i>Am. J. Phys.</i> 72. <a href="https://www.compadre.org/IntroPhys/items/detail.cfm?ID=2329" target="_blank" rel="noopener">анотація</a></li>
+      <li>Rohrer, Dedrick, Stershic (2015). Interleaved practice improves mathematics learning. <i>J. Educ. Psychol.</i> 107. <a href="https://ies.ed.gov/use-work/awards/interleaved-mathematics-practice" target="_blank" rel="noopener">IES</a></li>
+      <li>Freeman та ін. (2014). Active learning increases student performance in STEM. <i>PNAS</i> 111(23). <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4060654/" target="_blank" rel="noopener">PMC</a></li>
+      <li>Wozniak (1999). Twenty rules of formulating knowledge. <a href="https://www.supermemo.com/en/archives1990-2015/articles/20rules" target="_blank" rel="noopener">supermemo.com</a></li>
+    </ul>
+    <div id="sources">
+      <h3>Факти про залізо</h3>
+    </div>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <section class="hs" id="talk">
+    <h2><span class="n">13</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt, store } = Study;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.append(e); return e; };
+
+  /* ==== 01 learning loop: phases + the running «ви» dot ==== */
+  function setPhase(ph) {
+    $$('.loop-svg .arc').forEach((a) => a.classList.toggle('on', a.dataset.ph === ph));
+    $$('.phase-btns button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ph === ph)));
+    $$('.phase-card').forEach((c) => { c.hidden = c.dataset.ph !== ph; });
+  }
+  $$('.phase-btns button').forEach((b) => b.addEventListener('click', () => setPhase(b.dataset.ph)));
+  $$('.loop-svg .arc').forEach((a) => {
+    a.addEventListener('click', () => setPhase(a.dataset.ph));
+    a.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPhase(a.dataset.ph); } });
+  });
+  const me = $('#me');
+  // The dot only runs around the ring; the highlighted arc always follows the phase the reader picked.
+  const placeMe = (t) => {
+    const deg = (-90 + t * 24) % 360; // one lap in 15 s
+    const r = deg * Math.PI / 180;
+    me.setAttribute('transform', `translate(${(180 + 105 * Math.cos(r)).toFixed(1)} ${(150 + 105 * Math.sin(r)).toFixed(1)})`);
+  };
+  Study.sim(me, (dt, t) => placeMe(t));
+  placeMe(0);
+
+  /* ==== 02 Roediger & Karpicke bars (drawn empty, grow after the prediction) ==== */
+  const DATA = [['5 хвилин', 81, 75], ['2 дні', 54, 68], ['1 тиждень', 42, 56]];
+  const svgB = $('#rk-bars');
+  const H = 190, Y0 = 210, bars = [];
+  el('line', { x1: 10, x2: 350, y1: Y0, y2: Y0, stroke: 'var(--line)' }, svgB);
+  DATA.forEach(([lab, ss, st], i) => {
+    const x = 16 + i * 116;
+    [[ss, 'var(--muted)', 0], [st, 'var(--accent)', 42]].forEach(([v, c, dx]) => {
+      const r = el('rect', { class: 'bar', x: x + dx, width: 40, y: Y0, height: 0, rx: 3, fill: c }, svgB);
+      const tx = el('text', { x: x + dx + 20, y: Y0 - 6, 'text-anchor': 'middle', opacity: 0 }, svgB);
+      tx.textContent = v + ' %';
+      bars.push({ r, tx, v });
+    });
+    const t = el('text', { class: 'ax', x: x + 41, y: Y0 + 22, 'text-anchor': 'middle' }, svgB);
+    t.textContent = 'через ' + lab;
+  });
+  const grow = () => bars.forEach(({ r, tx, v }) => {
+    const h = v / 100 * H;
+    r.setAttribute('y', Y0 - h); r.setAttribute('height', h);
+    tx.setAttribute('y', Y0 - h - 6); tx.setAttribute('opacity', 1);
+  });
+  $('#w-rk').addEventListener('predict', (e) => { if (e.detail && e.detail.restored) grow(); else requestAnimationFrame(() => requestAnimationFrame(grow)); });
+
+  /* ==== 02 self-test: read → guess → recall → compare ==== */
+  // Accept natural phrasings: a key word (stem) is enough; wrong opposites are rejected first.
+  const QS = [
+    { p: 'Амперметр вмикають у коло…', a: 'послідовно', ok: /послідовн|последовательн|series/, no: /паралельн/ },
+    { p: 'Вольтметр під’єднують до деталі…', a: 'паралельно', ok: /паралельн|параллельн|parallel/, no: /послідовн/ },
+    { p: 'У послідовному колі струм у кожній точці…', a: 'однаковий', ok: /одинак|однаков|той самий|те саме|той же|рівн|сталий|same|equal/, no: /різн|не однак|неоднак/ },
+    { p: 'INPUT_PULLUP, кнопка до GND натиснута → digitalRead дає…', a: 'LOW (0)', ok: /^(low|лоу|0|нуль|false)\b|\blow\b|^0$|нуль/, no: /high|хай|^1$/ },
+    { p: 'Внутрішня підтяжка ESP32-S3, кОм…', a: '45 кОм', ok: /^45(k|к)?(ом|ohm|ω|om)?$/ },
+    { p: 'Кнопка BOOT підключена до GPIO…', a: 'GPIO0', ok: /^(gpio|io|пін|pin)?0$|^нуль$|^нульовий$/ },
+  ];
+  const norm = (s) => String(s).toLowerCase().replace(/[«»"'.,!()]/g, ' ').replace(/\s+/g, ' ').trim();
+  const compact = (s) => norm(s).replace(/\s+/g, '').replace(/-/g, '');
+  const accept = (q, v) => {
+    const n = norm(v); if (!n) return false;
+    if (q.no && q.no.test(n)) return false;
+    return q.ok.test(n) || q.ok.test(compact(v));
+  };
+  const step = (n) => $$('#selftest .st-step').forEach((s) => { s.hidden = +s.dataset.step !== n; });
+  let guess = null, timer = null;
+  const bar = $('#st-bar');
+  const toStep2 = () => { clearInterval(timer); step(2); };
+  $('#st-go').addEventListener('click', () => {
+    $('#st-go').hidden = true; $('#st-skip').hidden = false;
+    const t0 = Date.now();
+    clearInterval(timer);
+    timer = setInterval(() => {
+      const f = Math.max(0, 1 - (Date.now() - t0) / 30000);
+      bar.style.transform = `scaleX(${f})`;
+      if (f <= 0) toStep2();
+    }, 200);
+  });
+  $('#st-skip').addEventListener('click', toStep2);
+  const gbox = $('#st-guess');
+  gbox.innerHTML = [0, 1, 2, 3, 4, 5, 6].map((n) => `<button type="button" class="opt" data-n="${n}">${n}</button>`).join('');
+  gbox.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    guess = +b.dataset.n;
+    $('#st-qs').innerHTML = QS.map((q, i) => `<div class="st-q"><label for="st-i${i}">${i + 1}. ${esc(q.p)}</label><input id="st-i${i}" autocomplete="off"><span class="ans" hidden></span></div>`).join('');
+    step(3);
+    $('#st-i0').focus();
+  });
+  $('#st-check').addEventListener('click', () => {
+    let got = 0;
+    QS.forEach((q, i) => {
+      const box = $('#st-i' + i).closest('.st-q');
+      const ok = accept(q, $('#st-i' + i).value);
+      got += ok;
+      box.classList.toggle('ok', ok); box.classList.toggle('no', !ok);
+      const ans = $('.ans', box); ans.hidden = false;
+      ans.textContent = ok ? '✓ так' : `✗ правильно: ${q.a}`;
+    });
+    const diff = guess - got;
+    $('#st-res').innerHTML = `Прогноз: <b>${guess}</b> з 6 · згадали: <b>${got}</b> з 6. ` +
+      (diff > 0 ? 'Ви оцінили себе вище, ніж вийшло. Це звичайна ілюзія знайомості: прочитане здається знайомим, тож здається, що ви його знаєте.'
+        : diff < 0 ? 'Ви оцінили себе нижче, ніж вийшло. Пам’ять сильніша, ніж здається, тож розминки можна не боятися.'
+        : 'Прогноз точний. Гарне відчуття своїх знань — рідкісна навичка, і вона теж тренується самоперевіркою.');
+    step(4);
+    // Keep the corrected answers visible next to the result.
+    $('#selftest [data-step="3"]').hidden = false;
+    $('#st-check').hidden = true;
+  });
+  $('#st-again').addEventListener('click', () => {
+    clearInterval(timer); bar.style.transform = 'scaleX(1)';
+    $('#st-go').hidden = false; $('#st-skip').hidden = true; $('#st-check').hidden = false;
+    step(1);
+  });
+
+  /* ==== 03 hub map ==== */
+  const HUB = [
+    ['01', 'Навіщо це', 'before', 'Реальна ситуація, де ця тема рятує вечір. Займає 20 секунд і пояснює, навіщо читати далі.'],
+    ['02', 'Після уроку ви зможете', 'before', '3–4 цілі з дієсловами «виміряти», «розрахувати», «пояснити». За ними ви наприкінці перевіряєте себе.'],
+    ['03', 'Розминка', 'before', '5 питань з попередніх уроків: 2 з останніх уроків, 1 з минулого тижня, 2 давніші. Пригадування перед новим матеріалом.'],
+    ['04', 'Головні ідеї', 'before', 'Кілька карток, на кожній одна ідея і одна підписана схема. Наприкінці кожної — речення «Головне».'],
+    ['05', 'Спрогнозуйте → перевірте', 'before', 'Віджет розмитий, доки ви не зробите прогноз. Не вгадуйте навмання: подумайте 20 секунд.'],
+    ['06', 'Розбираємо приклад', 'after', 'Спершу розв’язок з поясненням кожного кроку, потім такий самий з пропусками, потім самостійна задача.'],
+    ['07', 'Типові помилки', 'after', '«Здається… / Насправді… / Як переконатися». Кожна помилка має код (M1, E3…), той самий, що в квізах.'],
+    ['08', 'Схема і макетка', 'call', 'Схема і макетка поруч в однакових кольорах. Наведіть на провід, і той самий вузол засвітиться на обох. Під час збирання тримайте цей розділ відкритим.'],
+    ['09', 'Міні-лаба вдома', 'after', 'До 7 кроків і таблиця «прогноз → виміряно → чому». Таблиця зберігається в браузері і копіюється для Slack.'],
+    ['10', 'Самоперевірка', 'after', '8–12 питань, у кожного варіанта пояснення. Повторіть помилкові через день.'],
+    ['11', 'Картки уроку', 'after', '8 карток просто на сторінці, решта в тренажері, звідки їх можна експортувати в Anki.'],
+    ['12', 'Командний виклик', 'after', 'Завдання тижня для команди: що здати, хто що робить, критерії, ускладнення і термін (до суботи 10:00).'],
+    ['13', 'На занятті', 'before', 'Що покласти на стіл перед дзвінком. У режимі викладача тут ще й план заняття.'],
+    ['14', 'Квиток на вихід', 'call', 'Наприкінці дзвінка: одне речення, найменш зрозуміле місце, впевненість 1–5. Копіюєте і надсилаєте викладачу.'],
+    ['15', 'Матеріали', 'any', 'Глибші сторінки сайту, відео з LMS із підказкою, на що дивитися, код у репозиторії, джерела і що виправлено порівняно з LMS.'],
+    ['16', 'Обговорення', 'any', 'Питання й відповіді, прив’язані до сторінки уроку.'],
+  ];
+  const PH = { before: 'до', call: 'на', after: 'після', any: 'будь-коли' };
+  const PHL = { before: 'до заняття', call: 'на занятті', after: 'після заняття', any: 'будь-коли' };
+  const list = $('#hub-list');
+  list.innerHTML = HUB.map(([n, t, ph], i) => `<li><button type="button" class="p-${ph}" data-i="${i}" aria-pressed="${i === 0}"><span class="n">${n}</span><span>${esc(t)}</span><span class="ph-k">${PH[ph]}</span></button></li>`).join('');
+  const showHub = (i) => {
+    const [n, t, ph, d] = HUB[i];
+    $('#hub-h').textContent = `${n} · ${t} (${PHL[ph]})`;
+    $('#hub-p').textContent = d;
+    $$('button', list).forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.i === i)));
+  };
+  list.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showHub(+b.dataset.i); });
+  showHub(0);
+
+  /* ==== 04 forgetting curve (schematic model, not data) ==== */
+  const cv = $('#curve');
+  const X0 = 50, X1 = 370, YT = 20, YB = 190, DAYS = 30;
+  const xd = (d) => X0 + d / DAYS * (X1 - X0), yv = (v) => YB - v * (YB - YT);
+  el('path', { class: 'ax', d: `M${X0} ${YT}V${YB}H${X1}`, fill: 'none' }, cv);
+  [[0, 'день 0'], [7, '7'], [14, '14'], [21, '21'], [30, '30 днів']].forEach(([d, t]) => {
+    const tx = el('text', { x: xd(d), y: YB + 18, 'text-anchor': d === 0 ? 'start' : d === 30 ? 'end' : 'middle' }, cv); tx.textContent = t;
+  });
+  [[1, '100 %'], [0.5, '50 %'], [0, '0 %']].forEach(([v, t]) => { const tx = el('text', { x: X0 - 6, y: yv(v) + 4, 'text-anchor': 'end' }, cv); tx.textContent = t; });
+  const line = el('path', { class: 'c-line', stroke: 'var(--muted)' }, cv);
+  const revG = el('g', {}, cv);
+  function curve(mode) {
+    const reviews = mode ? [1, 3, 7, 21] : [];
+    // Schematic: what is left = floor + (1 − floor)·e^(−t/S). The floor keeps it in line with the
+    // Roediger & Karpicke bars above (re-readers still recalled ≈ 40 % after a week).
+    const FLOOR = 0.3;
+    let S = 2, last = 0, d = '';
+    for (let day = 0; day <= DAYS + 1e-9; day += 0.1) {
+      const t = +day.toFixed(1);
+      if (reviews.length && t >= reviews[0]) { last = reviews.shift(); S *= 2.6; d += `L${xd(last).toFixed(1)} ${yv(1).toFixed(1)}`; }
+      const v = FLOOR + (1 - FLOOR) * Math.exp(-(t - last) / S);
+      d += (d ? 'L' : 'M') + xd(t).toFixed(1) + ' ' + yv(v).toFixed(1);
+    }
+    line.setAttribute('d', d);
+    line.setAttribute('stroke', mode ? 'var(--ok)' : 'var(--bad)');
+    revG.innerHTML = '';
+    if (mode) [1, 3, 7, 21].forEach((r) => { const c = el('circle', { class: 'rev', cx: xd(r), cy: yv(1), r: 5 }, revG); el('title', {}, c).textContent = `повторення на ${r} день`; });
+    $('#curve-say').textContent = mode
+      ? 'Кожне повторення (зелена точка) займає хвилину-дві, а спад після нього щоразу повільніший. Через місяць ви пам’ятаєте більшість.'
+      : 'Без повторень за кілька днів лишається приблизно третина, хоча в день уроку все здавалося зрозумілим. Це узгоджується з дослідом вище: через тиждень ті, хто лише перечитував, згадали 42 %.';
+  }
+  $$('#curve-mode button').forEach((b) => b.addEventListener('click', () => {
+    $$('#curve-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    curve(+b.dataset.m);
+  }));
+  curve(0);
+
+  /* ==== 04 habit week (local only) ==== */
+  const HKEY = 'start.habit.v1';
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = new Date();
+  const mon = new Date(today); mon.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const DN = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
+  const done = new Set(store.get(HKEY, []));
+  const hb = $('#habit');
+  hb.innerHTML = DN.map((n, i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const k = iso(d);
+    return `<label class="${k === iso(today) ? 'today' : ''}"><input type="checkbox" data-d="${k}"${done.has(k) ? ' checked' : ''} aria-label="${n} ${d.getDate()}.${d.getMonth() + 1}"><span>${n}</span><span class="mark" aria-hidden="true">✓</span><span>${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}</span></label>`;
+  }).join('');
+  const streak = () => {
+    let n = 0; const d = new Date(today);
+    if (!done.has(iso(d))) d.setDate(d.getDate() - 1);
+    while (done.has(iso(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  };
+  const sayHabit = () => {
+    const s = streak();
+    $('#habit-say').textContent = s ? `Серія: ${s} ${s === 1 ? 'день' : s < 5 ? 'дні' : 'днів'} поспіль.` : 'Позначте день, коли зробили картки. Пропустили день — не біда, просто продовжуйте наступного.';
+  };
+  hb.addEventListener('change', (e) => {
+    const k = e.target.dataset.d; if (!k) return;
+    e.target.checked ? done.add(k) : done.delete(k);
+    store.set(HKEY, [...done].sort().slice(-120));
+    sayHabit();
+  });
+  sayHabit();
+
+  /* ==== copy buttons ==== */
+  $$('[data-copy]').forEach((b) => b.addEventListener('click', () => Study.copy($(b.dataset.copy).textContent)));
+
+  /* ==== 06 «Куди це?» sorter ==== */
+  const PLACES = ['Slack #help', 'GitHub Discussions', 'Дошка tldraw', 'Квиток на вихід'];
+  const SORT = [
+    ['Вечір перед дедлайном: прошивка не заливається, «Failed to connect».', 0, 'Застрягли просто зараз — це #help. Додайте фото, що зробили і текст помилки.'],
+    ['Команда доробила виклик: фото, таблиця вимірювань і висновок.', 1, 'Результат має жити довго і бути прив’язаним до уроку, тож Discussions, категорія «Командні виклики».'],
+    ['На дзвінку викладач просить прогноз: світлодіод засвітиться чи ні?', 2, 'Стікер зі своїм іменем у зоні А, Б чи В на «Стіні прогнозів».'],
+    ['Наприкінці дзвінка ви так і не зрозуміли, навіщо діод біля реле.', 3, 'Це найменш зрозуміле місце, тож воно для квитка на вихід. Викладач почне з нього наступний дзвінок.'],
+    ['Ви спалили світлодіод і зрозуміли чому. Хочеться, щоб інші не повторили.', 1, '«Музей помилок» у Discussions: фото, симптом, причина, виправлення.'],
+  ];
+  const sorter = $('#sorter');
+  sorter.innerHTML = SORT.map(([q], i) => `<div class="sq" data-i="${i}"><p>${i + 1}. ${esc(q)}</p><div class="opts">${PLACES.map((p, j) => `<button type="button" class="opt" data-j="${j}">${esc(p)}</button>`).join('')}</div><div class="fb" aria-live="polite"></div></div>`).join('');
+  sorter.addEventListener('click', (e) => {
+    const b = e.target.closest('.opt'); if (!b) return;
+    const sq = b.closest('.sq'), [, ok, why] = SORT[+sq.dataset.i], j = +b.dataset.j;
+    $$('.opt', sq).forEach((x) => x.classList.remove('chosen', 'right', 'wrong'));
+    b.classList.add('chosen', j === ok ? 'right' : 'wrong');
+    if (j !== ok) $$('.opt', sq)[ok].classList.add('right');
+    const fb = $('.fb', sq);
+    fb.className = 'fb show ' + (j === ok ? 'ok' : 'no');
+    fb.textContent = (j === ok ? 'Так. ' : `Краще: ${PLACES[ok]}. `) + why;
+  });
+
+  /* ==== 07 help request generator ==== */
+  const HG = 'start.help.v1';
+  const F = ['what', 'pic', 'exp', 'meas', 'tried'];
+  const saved = store.get(HG, {});
+  F.forEach((k) => { $('#hg-' + k).value = saved[k] || ''; });
+  const text = () => {
+    const v = Object.fromEntries(F.map((k) => [k, $('#hg-' + k).value.trim()]));
+    return [
+      `*Що роблю:* ${v.what || '…'}`,
+      `*Фото і схема:* ${v.pic || 'додаю нижче'}`,
+      `*Очікував(ла):* ${v.exp || '…'}`,
+      `*Виміряв(ла):* ${v.meas || '… (візьміть мультиметр або Serial, це найважливіша частина)'}`,
+      `*Уже спробував(ла):* ${v.tried || '…'}`,
+    ].join('\n');
+  };
+  const upd = () => { $('#hg-out').textContent = text(); store.set(HG, Object.fromEntries(F.map((k) => [k, $('#hg-' + k).value]))); };
+  F.forEach((k) => $('#hg-' + k).addEventListener('input', upd));
+  upd();
+  $('#hg-copy').addEventListener('click', () => Study.copy(text()));
+  $('#hg-clear').addEventListener('click', () => { F.forEach((k) => { $('#hg-' + k).value = ''; }); upd(); });
+
+  /* ==== 10 wipe local progress ==== */
+  $('#wipe').addEventListener('click', () => {
+    if (!confirm('Стерти всі збережені на цьому сайті дані в цьому браузері: прогнози, бали, картки, таблиці, чернетки?')) return;
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k !== 'site-theme') keys.push(k); }
+      keys.forEach((k) => localStorage.removeItem(k));
+      Study.toast('Готово: дані стерто.');
+    } catch { Study.toast('Сховище браузера недоступне: тут і так нічого не зберігається.', 'bad'); }
+  });
+});
+</script>
+</body>
+</html>

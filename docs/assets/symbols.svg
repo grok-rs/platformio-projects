@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+<!--
+  symbols.svg: schematic symbol sprite for the study site (design brief §3.5).
+
+  Grid: 10 SVG units. Every symbol has NO viewBox and overflow="visible"; pin 1 sits at (0,0).
+  Two-terminal parts lie horizontally with pin 2 at (60,0). Rotate only by 0/90/180/270:
+    <use href="#res" x="100" y="40" transform="rotate(90 100 40)"/>
+  Strokes are currentColor at width 2; fills are none or currentColor, so a symbol follows the
+  `color` of its <use> (theme tokens or a .net-* class).
+
+  Preferred form: inline the sprite with schem.js (Schem.inlineSprite runs automatically when the page has
+  use[href^="#"] or [data-sprite]) and write <use href="#res">. The external form
+  <use href="../assets/symbols.svg#res"> also works over http(s) from the same origin, but not from file://.
+
+  IEC (IEC 60617 style) is the default; *-us ids are the ANSI / IEEE 315 aliases with the same pins.
+
+  Pins (relative to the symbol origin):
+    res, res-us, ldr, ldr-us, cap, btn, sw, relay-coil, motor   1 (0,0)   2 (60,0)
+    pot, pot-us                                                 1 (0,0)   2 (60,0)   wiper (30,-20)
+    cap-pol, cap-pol-us, vsrc                                   + (0,0)   − (60,0)
+    diode, led                                                  A (0,0)   K (60,0)
+    relay-no                                                    COM (0,0) NO (60,0)
+    meter-v, meter-a                                            + (0,0)   COM (60,0)
+    npn                                                         B (0,0)   C (30,-30)  E (30,30)
+    nmos                                                        G (0,0)   D (30,-30)  S (30,30)
+    gnd   (0,0) at the top        vcc   (0,0) at the bottom; label text goes above y = -20
+    dot   (0,0) r = 3             mcu-pin  (0,0) outer end; 20-unit stub ending in a 6×6 square
+-->
+<defs>
+  <!-- Resistor, IEC: 30×12 rectangle -->
+  <symbol id="res" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H15M45 0H60"/>
+      <rect x="15" y="-6" width="30" height="12"/>
+    </g>
+  </symbol>
+
+  <!-- Resistor, ANSI alias: zigzag -->
+  <symbol id="res-us" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+          d="M0 0H12L15 -7L21 7L27 -7L33 7L39 -7L45 7L48 0H60"/>
+  </symbol>
+
+  <!-- Potentiometer, IEC: rectangle + wiper arrow pressing on the body from (30,-20) -->
+  <symbol id="pot" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H15M45 0H60M30 -20V-13"/>
+      <rect x="15" y="-6" width="30" height="12"/>
+    </g>
+    <path fill="currentColor" d="M30 -6L25.5 -14H34.5Z"/>
+  </symbol>
+
+  <!-- Potentiometer, ANSI alias -->
+  <symbol id="pot-us" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+          d="M0 0H12L15 -7L21 7L27 -7L33 7L39 -7L45 7L48 0H60M30 -20V-15"/>
+    <path fill="currentColor" d="M30 -7L25.5 -15H34.5Z"/>
+  </symbol>
+
+  <!-- Photoresistor (LDR), IEC: rectangle + two incoming light arrows -->
+  <symbol id="ldr" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H15M45 0H60"/>
+      <rect x="15" y="-6" width="30" height="12"/>
+      <path d="M12 -26L22 -14M24 -26L34 -14" stroke-linecap="round"/>
+    </g>
+    <path fill="currentColor" d="M24.5 -11L17.3 -14.6L22.6 -18.9ZM36.5 -11L29.3 -14.6L34.6 -18.9Z"/>
+  </symbol>
+
+  <!-- Photoresistor, ANSI alias -->
+  <symbol id="ldr-us" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M0 0H12L15 -7L21 7L27 -7L33 7L39 -7L45 7L48 0H60"/>
+      <path d="M12 -26L22 -14M24 -26L34 -14"/>
+    </g>
+    <path fill="currentColor" d="M24.5 -11L17.3 -14.6L22.6 -18.9ZM36.5 -11L29.3 -14.6L34.6 -18.9Z"/>
+  </symbol>
+
+  <!-- Ceramic (non-polar) capacitor: two equal plates -->
+  <symbol id="cap" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" d="M0 0H27M33 0H60M27 -12V12M33 -12V12"/>
+  </symbol>
+
+  <!-- Electrolytic capacitor, IEC: hollow + plate (pin 1), filled − plate, «+» mark -->
+  <symbol id="cap-pol" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M0 0H24M36 0H60M12 -15H20M16 -19V-11"/>
+      <rect x="24" y="-12" width="4" height="24"/>
+    </g>
+    <rect fill="currentColor" x="32" y="-12" width="4" height="24"/>
+  </symbol>
+
+  <!-- Electrolytic capacitor, ANSI alias: straight + plate, curved − plate -->
+  <symbol id="cap-pol-us" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" d="M0 0H27M27 -12V12M36 -12Q31 0 36 12M32 0H60M12 -15H20M16 -19V-11"/>
+  </symbol>
+
+  <!-- Diode: anode (0,0) → triangle → cathode bar → (60,0) -->
+  <symbol id="diode" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" d="M0 0H20M40 0H60M40 -10V10"/>
+    <path fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M20 -10V10L40 0Z"/>
+  </symbol>
+
+  <!-- LED: diode + two outgoing arrows -->
+  <symbol id="led" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" d="M0 0H20M40 0H60M40 -10V10"/>
+    <path fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M20 -10V10L40 0Z"/>
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M28 -14L37 -24M36 -12L45 -22"/>
+    <path fill="currentColor" d="M40 -27.5L33.4 -23.4L38.6 -19.6ZM48 -25.5L41.4 -21.4L46.6 -17.6Z"/>
+  </symbol>
+
+  <!-- Push button, normally open: two contacts, bridge above, plunger -->
+  <symbol id="btn" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M0 0H17M43 0H60"/>
+      <path d="M14 -9H46M30 -9V-20M24 -20H36"/>
+      <circle cx="20" cy="0" r="2.5"/>
+      <circle cx="40" cy="0" r="2.5"/>
+    </g>
+  </symbol>
+
+  <!-- Toggle switch SPST -->
+  <symbol id="sw" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M0 0H17M43 0H60M22 -1.5L42 -14"/>
+      <circle cx="20" cy="0" r="2.5"/>
+      <circle cx="40" cy="0" r="2.5"/>
+    </g>
+  </symbol>
+
+  <!-- NPN bipolar transistor in a circle: B (0,0), C (30,-30), E (30,30); arrow on the emitter points out -->
+  <symbol id="npn" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <circle cx="22" cy="0" r="19"/>
+      <path d="M0 0H14M14 -11V11M14 -5L30 -16V-30M14 5L30 16V30"/>
+    </g>
+    <path fill="currentColor" d="M28.6 15L19.6 12.8L23.2 7.5Z"/>
+  </symbol>
+
+  <!-- N-channel MOSFET, enhancement: G (0,0), D (30,-30), S (30,30); broken channel, arrow points in -->
+  <symbol id="nmos" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <circle cx="21" cy="0" r="20"/>
+      <path d="M0 0H11M11 -11V11"/>
+      <path d="M17 -14V-7M17 -3.5V3.5M17 7V14"/>
+      <path d="M17 -10.5H30V-30M17 10.5H30V30M24 0H30V10.5"/>
+    </g>
+    <path fill="currentColor" d="M18 0L25.5 -4.5V4.5Z"/>
+  </symbol>
+
+  <!-- Relay coil, IEC: upright rectangle 20×24 (taller than a resistor) with a diagonal mark -->
+  <symbol id="relay-coil" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H20M40 0H60"/>
+      <rect x="20" y="-12" width="20" height="24"/>
+      <path d="M20 12L40 -12"/>
+    </g>
+  </symbol>
+
+  <!-- Relay contact, normally open: COM (0,0), NO (60,0) -->
+  <symbol id="relay-no" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M0 0H18M42 0H60M42 0V-7M18 0L40 -14"/>
+    </g>
+  </symbol>
+
+  <!-- DC motor: M in a circle -->
+  <symbol id="motor" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H15M45 0H60"/>
+      <circle cx="30" cy="0" r="15"/>
+      <path d="M23.5 7V-7L30 2L36.5 -7V7"/>
+    </g>
+  </symbol>
+
+  <!-- DC voltage source: long plate = + (pin 1), short thick plate = − -->
+  <symbol id="vsrc" overflow="visible">
+    <g fill="none" stroke="currentColor">
+      <path stroke-width="2" d="M0 0H27M33 0H60M27 -14V14M12 -15H20M16 -19V-11"/>
+      <path stroke-width="4" d="M33 -7V7"/>
+    </g>
+  </symbol>
+
+  <!-- Voltmeter: circle with V, + on pin 1 -->
+  <symbol id="meter-v" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H15M45 0H60M4 -10H12M8 -14V-6"/>
+      <circle cx="30" cy="0" r="15"/>
+      <path d="M24 -7L30 7L36 -7"/>
+    </g>
+  </symbol>
+
+  <!-- Ammeter: circle with A, + on pin 1 -->
+  <symbol id="meter-a" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M0 0H15M45 0H60M4 -10H12M8 -14V-6"/>
+      <circle cx="30" cy="0" r="15"/>
+      <path d="M24 7L30 -7L36 7M26.3 2H33.7"/>
+    </g>
+  </symbol>
+
+  <!-- Ground: connection point (0,0) at the top, three shrinking bars -->
+  <symbol id="gnd" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M0 0V10M-12 10H12M-7.5 15H7.5M-3 20H3"/>
+  </symbol>
+
+  <!-- Power flag: connection point (0,0) at the bottom; the author writes «3V3» / «+5V» above y = -20 -->
+  <symbol id="vcc" overflow="visible">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M0 0V-14M-10 -14H10"/>
+  </symbol>
+
+  <!-- Junction dot -->
+  <symbol id="dot" overflow="visible">
+    <circle fill="currentColor" cx="0" cy="0" r="3"/>
+  </symbol>
+
+  <!-- MCU pin stub: outer end (0,0), 20-unit line, 6×6 square at the chip side -->
+  <symbol id="mcu-pin" overflow="visible">
+    <g fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M0 0H20"/>
+      <rect x="20" y="-3" width="6" height="6"/>
+    </g>
+  </symbol>
+</defs>
+</svg>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Картки · інтервальне повторення</title>
+<meta name="description" content="Тренажер карток курсу ESP32-S3: 10 хвилин на день, інтервальне повторення, експорт в Anki.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* page-specific layout only; the trainer styles come with flashcards.js */
+/* not a .hub > header: this page needs no teacher-mode button */
+.hub-top { padding-block: 28px 4px; }
+.hub-top h1 { font-size: var(--fs-h1); font-weight: 700; line-height: 1.06; letter-spacing: -.018em; margin: 0 0 14px; }
+.how { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .how { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.how .panel { padding: 16px 18px; }
+.how h3 { margin: 0 0 8px; font-size: 1.15rem; }
+/* keyboard shortcuts mean nothing on a phone */
+@media (hover: none), (pointer: coarse) { .how .panel:has(.keys) { display: none; } }
+.how p, .how ul { margin: 0; font-size: 15px; }
+.grades { list-style: none; padding: 0; display: grid; gap: 6px; }
+.grades li { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr); gap: 10px; margin: 0; }
+.grades b { font-weight: 600; }
+.keys { width: 100%; border-collapse: collapse; font-size: 15px; }
+.keys td { padding: 5px 4px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+.keys tr:last-child td { border-bottom: 0; }
+.keys td:first-child { white-space: nowrap; width: 1%; padding-right: 12px; }
+</style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="cards">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+  <div class="hub-top" id="top">
+    <p class="eyebrow">Повторення · 10 хвилин на день</p>
+    <h1>Картки</h1>
+    <p class="lead">Згадайте відповідь, відкрийте її і чесно оцініть. Розклад сам поверне картку саме тоді, коли ви почнете її забувати.</p>
+  </div>
+
+  <!-- h1 → h2 → the trainer's own h3 «Колоди» (flashcards.js), so no heading level is skipped -->
+  <h2 class="sr-only" id="trainer-h">Тренажер</h2>
+  <div id="trainer"></div>
+  <noscript><p class="note warn">Тренажер працює з увімкненим JavaScript.</p></noscript>
+
+  <section class="hs" id="how">
+    <h2><span class="n">?</span> Як це працює</h2>
+    <div class="how">
+      <div class="panel">
+        <h3>Чотири оцінки</h3>
+        <ul class="grades">
+          <li><b>Знову</b><span>не згадали: картка повернеться ще в цій сесії, через 3 інші.</span></li>
+          <li><b>Важко</b><span>згадали з зусиллям: інтервал росте трохи.</span></li>
+          <li><b>Добре</b><span>згадали: 1 день, потім 3, потім дедалі довше.</span></li>
+          <li><b>Легко</b><span>знали одразу: інтервал росте швидше.</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Клавіші</h3>
+        <table class="keys">
+          <tr><td><kbd>Пробіл</kbd></td><td>показати відповідь</td></tr>
+          <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>Знову · Важко · Добре · Легко</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>завершити сесію</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>Два режими</h3>
+        <p><b>Повторити сьогодні</b> показує картки, яким настав час, і до 15 нових на день. <b>Тренування уроку</b> проганяє всі картки вибраних колод один раз і нічого не записує в розклад: зручно перед заняттям.</p>
+      </div>
+      <div class="panel">
+        <h3>Де зберігається прогрес</h3>
+        <p>Лише в цьому браузері; на сервер нічого не надсилається. Щоб перенести прогрес на телефон або не втратити його, скористайтеся кнопкою «Зберегти прогрес» у блоці експорту.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/flashcards.js" defer></script>
+<script defer>
+document.addEventListener('study:ready', () => {
+  if (window.StudyCards) StudyCards.trainer('#trainer');
+  else document.getElementById('trainer').innerHTML = '<p class="note warn">Тренажер не завантажився. Оновіть сторінку.</p>';
+});
+</script>
+</body>
+</html>

@@ -1,45 +1,183 @@
-/* Site navigation strip shared by every study page: back to the index + all pages grouped by module.
-   Uses each page's own tokens (--panel, --line, --ink, --muted, --accent, --f-mono, --f-display),
-   so it follows the page's light/dark theme. Not sticky: lab pages have their own sticky control bar. */
+/* Site navigation strip shared by every study page (filled by assets/site-nav.js; SPEC §9).
+   Uses the tokens from assets/theme.css (hub pages get it through study.css, the older deep pages link it),
+   so it follows the light/dark theme. Not sticky: lab pages have their own sticky control bar.
+   Desktop: one row: «← Карта курсу» · the current module's lessons (numbers; the current one a filled pill) ·
+   «Усі уроки ▾» · «Довідка ▾» · the theme switch.
+   Phones: one row that scrolls sideways with every lesson and reference page. «← Карта» stays pinned on the left and
+   the theme switch on the right (position: sticky inside the scroller); site-nav.js turns their widths into
+   scroll-padding so the current pill and focused links never hide under them. */
 .site-nav {
-  display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap;
-  max-width: 1240px; margin: 0 auto; padding: 10px 0 8px;
+  position: relative; /* containing block for the visually hidden labels and the menus */
+  display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap;
+  max-width: 1240px; margin: 0 auto; padding: 12px 0 10px;
   border-bottom: 1px solid var(--line);
   font: 500 13px/1.3 var(--f-mono);
 }
-.site-nav a { color: var(--ink); text-decoration: none; border-radius: 6px; }
+.site-nav a { color: var(--ink); text-decoration: none; border-radius: 8px; }
+/* pages style bare `summary` / `a` (scope-signals, adc-light): the strip keeps its own face and size */
+.site-nav :is(a, summary) { font-family: var(--f-mono); font-size: 13px; line-height: 1.3; letter-spacing: normal; text-transform: none; }
 .site-nav a:hover { color: var(--accent); }
-.site-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.site-nav :is(a, summary):focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; }
 .site-nav .sn-home {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
-  border: 1px solid var(--line); background: var(--panel); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; min-height: 36px;
+  border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); font-weight: 600;
+  box-shadow: 0 1.5px 0 var(--line-2);
 }
+.site-nav .sn-home:hover { border-color: var(--accent); }
 .site-nav .sn-home img { width: 16px; height: 16px; display: block; }
 .site-nav .sn-group { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
-.site-nav .sn-mod { color: var(--muted); font-size: 11.5px; letter-spacing: .06em; margin-right: 4px; }
-.site-nav .sn-group a { padding: 4px 8px; }
+.site-nav .sn-mod { color: var(--copper); font-size: 13px; font-weight: 600; letter-spacing: .04em; margin-right: 4px; }
+.site-nav .sn-group a { display: inline-flex; align-items: center; padding: 5px 8px; }
+.site-nav a .sn-t { white-space: pre; }
 .site-nav .sn-group a[aria-current="page"] {
-  background: var(--accent); color: var(--panel); font-weight: 600;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; border-radius: var(--r-pill, 999px); padding-inline: 11px;
 }
-/* Phones: one row that scrolls sideways instead of wrapping into a tall block. */
+.site-nav .sn-group a[aria-current="true"] { color: var(--accent); }
+/* deep page: one pill «2.2 Навантаження › Потужне навантаження» (parent lesson link › this page) */
+.site-nav .sn-pill {
+  display: inline-flex; align-items: center; flex: none; padding-inline: 3px; border-radius: var(--r-pill, 999px);
+  background: var(--accent); color: var(--accent-ink);
+}
+.site-nav .sn-pill a[aria-current] { background: none; color: var(--accent-ink); font-weight: 600; padding-inline: 8px; border-radius: var(--r-pill, 999px); }
+.site-nav .sn-pill a[aria-current]:hover { text-decoration: underline; text-underline-offset: 3px; }
+.site-nav .sn-pill a[aria-current="true"] { font-weight: 500; }
+.site-nav .sn-pill .sn-sep { opacity: .75; }
+.site-nav .sn-pill .sn-short { display: none; }
+
+/* ---------------------------------------------------------------- desktop (> 640 px): one calm row */
+@media (min-width: 641px) {
+  .site-nav .sn-group:not(.sn-here), .site-nav .sn-ref { display: none; }
+  /* other lessons of the module show their number only; the title stays in the accessible name */
+  .site-nav .sn-here a:not([aria-current]):not(.sn-keep) .sn-t {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .site-nav .sn-here a:not([aria-current]) { min-width: 32px; justify-content: center; padding-inline: 6px; }
+}
+/* 641–1199 px: still one row. «← Карта», the deep-page pill «1.5 › Лаба: брязкіт» and the theme switch «Тема ☀». */
+@media (min-width: 641px) and (max-width: 1199px) {
+  .site-nav .sn-pill .sn-t, .site-nav .sn-pill .sn-long, .site-nav .sn-home .sn-long {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .site-nav .sn-pill .sn-short { display: inline; }
+  .site-nav .sn-home img { display: none; }
+  .site-nav > .theme-btn { font-size: 0; }
+  .site-nav > .theme-btn::before, .site-nav > .theme-btn > span { font-size: 13px; }
+  .site-nav > .theme-btn > span { color: var(--ink); }
+}
+.site-nav .sn-menu { position: relative; flex: none; }
+.site-nav .sn-menu[open] { z-index: 40; }
+.site-nav .sn-menu > summary {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 5px 10px; border-radius: 8px;
+  list-style: none; cursor: pointer; color: var(--ink); white-space: nowrap;
+}
+.site-nav .sn-menu > summary::-webkit-details-marker { display: none; }
+.site-nav .sn-menu > summary:hover { color: var(--accent); }
+.site-nav .sn-menu[open] > summary { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.site-nav .sn-caret { font-size: 11px; color: var(--muted); transition: transform var(--t2, .2s); }
+.site-nav .sn-menu[open] .sn-caret { transform: rotate(180deg); }
+.site-nav .sn-refs.is-here > summary { color: var(--accent); font-weight: 600; }
+.site-nav .sn-refs .sn-cur {
+  display: inline-block; padding: 1px 10px; border-radius: var(--r-pill, 999px); background: var(--accent); color: var(--accent-ink);
+}
+.site-nav .sn-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+  width: max-content; min-width: 240px; max-width: min(420px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow-y: auto;
+  padding: 8px; border: 1px solid var(--line-2); border-radius: var(--radius, 12px); background: var(--panel);
+  box-shadow: var(--shadow-lift);
+}
+.site-nav .sn-refs .sn-panel { left: auto; right: 0; }
+.site-nav .sn-panel ul { list-style: none; margin: 0; padding: 0; }
+.site-nav .sn-panel li { margin: 0; }
+.site-nav .sn-panel a {
+  display: flex; gap: 10px; align-items: baseline; padding: 7px 10px; min-height: 36px; border-radius: 8px;
+  font: 500 14px/1.35 var(--f-body);
+}
+.site-nav .sn-panel a:hover { background: var(--panel-2); }
+.site-nav .sn-panel a .sn-n { flex: none; min-width: 3.4ch; font: 600 13px/1.35 var(--f-mono); color: var(--muted); }
+.site-nav .sn-panel a[aria-current] { font-weight: 600; background: color-mix(in srgb, var(--accent) 10%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+.site-nav .sn-panel a[aria-current] .sn-n { color: var(--accent); }
+.site-nav .sn-msec + .sn-msec { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.site-nav .sn-panel .sn-mod { display: block; margin: 4px 10px 2px; font: 600 13px/1.4 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+
+@media (pointer: coarse) {
+  .site-nav :is(.sn-group a, .sn-home, .sn-menu > summary, .sn-panel a), .theme-btn { min-height: 44px; }
+}
+
+/* ---------------------------------------------------------------- phones (<= 640 px): one sideways row */
 @media (max-width: 640px) {
   .site-nav {
-    flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; gap: 10px;
-    font-size: 12px; scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; gap: 12px;
+    margin-inline: -16px; padding-inline: 0; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    scroll-padding-inline: var(--sn-home-w, 130px) var(--sn-theme-w, 100px);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   }
+  /* a strip wider than the screen (site-nav.js sets .sn-scroll and the pinned widths): the links fade out just before
+     they slide under «← Карта» and the theme switch, so nothing shows as a sliced fragment next to them */
+  .site-nav.sn-scroll:has(.theme-btn) {
+    --sn-l: var(--sn-home-w, 100px); --sn-r: calc(100% - var(--sn-theme-w, 90px));
+    --sn-mask: linear-gradient(90deg, transparent 8px, #000 8px, #000 var(--sn-l), transparent var(--sn-l), transparent calc(var(--sn-l) + 8px),
+      #000 calc(var(--sn-l) + 30px), #000 calc(var(--sn-r) - 30px), transparent calc(var(--sn-r) - 8px), transparent var(--sn-r), #000 var(--sn-r),
+      #000 calc(100% - 8px), transparent calc(100% - 8px));
+    -webkit-mask-image: var(--sn-mask); mask-image: var(--sn-mask);
+  }
+  /* a focused pinned end shows its whole focus ring */
+  .site-nav.sn-scroll:has(> .sn-home:focus-visible, > .theme-btn:focus-visible) { -webkit-mask-image: none; mask-image: none; }
+  .site-nav::-webkit-scrollbar { display: none; }
+  .site-nav .sn-menu { display: none; }
   .site-nav .sn-group { flex-wrap: nowrap; flex: none; }
-  .site-nav .sn-home { flex: none; }
-  .site-nav .sn-group a { padding: 4px 6px; }
+  .site-nav :is(.sn-group a, .sn-home) { min-height: 44px; }
+  .site-nav .sn-group a { padding: 10px 7px; }
+  .site-nav .sn-group a[aria-current="page"] { padding-inline: 11px; }
+  .site-nav .sn-pill { padding-inline: 2px; }
+  .site-nav .sn-pill a[aria-current] { padding-inline: 6px; }
+  /* the narrow gap: «2.2 › Навантаження» (the parent's title and the long page title stay for screen readers) */
+  .site-nav .sn-pill :is(.sn-t, .sn-long) {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .site-nav .sn-pill .sn-short { display: inline; }
+  /* the pinned ends sit 8 px in from the screen edges, whole keycaps (no border cut at x = 0) */
+  .site-nav .sn-home {
+    position: sticky; left: 8px; z-index: 2; flex: none; margin-left: 8px;
+    box-shadow: 0 1.5px 0 var(--line-2);
+  }
+  /* «← Карта»: «курсу» stays for screen readers; the logo gives its room to the strip */
+  .site-nav .sn-home img { display: none; }
+  .site-nav .sn-home .sn-long {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  /* keep the scroll hint fade away from the pinned theme switch */
+  .site-nav:not(.sn-scroll):has(.theme-btn) { -webkit-mask-image: none; mask-image: none; }
 }
 @media print { .site-nav { display: none; } }
 
-/* Theme switch (added by site-theme.js): last item of .site-nav, pushed to the right. */
+/* Theme switch (added by site-theme.js): last item of .site-nav, pushed to the right.
+   It shows the CURRENT theme with a «Тема» caption, so the label reads as a setting, not an action. */
 .theme-btn {
   margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 12px; min-height: 36px; border: 1px solid var(--line-2); border-radius: 10px;
   background: var(--panel); color: var(--ink); font: 600 13px/1.3 var(--f-mono, ui-monospace, monospace); cursor: pointer;
+  box-shadow: 0 1.5px 0 var(--line-2);
 }
+.theme-btn::before { content: "Тема"; font-weight: 500; color: var(--muted); margin-right: 2px; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
-.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 640px) { .theme-btn { font-size: 12px; padding: 4px 8px; } }
+.theme-btn:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 640px) {
+  /* phones: «Тема ☀», the caption plus the state icon; the state word stays in the aria-label */
+  .site-nav > .theme-btn {
+    position: sticky; right: 8px; z-index: 2; min-height: 44px; margin-right: 8px;
+    box-shadow: 0 1.5px 0 var(--line-2);
+    font-size: 0; gap: 6px;
+  }
+  .site-nav > .theme-btn::before, .site-nav > .theme-btn > span { font-size: 13px; }
+  .site-nav > .theme-btn > span { color: var(--ink); }
+}
 @media print { .theme-btn { display: none; } }
+
+/* Skip link (inserted by site-nav.js where a page has none; the same look as study.css .skip, which deep pages lack) */
+.skip.sn-skip {
+  position: absolute; left: 8px; top: -80px; z-index: 50; padding: 8px 14px; border-radius: var(--r-sm, 8px);
+  background: var(--accent); color: var(--accent-ink); font: 600 15px/1.3 var(--f-body, system-ui, sans-serif); text-decoration: none;
+}
+.skip.sn-skip:focus { top: 8px; }
+[data-sn-main]:focus { outline: none; }

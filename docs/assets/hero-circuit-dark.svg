@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" width="360" height="240">
+<style>
+.w{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.d{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .9s cubic-bezier(.4,0,.2,1) forwards}
+.s{fill:none;stroke:#f1e9dc;stroke-width:2.5;stroke-linejoin:round}
+.t{font:600 13px "JetBrains Mono",ui-monospace,"DejaVu Sans Mono",Menlo,Consolas,monospace;letter-spacing:.02em}
+.m{font:500 12px "JetBrains Mono",ui-monospace,"DejaVu Sans Mono",Menlo,Consolas,monospace;fill:#b4a693}
+.glow{opacity:0;animation:on .6s 1.5s ease-out forwards}
+.flow{fill:none;stroke:#ffc34d;stroke-width:5;stroke-linecap:round;stroke-dasharray:0 14;opacity:0;
+  animation:run 1.5s 1.5s linear 3,show 4.5s 1.5s linear}
+.fade{opacity:0;animation:on .5s .7s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes on{to{opacity:1}}
+@keyframes run{to{stroke-dashoffset:-28}}
+@keyframes show{0%,92%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.d{animation:none;stroke-dashoffset:0}.glow,.fade{animation:none;opacity:1}.flow{display:none}}
+</style>
+<defs><radialGradient id="g"><stop offset="0" stop-color="#ff5a4a" stop-opacity=".75"/><stop offset=".45" stop-color="#ff5a4a" stop-opacity=".28"/><stop offset="1" stop-color="#ff5a4a" stop-opacity="0"/></radialGradient></defs>
+<circle class="glow" cx="282" cy="104" r="44" fill="url(#g)"/>
+<!-- +5 V: battery + to R1 -->
+<path class="w d" pathLength="1" stroke="#ed6364" d="M70 110V52H128"/>
+<!-- signal: R1 to LED anode -->
+<path class="w d" pathLength="1" stroke="#f2d93c" style="animation-delay:.25s" d="M192 52H282V88"/>
+<!-- GND: LED cathode back to battery - -->
+<path class="w d" pathLength="1" stroke="#93a7a7" style="animation-delay:.5s" d="M282 118V190H70V128"/>
+<!-- current, conventional direction: + → R1 → LED → GND → − -->
+<path class="flow" d="M70 110V52H282V190H70V128"/>
+<!-- battery (long plate +, short plate -) -->
+<path class="s" d="M52 110H88" stroke-width="3"/><path class="s" d="M60 128H80" stroke-width="6"/>
+<!-- IEC resistor -->
+<rect class="s" x="128" y="41" width="64" height="22" rx="2" fill="#1f1a15"/>
+<!-- LED -->
+<path class="s" d="M266 88H298L282 116Z" fill="#1f1a15"/><path class="s" d="M266 118H298"/>
+<path class="s fade" stroke-width="2" d="M302 96l14-10M311 86h5v5M304 108l14-10M313 98h5v5"/>
+<g class="fade">
+<text class="t" x="20" y="44" fill="#ed6364">+5 В</text>
+<text class="t" x="160" y="30" text-anchor="middle" fill="#f1e9dc">R1 · 220 Ом</text>
+<text class="t" x="308" y="134" fill="#f1e9dc">LED1</text>
+<text class="t" x="176" y="214" text-anchor="middle" fill="#93a7a7">GND</text>
+<text class="t" x="94" y="114" fill="#f1e9dc">+</text>
+<text class="t" x="94" y="140" fill="#f1e9dc">−</text>
+<text class="m" x="20" y="232">перше коло · урок 1.2</text>
+</g>
+</svg>

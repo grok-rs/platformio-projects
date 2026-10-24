@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Глосарій</title>
+<meta name="description" content="Терміни курсу ESP32-S3 українською й англійською з пошуком: що означає, у якому уроці пояснюють і де подивитися на деталь в атласі.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Glossary widgets only; colours from study.css tokens. */
+.gl-tools { position: static; z-index: 5; display: grid; gap: 10px; margin: 12px 0 14px; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.gl-search { display: flex; gap: 8px; }
+.gl-search input { flex: 1; min-width: 0; min-height: 46px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--panel-2); color: var(--ink); font: 17px var(--f-body); }
+.gl-search input:focus { border-color: var(--accent); outline: none; }
+.gl-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.gl-chip { flex: none; min-height: 38px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.gl-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.gl-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 15px; }
+.gl-row label { display: flex; gap: 8px; align-items: center; min-height: 44px; cursor: pointer; }
+.gl-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+.gl-count { margin-left: auto; color: var(--muted); font-size: 14px; }
+.gl-list { display: grid; gap: 10px; }
+.gl { padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); scroll-margin-top: 220px; }
+.gl:target, .gl.hit { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gl-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 4px; }
+.gl-h h3 { margin: 0; font-size: 1.35rem; }
+.gl-en { font: 500 15px var(--f-mono); color: var(--accent); }
+.gl-aka { font-size: 13px; color: var(--muted); }
+.gl p.def { margin: 0 0 8px; }
+.gl-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.gl-links .chip { min-height: 0; padding: 2px 10px; font-size: 13px; }
+.gl-src { font-size: 13px; color: var(--muted); }
+mark { background: color-mix(in srgb, var(--hi) 35%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.quizmode .gl:not(.shown) p.def { filter: blur(6px); user-select: none; cursor: pointer; }
+.quizmode .gl:not(.shown) p.def::after { content: ""; }
+.gl-reveal { display: none; }
+.quizmode .gl:not(.shown) .gl-reveal { display: inline-flex; }
+.gl-empty { padding: 16px; text-align: center; color: var(--muted); }
+.gl-letter { margin: 14px 0 2px; font: 700 1.3rem var(--f-display); color: var(--muted); scroll-margin-top: calc(var(--az-top, 0px) + 64px); }
+.gl-links:empty { display: none; }
+.gl > :last-child { margin-bottom: 0; }
+/* А–Я row: only the letters present, sticky under the filter panel (its top is set from the panel's height on desktop) */
+.gl-az { position: sticky; top: var(--az-top, 0px); z-index: 4; display: flex; gap: 2px; overflow-x: auto; margin: 0 0 10px; padding: 4px 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); scrollbar-width: thin; }
+.gl-az[hidden] { display: none; }
+.gl-az a { flex: none; display: grid; place-items: center; min-width: 34px; min-height: 36px; padding: 0 4px; border-radius: 8px; font: 700 15px var(--f-mono); color: var(--accent); text-decoration: none; }
+.gl-az a:hover { background: var(--panel-2); }
+@media (pointer: coarse) { .gl-az a { min-width: 44px; min-height: 44px; } }
+@media (min-width: 700px) { .gl-az { flex-wrap: wrap; } }
+@media (min-width: 700px) { .gl-tools { position: sticky; top: 0; } }
+@media (max-width: 699px) {
+  .gl-chips { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); padding-right: 32px; }
+  .gl { scroll-margin-top: 16px; }
+}
+.gl-up { position: fixed; right: 16px; bottom: 16px; z-index: 20; min-height: 44px; padding: 8px 16px; border: 1px solid var(--accent); border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: 600 15px var(--f-body); box-shadow: var(--shadow); cursor: pointer; }
+.gl-up[hidden] { display: none; }
+/* the phone section bar (hub-mbar, 44 px) sits at the bottom too: lift the button above it */
+body:has(.hub-mbar.is-on) .gl-up { bottom: calc(44px + env(safe-area-inset-bottom) + 12px); }
+@media (min-width: 700px) { .gl-up { display: none; } }
+@media print { .gl-up { display: none !important; } }
+@media (max-width: 560px) { .gl-count { margin-left: 0; width: 100%; } }
+/* touch: the compact chips above would beat the core 44 px rule */
+@media (pointer: coarse) { .gl-links .chip, .gl-chip { min-height: 44px; } .gl-links .chip { padding-inline: 12px; } }
+@media print { .gl-tools { position: static; box-shadow: none; } .gl { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">До змісту</a>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="glossary">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main" data-toc="Зміст сторінки">
+  <header id="top">
+    <p class="eyebrow">Довідка · уроки 1.1–2.4</p>
+    <h1>Глосарій</h1>
+    <p class="lead">Терміни курсу українською й англійською. Шукайте будь-якою мовою: «підтяжка», «pull-up», «ISR». Кожен термін веде до уроку, де його пояснюють.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><span class="chip"><span class="k" id="gl-total">…</span> термінів</span></li>
+      <li><a class="chip" href="../atlas/">Атлас компонентів</a></li>
+      <li><a class="chip" href="../cards/">Картки</a></li>
+    </ul>
+  </header>
+
+  <section class="hs" id="terms">
+    <h2><span class="n">01</span> Терміни</h2>
+    <p>Англійська назва потрібна не для іспиту: саме її ви шукатимете в даташитах, на форумах і в коді. Режим «сховати визначення» перетворює глосарій на самоперевірку: спершу пригадайте, потім відкрийте.</p>
+    <div class="gl-tools" role="search">
+      <div class="gl-search">
+        <label class="sr-only" for="gl-q">Пошук терміна</label>
+        <input id="gl-q" type="search" placeholder="Пошук: напруга, pull-up, ISR…" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="gl-chips" role="group" aria-label="Урок" id="gl-les"></div>
+      <div class="gl-row">
+        <label><input type="checkbox" id="gl-en"> за англійською абеткою</label>
+        <label><input type="checkbox" id="gl-quiz"> сховати визначення</label>
+        <span class="gl-count" id="gl-count" aria-live="polite"></span>
+      </div>
+    </div>
+    <nav class="gl-az" id="gl-az" aria-label="Абетка" hidden></nav>
+    <button type="button" class="gl-up" id="gl-up" hidden>↑ Пошук</button>
+    <div class="gl-list" id="gl-list" aria-live="off">
+      <noscript><p class="gl-empty">Для пошуку увімкніть JavaScript. Самі терміни лежать у <a href="../data/glossary.json">data/glossary.json</a>.</p></noscript>
+    </div>
+  </section>
+
+  <section class="hs" id="how">
+    <h2><span class="n">02</span> Як поповнюється глосарій</h2>
+    <p>Основа — файл <code>data/glossary.json</code>. До нього сторінка сама додає картки типу «термін» з колод уроків (<a href="../cards/">тренажер карток</a>), щойно колоду опубліковано. Якщо термін є в обох місцях, показується один запис, а джерело картки зазначене під ним.</p>
+    <p>Бракує терміна? Напишіть у Slack <b>#help</b> або запропонуйте картку в Discussions — так він з'явиться і в картках, і тут.</p>
+  </section>
+
+  <section class="hs" id="more">
+    <h2><span class="n">03</span> Джерела</h2>
+    <p>Числа у визначеннях мають посилання на джерело: даташит, інструкцію або позначку «не перевірено», якщо факт ще чекає перевірки.</p>
+    <details class="more" id="src-box"><summary>Список джерел</summary><ol id="sources" class="sources"></ol></details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script>
+/* Glossary: data/glossary.json + every type:"term" card of the published decks (data/cards/*.json).
+   Only decks the course manifest lists as published are fetched (lessons with cards > 0 or status 'ready',
+   plus COURSE.decks), so nothing 404s while lessons are still being written. */
+document.addEventListener('study:ready', async () => {
+  'use strict';
+  const { $, $$ } = Study;
+  const list = $('#gl-list'), q = $('#gl-q'), cnt = $('#gl-count');
+  const C = window.COURSE || { modules: [], decks: [] };
+  const lessons = (C.modules || []).flatMap((m) => m.lessons || []);
+  const LES = new Map(lessons.map((l) => [l.id, l]));
+  const lesName = (id) => { const l = LES.get(id); return l ? `${l.n} ${l.short || l.title}` : id; };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // Only the small inline set allowed in card text survives; everything else is escaped.
+  const safe = (s) => esc(s).replace(/&lt;(\/?)(b|i|sub|sup|br|code)&gt;/g, '<$1$2>');
+  const norm = (s) => String(s || '').toLowerCase().replace(/<[^>]+>/g, '').replace(/[’ʼ`]/g, "'").replace(/ё/g, 'е').normalize('NFKD').replace(/[̀-ͯ]/g, '');
+
+  let terms = [];
+  try {
+    const g = await Study.fetchJSON('data/glossary.json');
+    terms = (g.terms || []).map((t) => ({ ...t, src: [] }));
+  } catch { list.innerHTML = '<p class="gl-empty">Не вдалося завантажити глосарій.</p>'; return; }
+
+  const decks = [
+    ...lessons.filter((l) => l.deck !== false && (l.cards > 0 || l.status === 'ready')).map((l) => ({ id: l.id, lesson: l.id })),
+    ...(C.decks || []).map((d) => ({ id: d.id, lesson: null })),
+  ];
+  // One entry per term: the merge key drops case and a trailing «(…)» («Мікроконтролер (MCU)» = «Мікроконтролер»),
+  // and the English term matches too («Висхідний фронт» = «Фронт (передній фронт)», both «rising edge»).
+  // A same-looking Ukrainian title with a different English term stays separate («Прошивка»: firmware ≠ flashing).
+  const mkey = (s) => norm(s).replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const seen = new Map(), seenEn = new Map();
+  const remember = (t) => { if (!seen.has(mkey(t.uk))) seen.set(mkey(t.uk), t); if (t.en && !seenEn.has(mkey(t.en))) seenEn.set(mkey(t.en), t); };
+  terms.forEach(remember);
+  const findSame = (uk, en) => {
+    const byEn = en ? seenEn.get(mkey(en)) : null;
+    if (byEn) return byEn;
+    const byUk = seen.get(mkey(uk));
+    return byUk && (!en || !byUk.en || mkey(byUk.en) === mkey(en)) ? byUk : null;
+  };
+  const got = await Promise.allSettled(decks.map((d) => Study.fetchJSON(`data/cards/${d.id}.json`, { quiet: true }).then((j) => ({ d, j }))));
+  got.forEach((r) => {
+    if (r.status !== 'fulfilled') return;
+    const { d, j } = r.value;
+    (j.cards || []).filter((c) => c.type === 'term' && c.front).forEach((c) => {
+      const have = findSame(c.front, c.en);
+      const lesson = j.lesson || d.lesson;
+      if (have) {
+        // Merge: the card's deck as a source, its title as a synonym, missing links, and the richer definition.
+        if (!have.src.some((x) => x.deck === d.id)) have.src.push({ deck: d.id, id: c.id });
+        if (mkey(c.front) !== mkey(have.uk) && !(have.aka || []).some((a) => mkey(a) === mkey(c.front))) have.aka = [...(have.aka || []), c.front];
+        if (!have.lesson && lesson) have.lesson = lesson;
+        if (!have.link && c.ref) have.link = c.ref;
+        // (a cited definition is never swapped for an uncited one)
+        if (c.back && norm(c.back).length > norm(have.def).length && (c.fact || !have.fact)) { have.def = c.back; have.fact = c.fact || null; }
+        return;
+      }
+      const t = { id: 'card-' + c.id, uk: c.front, en: c.en || '', def: c.back || '', lesson, fact: c.fact || null,
+        link: c.ref || null, src: [{ deck: d.id, id: c.id }], fromCard: true };
+      remember(t); terms.push(t);
+    });
+  });
+  $('#gl-total').textContent = terms.length;
+
+  // lesson chips: only lessons that have terms
+  const used = [...new Set(terms.map((t) => t.lesson).filter(Boolean))]
+    .sort((a, b) => lessons.findIndex((l) => l.id === a) - lessons.findIndex((l) => l.id === b));
+  const chipsBox = $('#gl-les');
+  let les = '';
+  [['', 'Усі уроки'], ...used.map((id) => [id, (LES.get(id) || { n: id }).n])].forEach(([id, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'gl-chip'; b.dataset.les = id; b.textContent = label;
+    b.title = id ? lesName(id) : 'Усі уроки';
+    b.addEventListener('click', () => { les = id; render(); });
+    chipsBox.appendChild(b);
+  });
+
+  const reEsc = (w) => esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const hl = (html, words) => {
+    if (!words.length) return html;
+    // One combined pass per text node (never inside tags or entities), longest word first, so a later word
+    // can never match inside the <mark> that an earlier word inserted.
+    const alt = [...new Set(words)].sort((a, b) => b.length - a.length).map(reEsc).join('|');
+    const re = new RegExp(`(&[#a-z0-9]+;)|(${alt})`, 'gi');
+    return html.replace(/(^|>)([^<]+)/g, (m, a, txt) => a + txt.replace(re, (x, ent, w) => (ent ? ent : `<mark>${w}</mark>`)));
+  };
+  function card(t, words) {
+    const links = [];
+    if (t.lesson) links.push(`<a class="chip" href="../lessons/${esc(t.lesson)}/">Урок ${esc(lesName(t.lesson))} →</a>`);
+    if (t.atlas) links.push(`<a class="chip" href="../atlas/#${esc(t.atlas)}">Атлас: деталь</a>`);
+    if (t.link) links.push(`<a class="chip" href="../${esc(t.link)}">Глибше</a>`);
+    const cite = t.fact ? `<sup class="cite" data-fact="${esc(t.fact)}"></sup>` : '';
+    const aka = t.aka && t.aka.length ? `<span class="gl-aka">також: ${t.aka.map(esc).join(', ')}</span>` : '';
+    const src = t.src.length === 1 ? `<p class="gl-src">Є картка в колоді «${esc(t.src[0].deck)}» — повторюйте її в <a href="../cards/">тренажері</a>.</p>`
+      : t.src.length ? `<p class="gl-src">Є картки в колодах ${t.src.map((x) => `«${esc(x.deck)}»`).join(', ')} — повторюйте їх у <a href="../cards/">тренажері</a>.</p>` : '';
+    return `<article class="gl" id="t-${esc(t.id)}">
+      <div class="gl-h"><h3>${hl(safe(t.uk), words)}</h3><span class="gl-en" lang="en">${hl(safe(t.en), words)}</span>${aka}</div>
+      <p class="def">${hl(safe(t.def), words)}${cite}</p>
+      <button type="button" class="btn sm ghost gl-reveal">Показати визначення</button>
+      <p class="gl-links">${links.join('')}</p>${src}</article>`;
+  }
+  const collUk = new Intl.Collator('uk'), collEn = new Intl.Collator('en');
+  function render() {
+    const raw = q.value.trim();
+    const words = raw ? raw.split(/\s+/).filter((w) => w.length > 0) : [];
+    const nw = words.map(norm);
+    const byEn = $('#gl-en').checked;
+    const shown = terms.filter((t) => (!les || t.lesson === les) && nw.every((w) =>
+      norm([t.uk, t.en, t.def, (t.aka || []).join(' ')].join(' ')).includes(w)));
+    shown.sort((a, b) => {
+      if (nw.length) { // exact title hits first
+        const s = (t) => (norm(t.uk).startsWith(nw[0]) || norm(t.en).startsWith(nw[0]) ? 0 : 1);
+        const d = s(a) - s(b); if (d) return d;
+      }
+      return byEn ? collEn.compare(norm(a.en), norm(b.en)) : collUk.compare(a.uk, b.uk);
+    });
+    let html = '', last = '';
+    const letters = [];
+    shown.forEach((t) => {
+      if (!nw.length) {
+        const L = (byEn ? norm(t.en) : t.uk.replace(/^[^A-Za-zА-ЯҐЄІЇа-яґєії]+/, '')).charAt(0).toUpperCase();
+        if (L && L !== last) { letters.push(L); html += `<p class="gl-letter" id="gl-l${letters.length}" aria-hidden="true">${esc(L)}</p>`; last = L; }
+      }
+      html += card(t, words);
+    });
+    // А–Я row: one link per letter heading actually rendered (none while searching).
+    const az = $('#gl-az');
+    az.innerHTML = letters.map((L, i) => `<a href="#gl-l${i + 1}" aria-label="Літера ${esc(L)}">${esc(L)}</a>`).join('');
+    az.hidden = letters.length < 2;
+    list.innerHTML = html || `<p class="gl-empty">Нічого не знайдено за «${esc(raw)}». Спробуйте англійською або коротше слово.</p>`;
+    cnt.textContent = `${shown.length} з ${terms.length}`;
+    $$('.gl-chip', chipsBox).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.les === les)));
+    Study.cites();
+    const u = new URL(location.href);
+    if (raw) u.searchParams.set('q', raw); else u.searchParams.delete('q');
+    if (les) u.searchParams.set('lesson', les); else u.searchParams.delete('lesson');
+    history.replaceState(null, '', u);
+  }
+  list.addEventListener('click', (e) => {
+    const g = e.target.closest('.gl');
+    if (g && (e.target.closest('.gl-reveal') || e.target.closest('p.def'))) g.classList.add('shown');
+    if (e.target.closest('.cite a')) $('#src-box').open = true;
+  });
+  $('#gl-quiz').addEventListener('change', (e) => { list.classList.toggle('quizmode', e.target.checked); $$('.gl', list).forEach((g) => g.classList.remove('shown')); });
+  $('#gl-en').addEventListener('change', render);
+  let tm = 0;
+  q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(render, 120); });
+  const p = new URLSearchParams(location.search);
+  q.value = p.get('q') || '';
+  les = used.includes(p.get('lesson')) ? p.get('lesson') : '';
+  render();
+  // Cards are inserted after load, so :target never applies to them: mark the linked one by hand.
+  const markHash = () => {
+    $$('.gl.hit', list).forEach((g) => g.classList.remove('hit'));
+    if (!location.hash.startsWith('#t-')) return;
+    const t = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (t) { t.classList.add('hit'); t.scrollIntoView(); }
+  };
+  markHash();
+  window.addEventListener('hashchange', markHash);
+  // Phones: the search panel is not sticky there, so offer a way back once it scrolls away.
+  const up = $('#gl-up'), tools = $('.gl-tools');
+  // Desktop: the filter panel is sticky at the top, so the letter row sticks right under it.
+  const wideTools = window.matchMedia('(min-width: 700px)');
+  const azTop = () => $('#terms').style.setProperty('--az-top', wideTools.matches ? `${tools.offsetHeight}px` : '0px');
+  azTop();
+  wideTools.addEventListener('change', azTop);
+  if ('ResizeObserver' in window) new ResizeObserver(azTop).observe(tools);
+  // Letter links: keep the URL (?q, ?lesson) and scroll without a jump hash that markHash would treat as a term.
+  $('#gl-az').addEventListener('click', (e) => {
+    const a = e.target.closest('a'); if (!a) return;
+    e.preventDefault();
+    const h = document.getElementById(a.getAttribute('href').slice(1));
+    if (h) h.scrollIntoView({ block: 'start' });
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es) => { up.hidden = es[0].isIntersecting || list.getBoundingClientRect().top > 0; }).observe(tools);
+  }
+  up.addEventListener('click', () => { tools.scrollIntoView({ block: 'start' }); q.focus({ preventScroll: true }); });
+});
+</script>
+</body>
+</html>

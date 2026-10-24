@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Атлас компонентів</title>
+<meta name="description" content="Кожна деталь з набору курсу ESP32-S3: як упізнати, символ IEC і ANSI, виводи й полярність, типові номінали з джерелами, перевірка мультиметром, як не спалити, міні-схема і уроки. Друк карток A6.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Atlas page widgets only; colours come from study.css tokens. Real-object colours (resistor body, PCB, LED)
+   are fixed hex values inside the drawings: a red LED stays red in both themes. */
+.cite-demo { color: var(--accent); font: 600 13px var(--f-mono); }
+
+/* ---------------- filters */
+.atl-tools { display: grid; gap: 10px; margin: 14px 0 12px; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.fchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.fchip { min-height: 40px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.fchip:hover { border-color: var(--accent); }
+.fchip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.ftools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.ftools .ctl { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
+.ftools select { min-height: 40px; max-width: 100%; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 15px var(--f-body); }
+.fcheck input { width: 20px; height: 20px; accent-color: var(--accent); }
+.ctl.fcheck { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 15px; }
+.fcount { margin: 0; font-size: 14px; color: var(--muted); }
+.atl-empty { padding: 12px; }
+
+/* ---------------- cards */
+.atl-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); align-items: start; }
+.atl { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px 14px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); scroll-margin-top: 16px; }
+.atl:target { outline: 2px solid var(--accent); outline-offset: 2px; }
+.atl-h { display: flex; align-items: flex-start; gap: 10px; }
+.atl-ref { flex: none; min-width: 42px; padding: 4px 8px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); font: 700 15px var(--f-mono); color: var(--accent); text-align: center; }
+.atl-title { flex: 1; min-width: 0; }
+.atl-name { margin: 0; font: 680 1.3rem/1.2 var(--f-display); font-optical-sizing: auto; }
+.atl-en { margin: 2px 0 0; font: 500 13px var(--f-mono); color: var(--muted); }
+.atl-reveal { display: none; }
+.atl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.atl-tags span { padding: 2px 10px; border-radius: 999px; font: 600 13px var(--f-body); border: 1px solid var(--line); }
+.atl-cat { color: var(--muted); }
+.atl-pol.yes { color: var(--hi-ink); border-color: color-mix(in srgb, var(--hi) 55%, var(--line)); background: color-mix(in srgb, var(--hi) 10%, var(--panel)); }
+.atl-pol.no { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.atl-pics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.atl-ill { margin: 0; min-width: 0; }
+.atl-ill svg, .tr-fig svg, .btn-fig svg { display: block; width: 100%; height: auto; }
+.atl-syms { display: flex; flex-direction: column; gap: 6px; }
+.atl-syms figure { margin: 0; width: 84px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.atl-syms svg { display: block; width: 100%; height: 50px; }
+.atl-syms figcaption { margin: 0; text-align: center; font: 600 13px var(--f-mono); color: var(--muted); }
+.atl-nosym { margin: 0; max-width: 130px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.atl-pics > .atl-nosym { align-self: center; }
+.atl-dl { display: grid; grid-template-columns: 1fr; gap: 0; margin: 0; }
+.atl-dl dt { margin: 8px 0 1px; font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.atl-dl dt.kill { color: var(--bad); }
+.atl-dl dd { margin: 0; font-size: 15px; line-height: 1.5; }
+.atl-dl b.plus { color: var(--n5); }
+.atl-dl b.minus { color: var(--nsig2); }
+.atl-back { border-top: 1px solid var(--line); padding-top: 4px; }
+.atl-back > summary { min-height: 40px; display: flex; align-items: center; gap: 8px; cursor: pointer; font: 600 14px var(--f-body); color: var(--accent); list-style: none; }
+.atl-back > summary::-webkit-details-marker { display: none; }
+.atl-back > summary::before { content: "▸"; transition: transform .2s; }
+.atl-back[open] > summary::before { transform: rotate(90deg); }
+@media (max-width: 560px) {
+  .atl-pics { grid-template-columns: minmax(0, 1fr); }
+  .atl-syms { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .atl-pics > .atl-nosym, .atl-syms + .atl-nosym { max-width: none; text-align: center; }
+}
+.atl-mini { margin: 4px 0 0; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
+.atl-mini svg { display: block; width: 100%; max-width: 330px; height: auto; margin: 0 auto; }
+.atl-mini figcaption { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.atl-les { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 0; }
+.atl-les .k { font: 600 13px var(--f-mono); color: var(--muted); }
+.atl-les .chip { padding: 2px 10px; min-height: 0; font-size: 13px; }
+
+/* recall mode: names and answer labels blurred until the reader asks */
+.recall .atl:not(.shown) .atl-name, .recall .atl:not(.shown) .atl-en, .recall .atl:not(.shown) .atl-ref, .recall .atl:not(.shown) .atl-les { filter: blur(7px); user-select: none; }
+.recall .atl:not(.shown) .atl-ill .il-t:not(.keep), .recall .atl:not(.shown) .atl-syms figcaption { opacity: 0; }
+.recall .atl:not(.shown) .il-ans { opacity: 0; }
+.recall .atl:not(.shown) .atl-reveal { display: inline-flex; }
+.recall .atl:not(.shown) .atl-dl, .recall .atl:not(.shown) .atl-mini, .recall .atl:not(.shown) .atl-tags { filter: blur(5px); user-select: none; }
+
+/* ---------------- drawing classes */
+.il-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.il-t.b { font-weight: 700; }
+.il-t.m { fill: var(--muted); }
+.il-plus { fill: var(--n5); }
+.il-minus { fill: var(--nsig2); }
+.il-bad { fill: var(--bad); }
+.il-ok { fill: var(--ok); }
+.il-tw { fill: #fff; font: 600 13px var(--f-mono); }
+.il-code { fill: #fff; font: 700 18px var(--f-mono); }
+.il-code.sm { font-size: 13px; }
+.il-code.dk { fill: #1b2410; }
+.il-mark { fill: #1f3a5f; font: 700 16px var(--f-mono); }
+.il-lcd { fill: #1b2410; font: 700 24px var(--f-mono); }
+.il-lead, .il-leg { fill: none; stroke: #9aa3ab; stroke-width: 3; stroke-linecap: round; }
+.il-leg.w { stroke-width: 4; }
+.il-ln { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.il-acc { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.il-acc.dash { stroke-dasharray: 5 4; }
+.il-hl { fill: color-mix(in srgb, var(--accent) 22%, transparent); stroke: var(--accent); stroke-width: 1.5; }
+.il-hl.bad { fill: color-mix(in srgb, var(--bad) 18%, transparent); stroke: var(--bad); }
+.mb rect { fill: #f3f1ea; stroke: #c9c3b3; }
+.pinmap text { fill: var(--ink); font: 600 13px var(--f-mono); }
+.pinmap text.pm-k { fill: var(--muted); font: 500 13px var(--f-body); }
+.pm-warn { fill: color-mix(in srgb, var(--warn) 20%, transparent); stroke: var(--warn); }
+.pm-bad { fill: color-mix(in srgb, var(--bad) 16%, transparent); stroke: var(--bad); }
+
+/* ---------------- polarity trainer */
+.tr-q { font-weight: 600; font-size: 17px; margin: 0 0 6px; }
+.tr-fig { margin: 0 auto; max-width: 440px; }
+.tr-fig text:not(.il-code):not(.il-mark):not(.mk-t):not(.keep) { display: none; }
+.tr-fig.done text:not(.il-code):not(.il-mark):not(.mk-t):not(.keep) { display: inline; }
+.tr-fig .il-ans { opacity: 0; transition: opacity .3s; }
+.tr-fig.done .il-ans { opacity: 1; }
+.mk circle { fill: var(--accent); stroke: var(--panel); stroke-width: 2; cursor: pointer; }
+.mk .mk-t { fill: var(--accent-ink); font: 700 13px var(--f-body); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.mk.ok circle { fill: var(--ok); }
+.mk.bad circle { fill: var(--bad); }
+.tr-opts { display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.tr-opts .opt.ok { border-color: var(--ok); color: var(--ok); }
+.tr-opts .opt.bad { border-color: var(--bad); color: var(--bad); }
+.tr-opts .opt { min-width: 64px; justify-content: center; text-align: center; }
+.tr-fb { min-height: 1.6em; margin: 8px 0; }
+
+/* ---------------- diode test */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg button { min-height: 40px; padding: 6px 12px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 0 -1px -1px 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.dt-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: center; margin: 12px 0; }
+@media (min-width: 720px) { .dt-wrap { grid-template-columns: minmax(0, 1fr) 220px; } }
+.dt-svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; }
+#w-dt:not(.open) #dt-val, #w-dt:not(.open) #dt-unit, #w-dt:not(.open) .dt-why { visibility: hidden; }
+.dt-wire-k { fill: none; stroke: var(--ngnd); stroke-width: 3; }
+.dt-lcd { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-radius: 10px; background: #b9c7a3; color: #1b2410; border: 6px solid #2b3138; font-family: var(--f-mono); }
+.dt-lcd b { font-size: 40px; line-height: 1; letter-spacing: .04em; }
+.dt-lcd .dt-mode { margin-right: auto; font-size: 18px; font-weight: 700; }
+.dt-lcd .dt-unit { font-size: 18px; font-weight: 700; min-width: 1em; }
+.dt-why { margin: 10px 0 0; min-height: 3em; }
+.dt-probe-r { fill: #c62828; } .dt-probe-k { fill: var(--ngnd); stroke: var(--panel); stroke-width: 1.5; }
+.dt-path { fill: none; stroke: var(--ok); stroke-width: 6; stroke-linecap: round; opacity: .35; }
+.dt-glow { fill: #ff5a4f; opacity: .55; }
+
+/* ---------------- button lab */
+.btn-lab { display: grid; gap: 16px; }
+.btn-fig { margin: 0 0 8px; max-width: 360px; }
+.btn-fig .il-ans { opacity: 1; }
+.btn-fig .pair { stroke: var(--ok); stroke-width: 6; stroke-linecap: round; opacity: 0; fill: none; }
+.btn-fig .pair.on { opacity: .55; }
+.btn-res { min-height: 1.6em; margin: 8px 0 0; font-weight: 600; }
+.btn-res.beep { color: var(--ok); }
+.btn-res.quiet { color: var(--muted); }
+.wk-box { display: grid; place-items: center; min-height: 140px; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; background: var(--panel-2); overflow: hidden; }
+.wk-box.res { min-height: 120px; }
+.wk-box svg.fallback { width: 100%; max-width: 300px; height: auto; }
+
+/* ---------------- bands */
+.bd-form label { display: block; margin: 12px 0 4px; font-size: 15px; }
+.bd-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.bd-row input { flex: 1 1 160px; min-width: 0; min-height: 42px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 16px var(--f-mono); }
+.bd-fb { min-height: 1.6em; margin: 10px 0; }
+.bd-fb.ok { color: var(--ok); } .bd-fb.bad { color: var(--bad); }
+.bd-legend { display: flex; flex-wrap: wrap; gap: 6px; font: 13px var(--f-mono); }
+.bd-legend span { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; }
+.bd-legend i { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #888; }
+
+/* ---------------- print: A6 cards, four per A4 sheet */
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body { padding: 0 !important; background: #fff !important; }
+  .skip, .site-nav, main.hub > header, main.hub > section:not(#kit), #kit > h2, #kit > p, .atl-tools, .atl-empty, .hub-toc, .atl-reveal { display: none !important; }
+  main.hub { max-width: none !important; margin: 0 !important; padding: 0 !important; display: block !important; }
+  #kit { margin: 0 !important; padding: 0 !important; border: 0 !important; }
+  /* readable on paper in either screen theme: the cards use the light palette */
+  .atl {
+    --ink: #13212c; --muted: #4a5a66; --line: #b8c6d0; --panel: #fff; --panel-2: #f3f6f8; --accent: #0a6a86; --accent-ink: #fff;
+    --n5: #c62a22; --n33: #b25600; --ngnd: #2a3945; --nsig: #8a6200; --nsig2: #1f5fc4; --nsig3: #17793a; --bad: #c62828; --ok: #15803d; --hi: #d97f00; --hi-ink: #a85200; --warn: #a85200;
+    color: var(--ink);
+  }
+  .atl-grid { display: grid !important; grid-template-columns: 105mm 105mm !important; grid-auto-rows: 148.5mm; gap: 0 !important; width: 210mm; margin: 0 !important; }
+  .atl { width: 105mm; height: 148.5mm; overflow: hidden; break-inside: avoid; margin: 0; padding: 4mm 4.5mm; gap: 1.2mm; border: .2mm dashed #9aa; border-radius: 0; box-shadow: none; font-size: 7.4pt; filter: none !important; }
+  .atl * { filter: none !important; }
+  .atl .il-ans { opacity: 1 !important; }
+  .atl-back { border: 0; padding: 0; } .atl-back > summary { display: none; }
+  .atl[hidden] { display: none !important; }
+  .atl-name { font-size: 13pt; } .atl-en, .atl-tags span, .atl-ref { font-size: 7pt; }
+  .atl-ref { min-width: 0; padding: 1px 4px; }
+  .atl-pics { gap: 2mm; }
+  .atl-ill svg { max-height: 30mm; }
+  .atl-syms figure { width: 15mm; padding: .5mm; } .atl-syms svg { height: 8mm; } .atl-syms figcaption, .atl-nosym { font-size: 6.2pt; }
+  .atl-dl dt { margin: 1mm 0 0; font-size: 6.4pt; } .atl-dl dd { font-size: 7.2pt; line-height: 1.3; }
+  .atl-mini { padding: 1mm; } .atl-mini svg { max-height: 23mm; max-width: 70mm; } .atl-mini figcaption { font-size: 6.4pt; margin: .5mm 0 0; }
+  .atl-les .chip, .atl-les .k { font-size: 6.4pt; padding: 0 4px; }
+  .atl .cite, .atl .cite a { font-size: 5.2pt; line-height: 0; color: #4a5a66; text-decoration: none; }
+  .atl-mini svg { max-height: 19mm !important; }
+}
+
+</style>
+</head>
+<body data-sprite>
+<a class="skip" href="#main">До змісту</a>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="atlas">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main" data-toc="Зміст сторінки">
+  <header id="top">
+    <p class="eyebrow">Довідка · відкривайте, коли тримаєте деталь у руках</p>
+    <h1>Атлас <span>компонентів</span></h1>
+    <p class="lead">Кожна деталь з набору на одній картці: як її впізнати, де плюс, як вона виглядає на схемі, як перевірити мультиметром і як її найчастіше вбивають.</p>
+    <ul class="chips" aria-label="Про сторінку">
+      <li><span class="chip"><span class="k">16</span> карток</span></li>
+      <li><a class="chip" href="#polarity">Тренажер: де плюс?</a></li>
+      <li><a class="chip" href="#diode-test">Мультиметр у режимі діода</a></li>
+      <li><a class="chip" href="../schematics/">Як читати схеми</a></li>
+      <li><a class="chip" href="../glossary/">Глосарій</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#kit">До карток →</a>
+      <button type="button" class="btn" id="f-print2">Друкувати картки A6</button>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 kit -->
+  <section class="hs" id="kit">
+    <h2><span class="n">01</span> Набір: усі деталі</h2>
+    <p>Лицьовий бік картки — щоб <b>упізнати</b>: малюнок, символ, виводи, що в наборі. Під ним «Перевірка · як убити · схема» — щоб <b>використати</b>: як перевірити мультиметром, як деталь найчастіше вбивають і де вона стоїть на схемі. Числа мають позначку <sup class="cite-demo">[n]</sup> — посилання на джерело в розділі «Джерела»: даташит, інструкцію приладу або позначку «не перевірено».</p>
+    <p class="small"><b>Позначки на картках:</b> <b>OL</b> — «поза межами»: обрив або закритий перехід; <b>V⎓</b> — постійна напруга; <b>→|</b> — режим перевірки діода; <b>прозвонка</b> — режим, що пищить, коли між щупами майже нуль Ом.</p>
+    <div class="atl-tools wide" role="group" aria-label="Фільтри атласу">
+      <div class="fchips" role="group" aria-label="Тип деталі"><button type="button" class="fchip" data-cat="all" aria-pressed="true">Усі</button><button type="button" class="fchip" data-cat="pass" aria-pressed="false">Пасивні</button><button type="button" class="fchip" data-cat="semi" aria-pressed="false">Напівпровідники</button><button type="button" class="fchip" data-cat="mech" aria-pressed="false">Кнопки й реле</button><button type="button" class="fchip" data-cat="proto" aria-pressed="false">Макетування й живлення</button><button type="button" class="fchip" data-cat="tools" aria-pressed="false">Прилади</button></div>
+      <div class="ftools">
+        <label class="ctl fcheck"><input type="checkbox" id="f-pol"> лише полярні</label>
+        <label class="ctl"><span>урок</span> <select id="f-les"><option value="">усі уроки</option><option value="1-1">1.1 Мультиметр</option><option value="1-2">1.2 Резистор для LED</option><option value="1-3">1.3 Blink</option><option value="1-4">1.4 GPIO</option><option value="1-5">1.5 Сигнали</option><option value="1-6">1.6 АЦП</option><option value="mp1">МП1 Перемикач</option><option value="2-1">2.1 C++</option><option value="2-2">2.2 Навантаження</option><option value="2-3">2.3 Суперцикл</option><option value="2-4">2.4 Переривання</option></select></label>
+        <label class="ctl fcheck"><input type="checkbox" id="f-open"> розгорнути всі</label>
+        <label class="ctl fcheck"><input type="checkbox" id="f-recall"> сховати назви (самоперевірка)</label>
+        <button type="button" class="btn sm" id="f-print">Друкувати вибране (A6, 4 на аркуш)</button>
+      </div>
+      <p class="fcount" aria-live="polite">Показано <b id="f-count">16 з 16</b></p>
+    </div>
+    <div class="atl-grid wide" id="atl-grid">
+    <article class="atl" id="resistor" data-cat="pass" data-pol="0" data-lessons="1-1 1-2 1-6 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">R</span>
+        <div class="atl-title"><h3 class="atl-name">Резистор</h3><p class="atl-en" lang="en">resistor · вивідний, 5 смуг</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Пасивні</span><span class="atl-pol no" title="Можна вставляти будь-яким боком">⇄ неполярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Вивідний резистор 220 Ом: бежеве тіло з п&#x27;ятьма смугами — червона, червона, чорна, чорна і після ширшого проміжку коричнева; виводи однакові, полярності немає.">
+<line x1="8" y1="72" x2="252" y2="72" class="il-lead"/>
+<rect x="66" y="54" width="128" height="36" rx="16" fill="#dcc39b" stroke="#8a6d45" stroke-width="1.5"/>
+<rect x="84" y="54" width="8" height="36" fill="#c62828"/><rect x="100" y="54" width="8" height="36" fill="#c62828"/>
+<rect x="116" y="54" width="8" height="36" fill="#1b1b1b"/><rect x="132" y="54" width="8" height="36" fill="#1b1b1b"/>
+<rect x="164" y="54" width="8" height="36" fill="#7a4a1e"/>
+<g class="il-ans">
+  <text class="il-t" x="88" y="44" text-anchor="middle">2</text><text class="il-t" x="104" y="44" text-anchor="middle">2</text>
+  <text class="il-t" x="120" y="44" text-anchor="middle">0</text><text class="il-t" x="138" y="44" text-anchor="middle">×1</text>
+  <text class="il-t" x="172" y="44" text-anchor="middle">±1 %</text>
+  <text class="il-t" x="10" y="44">читати →</text>
+  <text class="il-t b" x="130" y="116" text-anchor="middle">= 220 Ом</text>
+</g>
+<text class="il-t m" x="130" y="140" text-anchor="middle">полярності немає ⇄</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: резистор (IEC)"><use class="sch-sym" href="#res"/></svg><figcaption>IEC</figcaption></figure><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: резистор (ANSI)"><use class="sch-sym" href="#res-us"/></svg><figcaption>ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Два однакові виводи, полярності немає: вставляйте будь-яким боком.</dd>
+        <dt>У наборі</dt><dd>220&nbsp;Ом, 1&nbsp;кОм, 10&nbsp;кОм. Номінал — за смугами: 3 цифри, множник, допуск<sup class="cite" data-fact="iec-colour-code"></sup>; значення беруть з ряду E12<sup class="cite" data-fact="iec-e12"></sup>. Потужність: у наборах пишуть 0,25&nbsp;Вт<sup class="cite" data-fact="resistor-0207-power"></sup> — працюйте із запасом ×2, тобто не більше ≈0,125&nbsp;Вт.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим Ω, деталь поза схемою або схема знеструмлена<sup class="cite" data-fact="ut136-ohm-notes"></sup>. Показ у межах допуску від коду смуг — справний.</dd>
+          <dt class="kill">Як убити</dt><dd>Перегрів: P = U²/R. 220&nbsp;Ом на 5&nbsp;В — 0,11&nbsp;Вт, нормально; 10&nbsp;Ом на 5&nbsp;В — 2,5&nbsp;Вт: дим і чорна смуга. Виводи ламаються від згинання впритул до корпусу.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 90" role="img" aria-label="Схема: вивід GPIO15 через резистор R1 220 Ом до анода світлодіода LED1, катод — на GND.">
+<use class="sch-sym" href="#mcu-pin" x="50" y="44" transform="rotate(180 50 44)"/><text class="sch-pin net-sig" x="24" y="34">GPIO15</text>
+<path class="sch-w net-sig" d="M50 44H60"/>
+<use class="sch-sym" href="#res" x="60" y="44"/><text class="sch-ref" x="90" y="30" text-anchor="middle">R1</text><text class="sch-val" x="90" y="66" text-anchor="middle">220 Ом</text>
+<path class="sch-w net-sig2" d="M120 44H136"/>
+<use class="sch-sym" href="#led" x="136" y="44"/><text class="sch-ref" x="166" y="74" text-anchor="middle">LED1</text>
+<path class="sch-w net-gnd" d="M196 44H226V60"/><use class="sch-sym net-gnd" href="#gnd" x="226" y="60"/></svg><figcaption>R1 обмежує струм світлодіода — розрахунок в уроці 1.2.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="led-3mm" data-cat="semi" data-pol="1" data-lessons="1-1 1-2 1-3 1-4">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">LED</span>
+        <div class="atl-title"><h3 class="atl-name">Світлодіод</h3><p class="atl-en" lang="en">LED · 3 мм</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Напівпровідники</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Світлодіод 3 мм: червоний корпус-купол на обідку з пласкою гранню праворуч; ліва ніжка довша — анод (+), права коротша — катод (−).">
+<path d="M112 98V140M140 98V122" class="il-leg"/>
+<path d="M100 98V54a26 26 0 0 1 52 0V98Z" fill="#e53935" fill-opacity=".5" stroke="#b71c1c" stroke-width="1.5"/>
+<path d="M110 98V70h5v28zM135 98V76h13l-3 -9h-10z" fill="#9aa3ab"/>
+<path d="M92 92H152V100H92Z" fill="#e53935" fill-opacity=".7" stroke="#b71c1c" stroke-width="1.5"/>
+<g class="il-ans">
+  <path class="il-ln" d="M62 126H108"/><path class="il-ln" d="M196 114H144"/><path class="il-ln" d="M196 84L154 96"/>
+  <text class="il-t b il-plus" x="8" y="122">+ анод</text><text class="il-t" x="8" y="140">довша</text>
+  <text class="il-t b il-minus" x="200" y="118">− катод</text><text class="il-t" x="200" y="136">коротша</text>
+  <text class="il-t" x="200" y="64">пласка</text><text class="il-t" x="200" y="80">грань</text>
+</g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: світлодіод (IEC = ANSI)"><use class="sch-sym" href="#led"/></svg><figcaption>IEC = ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd><b class="plus">+ Анод</b> — довша ніжка. <b class="minus">− Катод</b> — коротша ніжка і пласка грань обідка. Світиться, лише коли струм іде від анода до катода.</dd>
+        <dt>У наборі</dt><dd>Пряма напруга V<sub>F</sub>: червоний ≈1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>, зелений ≈2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>, синій і білий ≈3,3&nbsp;В<sup class="cite" data-fact="led-blue-3mm-vf"></sup><sup class="cite" data-fact="led-white-3mm-vf"></sup>. Абсолютний максимум для червоного — 30&nbsp;мА постійно<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>; індикатору вистачає кількох мА.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим діода (→|), червоний щуп на анод: червоний і зелений мають ледь засвітитися й показати свою V<sub>F</sub>, синій може показати OL. Це прогноз — перевірте своїм приладом<sup class="cite" data-fact="ut136-diode-mode-leds"></sup>.</dd>
+          <dt class="kill">Як убити</dt><dd>Пряме підключення до 3,3 чи 5&nbsp;В без резистора — струм нічим не обмежений. Зворотна напруга понад 5&nbsp;В<sup class="cite" data-fact="led-reverse-voltage"></sup>. Кілька LED паралельно з одним спільним резистором.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 90" role="img" aria-label="Схема: вивід GPIO15 через резистор R1 220 Ом до анода світлодіода LED1, катод — на GND.">
+<use class="sch-sym" href="#mcu-pin" x="50" y="44" transform="rotate(180 50 44)"/><text class="sch-pin net-sig" x="24" y="34">GPIO15</text>
+<path class="sch-w net-sig" d="M50 44H60"/>
+<use class="sch-sym" href="#res" x="60" y="44"/><text class="sch-ref" x="90" y="30" text-anchor="middle">R1</text><text class="sch-val" x="90" y="66" text-anchor="middle">220 Ом</text>
+<path class="sch-w net-sig2" d="M120 44H136"/>
+<use class="sch-sym" href="#led" x="136" y="44"/><text class="sch-ref" x="166" y="74" text-anchor="middle">LED1</text>
+<path class="sch-w net-gnd" d="M196 44H226V60"/><use class="sch-sym net-gnd" href="#gnd" x="226" y="60"/></svg><figcaption>GPIO → резистор → анод; катод → GND.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/1-3/">1.3 Blink</a><a class="chip" href="../lessons/1-4/">1.4 GPIO</a></p>
+    </article>
+    <article class="atl" id="button" data-cat="mech" data-pol="0" data-lessons="1-4 1-5 2-3 2-4">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">SW</span>
+        <div class="atl-title"><h3 class="atl-name">Тактова кнопка</h3><p class="atl-en" lang="en">tactile switch · 6×6 мм</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Кнопки й реле</span><span class="atl-pol no" title="Можна вставляти будь-яким боком">⇄ неполярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Тактова кнопка 6 на 6 мм, вигляд згори: квадратний корпус з круглою клавішею, виводи 4 і 2 ліворуч, 3 і 1 праворуч; виводи навпроти один одного (4–3 і 2–1) з&#x27;єднані завжди, натискання з&#x27;єднує верхню пару з нижньою.">
+<path d="M90 50H64M90 100H64M170 50H196M170 100H196" class="il-leg"/>
+<rect x="90" y="35" width="80" height="80" rx="4" fill="#2b2f33" stroke="#8a949c" stroke-width="1.5"/>
+<circle cx="130" cy="75" r="22" fill="#15171a" stroke="#6b7580" stroke-width="1.5"/>
+<text class="il-t b keep" x="56" y="55" text-anchor="end">4</text><text class="il-t b keep" x="56" y="105" text-anchor="end">2</text>
+<text class="il-t b keep" x="204" y="55">3</text><text class="il-t b keep" x="204" y="105">1</text>
+<g class="il-ans">
+  <path class="il-acc dash" d="M70 44V24H190V44M70 106V126H190V106"/>
+  <text class="il-t" x="130" y="18" text-anchor="middle">4–3 завжди</text><text class="il-t" x="130" y="142" text-anchor="middle">2–1 завжди</text>
+  <path class="il-acc" d="M230 56V94M230 56l-4 6M230 56l4 6M230 94l-4 -6M230 94l4 -6"/>
+  <text class="il-t" x="230" y="124" text-anchor="middle">натиск</text>
+</g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: кнопка (IEC = ANSI)"><use class="sch-sym" href="#btn"/></svg><figcaption>IEC = ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Чотири виводи, з'єднані попарно: виводи навпроти один одного через корпус (1–2 і 3–4) з'єднані завжди; натискання з'єднує сусідні виводи з одного боку<sup class="cite" data-fact="btn-b3f-internal"></sup>. Надійний трюк — брати виводи по діагоналі.</dd>
+        <dt>У наборі</dt><dd>Еталон формату Omron B3F: до 50&nbsp;мА при до 24&nbsp;В<sup class="cite" data-fact="btn-b3f-rating"></sup>, брязкіт до 5&nbsp;мс<sup class="cite" data-fact="btn-b3f-bounce"></sup>. Для GPIO струм мізерний: внутрішня підтяжка ≈45&nbsp;кОм<sup class="cite" data-fact="s3-pullup"></sup>.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Прозвонка між діагональними виводами: мовчить; натиснули — пищить (≤10&nbsp;Ом)<sup class="cite" data-fact="ut136-continuity"></sup>. Пищить без натискання — ви взяли виводи навпроти.</dd>
+          <dt class="kill">Як убити</dt><dd>Електрично кнопку майже не вбити, але вона вбиває схему: повернута на 90° — «натиснута завжди»; кнопка між 3V3 і GND без резистора — коротке замикання; пін в OUTPUT HIGH і кнопка на GND — коротке замикання виходу.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 100" role="img" aria-label="Схема: від 3V3 через внутрішній резистор підтяжки близько 45 кОм до вузла GPIO7; з вузла кнопка SW1 на GND.">
+<use class="sch-sym net-3v3" href="#vcc" x="20" y="54"/><text class="sch-pin net-3v3" x="20" y="30" text-anchor="middle">3V3</text>
+<path class="sch-w net-3v3" d="M20 54H34"/>
+<rect x="28" y="36" width="104" height="36" rx="4" fill="none" stroke="var(--muted)" stroke-dasharray="4 4"/>
+<use class="sch-sym" href="#res" x="40" y="54"/><path class="sch-w net-3v3" d="M34 54H40"/>
+<text class="sch-val" x="70" y="88" text-anchor="middle">≈45 кОм, у чипі</text>
+<path class="sch-w net-sig" d="M100 54H160"/><use class="sch-sym net-sig" href="#dot" x="140" y="54"/>
+<path class="sch-w net-sig" d="M140 54V26H152"/><text class="sch-pin net-sig" x="156" y="30">GPIO7</text>
+<use class="sch-sym" href="#btn" x="160" y="54"/><text class="sch-ref" x="190" y="88" text-anchor="middle">SW1</text>
+<path class="sch-w net-gnd" d="M220 54H244V66"/><use class="sch-sym net-gnd" href="#gnd" x="244" y="66"/></svg><figcaption>INPUT_PULLUP: відпущена — HIGH, натиснута — LOW (спад).</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-4/">1.4 GPIO</a><a class="chip" href="../lessons/1-5/">1.5 Сигнали</a><a class="chip" href="../lessons/2-3/">2.3 Суперцикл</a><a class="chip" href="../lessons/2-4/">2.4 Переривання</a></p>
+    </article>
+    <article class="atl" id="photoresistor" data-cat="pass" data-pol="0" data-lessons="1-6 mp1">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">LDR</span>
+        <div class="atl-title"><h3 class="atl-name">Фоторезистор</h3><p class="atl-en" lang="en">LDR · photoresistor · GL5528</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Пасивні</span><span class="atl-pol no" title="Можна вставляти будь-яким боком">⇄ неполярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Фоторезистор GL5528: помаранчева таблетка зі звивистою темною доріжкою і два однакові виводи; світло, що падає на доріжку, зменшує опір.">
+<path d="M118 92V142M142 92V142" class="il-leg"/>
+<circle cx="130" cy="60" r="34" fill="#e9a23b" stroke="#a86c1a" stroke-width="1.5"/>
+<path d="M108 44H152V52H108V60H152V68H108V76H152" fill="none" stroke="#7a2e0e" stroke-width="3.5" stroke-linejoin="round"/>
+<g class="il-acc"><path d="M40 14L82 40M30 34L76 56M50 0L88 26"/><path d="M82 40l-9 -1M82 40l-4 -8M76 56l-9 0M76 56l-5 -8M88 26l-9 -2M88 26l-3 -8"/></g>
+<text class="il-t" x="8" y="96">світло ↑</text><text class="il-t" x="8" y="114">опір ↓</text>
+<text class="il-t m" x="196" y="122" text-anchor="middle">неполярний</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: фоторезистор (IEC)"><use class="sch-sym" href="#ldr"/></svg><figcaption>IEC</figcaption></figure><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: фоторезистор (ANSI)"><use class="sch-sym" href="#ldr-us"/></svg><figcaption>ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Два однакові виводи, неполярний.</dd>
+        <dt>У наборі</dt><dd>GL5528: 10–20&nbsp;кОм при 10&nbsp;лк (тьмяна кімната)<sup class="cite" data-fact="ldr-gl5528-light"></sup>, від ≈1&nbsp;МОм у темряві<sup class="cite" data-fact="ldr-gl5528-dark"></sup>. Реагує за десятки мілісекунд<sup class="cite" data-fact="ldr-gl5528-limits"></sup>.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим Ω: прикрийте пальцем — опір зростає в рази; посвітіть ліхтариком — падає. Автодіапазон сам перемкнеться<sup class="cite" data-fact="ut136-counts"></sup>.</dd>
+          <dt class="kill">Як убити</dt><dd>Струмом у наших схемах не вбити (до 100&nbsp;мВт<sup class="cite" data-fact="ldr-gl5528-limits"></sup>); частіше ламають виводи біля таблетки. Без постійного резистора подільника на АЦП приходить або 3,3&nbsp;В, або майже нуль — це помилка схеми, не деталі.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 100" role="img" aria-label="Схема подільника: 3V3 — фоторезистор LDR1 — вузол на GPIO4 — резистор R1 10 кОм — GND.">
+<use class="sch-sym net-3v3" href="#vcc" x="20" y="54"/><text class="sch-pin net-3v3" x="20" y="30" text-anchor="middle">3V3</text>
+<path class="sch-w net-3v3" d="M20 54H40"/>
+<use class="sch-sym" href="#ldr" x="40" y="54"/><text class="sch-ref" x="70" y="84" text-anchor="middle">LDR1</text>
+<path class="sch-w net-sig" d="M100 54H160"/><use class="sch-sym net-sig" href="#dot" x="130" y="54"/>
+<path class="sch-w net-sig" d="M130 54V26H142"/><text class="sch-pin net-sig" x="146" y="30">GPIO4 (АЦП)</text>
+<use class="sch-sym" href="#res" x="160" y="54"/><text class="sch-ref" x="190" y="80" text-anchor="middle">R1</text><text class="sch-val" x="190" y="96" text-anchor="middle">10 кОм</text>
+<path class="sch-w net-gnd" d="M220 54H244V66"/><use class="sch-sym net-gnd" href="#gnd" x="244" y="66"/></svg><figcaption>Подільник: більше світла → менший опір LDR → вища напруга на GPIO4.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/mp1/">МП1 Перемикач</a></p>
+    </article>
+    <article class="atl" id="cap-ceramic" data-cat="pass" data-pol="0" data-lessons="1-5 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">C</span>
+        <div class="atl-title"><h3 class="atl-name">Керамічний конденсатор</h3><p class="atl-en" lang="en">ceramic capacitor · «104»</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Пасивні</span><span class="atl-pol no" title="Можна вставляти будь-яким боком">⇄ неполярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Керамічний конденсатор: помаранчевий диск з написом 104 і двома однаковими виводами; код 104 означає 100 нанофарад, полярності немає.">
+<path d="M118 84V142M142 84V142" class="il-leg"/>
+<ellipse cx="130" cy="56" rx="38" ry="32" fill="#d9902e" stroke="#9a5c12" stroke-width="1.5"/>
+<text x="130" y="63" text-anchor="middle" class="il-code">104</text>
+<g class="il-ans"><text class="il-t b" x="252" y="30" text-anchor="end">10 · 10⁴ пФ</text><text class="il-t b" x="252" y="48" text-anchor="end">= 100 нФ</text></g>
+<text class="il-t m" x="196" y="122" text-anchor="middle">неполярний</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: конденсатор (IEC = ANSI)"><use class="sch-sym" href="#cap"/></svg><figcaption>IEC = ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Два однакові виводи, неполярний.</dd>
+        <dt>У наборі</dt><dd>Код «104»: 10 і ще чотири нулі пікофарад = 100&nbsp;000&nbsp;пФ = 100&nbsp;нФ (<a href="../schematics/#values">як читати коди</a>). Його ставлять біля живлення мікросхем — гасить короткі провали напруги.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим Ω: справний показує OL — постійного струму він не пропускає. Пищить на прозвонці — пробитий.</dd>
+          <dt class="kill">Як убити</dt><dd>Напруга вища за ту, на яку він розрахований (у наших схемах до 5&nbsp;В — з великим запасом). Тріщина від сильного згинання виводів біля корпусу.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 110" role="img" aria-label="Схема: шина 3V3 до живлення мікросхеми, між шиною і GND — конденсатор C1 100 нФ близько до виводу живлення.">
+<path class="sch-w net-3v3" d="M20 24H240"/><text class="sch-pin net-3v3" x="20" y="16">3V3</text><text class="sch-pin net-3v3" x="240" y="16" text-anchor="end">→ VDD мікросхеми</text>
+<use class="sch-sym net-3v3" href="#dot" x="130" y="24"/>
+<use class="sch-sym" href="#cap" x="130" y="24" transform="rotate(90 130 24)"/>
+<text class="sch-ref" x="144" y="52">C1</text><text class="sch-val" x="144" y="70">100 нФ</text>
+<use class="sch-sym net-gnd" href="#gnd" x="130" y="84"/></svg><figcaption>Блокувальний конденсатор: якомога ближче до виводу живлення.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-5/">1.5 Сигнали</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="cap-electrolytic" data-cat="pass" data-pol="1" data-lessons="2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">C</span>
+        <div class="atl-title"><h3 class="atl-name">Електролітичний конденсатор</h3><p class="atl-en" lang="en">electrolytic capacitor</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Пасивні</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Електролітичний конденсатор: темно-синій циліндр зі світлою смугою мінусів праворуч; ліва ніжка довша — плюс, права коротша, з боку смуги — мінус.">
+<path d="M116 104V144M146 104V128" class="il-leg"/>
+<rect x="102" y="16" width="56" height="90" rx="8" fill="#1f3a5f" stroke="#8a949c" stroke-width="1.5"/>
+<rect x="138" y="16" width="16" height="90" fill="#c9d3dc"/>
+<g class="il-mark" text-anchor="middle"><text class="il-mark" x="146" y="42">−</text><text class="il-mark" x="146" y="66">−</text><text class="il-mark" x="146" y="90">−</text></g>
+<path d="M112 22l16 12M128 22l-16 12" stroke="#8a949c" stroke-width="1.5"/>
+<text class="il-t" x="98" y="28" text-anchor="end">клапан</text>
+<g class="il-ans">
+  <path class="il-ln" d="M62 132H112"/><path class="il-ln" d="M196 110L158 90"/>
+  <text class="il-t b il-plus" x="8" y="128">+ плюс</text><text class="il-t" x="8" y="146">довша</text>
+  <text class="il-t b il-minus" x="198" y="112">− мінус</text><text class="il-t" x="198" y="130">смуга</text>
+</g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: полярний конденсатор (IEC)"><use class="sch-sym" href="#cap-pol"/></svg><figcaption>IEC</figcaption></figure><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: полярний конденсатор (ANSI)"><use class="sch-sym" href="#cap-pol-us"/></svg><figcaption>ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd><b class="plus">+</b> — довша ніжка<sup class="cite" data-fact="ecap-uvr-polarity"></sup>. <b class="minus">−</b> — з боку світлої смуги з мінусами.</dd>
+        <dt>У наборі</dt><dd>Ємність і напругу надруковано на корпусі (наприклад «100µF 16V»). Його ставлять біля мотора чи реле, щоб живлення не просідало в момент увімкнення (урок 2.2).</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим Ω: показ повільно росте, поки конденсатор заряджається від приладу, і доходить до OL — живий. Одразу ≈0&nbsp;Ом — пробитий.</dd>
+          <dt class="kill">Як убити</dt><dd><b>Навпаки</b> (плюс на мінус) або напруга вища за написану: гріється, здувається, може «стрельнути» — для цього у торці клапан<sup class="cite" data-fact="ecap-uvr-polarity"></sup>. Перше ввімкнення схеми з електролітом — в окулярах.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 110" role="img" aria-label="Схема: шина +5V до мотора або реле, між шиною і GND — електролітичний конденсатор C2, плюс до шини +5V.">
+<path class="sch-w net-5v" d="M20 24H240"/><text class="sch-pin net-5v" x="20" y="16">+5V</text><text class="sch-pin net-5v" x="240" y="16" text-anchor="end">→ мотор / реле</text>
+<use class="sch-sym net-5v" href="#dot" x="130" y="24"/>
+<use class="sch-sym" href="#cap-pol" x="130" y="24" transform="rotate(90 130 24)"/>
+<text class="sch-ref" x="144" y="52">C2 (+ вгорі)</text><text class="sch-val" x="144" y="70">напр. 100 мкФ</text>
+<use class="sch-sym net-gnd" href="#gnd" x="130" y="84"/></svg><figcaption>Накопичувальний конденсатор: плюс до шини +5V, мінус до GND.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="diodes" data-cat="semi" data-pol="1" data-lessons="2-2 mp1">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">D</span>
+        <div class="atl-title"><h3 class="atl-name">Діод 1N4148 / 1N4007</h3><p class="atl-en" lang="en">diode · сигнальний / випрямний</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Напівпровідники</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Два діоди: зверху скляний помаранчевий 1N4148 з чорною смугою праворуч, знизу чорний 1N4007 з сірою смугою праворуч; смуга позначає катод K, інший кінець — анод A.">
+<path d="M14 44H246M14 106H246" class="il-lead"/>
+<rect x="104" y="35" width="56" height="18" rx="8" fill="#e9a23b" fill-opacity=".85" stroke="#b07020" stroke-width="1.5"/>
+<rect x="146" y="35" width="7" height="18" fill="#1b1b1b"/>
+<rect x="96" y="94" width="68" height="24" rx="5" fill="#222" stroke="#8a949c" stroke-width="1.5"/>
+<rect x="150" y="94" width="8" height="24" fill="#c9d3dc"/>
+<text class="il-t" x="130" y="26" text-anchor="middle">1N4148</text><text class="il-t" x="130" y="86" text-anchor="middle">1N4007</text>
+<g class="il-ans">
+  <text class="il-t b il-plus" x="40" y="34" text-anchor="middle">A</text><text class="il-t b il-minus" x="220" y="34" text-anchor="middle">K</text>
+  <text class="il-t b il-plus" x="40" y="96" text-anchor="middle">A</text><text class="il-t b il-minus" x="220" y="96" text-anchor="middle">K</text>
+  <text class="il-t" x="130" y="144" text-anchor="middle">смуга = катод</text>
+</g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: діод (IEC = ANSI)"><use class="sch-sym" href="#diode"/></svg><figcaption>IEC = ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd><b class="minus">Смуга — катод (K)</b>, інший кінець — <b class="plus">анод (A)</b>. Струм іде від A до K — туди, куди дивиться трикутник символу<sup class="cite" data-fact="d1n4148-ratings"></sup><sup class="cite" data-fact="d1n4007-polarity"></sup>.</dd>
+        <dt>У наборі</dt><dd>1N4148 (скляний, чорна смуга): до 300&nbsp;мА, 100&nbsp;В, V<sub>F</sub> ≤ 1&nbsp;В при 10&nbsp;мА<sup class="cite" data-fact="d1n4148-ratings"></sup>. 1N4007 (чорний, сіра смуга): 1&nbsp;А, до 1000&nbsp;В<sup class="cite" data-fact="diode-1n4007"></sup>. Для котушки реле й мотора беріть 1N4007.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим →|: червоний на A — 0,5…0,8&nbsp;В, навпаки — OL<sup class="cite" data-fact="ut136-diode-test"></sup>. ≈0 в обидва боки — пробитий; OL в обидва — обрив.</dd>
+          <dt class="kill">Як убити</dt><dd>Зворотний діод, поставлений навпаки (смугою до GND), закорочує живлення через транзистор. Сигнальний 1N4148 на моторі — замалий: для силових кіл є 1N4007.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 130" role="img" aria-label="Схема: від +5V котушка реле K1 униз до колектора транзистора; паралельно котушці діод D1 1N4007, катодом до +5V.">
+<use class="sch-sym net-5v" href="#vcc" x="110" y="20"/><text class="sch-pin net-5v" x="124" y="12">+5V</text>
+<path class="sch-w net-5v" d="M70 30V20H150V30"/>
+<use class="sch-sym" href="#relay-coil" x="70" y="30" transform="rotate(90 70 30)"/><text class="sch-ref" x="56" y="64" text-anchor="end">K1</text>
+<use class="sch-sym" href="#diode" x="150" y="90" transform="rotate(270 150 90)"/><text class="sch-ref" x="164" y="56">D1</text><text class="sch-val" x="164" y="74">1N4007</text>
+<path class="sch-w net-sig2" d="M70 90V100H150V90M70 100V112"/><use class="sch-sym net-sig2" href="#dot" x="70" y="100"/>
+<text class="sch-pin net-sig2" x="80" y="124">→ колектор Q1</text></svg><figcaption>Зворотний діод: смугою (катодом) до +5V, паралельно котушці.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/2-2/">2.2 Навантаження</a><a class="chip" href="../lessons/mp1/">МП1 Перемикач</a></p>
+    </article>
+    <article class="atl" id="npn-transistor" data-cat="semi" data-pol="1" data-lessons="mp1 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">Q</span>
+        <div class="atl-title"><h3 class="atl-name">NPN-транзистор BC547 / 2N2222</h3><p class="atl-en" lang="en">NPN BJT · TO-92</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Напівпровідники</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Біполярний NPN-транзистор у корпусі TO-92, плоский бік до глядача, ніжки вниз; зліва направо колектор C, база B, емітер E.">
+<path d="M112 90V128M130 90V128M148 90V128" class="il-leg"/>
+<path d="M100 92V30q0 -12 12 -12h36q12 0 12 12V92Z" fill="#222" stroke="#8a949c" stroke-width="1.5"/>
+<text x="130" y="52" text-anchor="middle" class="il-code sm">BC547</text>
+<text class="il-t m" x="8" y="34">плоский бік</text><text class="il-t m" x="8" y="52">до себе,</text><text class="il-t m" x="8" y="70">ніжки вниз</text>
+<g class="il-ans">
+  <text class="il-t b" x="112" y="146" text-anchor="middle">C</text><text class="il-t b" x="130" y="146" text-anchor="middle">B</text><text class="il-t b" x="148" y="146" text-anchor="middle">E</text>
+</g>
+<text class="il-t" x="252" y="34" text-anchor="end">«2N2222»</text><text class="il-t" x="252" y="52" text-anchor="end">інших фірм:</text><text class="il-t" x="252" y="70" text-anchor="end">буває E-B-C</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-14 -44 70 88" role="img" aria-label="Схемний символ: NPN-транзистор (IEC = ANSI)"><use class="sch-sym" href="#npn"/></svg><figcaption>IEC = ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Плоский бік до себе, ніжки вниз: <b>C — B — E</b> зліва направо (BC547, P2N2222A)<sup class="cite" data-fact="bc547-pinout"></sup><sup class="cite" data-fact="p2n2222a-pinout"></sup>. У «2N2222» інших виробників буває E-B-C — перевіряйте мультиметром.</dd>
+        <dt>У наборі</dt><dd>BC547B: до 100&nbsp;мА і 45&nbsp;В<sup class="cite" data-fact="bc547-ic-max"></sup><sup class="cite" data-fact="bc547-vceo"></sup>, h<sub>FE</sub> 200–450<sup class="cite" data-fact="bc547b-hfe"></sup>. P2N2222A: до 600&nbsp;мА<sup class="cite" data-fact="p2n2222a-ic-max"></sup>. База–емітер ≈0,7&nbsp;В<sup class="cite" data-fact="bc547-vbe"></sup>; для ключа беріть I<sub>Б</sub> ≈ I<sub>К</sub>/20<sup class="cite" data-fact="bc547-sat-design-rule"></sup>.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим →|: B→E і B→C по 0,5…0,8&nbsp;В, між C і E — OL в обидва боки<sup class="cite" data-fact="ut136-diode-test"></sup>. Так ви знайдете базу без маркування. Гніздо hFE теж підкаже розпіновку<sup class="cite" data-fact="ut136-hfe-socket"></sup>.</dd>
+          <dt class="kill">Як убити</dt><dd>База прямо на GPIO без резистора. Котушка реле без зворотного діода. Мотор на BC547 — струм понад його максимум.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 170" role="img" aria-label="Схема ключа: GPIO2 через R1 680 Ом на базу транзистора Q1 BC547; від +5V котушка реле K1 до колектора, паралельно котушці діод D1 1N4007 катодом до +5V; емітер на GND.">
+<use class="sch-sym" href="#mcu-pin" x="50" y="110" transform="rotate(180 50 110)"/><text class="sch-pin net-sig" x="24" y="100">GPIO2</text>
+<path class="sch-w net-sig" d="M50 110H60"/>
+<use class="sch-sym" href="#res" x="60" y="110"/><text class="sch-ref" x="90" y="96" text-anchor="middle">R1</text><text class="sch-val" x="90" y="134" text-anchor="middle">680 Ом</text>
+<path class="sch-w net-sig" d="M120 110H130"/>
+<use class="sch-sym" href="#npn" x="130" y="110"/><text class="sch-ref" x="180" y="106">Q1</text><text class="sch-val" x="180" y="124">BC547</text>
+<use class="sch-sym net-5v" href="#vcc" x="160" y="20"/><text class="sch-pin net-5v" x="172" y="12">+5V</text>
+<use class="sch-sym" href="#relay-coil" x="160" y="20" transform="rotate(90 160 20)"/><text class="sch-ref" x="146" y="54" text-anchor="end">K1</text>
+<path class="sch-w net-5v" d="M160 20H204"/><use class="sch-sym net-5v" href="#dot" x="160" y="20"/>
+<path class="sch-w" d="M160 80H204"/><use class="sch-sym" href="#dot" x="160" y="80"/>
+<use class="sch-sym" href="#diode" x="204" y="80" transform="rotate(270 204 80)"/><text class="sch-ref" x="216" y="46">D1</text><text class="sch-val" x="216" y="62">1N4007</text>
+<use class="sch-sym net-gnd" href="#gnd" x="160" y="140"/></svg><figcaption>Ключ «на землі»: GPIO через 680&nbsp;Ом у базу (I<sub>Б</sub> ≈ 3,8&nbsp;мА для котушки 71&nbsp;мА), котушка між +5V і колектором, D1 — смугою до +5V.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/mp1/">МП1 Перемикач</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="mosfet" data-cat="semi" data-pol="1" data-lessons="2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">Q</span>
+        <div class="atl-title"><h3 class="atl-name">Логічний N-MOSFET AO3400A</h3><p class="atl-en" lang="en">logic-level N-MOSFET · SOT-23</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Напівпровідники</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="N-канальний MOSFET AO3400A у корпусі SOT-23, вигляд згори: зверху один вивід — стік D; знизу два — затвор G біля крапки-мітки і витік S.">
+<path d="M130 46V20M108 86V112M152 86V112" class="il-leg w"/>
+<rect x="94" y="46" width="72" height="40" rx="3" fill="#222" stroke="#8a949c" stroke-width="1.5"/>
+<circle cx="104" cy="77" r="3" fill="#e2eaf0"/>
+<text class="il-t m" x="82" y="62" text-anchor="end">SOT-23,</text><text class="il-t m" x="82" y="80" text-anchor="end">вигляд згори</text>
+<g class="il-ans">
+  <text class="il-t b" x="142" y="24">D стік</text>
+  <text class="il-t b" x="104" y="134" text-anchor="end">G затвор</text><text class="il-t b" x="156" y="134">S витік</text>
+  <text class="il-t" x="174" y="80">• мітка біля G</text>
+</g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-14 -44 70 88" role="img" aria-label="Схемний символ: N-MOSFET (IEC = ANSI)"><use class="sch-sym" href="#nmos"/></svg><figcaption>IEC = ANSI</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>З одного боку один вивід — <b>стік D</b>; з іншого два — <b>затвор G</b> (біля мітки) і <b>витік S</b><sup class="cite" data-fact="ao3400a-pinout"></sup>. Корпус крихітний — на макетку через перехідник.</dd>
+        <dt>У наборі</dt><dd>Відкривається вже від 2,5&nbsp;В: R<sub>DS(on)</sub> менше 48&nbsp;мОм<sup class="cite" data-fact="ao3400a-rdson-2v5"></sup>; поріг 0,65–1,45&nbsp;В<sup class="cite" data-fact="ao3400a-vgs-th"></sup>. До 30&nbsp;В і 5,7&nbsp;А, на затворі не більше ±12&nbsp;В<sup class="cite" data-fact="ao3400a-limits"></sup>.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим →|: червоний на S, чорний на D — 0,5…0,8&nbsp;В (вбудований діод)<sup class="cite" data-fact="ut136-diode-test"></sup>, навпаки — OL. G з будь-чим — OL: затвор ізольований. Після дотику до G замкніть G і S, щоб розрядити затвор.</dd>
+          <dt class="kill">Як убити</dt><dd>Статика на затворі. Затвор «у повітрі» — транзистор напіввідкритий і гріється: потрібен резистор 10&nbsp;кОм від G на S. MOSFET, нормований лише від 4&nbsp;В і вище (як IRLZ44N), від 3,3&nbsp;В відкривається не гарантовано<sup class="cite" data-fact="irlz44n-rdson-min-vgs"></sup>.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 190" role="img" aria-label="Схема ключа на MOSFET: GPIO2 через R1 100 Ом на затвор Q1 AO3400A, резистор R2 10 кОм від затвора на GND; від +5V індуктивне навантаження (котушка, мотор) до стоку, паралельно йому діод D1 1N4007 катодом до +5V; витік на GND.">
+<use class="sch-sym" href="#mcu-pin" x="40" y="110" transform="rotate(180 40 110)"/><text class="sch-pin net-sig" x="14" y="100">GPIO2</text>
+<path class="sch-w net-sig" d="M40 110H50"/>
+<use class="sch-sym" href="#res" x="50" y="110"/><text class="sch-ref" x="80" y="96" text-anchor="middle">R1</text><text class="sch-val" x="80" y="134" text-anchor="middle">100 Ом</text>
+<path class="sch-w net-sig3" d="M110 110H130"/><use class="sch-sym net-sig3" href="#dot" x="118" y="110"/>
+<use class="sch-sym" href="#res" x="118" y="110" transform="rotate(90 118 110)"/><text class="sch-ref" x="104" y="150" text-anchor="end">R2</text><text class="sch-val" x="104" y="166" text-anchor="end">10 кОм</text>
+<use class="sch-sym net-gnd" href="#gnd" x="118" y="170"/>
+<use class="sch-sym" href="#nmos" x="130" y="110"/><text class="sch-ref" x="180" y="106">Q1</text><text class="sch-val" x="180" y="124">AO3400A</text>
+<use class="sch-sym net-5v" href="#vcc" x="160" y="20"/><text class="sch-pin net-5v" x="172" y="12">+5V</text>
+<use class="sch-sym" href="#relay-coil" x="160" y="20" transform="rotate(90 160 20)"/><text class="sch-ref" x="146" y="54" text-anchor="end">котушка</text>
+<path class="sch-w net-5v" d="M160 20H204"/><use class="sch-sym net-5v" href="#dot" x="160" y="20"/>
+<path class="sch-w" d="M160 80H204"/><use class="sch-sym" href="#dot" x="160" y="80"/>
+<use class="sch-sym" href="#diode" x="204" y="80" transform="rotate(270 204 80)"/><text class="sch-ref" x="216" y="46">D1</text><text class="sch-val" x="216" y="62">1N4007</text>
+<use class="sch-sym net-gnd" href="#gnd" x="160" y="140"/></svg><figcaption>R1 обмежує кидок струму в затвор, R2 тримає транзистор закритим, поки GPIO не налаштований, D1 гасить викид котушки.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="relay-module" data-cat="mech" data-pol="1" data-lessons="mp1 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">K</span>
+        <div class="atl-title"><h3 class="atl-name">Модуль реле 5 В</h3><p class="atl-en" lang="en">relay module · SRD-05VDC-SL-C</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Кнопки й реле</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 280 150" role="img" aria-label="Модуль реле 5 В: синя плата, ліворуч штирі VCC, GND, IN, посередині синій кубик реле SRD-05VDC-SL-C, праворуч гвинтовий клемник NC, COM, NO.">
+<rect x="8" y="18" width="234" height="114" rx="6" fill="#1d4f91" stroke="#0d2f5a" stroke-width="1.5"/>
+<g fill="#d4b05a"><rect x="18" y="42" width="10" height="10"/><rect x="18" y="70" width="10" height="10"/><rect x="18" y="98" width="10" height="10"/></g>
+<g class="il-ans"><text class="il-tw" x="34" y="52">VCC</text><text class="il-tw" x="34" y="80">GND</text><text class="il-tw b" x="34" y="108">IN</text></g>
+<rect x="72" y="34" width="112" height="82" rx="3" fill="#2a6fd6" stroke="#0d2f5a" stroke-width="1.5"/>
+<text class="il-tw" x="128" y="70" text-anchor="middle">SRD-05VDC</text><text class="il-tw" x="128" y="88" text-anchor="middle">-SL-C</text>
+<rect x="196" y="30" width="40" height="92" rx="3" fill="#2e8b57" stroke="#0d2f5a" stroke-width="1.5"/>
+<g fill="#c9d3dc" stroke="#555"><circle cx="216" cy="48" r="9"/><circle cx="216" cy="76" r="9"/><circle cx="216" cy="104" r="9"/></g>
+<g stroke="#555" stroke-width="2"><path d="M210 48h12M210 76h12M210 104h12"/></g>
+<text class="il-t" x="246" y="53">NC</text><text class="il-t b" x="246" y="81">COM</text><text class="il-t" x="246" y="109">NO</text>
+<text class="il-t m" x="125" y="148" text-anchor="middle">порядок клем — за написом на платі</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: котушка реле (котушка)"><use class="sch-sym" href="#relay-coil"/></svg><figcaption>котушка</figcaption></figure><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: контакт реле (контакт NO)"><use class="sch-sym" href="#relay-no"/></svg><figcaption>контакт NO</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Штирі: <b>VCC</b> (+5&nbsp;В), <b>GND</b>, <b>IN</b> (від GPIO). Клеми: <b>COM</b> — спільний, <b>NO</b> — замкнений, коли реле ввімкнене, <b>NC</b> — коли вимкнене<sup class="cite" data-fact="relay-srd05-contacts"></sup>.</dd>
+        <dt>У наборі</dt><dd>Котушка: 70&nbsp;Ом, 71,4&nbsp;мА при 5&nbsp;В<sup class="cite" data-fact="relay-srd05-coil-sl"></sup> — у рази більше, ніж GPIO дає за замовчуванням (≈20&nbsp;мА)<sup class="cite" data-fact="s3-gpio-drive-default"></sup>; тому на модулі вже є транзистор і діод. Багато модулів вмикаються LOW на IN<sup class="cite" data-fact="relay-module-active-low"></sup>. Не відпускає при HIGH з 3,3-вольтового піна? Вхід модуля живиться від 5&nbsp;В, і 3,3&nbsp;В для нього ще не «вимкнено»: перевірте перемичку JD-VCC або керуйте через транзистор.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Без живлення прозвонка COM–NC пищить, COM–NO мовчить<sup class="cite" data-fact="ut136-continuity"></sup>. Подали живлення й сигнал — клац, і навпаки.</dd>
+          <dt class="kill">Як убити</dt><dd>Голу котушку реле прямо на GPIO. VCC від 3V3: реле гарантовано спрацьовує лише від 3,75&nbsp;В<sup class="cite" data-fact="relay-srd05-pullin"></sup>. Мережа 230&nbsp;В на макетці — у курсі заборонено.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 120" role="img" aria-label="Схема підключення модуля реле: GPIO плати до IN, +5V до VCC, GND плати до GND модуля; контакти COM, NO, NC керують окремим колом навантаження.">
+<rect x="100" y="14" width="90" height="92" rx="6" fill="none" stroke="var(--ink)" stroke-width="2"/>
+<text class="sch-ref" x="145" y="62" text-anchor="middle">модуль</text><text class="sch-ref" x="145" y="80" text-anchor="middle">реле</text>
+<path class="sch-w net-5v" d="M40 32H100"/><text class="sch-pin net-5v" x="10" y="26">+5V</text><text class="sch-pin" x="104" y="36">VCC</text>
+<path class="sch-w net-gnd" d="M40 60H100"/><text class="sch-pin net-gnd" x="10" y="54">GND</text><text class="sch-pin" x="104" y="64">GND</text>
+<path class="sch-w net-sig" d="M40 88H100"/><text class="sch-pin net-sig" x="10" y="82">GPIO</text><text class="sch-pin" x="104" y="92">IN</text>
+<path class="sch-w" d="M190 32H222M190 60H222M190 88H222"/>
+<text class="sch-pin" x="226" y="36">NO</text><text class="sch-pin" x="226" y="64">COM</text><text class="sch-pin" x="226" y="92">NC</text></svg><figcaption>GND плати і модуля спільний; навантаження — окреме коло через COM і NO.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/mp1/">МП1 Перемикач</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="breadboard" data-cat="proto" data-pol="0" data-lessons="1-1 1-2 1-4">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">—</span>
+        <div class="atl-title"><h3 class="atl-name">Макетна плата MB-102</h3><p class="atl-en" lang="en">solderless breadboard</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Макетування й живлення</span><span class="atl-pol no" title="Можна вставляти будь-яким боком">⇄ неполярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Фрагмент макетної плати: угорі шини плюс і мінус, далі ряди a–e, канавка, ряди f–j; один вертикальний стовпчик з п&#x27;яти отворів a–e підсвічено — вони з&#x27;єднані між собою.">
+<rect x="84" y="2" width="172" height="146" rx="6" fill="#f3f1ea" stroke="#c9c3b3"/>
+<path d="M90 9H250" stroke="#c62828" stroke-width="2"/><path d="M90 29H250" stroke="#1f5fc4" stroke-width="2"/>
+<g fill="#6b6455"><circle cx="92" cy="15" r="2.2"/><circle cx="92" cy="23" r="2.2"/><circle cx="92" cy="39" r="2.2"/><circle cx="92" cy="47" r="2.2"/><circle cx="92" cy="55" r="2.2"/><circle cx="92" cy="63" r="2.2"/><circle cx="92" cy="71" r="2.2"/><circle cx="92" cy="98" r="2.2"/><circle cx="92" cy="106" r="2.2"/><circle cx="92" cy="114" r="2.2"/><circle cx="92" cy="122" r="2.2"/><circle cx="92" cy="130" r="2.2"/><circle cx="104" cy="15" r="2.2"/><circle cx="104" cy="23" r="2.2"/><circle cx="104" cy="39" r="2.2"/><circle cx="104" cy="47" r="2.2"/><circle cx="104" cy="55" r="2.2"/><circle cx="104" cy="63" r="2.2"/><circle cx="104" cy="71" r="2.2"/><circle cx="104" cy="98" r="2.2"/><circle cx="104" cy="106" r="2.2"/><circle cx="104" cy="114" r="2.2"/><circle cx="104" cy="122" r="2.2"/><circle cx="104" cy="130" r="2.2"/><circle cx="116" cy="15" r="2.2"/><circle cx="116" cy="23" r="2.2"/><circle cx="116" cy="39" r="2.2"/><circle cx="116" cy="47" r="2.2"/><circle cx="116" cy="55" r="2.2"/><circle cx="116" cy="63" r="2.2"/><circle cx="116" cy="71" r="2.2"/><circle cx="116" cy="98" r="2.2"/><circle cx="116" cy="106" r="2.2"/><circle cx="116" cy="114" r="2.2"/><circle cx="116" cy="122" r="2.2"/><circle cx="116" cy="130" r="2.2"/><circle cx="128" cy="15" r="2.2"/><circle cx="128" cy="23" r="2.2"/><circle cx="128" cy="39" r="2.2"/><circle cx="128" cy="47" r="2.2"/><circle cx="128" cy="55" r="2.2"/><circle cx="128" cy="63" r="2.2"/><circle cx="128" cy="71" r="2.2"/><circle cx="128" cy="98" r="2.2"/><circle cx="128" cy="106" r="2.2"/><circle cx="128" cy="114" r="2.2"/><circle cx="128" cy="122" r="2.2"/><circle cx="128" cy="130" r="2.2"/><circle cx="140" cy="15" r="2.2"/><circle cx="140" cy="23" r="2.2"/><circle cx="140" cy="39" r="2.2"/><circle cx="140" cy="47" r="2.2"/><circle cx="140" cy="55" r="2.2"/><circle cx="140" cy="63" r="2.2"/><circle cx="140" cy="71" r="2.2"/><circle cx="140" cy="98" r="2.2"/><circle cx="140" cy="106" r="2.2"/><circle cx="140" cy="114" r="2.2"/><circle cx="140" cy="122" r="2.2"/><circle cx="140" cy="130" r="2.2"/><circle cx="152" cy="15" r="2.2"/><circle cx="152" cy="23" r="2.2"/><circle cx="152" cy="39" r="2.2"/><circle cx="152" cy="47" r="2.2"/><circle cx="152" cy="55" r="2.2"/><circle cx="152" cy="63" r="2.2"/><circle cx="152" cy="71" r="2.2"/><circle cx="152" cy="98" r="2.2"/><circle cx="152" cy="106" r="2.2"/><circle cx="152" cy="114" r="2.2"/><circle cx="152" cy="122" r="2.2"/><circle cx="152" cy="130" r="2.2"/><circle cx="164" cy="15" r="2.2"/><circle cx="164" cy="23" r="2.2"/><circle cx="164" cy="39" r="2.2"/><circle cx="164" cy="47" r="2.2"/><circle cx="164" cy="55" r="2.2"/><circle cx="164" cy="63" r="2.2"/><circle cx="164" cy="71" r="2.2"/><circle cx="164" cy="98" r="2.2"/><circle cx="164" cy="106" r="2.2"/><circle cx="164" cy="114" r="2.2"/><circle cx="164" cy="122" r="2.2"/><circle cx="164" cy="130" r="2.2"/><circle cx="176" cy="15" r="2.2"/><circle cx="176" cy="23" r="2.2"/><circle cx="176" cy="39" r="2.2"/><circle cx="176" cy="47" r="2.2"/><circle cx="176" cy="55" r="2.2"/><circle cx="176" cy="63" r="2.2"/><circle cx="176" cy="71" r="2.2"/><circle cx="176" cy="98" r="2.2"/><circle cx="176" cy="106" r="2.2"/><circle cx="176" cy="114" r="2.2"/><circle cx="176" cy="122" r="2.2"/><circle cx="176" cy="130" r="2.2"/><circle cx="188" cy="15" r="2.2"/><circle cx="188" cy="23" r="2.2"/><circle cx="188" cy="39" r="2.2"/><circle cx="188" cy="47" r="2.2"/><circle cx="188" cy="55" r="2.2"/><circle cx="188" cy="63" r="2.2"/><circle cx="188" cy="71" r="2.2"/><circle cx="188" cy="98" r="2.2"/><circle cx="188" cy="106" r="2.2"/><circle cx="188" cy="114" r="2.2"/><circle cx="188" cy="122" r="2.2"/><circle cx="188" cy="130" r="2.2"/><circle cx="200" cy="15" r="2.2"/><circle cx="200" cy="23" r="2.2"/><circle cx="200" cy="39" r="2.2"/><circle cx="200" cy="47" r="2.2"/><circle cx="200" cy="55" r="2.2"/><circle cx="200" cy="63" r="2.2"/><circle cx="200" cy="71" r="2.2"/><circle cx="200" cy="98" r="2.2"/><circle cx="200" cy="106" r="2.2"/><circle cx="200" cy="114" r="2.2"/><circle cx="200" cy="122" r="2.2"/><circle cx="200" cy="130" r="2.2"/><circle cx="212" cy="15" r="2.2"/><circle cx="212" cy="23" r="2.2"/><circle cx="212" cy="39" r="2.2"/><circle cx="212" cy="47" r="2.2"/><circle cx="212" cy="55" r="2.2"/><circle cx="212" cy="63" r="2.2"/><circle cx="212" cy="71" r="2.2"/><circle cx="212" cy="98" r="2.2"/><circle cx="212" cy="106" r="2.2"/><circle cx="212" cy="114" r="2.2"/><circle cx="212" cy="122" r="2.2"/><circle cx="212" cy="130" r="2.2"/><circle cx="224" cy="15" r="2.2"/><circle cx="224" cy="23" r="2.2"/><circle cx="224" cy="39" r="2.2"/><circle cx="224" cy="47" r="2.2"/><circle cx="224" cy="55" r="2.2"/><circle cx="224" cy="63" r="2.2"/><circle cx="224" cy="71" r="2.2"/><circle cx="224" cy="98" r="2.2"/><circle cx="224" cy="106" r="2.2"/><circle cx="224" cy="114" r="2.2"/><circle cx="224" cy="122" r="2.2"/><circle cx="224" cy="130" r="2.2"/><circle cx="236" cy="15" r="2.2"/><circle cx="236" cy="23" r="2.2"/><circle cx="236" cy="39" r="2.2"/><circle cx="236" cy="47" r="2.2"/><circle cx="236" cy="55" r="2.2"/><circle cx="236" cy="63" r="2.2"/><circle cx="236" cy="71" r="2.2"/><circle cx="236" cy="98" r="2.2"/><circle cx="236" cy="106" r="2.2"/><circle cx="236" cy="114" r="2.2"/><circle cx="236" cy="122" r="2.2"/><circle cx="236" cy="130" r="2.2"/><circle cx="248" cy="15" r="2.2"/><circle cx="248" cy="23" r="2.2"/><circle cx="248" cy="39" r="2.2"/><circle cx="248" cy="47" r="2.2"/><circle cx="248" cy="55" r="2.2"/><circle cx="248" cy="63" r="2.2"/><circle cx="248" cy="71" r="2.2"/><circle cx="248" cy="98" r="2.2"/><circle cx="248" cy="106" r="2.2"/><circle cx="248" cy="114" r="2.2"/><circle cx="248" cy="122" r="2.2"/><circle cx="248" cy="130" r="2.2"/></g>
+<rect x="84" y="80" width="172" height="10" fill="#dcd6c6"/>
+<rect class="il-hl" x="134" y="35" width="12" height="42" rx="5"/>
+<text class="il-t" x="78" y="20" text-anchor="end">+ / − шини</text>
+<text class="il-t" x="78" y="90" text-anchor="end">канавка</text>
+<g class="il-ans"><text class="il-t b" x="78" y="50" text-anchor="end">5 отворів</text><text class="il-t b" x="78" y="68" text-anchor="end">з'єднані</text></g>
+<text class="il-t m" x="78" y="120" text-anchor="end">f–j — окремі</text><text class="il-t m" x="78" y="138" text-anchor="end">смужки</text></svg></figure>
+        <p class="atl-nosym">На схемах не малюють: макетка лише з'єднує те, що на схемі сполучено лінією.</p>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Кожні 5 отворів у стовпчику (a–e або f–j) з'єднані; канавка посередині їх розділяє. Довгі шини «+» і «−» уздовж країв; у частини плат шина розірвана посередині<sup class="cite" data-fact="breadboard-strips"></sup>.</dd>
+        <dt>У наборі</dt><dd>Одна велика плата на набір, разом із модулем живлення MB-102.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Прозвонка між двома отворами: пищить — одна смужка<sup class="cite" data-fact="ut136-continuity"></sup>. Пройдіть шину з кінця в кінець: замовкла — розрив, поставте перемичку.</dd>
+          <dt class="kill">Як убити</dt><dd>Обидві ніжки деталі в одній смужці — деталь закорочена. Товсті виводи розпирають контакти, і потім тонкі дроти тримаються погано.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 110" role="img" aria-label="Дві макетки поруч: ліворуч обидві ніжки світлодіода в одному стовпчику — деталь закорочена, неправильно; праворуч ніжки в сусідніх стовпчиках — правильно.">
+<g class="mb">
+  <rect x="10" y="10" width="110" height="74" rx="5"/><rect x="140" y="10" width="110" height="74" rx="5"/>
+</g>
+<g fill="#6b6455"><circle cx="20" cy="24" r="2"/><circle cx="20" cy="36" r="2"/><circle cx="20" cy="48" r="2"/><circle cx="20" cy="60" r="2"/><circle cx="20" cy="72" r="2"/><circle cx="30" cy="24" r="2"/><circle cx="30" cy="36" r="2"/><circle cx="30" cy="48" r="2"/><circle cx="30" cy="60" r="2"/><circle cx="30" cy="72" r="2"/><circle cx="40" cy="24" r="2"/><circle cx="40" cy="36" r="2"/><circle cx="40" cy="48" r="2"/><circle cx="40" cy="60" r="2"/><circle cx="40" cy="72" r="2"/><circle cx="50" cy="24" r="2"/><circle cx="50" cy="36" r="2"/><circle cx="50" cy="48" r="2"/><circle cx="50" cy="60" r="2"/><circle cx="50" cy="72" r="2"/><circle cx="60" cy="24" r="2"/><circle cx="60" cy="36" r="2"/><circle cx="60" cy="48" r="2"/><circle cx="60" cy="60" r="2"/><circle cx="60" cy="72" r="2"/><circle cx="70" cy="24" r="2"/><circle cx="70" cy="36" r="2"/><circle cx="70" cy="48" r="2"/><circle cx="70" cy="60" r="2"/><circle cx="70" cy="72" r="2"/><circle cx="80" cy="24" r="2"/><circle cx="80" cy="36" r="2"/><circle cx="80" cy="48" r="2"/><circle cx="80" cy="60" r="2"/><circle cx="80" cy="72" r="2"/><circle cx="90" cy="24" r="2"/><circle cx="90" cy="36" r="2"/><circle cx="90" cy="48" r="2"/><circle cx="90" cy="60" r="2"/><circle cx="90" cy="72" r="2"/><circle cx="100" cy="24" r="2"/><circle cx="100" cy="36" r="2"/><circle cx="100" cy="48" r="2"/><circle cx="100" cy="60" r="2"/><circle cx="100" cy="72" r="2"/><circle cx="110" cy="24" r="2"/><circle cx="110" cy="36" r="2"/><circle cx="110" cy="48" r="2"/><circle cx="110" cy="60" r="2"/><circle cx="110" cy="72" r="2"/><circle cx="150" cy="24" r="2"/><circle cx="150" cy="36" r="2"/><circle cx="150" cy="48" r="2"/><circle cx="150" cy="60" r="2"/><circle cx="150" cy="72" r="2"/><circle cx="160" cy="24" r="2"/><circle cx="160" cy="36" r="2"/><circle cx="160" cy="48" r="2"/><circle cx="160" cy="60" r="2"/><circle cx="160" cy="72" r="2"/><circle cx="170" cy="24" r="2"/><circle cx="170" cy="36" r="2"/><circle cx="170" cy="48" r="2"/><circle cx="170" cy="60" r="2"/><circle cx="170" cy="72" r="2"/><circle cx="180" cy="24" r="2"/><circle cx="180" cy="36" r="2"/><circle cx="180" cy="48" r="2"/><circle cx="180" cy="60" r="2"/><circle cx="180" cy="72" r="2"/><circle cx="190" cy="24" r="2"/><circle cx="190" cy="36" r="2"/><circle cx="190" cy="48" r="2"/><circle cx="190" cy="60" r="2"/><circle cx="190" cy="72" r="2"/><circle cx="200" cy="24" r="2"/><circle cx="200" cy="36" r="2"/><circle cx="200" cy="48" r="2"/><circle cx="200" cy="60" r="2"/><circle cx="200" cy="72" r="2"/><circle cx="210" cy="24" r="2"/><circle cx="210" cy="36" r="2"/><circle cx="210" cy="48" r="2"/><circle cx="210" cy="60" r="2"/><circle cx="210" cy="72" r="2"/><circle cx="220" cy="24" r="2"/><circle cx="220" cy="36" r="2"/><circle cx="220" cy="48" r="2"/><circle cx="220" cy="60" r="2"/><circle cx="220" cy="72" r="2"/><circle cx="230" cy="24" r="2"/><circle cx="230" cy="36" r="2"/><circle cx="230" cy="48" r="2"/><circle cx="230" cy="60" r="2"/><circle cx="230" cy="72" r="2"/><circle cx="240" cy="24" r="2"/><circle cx="240" cy="36" r="2"/><circle cx="240" cy="48" r="2"/><circle cx="240" cy="60" r="2"/><circle cx="240" cy="72" r="2"/></g>
+<rect class="il-hl bad" x="54" y="16" width="12" height="62" rx="5"/>
+<rect class="il-hl" x="184" y="16" width="12" height="62" rx="5"/><rect class="il-hl" x="204" y="16" width="12" height="62" rx="5"/>
+<path d="M60 30V56" stroke="#c62828" stroke-width="4" stroke-linecap="round"/>
+<path d="M190 30Q200 18 210 30" stroke="#c62828" stroke-width="4" fill="none" stroke-linecap="round"/>
+<text class="il-t b il-bad" x="65" y="104" text-anchor="middle">✗ закорочено</text><text class="il-t b il-ok" x="195" y="104" text-anchor="middle">✓ послідовно</text></svg><figcaption>Ніжки однієї деталі — завжди в різних смужках.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/1-4/">1.4 GPIO</a></p>
+    </article>
+    <article class="atl" id="power-module" data-cat="proto" data-pol="1" data-lessons="1-1 1-2 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">—</span>
+        <div class="atl-title"><h3 class="atl-name">Модуль живлення MB-102</h3><p class="atl-en" lang="en">breadboard power supply</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Макетування й живлення</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Модуль живлення MB-102: зелена плата з USB і круглим роз&#x27;ємом ліворуч, двома групами перемичок 5V, OFF, 3.3V — для лівої і правої пари шин макетки.">
+<rect x="30" y="22" width="222" height="100" rx="5" fill="#2d6a3e" stroke="#163d22" stroke-width="1.5"/>
+<rect x="4" y="34" width="40" height="26" rx="2" fill="#c0c6cc" stroke="#555"/><text x="24" y="52" text-anchor="middle" class="il-code dk sm">USB</text>
+<rect x="4" y="72" width="44" height="30" rx="4" fill="#222" stroke="#8a949c"/><text x="26" y="92" text-anchor="middle" class="il-code sm">DC</text>
+<rect x="134" y="44" width="40" height="22" fill="#222"/><text x="154" y="60" text-anchor="middle" class="il-code sm">1117</text>
+<rect x="134" y="80" width="40" height="22" fill="#222"/><text x="154" y="96" text-anchor="middle" class="il-code sm">1117</text>
+<g fill="#d4b05a"><rect x="76" y="36" width="8" height="8"/><rect x="76" y="62" width="8" height="8"/><rect x="76" y="88" width="8" height="8"/>
+<rect x="196" y="36" width="8" height="8"/><rect x="196" y="62" width="8" height="8"/><rect x="196" y="88" width="8" height="8"/></g>
+<rect x="72" y="32" width="16" height="26" rx="2" fill="#111"/><rect x="192" y="58" width="16" height="26" rx="2" fill="#111"/>
+<g class="il-tw"><text x="94" y="45">5V</text><text x="94" y="71">OFF</text><text x="94" y="97">3.3V</text>
+<text x="214" y="45">5V</text><text x="214" y="71">OFF</text><text x="214" y="97">3.3V</text></g>
+<path d="M60 122V140M72 122V140M224 122V140M236 122V140" class="il-leg"/>
+<g class="il-ans"><text class="il-t" x="66" y="150" text-anchor="middle">ліві шини</text><text class="il-t" x="230" y="150" text-anchor="middle">праві шини</text></g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-24 -30 48 40" role="img" aria-label="Схемний символ: живлення (+5V / 3V3)"><use class="sch-sym" href="#vcc"/></svg><figcaption>+5V / 3V3</figcaption></figure><figure><svg viewBox="-24 -8 48 36" role="img" aria-label="Схемний символ: земля (GND)"><use class="sch-sym" href="#gnd"/></svg><figcaption>GND</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Вставляється в обидві пари шин. На кожен бік — перемичка: 5&nbsp;В, OFF або 3,3&nbsp;В<sup class="cite" data-fact="mb102-module"></sup>. Перевірте, що «−» модуля потрапив на синю шину.</dd>
+        <dt>У наборі</dt><dd>Живлення від USB 5&nbsp;В або 6,5–12&nbsp;В у круглий роз'єм<sup class="cite" data-fact="mb102-module"></sup>. Стабілізатори AMS1117: до 1&nbsp;А, але лише до 1,2&nbsp;Вт тепла<sup class="cite" data-fact="ams1117-limits"></sup><sup class="cite" data-fact="ams1117-dissipation"></sup> — з 12&nbsp;В великого струму не візьмете.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>До підключення ESP32: режим V⎓, чорний на «−», червоний на «+» кожної шини<sup class="cite" data-fact="ut136-dcv-40v-range"></sup>. Має бути те, що вибрано перемичкою: ≈5 або ≈3,3&nbsp;В.</dd>
+          <dt class="kill">Як убити</dt><dd>Шина на 5&nbsp;В, а дріт на пін 3V3 плати — живлення чипа не можна піднімати понад 3,6&nbsp;В<sup class="cite" data-fact="s3-abs-max-vdd"></sup>. 12&nbsp;В на вході й мотор на 5&nbsp;В — стабілізатор перегрівається й вимикається.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 100" role="img" aria-label="Структура модуля живлення: USB 5 В іде на шину 5V напряму і через стабілізатор AMS1117-3.3 на шину 3V3; перемичка вибирає, що подати на шину макетки.">
+<text class="sch-pin net-5v" x="6" y="30">USB 5 В</text>
+<path class="sch-w net-5v" d="M70 26H226"/><use class="sch-sym net-5v" href="#dot" x="110" y="26"/>
+<path class="sch-w net-5v" d="M110 26V58H124"/>
+<rect x="124" y="44" width="64" height="30" rx="3" fill="none" stroke="var(--ink)" stroke-width="2"/><text class="sch-val" x="156" y="64" text-anchor="middle">1117-3.3</text>
+<path class="sch-w net-3v3" d="M188 58H226"/>
+<text class="sch-pin net-5v" x="230" y="30">5V</text><text class="sch-pin net-3v3" x="230" y="62">3V3</text>
+<text class="sch-val" x="130" y="94" text-anchor="middle">перемичка: 5V / OFF / 3V3 → шина</text></svg><figcaption>Перемичка вибирає для кожної пари шин 5V, OFF або 3V3.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="multimeter" data-cat="tools" data-pol="1" data-lessons="1-1 1-2 1-6 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">—</span>
+        <div class="atl-title"><h3 class="atl-name">Мультиметр UT136C+</h3><p class="atl-en" lang="en">digital multimeter · UNI-T</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Прилади</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 280 150" role="img" aria-label="Мультиметр UT136C+: червоний корпус, рідкокристалічний дисплей з показом 5.02 V, поворотний перемикач і три гнізда внизу — 10A, COM, VΩmA; чорний щуп у COM, червоний у VΩmA.">
+<rect x="72" y="4" width="136" height="142" rx="14" fill="#b8322a" stroke="#6e1a14" stroke-width="1.5"/>
+<rect x="82" y="12" width="116" height="128" rx="8" fill="#2b3138"/>
+<rect x="90" y="18" width="100" height="34" rx="3" fill="#b9c7a3"/>
+<text x="176" y="44" text-anchor="end" class="il-lcd">5.02</text><text x="180" y="44" class="il-code dk sm">V</text>
+<circle cx="140" cy="80" r="20" fill="#444" stroke="#888"/><path d="M140 80V62" stroke="#e2eaf0" stroke-width="4" stroke-linecap="round"/>
+<g fill="#111" stroke="#9aa3ab" stroke-width="2"><circle cx="100" cy="124" r="7"/><circle cx="140" cy="124" r="7"/><circle cx="180" cy="124" r="7"/></g>
+<text class="il-tw keep" x="100" y="112" text-anchor="middle">10A</text><text class="il-tw keep" x="140" y="112" text-anchor="middle">COM</text><text class="il-tw keep" x="180" y="112" text-anchor="middle">VΩmA</text>
+<g class="il-ans"><path d="M140 124C120 150 60 120 18 146" fill="none" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+<path d="M140 124C120 150 60 120 18 146" fill="none" stroke="#6b7580" stroke-width="1"/>
+<path d="M180 124C200 150 230 118 266 146" fill="none" stroke="#c62828" stroke-width="5" stroke-linecap="round"/>
+</g>
+<g class="il-ans"><text class="il-t b" x="6" y="86">чорний</text><text class="il-t" x="6" y="104">→ COM</text>
+<text class="il-t b il-plus" x="214" y="70">червоний</text><text class="il-t" x="214" y="88">→ VΩmA</text></g></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: вольтметр (вольтметр)"><use class="sch-sym" href="#meter-v"/></svg><figcaption>вольтметр</figcaption></figure><figure><svg viewBox="-10 -30 80 60" role="img" aria-label="Схемний символ: амперметр (амперметр)"><use class="sch-sym" href="#meter-a"/></svg><figcaption>амперметр</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Гнізда: <b>COM</b> — завжди чорний щуп; <b>VΩmA</b> — червоний для напруги, опору й мА; <b>10A</b> — лише для великих струмів<sup class="cite" data-fact="ut136-jacks"></sup>.</dd>
+        <dt>У наборі</dt><dd>4000 відліків, автодіапазон<sup class="cite" data-fact="ut136-counts"></sup>. Вольтметр ≈10&nbsp;МОм — схему майже не навантажує<sup class="cite" data-fact="ut136-input-impedance"></sup>. Діапазони µA/mA: до 400&nbsp;мА, запобіжник 0,5&nbsp;А<sup class="cite" data-fact="ut136-ma-range"></sup><sup class="cite" data-fact="ut136-fuse-ma"></sup>.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Самоперевірка: замкніть щупи в режимі Ω — 0,1–0,2&nbsp;Ом<sup class="cite" data-fact="ut136-ohm-notes"></sup>, прозвонка пищить. Виміряйте шину 5&nbsp;В — прилад живий.</dd>
+          <dt class="kill">Як убити</dt><dd>Перемикач на mA/µA, а щупи паралельно джерелу — коротке замикання через амперметр, згоряє запобіжник. Червоний у гнізді 10A під час вимірювання напруги — те саме коротке замикання, але через запобіжник 10&nbsp;А<sup class="cite" data-fact="ut136-fuse-10a"></sup>: до його спрацювання встигне постраждати джерело. Ω на схемі під напругою. 10&nbsp;А довше 10&nbsp;с<sup class="cite" data-fact="ut136-10a-limit"></sup>. Після вимірювання струму — перемикач назад на V.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 290 110" role="img" aria-label="Дві схеми: ліворуч вольтметр паралельно резистору R1 — щупи на обох його виводах; праворуч амперметр послідовно з R1 — коло розірване, і струм іде крізь прилад.">
+<path class="sch-w net-sig" d="M10 70H20M80 70H110"/><use class="sch-sym" href="#res" x="20" y="70"/><text class="sch-ref" x="50" y="94" text-anchor="middle">R1</text>
+<path class="sch-w" d="M14 70V30H20M86 70V30H80"/><use class="sch-sym net-sig" href="#dot" x="14" y="70"/><use class="sch-sym net-sig" href="#dot" x="86" y="70"/>
+<use class="sch-sym" href="#meter-v" x="20" y="30"/>
+<text class="sch-val" x="50" y="12" text-anchor="middle">V: паралельно</text>
+<path class="sch-w net-sig" d="M140 60H150M210 60H220M280 60H288"/><use class="sch-sym" href="#res" x="150" y="60"/><text class="sch-ref" x="180" y="88" text-anchor="middle">R1</text>
+<use class="sch-sym" href="#meter-a" x="220" y="60"/>
+<text class="sch-val" x="214" y="16" text-anchor="middle">A: послідовно</text></svg><figcaption>Вольтметр — паралельно, амперметр — послідовно (коло розривають).</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    <article class="atl" id="esp32-board" data-cat="proto" data-pol="1" data-lessons="1-3 1-4 1-5 1-6 mp1 2-1 2-3 2-4">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">U</span>
+        <div class="atl-title"><h3 class="atl-name">Плата YD-ESP32-S3 N16R8</h3><p class="atl-en" lang="en">ESP32-S3 dev board</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Макетування й живлення</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Плата YD-ESP32-S3: чорна плата з металевим модулем ESP32-S3-WROOM-1 праворуч, двома роз&#x27;ємами USB-C ліворуч з підписами COM і USB, кнопками BOOT і RST, RGB-світлодіодом і рядами штирів уздовж обох довгих країв.">
+<rect x="10" y="26" width="244" height="100" rx="5" fill="#22262b" stroke="#6b7580" stroke-width="1.5"/>
+<g fill="#d4b05a"><circle cx="22" cy="32" r="2.4"/><circle cx="22" cy="120" r="2.4"/><circle cx="32" cy="32" r="2.4"/><circle cx="32" cy="120" r="2.4"/><circle cx="42" cy="32" r="2.4"/><circle cx="42" cy="120" r="2.4"/><circle cx="52" cy="32" r="2.4"/><circle cx="52" cy="120" r="2.4"/><circle cx="62" cy="32" r="2.4"/><circle cx="62" cy="120" r="2.4"/><circle cx="72" cy="32" r="2.4"/><circle cx="72" cy="120" r="2.4"/><circle cx="82" cy="32" r="2.4"/><circle cx="82" cy="120" r="2.4"/><circle cx="92" cy="32" r="2.4"/><circle cx="92" cy="120" r="2.4"/><circle cx="102" cy="32" r="2.4"/><circle cx="102" cy="120" r="2.4"/><circle cx="112" cy="32" r="2.4"/><circle cx="112" cy="120" r="2.4"/><circle cx="122" cy="32" r="2.4"/><circle cx="122" cy="120" r="2.4"/><circle cx="132" cy="32" r="2.4"/><circle cx="132" cy="120" r="2.4"/><circle cx="142" cy="32" r="2.4"/><circle cx="142" cy="120" r="2.4"/><circle cx="152" cy="32" r="2.4"/><circle cx="152" cy="120" r="2.4"/><circle cx="162" cy="32" r="2.4"/><circle cx="162" cy="120" r="2.4"/><circle cx="172" cy="32" r="2.4"/><circle cx="172" cy="120" r="2.4"/><circle cx="182" cy="32" r="2.4"/><circle cx="182" cy="120" r="2.4"/><circle cx="192" cy="32" r="2.4"/><circle cx="192" cy="120" r="2.4"/><circle cx="202" cy="32" r="2.4"/><circle cx="202" cy="120" r="2.4"/><circle cx="212" cy="32" r="2.4"/><circle cx="212" cy="120" r="2.4"/><circle cx="222" cy="32" r="2.4"/><circle cx="222" cy="120" r="2.4"/><circle cx="232" cy="32" r="2.4"/><circle cx="232" cy="120" r="2.4"/><circle cx="242" cy="32" r="2.4"/><circle cx="242" cy="120" r="2.4"/></g>
+<rect x="150" y="40" width="92" height="72" rx="3" fill="#c9d0d6" stroke="#8a949c"/>
+<text x="196" y="72" text-anchor="middle" class="il-code dk sm">ESP32-S3</text><text x="196" y="90" text-anchor="middle" class="il-code dk sm">WROOM-1</text>
+<rect x="2" y="44" width="22" height="16" rx="4" fill="#9aa3ab"/><rect x="2" y="92" width="22" height="16" rx="4" fill="#9aa3ab"/>
+<text class="il-tw" x="30" y="57">COM</text><text class="il-tw" x="30" y="105">USB</text>
+<rect x="74" y="44" width="14" height="14" rx="2" fill="#555" stroke="#aaa"/><rect x="74" y="92" width="14" height="14" rx="2" fill="#555" stroke="#aaa"/>
+<text class="il-tw" x="94" y="56">BOOT</text><text class="il-tw" x="94" y="104">RST</text>
+<rect x="104" y="70" width="10" height="10" fill="#f5f5f5"/><text class="il-tw" x="120" y="80">RGB</text>
+<text class="il-t m" x="130" y="146" text-anchor="middle">підписи біля штирів = номери GPIO</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-8 -20 44 40" role="img" aria-label="Схемний символ: вивід мікроконтролера (вивід MCU)"><use class="sch-sym" href="#mcu-pin"/></svg><figcaption>вивід MCU</figcaption></figure></div>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Підписи біля штирів — номери GPIO. Зайняті: 19/20 — USB<sup class="cite" data-fact="s3-usb-pins"></sup>, 43/44 — UART0<sup class="cite" data-fact="s3-uart0-pins"></sup>, 35–37 — PSRAM<sup class="cite" data-fact="wroom-octal-psram-pins"></sup>, 26–32 — flash<sup class="cite" data-fact="s3-flash-pins"></sup>; 0/3/45/46 — strapping<sup class="cite" data-fact="s3-strapping-pins"></sup>; 48 — RGB-світлодіод<sup class="cite" data-fact="yd-rgb-gpio48"></sup>.</dd>
+        <dt>У наборі</dt><dd>Модуль ESP32-S3-WROOM-1: 16&nbsp;МБ flash і 8&nbsp;МБ PSRAM<sup class="cite" data-fact="wroom-n16r8-memory"></sup>. Два USB-C: COM (через CH343) і USB (вбудований)<sup class="cite" data-fact="yd-usb-ports"></sup>. Логіка 3,3&nbsp;В; вихід GPIO за замовчуванням ≈20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup>. Кнопка BOOT — це GPIO0<sup class="cite" data-fact="yd-boot-gpio0"></sup>.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Режим V⎓ між 3V3 і GND — ≈3,3&nbsp;В. Не прошивається: затисніть BOOT, натисніть і відпустіть RST, відпустіть BOOT<sup class="cite" data-fact="s3-boot-mode-combos"></sup>.</dd>
+          <dt class="kill">Як убити</dt><dd>5&nbsp;В на будь-який GPIO — виводи на це не розраховані<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>. Мотор чи реле прямо з піна. Коротке замикання 3V3 на GND. 5&nbsp;В з модуля живлення на пін 3V3.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 120" role="img" aria-label="Карта зайнятих виводів ESP32-S3 на платі N16R8: GPIO0, 3, 45, 46 — strapping; 19 і 20 — USB; 43 і 44 — UART0; 35–37 — PSRAM; 26–32 — flash; 48 — RGB-світлодіод.">
+<g class="pinmap">
+  <rect x="4" y="4" width="128" height="24" rx="4" class="pm-warn"/><text x="10" y="21">0 3 45 46</text><text x="138" y="21" class="pm-k">strapping — обережно</text>
+  <rect x="4" y="32" width="128" height="24" rx="4" class="pm-bad"/><text x="10" y="49">19 20</text><text x="138" y="49" class="pm-k">USB — не чіпати</text>
+  <rect x="4" y="60" width="128" height="24" rx="4" class="pm-bad"/><text x="10" y="77">26–32 · 35–37</text><text x="138" y="77" class="pm-k">flash · PSRAM</text>
+  <rect x="4" y="88" width="128" height="24" rx="4" class="pm-warn"/><text x="10" y="105">43 44 · 48</text><text x="138" y="105" class="pm-k">UART0 · RGB</text>
+</g></svg><figcaption>Ці виводи для своїх схем не беріть (або беріть дуже обережно).</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-3/">1.3 Blink</a><a class="chip" href="../lessons/1-4/">1.4 GPIO</a><a class="chip" href="../lessons/1-5/">1.5 Сигнали</a><a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/mp1/">МП1 Перемикач</a><a class="chip" href="../lessons/2-1/">2.1 C++</a><a class="chip" href="../lessons/2-3/">2.3 Суперцикл</a><a class="chip" href="../lessons/2-4/">2.4 Переривання</a></p>
+    </article>
+    <article class="atl" id="logic-analyzer" data-cat="tools" data-pol="1" data-lessons="1-5 2-4">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">—</span>
+        <div class="atl-title"><h3 class="atl-name">Логічний аналізатор</h3><p class="atl-en" lang="en">logic analyzer · 8 каналів, FX2</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Прилади</span><span class="atl-pol yes" title="Важливо, яким боком вставляти">± полярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Логічний аналізатор: невелика алюмінієва коробочка з написом 24MHz 8CH, кабель USB ліворуч і рядок штирів знизу — CH1…CH8 і GND.">
+<path d="M70 66H8" stroke="#6b7580" stroke-width="6" stroke-linecap="round"/><text class="il-t" x="10" y="54">USB</text>
+<rect x="70" y="26" width="140" height="78" rx="8" fill="#b8c0c8" stroke="#6b7580" stroke-width="1.5"/>
+<text x="140" y="58" text-anchor="middle" class="il-code dk sm">LOGIC</text><text x="140" y="78" text-anchor="middle" class="il-code dk sm">24MHz 8CH</text>
+<g fill="#d4b05a"><rect x="86" y="108" width="8" height="12"/><rect x="100" y="108" width="8" height="12"/><rect x="114" y="108" width="8" height="12"/><rect x="128" y="108" width="8" height="12"/>
+<rect x="142" y="108" width="8" height="12"/><rect x="156" y="108" width="8" height="12"/><rect x="170" y="108" width="8" height="12"/><rect x="184" y="108" width="8" height="12"/><rect x="198" y="108" width="8" height="12"/></g>
+<text class="il-t" x="90" y="138" text-anchor="middle">CH1</text><text class="il-t" x="146" y="138" text-anchor="middle">…</text><text class="il-t" x="188" y="138" text-anchor="middle">CH8</text>
+<g class="il-ans"><text class="il-t b" x="232" y="118" text-anchor="middle">GND</text><path class="il-ln" d="M220 114H208"/></g></svg></figure>
+        <p class="atl-nosym">На схемах не малюють — це прилад, як мультиметр.</p>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>CH1…CH8 — входи; <b>GND</b> — обов'язково на GND плати, інакше запис — сміття. Програма — PulseView (sigrok).</dd>
+        <dt>У наборі</dt><dd>Дешеві клони на Cypress FX2 пишуть до 24&nbsp;МГц (за даними продавців)<sup class="cite" data-fact="la-fx2-samplerate"></sup>. Бачить лише 0 і 1: форму фронту й шум показує осцилограф, не аналізатор.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>CH1 на 3V3, CH2 на GND: у записі CH1 = 1, CH2 = 0. Потім CH1 на пін, де працює Blink, — рівні прямокутники з вашим періодом.</dd>
+          <dt class="kill">Як убити</dt><dd>Лише логічні сигнали нашої плати (до 3,3&nbsp;В — правило курсу); 12&nbsp;В і мережа — ні. Забутий GND не вбиває, але бреше.</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 270 100" role="img" aria-label="Схема: вивід GPIO15 плати до входу CH1 аналізатора, GND плати до GND аналізатора — спільна земля обов&#x27;язкова.">
+<rect x="10" y="14" width="80" height="74" rx="6" fill="none" stroke="var(--ink)" stroke-width="2"/><text class="sch-ref" x="50" y="56" text-anchor="middle">ESP32</text>
+<rect x="180" y="14" width="80" height="74" rx="6" fill="none" stroke="var(--ink)" stroke-width="2"/><text class="sch-ref" x="220" y="48" text-anchor="middle">аналі-</text><text class="sch-ref" x="220" y="66" text-anchor="middle">затор</text>
+<path class="sch-w net-sig" d="M90 34H180"/><text class="sch-pin net-sig" x="96" y="28">GPIO15 → CH1</text>
+<path class="sch-w net-gnd" d="M90 70H180"/><text class="sch-pin net-gnd" x="96" y="64">GND ↔ GND</text></svg><figcaption>Сигнал і спільна земля — два дроти мінімум.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-5/">1.5 Сигнали</a><a class="chip" href="../lessons/2-4/">2.4 Переривання</a></p>
+    </article>
+    <article class="atl" id="jumpers" data-cat="proto" data-pol="0" data-lessons="1-1 1-3 1-4 2-2">
+      <header class="atl-h">
+        <span class="atl-ref" aria-label="Позначення на схемі">—</span>
+        <div class="atl-title"><h3 class="atl-name">Дроти-перемички</h3><p class="atl-en" lang="en">jumper wires · Dupont M-M, M-F, F-F</p></div>
+        <button type="button" class="atl-reveal btn sm ghost">Показати назву</button>
+      </header>
+      <p class="atl-tags"><span class="atl-cat">Макетування й живлення</span><span class="atl-pol no" title="Можна вставляти будь-яким боком">⇄ неполярний</span></p>
+      <div class="atl-pics">
+        <figure class="atl-ill"><svg class="il" viewBox="0 0 260 150" role="img" aria-label="Три дроти-перемички Dupont: червоний тато–тато зі штирями на обох кінцях, чорний тато–мама і жовтий мама–мама з гніздами.">
+<g stroke-linecap="round" fill="none">
+  <path d="M42 30C100 10 160 50 218 30" stroke="#c62828" stroke-width="5"/>
+  <path d="M42 76C100 56 160 96 218 76" stroke="#111" stroke-width="5"/><path d="M42 76C100 56 160 96 218 76" stroke="#6b7580" stroke-width="1"/>
+  <path d="M42 122C100 102 160 142 218 122" stroke="#d4a017" stroke-width="5"/>
+</g>
+<g fill="#222" stroke="#8a949c"><rect x="26" y="24" width="18" height="12" rx="2"/><rect x="216" y="24" width="18" height="12" rx="2"/>
+<rect x="26" y="70" width="18" height="12" rx="2"/><rect x="216" y="70" width="22" height="12" rx="2"/>
+<rect x="22" y="116" width="22" height="12" rx="2"/><rect x="216" y="116" width="22" height="12" rx="2"/></g>
+<path d="M26 30H12M234 30H248M26 76H12" stroke="#c9d3dc" stroke-width="3"/>
+<g class="il-ans"><text class="il-t" x="130" y="16" text-anchor="middle">тато–тато (M–M)</text><text class="il-t" x="130" y="62" text-anchor="middle">тато–мама (M–F)</text><text class="il-t" x="130" y="108" text-anchor="middle">мама–мама (F–F)</text></g>
+<text class="il-t m" x="130" y="148" text-anchor="middle">штир = тато · гніздо = мама</text></svg></figure>
+        <div class="atl-syms"><figure><svg viewBox="-20 -20 40 40" role="img" aria-label="Схемний символ: вузол (вузол)"><use class="sch-sym" href="#dot"/></svg><figcaption>вузол</figcaption></figure></div><p class="atl-nosym">На схемі дріт — це лінія, а точка — з'єднання трьох і більше.</p>
+      </div>
+      <dl class="atl-dl">
+        <dt>Виводи</dt><dd>Тато (M) — штир: у макетку чи гніздо. Мама (F) — гніздо: на штирі плати чи модуля.</dd>
+        <dt>У наборі</dt><dd>Три види: тато–тато для макетки, тато–мама і мама–мама для модулів. Кольори за домовленістю курсу: червоний +5V, помаранчевий 3V3, чорний GND, жовтий, синій чи зелений — сигнали.</dd>
+      </dl>
+      <details class="atl-back">
+        <summary>Перевірка · як убити · схема</summary>
+        <dl class="atl-dl">
+          <dt>Перевірка</dt><dd>Прозвонка кінців: має пищати й не замовкати, коли згинаєте дріт<sup class="cite" data-fact="ut136-continuity"></sup>. Звук переривається — дріт зламаний усередині, у смітник.</dd>
+          <dt class="kill">Як убити</dt><dd>Сам не вмирає, але вбиває: кінець не в тій смужці — коротке замикання. Невидимий розрив під ізоляцією дає схему, яка «то працює, то ні».</dd>
+        </dl>
+        <figure class="atl-mini"><svg viewBox="0 0 260 100" role="img" aria-label="Домовленість про кольори дротів: червоний +5V, помаранчевий 3V3, чорний або сірий GND, жовтий, синій і зелений — сигнали.">
+<path class="sch-w net-5v" d="M10 14H90"/><text class="sch-pin net-5v" x="100" y="18">+5V — червоний</text>
+<path class="sch-w net-3v3" d="M10 38H90"/><text class="sch-pin net-3v3" x="100" y="42">3V3 — помаранчевий</text>
+<path class="sch-w net-gnd" d="M10 62H90"/><text class="sch-pin net-gnd" x="100" y="66">GND — чорний</text>
+<path class="sch-w net-sig" d="M10 86H30"/><path class="sch-w net-sig2" d="M38 86H60"/><path class="sch-w net-sig3" d="M68 86H90"/><text class="sch-pin" x="100" y="90">сигнали</text></svg><figcaption>Колір дроту = його роль: схему легше перевірити очима.</figcaption></figure>
+      </details>
+      <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-3/">1.3 Blink</a><a class="chip" href="../lessons/1-4/">1.4 GPIO</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
+    </article>
+    </div>
+    <p class="atl-empty" id="atl-empty" hidden>Жодна деталь не підходить під фільтр. <button type="button" class="btn sm" id="f-reset">Скинути фільтри</button></p>
+  </section>
+
+  <!-- ============================================================ 02 polarity trainer -->
+  <section class="hs" id="polarity">
+    <h2><span class="n">02</span> Тренажер: де плюс?</h2>
+    <p>Деталь, вставлена навпаки, — одна з найчастіших причин, чому схема «мовчить», а електроліт чи зворотний діод навпаки ще й горить. Тут ті самі малюнки, що й у картках, але без підписів: знайдіть потрібний вивід за самою деталлю.</p>
+    <div class="predict" data-ok="0" data-gate="w-pol"
+         data-why="Пласка грань на обідку корпусу — з боку катода (−). Довша ніжка-анод працює підказкою лише в нової деталі; після обрізання лишається грань. А колір корпусу каже лише про колір світла.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Ніжки світлодіода вже обрізали однаково. Як знайти катод (−) без мультиметра?</p>
+      <div class="opts">
+        <button class="opt">За пласкою гранню на обідку корпусу</button>
+        <button class="opt">За кольором корпусу</button>
+        <button class="opt">Ніяк — лише мультиметром</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-pol">
+      <div class="ph"><h3>Знайдіть вивід</h3><span class="small" id="tr-score">0 з 0</span></div>
+      <div class="pb tr">
+        <p class="tr-q" id="tr-q">…</p>
+        <figure class="tr-fig" id="tr-fig" aria-live="polite"></figure>
+        <div class="opts tr-opts" id="tr-opts" role="group" aria-label="Варіанти"></div>
+        <p class="tr-fb" id="tr-fb" aria-live="polite"></p>
+        <div class="btn-row"><button type="button" class="btn primary" id="tr-next">Наступна деталь →</button></div>
+      </div>
+    </div>
+    <div class="tnote"><p><b>На занятті, 3 хвилини:</b> покажіть на камеру деталь з набору й попросіть написати в чат, де плюс чи потрібний вивід, словами: «довша / коротша», «смуга зліва / справа», «C-B-E зліва направо». Потім відкрийте картку цієї деталі (наприклад <a href="#led-3mm">атлас/#led-3mm</a>) — на ній відповідь з підписами. Тренажер нижче — для самостійного повторення вдома.</p></div>
+  </section>
+
+  <!-- ============================================================ 03 diode test -->
+  <section class="hs" id="diode-test">
+    <h2><span class="n">03</span> Мультиметр у режимі діода</h2>
+    <p>Режим →| подає на щупи невелику напругу і показує, скільки вольт «з'їв» перехід<sup class="cite" data-fact="ut136-diode-test"></sup>. Один цей режим перевіряє діод, світлодіод, транзистор і MOSFET — і навіть знаходить їхні виводи.</p>
+    <div class="predict" data-ok="0" data-gate="w-dt"
+         data-why="Між базою і емітером NPN-транзистора — звичайний кремнієвий p-n перехід, тобто діод анодом до бази. Червоний щуп на емітері вмикає його у зворотному напрямку: струму немає — OL. Поміняйте щупи місцями, і прилад покаже 0,5…0,8 В, як на звичайному діоді.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Режим →|, <b>червоний</b> щуп на <b>емітері</b> BC547, чорний — на базі. Що покаже екран?</p>
+      <div class="opts">
+        <button class="opt">OL</button>
+        <button class="opt">Приблизно 0,5…0,8 В</button>
+        <button class="opt">0,00 — між базою і емітером коротке замикання</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-dt">
+      <div class="ph"><h3>Віртуальний режим →|</h3><span class="small">виберіть деталь і переставте щупи</span></div>
+      <div class="pb">
+        <div class="seg dt-parts" role="group" aria-label="Деталь і пара виводів" id="dt-parts"></div>
+        <div class="dt-wrap">
+          <svg class="dt-svg" id="dt-svg" viewBox="0 0 300 170" role="img" aria-label="Деталь на схемі і два щупи мультиметра"></svg>
+          <div class="dt-lcd" aria-live="polite"><span class="dt-mode">→|</span><b id="dt-val">OL</b><span class="dt-unit" id="dt-unit"></span></div>
+        </div>
+        <div class="seg" role="group" aria-label="Як стоять щупи" id="dt-probe"></div>
+        <p class="dt-why" id="dt-why"></p>
+      </div>
+    </div>
+    <p class="small">Покази для світлодіодів — прогноз з інструкції приладу й даташитів<sup class="cite" data-fact="ut136-diode-mode-leds"></sup>, а не вимірювання. Перевірте своїм UT136C+ і напишіть у Slack, що вийшло.</p>
+  </section>
+
+  <!-- ============================================================ 04 button inside -->
+  <section class="hs" id="button-inside">
+    <h2><span class="n">04</span> Кнопка зсередини</h2>
+    <p>У тактової кнопки чотири ніжки, а контактів лише два. Хто вставив її на макетку «не тим боком», отримує кнопку, яка натиснута завжди. Розберімося прозвонкою.</p>
+    <div class="predict" data-ok="0" data-gate="w-btn"
+         data-why="Усередині дві металеві пластини: виводи навпроти один одного (через корпус) — одна пластина. Діагональні виводи завжди на різних пластинах, тож без натискання — тиша (OL), а натискання з'єднує пластини — писк. Тому діагональ — надійний вибір: так кнопку неможливо вставити «натиснутою завжди».">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Щупи прозвонки — на виводах кнопки <b>по діагоналі</b>. Що почуєте без натискання і з натисканням?</p>
+      <div class="opts">
+        <button class="opt">Без натискання тиша, з натисканням писк</button>
+        <button class="opt">Пищить завжди</button>
+        <button class="opt">Тиша завжди: діагональні виводи ніколи не з'єднуються</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-btn">
+      <div class="ph"><h3>Прозвонка кнопки</h3><span class="small">виберіть пару виводів, потім натисніть кнопку</span></div>
+      <div class="pb btn-lab">
+        <div class="btn-left">
+          <figure class="btn-fig" id="btn-fig"></figure>
+          <div class="seg" role="group" aria-label="Пара виводів" id="btn-pairs"></div>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btn-hold" aria-pressed="false">Натиснути кнопку</button>
+          </div>
+          <p class="btn-res" id="btn-res" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+    <p>Ті самі пари з'єднані в кожній кнопці цього формату<sup class="cite" data-fact="btn-b3f-internal"></sup>. Детальніше про те, навіщо кнопці резистор підтяжки, — в <a href="../lessons/1-4/">уроці 1.4</a> і на сторінці <a href="../pull-resistors/">«Підтяжка входу»</a>.</p>
+  </section>
+
+  <!-- ============================================================ 05 bands -->
+  <section class="hs" id="bands">
+    <h2><span class="n">05</span> Прочитайте смужки</h2>
+    <p>Мультиметр під рукою не завжди, а резистори в наборі перемішуються. Тренуйтеся читати номінал прямо зі смуг. Тут резистор з 4 смугами, одна з яких золота.</p>
+    <div class="predict" data-ok="1" data-gate="w-bands"
+         data-why="Золота чи срібна смуга — допуск, вона завжди остання. Тому читаємо з протилежного кінця. Якщо золотої немає, остання — та, що стоїть окремо, після ширшого проміжку.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Резистор лежить золотою смугою <b>ліворуч</b>. З якого боку перша цифра?</p>
+      <div class="opts">
+        <button class="opt">Ліворуч, від золотої смуги</button>
+        <button class="opt">Праворуч, з протилежного від золотої кінця</button>
+        <button class="opt">Байдуже: номінал однаковий в обидва боки</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-bands">
+      <div class="ph"><h3>Який номінал?</h3><span class="small" id="bd-score">0 з 0</span></div>
+      <div class="pb">
+        <p class="small">Порядок: дві цифри, множник (скільки нулів дописати) і золотий допуск ±5&nbsp;%<sup class="cite" data-fact="iec-colour-code"></sup>. У наборі частіше трапляються 5 смуг — три цифри замість двох, решта так само.</p>
+        <div class="wk-box res" id="wk-res"></div>
+        <form class="bd-form" id="bd-form" autocomplete="off">
+          <label for="bd-in">Номінал (можна «4,7к», «4k7» або «4700»):</label>
+          <div class="bd-row"><input id="bd-in" inputmode="text" placeholder="наприклад 220 Ом"><button class="btn primary" type="submit">Перевірити</button><button class="btn" type="button" id="bd-new">Інший резистор</button></div>
+        </form>
+        <p class="bd-fb" id="bd-fb" aria-live="polite"></p>
+        <details class="more"><summary>Підказка: кольори</summary>
+          <p class="bd-legend" id="bd-legend"></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 mistakes -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">06</span> Як убивають деталі: п'ять уявлень</h2>
+    <div class="myths">
+      <div class="myth" data-mc="E4">
+        <p class="seems">GPIO може живити реле чи моторчик напряму — це ж «вихід».</p>
+        <p class="truth">Вихід GPIO за замовчуванням дає близько 20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup>, а котушка реле бере 71,4&nbsp;мА<sup class="cite" data-fact="relay-srd05-coil-sl"></sup>. GPIO — це кран, а не насос: він лише керує транзистором чи модулем.</p>
+        <p class="test">Виміряйте струм котушки амперметром від шини 5&nbsp;В і порівняйте з можливостями піна.</p>
+      </div>
+      <div class="myth" data-mc="E3">
+        <p class="seems">Якщо плата живиться від USB 5&nbsp;В, то й на вхід GPIO можна подати 5&nbsp;В.</p>
+        <p class="truth">Чип живиться від 3,3&nbsp;В, і на виводі не можна перевищувати живлення більше ніж на 0,3&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>. 5&nbsp;В на піні — це поступова або миттєва смерть входу.</p>
+        <p class="test">Перед підключенням датчика чи модуля виміряйте вольтметром, яку напругу він видає на свій вихід.</p>
+      </div>
+      <div class="myth" data-mc="M8">
+        <p class="seems">Ніжки світлодіода в одній смужці макетки — нічого страшного, він же вставлений.</p>
+        <p class="truth">П'ять отворів смужки з'єднані між собою, тож обидві ніжки замкнені накоротко: струм іде повз світлодіод, і той не світиться ніколи.</p>
+        <p class="test">Прозвонка між ніжками світлодіода на макетці пищить — він закорочений.</p>
+      </div>
+      <div class="myth" data-mc="M10">
+        <p class="seems">Перемикач стоїть на mA після минулого вимірювання — нічого, щупами на джерело можна швидко «глянути напругу».</p>
+        <p class="truth">У режимі струму прилад — майже дріт: червоний щуп у тому самому гнізді VΩmA, але перемикач з'єднав його з COM через малий внутрішній шунт. Щупи паралельно джерелу створюють коротке замикання, і згоряє запобіжник 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>.</p>
+        <p class="test">Після кожного вимірювання струму поверніть перемикач на V, а щуп, якщо був у 10A, — у VΩmA. Зробіть це ритуалом.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Будь-який MOSFET відкриється від 3,3&nbsp;В з GPIO.</p>
+        <p class="truth">Логічний AO3400A — так: менш ніж 48&nbsp;мОм уже при 2,5&nbsp;В<sup class="cite" data-fact="ao3400a-rdson-2v5"></sup>. А навіть популярний IRLZ44N (хоча продається як «logic-level») має опір у даташиті лише від 4&nbsp;В і вище<sup class="cite" data-fact="irlz44n-rdson-min-vgs"></sup>: роботу від 3,3&nbsp;В ніхто не гарантує, і транзистор може лишитися напіввідкритим і грітися.</p>
+        <p class="test">Виміряйте спад напруги між D і S під навантаженням: десяті частки вольта й більше — транзистор не відкрився.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">07</span> Картки атласу</h2>
+    <p>Полярність, розпіновки, символи й «як убити» — по одному факту на картку. Кілька хвилин на день, і деталь упізнається за секунду.</p>
+    <div class="deck-mini" data-deck="atlas" data-n="8"></div>
+    <p><a class="btn" href="../cards/">Усі картки в тренажері →</a></p>
+  </section>
+
+  <!-- ============================================================ 08 more -->
+  <section class="hs" id="more">
+    <h2><span class="n">08</span> Матеріали і джерела</h2>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7jaooa0813bkp58q3f" target="_blank" rel="noopener">Урок 1.1 у LMS</a> (потрібен вхід). Відео: <a href="https://www.youtube.com/watch?v=n54SHip59v0" target="_blank" rel="noopener">AmperUA — як користуватися мультиметром</a> (стежте, куди переставляють червоний щуп) і <a href="https://www.youtube.com/watch?v=aBO4wDQxjtU" target="_blank" rel="noopener">STEM-COUPLE — макетна плата</a> (як з'єднані смужки й шини).</li>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7maooe0813cjt0dvmg" target="_blank" rel="noopener">Урок 1.2 у LMS</a>. Відео: <a href="https://www.youtube.com/watch?v=Q2i6rvkCVKM" target="_blank" rel="noopener">Veteor — резистор для світлодіода</a> (звідки береться «зайва» напруга).</li>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s8naope0813skhui09r" target="_blank" rel="noopener">Урок 2.2 у LMS</a>. Відео Palsan Technology: <a href="https://www.youtube.com/watch?v=kAupN59Ia9w" target="_blank" rel="noopener">що таке діод</a> і <a href="https://www.youtube.com/watch?v=LkerXyGtKfs" target="_blank" rel="noopener">як працює транзистор</a> (p-n перехід — саме те, що бачить режим →|).</li>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s7waooq0813vm0foazb" target="_blank" rel="noopener">Урок 1.5 у LMS</a>. Відео: <a href="https://www.youtube.com/watch?v=bOVcHbEco70" target="_blank" rel="noopener">Лабораторія Цифрового Дизайну — логічний аналізатор</a> (чим він відрізняється від осцилографа).</li>
+    </ul>
+    <h3>Глибше на сайті</h3>
+    <ul>
+      <li><a href="../schematics/">Як читати схеми</a> — символи IEC і ANSI, коди 4k7 і 104, ряд E12.</li>
+      <li><a href="../power-loads/">Потужне навантаження</a> — транзисторний ключ, MOSFET, зворотний діод, реле.</li>
+      <li><a href="../glossary/">Глосарій</a> — терміни українською й англійською.</li>
+    </ul>
+    <details class="more src-box" id="src-box"><summary>Джерела: даташити й інструкції до кожного числа</summary>
+      <ol id="sources" class="sources"></ol>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+    <p class="small">Усі малюнки деталей і схеми на цій сторінці намальовані для курсу; графіку Fritzing чи KiCad не використано. Перелік сторонніх матеріалів — у <a href="https://github.com/grok-rs/platformio-projects/blob/main/docs/THIRD_PARTY.md" target="_blank" rel="noopener">THIRD_PARTY.md</a>.</p>
+  </section>
+</main>
+
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/flashcards.js" defer></script>
+<script src="../assets/schem.js" defer></script>
+<script>
+/* Atlas widgets. Runs on study:ready; schem.js inlines the symbol sprite right after, so <use href="#…"> resolves.
+   W1 polarity trainer · W2 diode-mode tester · W3 button continuity · W4 colour bands. */
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const NS = 'http://www.w3.org/2000/svg';
+  const svgEl = (tag, attrs = {}, parent) => {
+    const el = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (parent) parent.appendChild(el);
+    return el;
+  };
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const LET = ['А', 'Б', 'В', 'Г'];
+
+  /* ================================================================ filters, recall mode, print */
+  const grid = $('#atl-grid');
+  const cards = $$('.atl', grid);
+  const KEY = 'atlas.filter.v1';
+  const st = Object.assign({ cat: 'all', pol: false, les: '' }, Study.store.get(KEY, {}) || {});
+  const chips = $$('.fchip');
+  function apply(save = true) {
+    let n = 0;
+    cards.forEach((c) => {
+      const ok = (st.cat === 'all' || c.dataset.cat === st.cat) && (!st.pol || c.dataset.pol === '1')
+        && (!st.les || c.dataset.lessons.split(' ').includes(st.les));
+      c.hidden = !ok;
+      if (ok) n++;
+    });
+    chips.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cat === st.cat)));
+    $('#f-pol').checked = st.pol;
+    $('#f-les').value = st.les;
+    $('#f-count').textContent = `${n} з ${cards.length}`;
+    $('#atl-empty').hidden = n > 0;
+    if (save) Study.store.set(KEY, st);
+  }
+  chips.forEach((b) => b.addEventListener('click', () => { st.cat = b.dataset.cat; apply(); }));
+  $('#f-pol').addEventListener('change', (e) => { st.pol = e.target.checked; apply(); });
+  $('#f-les').addEventListener('change', (e) => { st.les = e.target.value; apply(); });
+  const reset = () => { st.cat = 'all'; st.pol = false; st.les = ''; apply(); };
+  $('#f-reset').addEventListener('click', reset);
+  apply(false);
+  // A link like atlas/#mosfet must show its card even if a saved filter hides it.
+  const showHash = () => {
+    const t = location.hash && document.getElementById(location.hash.slice(1));
+    if (t && t.classList.contains('atl')) { if (t.hidden) { reset(); t.scrollIntoView(); } const d = t.querySelector('.atl-back'); if (d) d.open = true; }
+  };
+  showHash();
+  window.addEventListener('hashchange', showHash);
+
+  $('#f-recall').addEventListener('change', (e) => {
+    grid.classList.toggle('recall', e.target.checked);
+    cards.forEach((c) => c.classList.remove('shown'));
+  });
+  $$('.atl-reveal', grid).forEach((b) => b.addEventListener('click', () => b.closest('.atl').classList.add('shown')));
+  const backs = $$('.atl-back', grid);
+  $('#f-open').addEventListener('change', (e) => backs.forEach((d) => { d.open = e.target.checked; }));
+  // Closed <details> do not print: open every card for printing, then restore what the reader had.
+  let wasOpen = null;
+  window.addEventListener('beforeprint', () => { wasOpen = backs.map((d) => d.open); backs.forEach((d) => { d.open = true; }); });
+  window.addEventListener('afterprint', () => { if (wasOpen) backs.forEach((d, i) => { d.open = wasOpen[i]; }); wasOpen = null; });
+  ['#f-print', '#f-print2'].forEach((s) => $(s).addEventListener('click', () => window.print()));
+
+  // The source list is long, so it sits in a closed <details>; a click on [n] opens it before jumping.
+  document.addEventListener('click', (e) => { const a = e.target.closest('.cite a'); if (a) $('#src-box').open = true; });
+  if (/^#src-/.test(location.hash)) $('#src-box').open = true;
+
+  /* ================================================================ W1 polarity trainer */
+  const TR = [
+    { card: 'led-3mm', mirror: true, q: 'Торкніться анода (+) світлодіода.', alt: 'Світлодіод з двома ніжками різної довжини, позначеними літерами.',
+      mk: [[112, 140], [140, 122]], ok: 0, why: 'Анод — довша ніжка.' },
+    { card: 'led-3mm', mirror: true, trim: 'M112 98V128M140 98V128', q: 'Ніжки обрізали однаково. Де катод (−)?', alt: 'Світлодіод з однаковими ніжками, позначеними літерами.',
+      mk: [[112, 128], [140, 128]], ok: 1, why: 'Катод — з боку пласкої грані на обідку. Сумніваєтеся — режим →| мультиметра.' },
+    { card: 'cap-electrolytic', mirror: true, q: 'Де мінус електролітичного конденсатора?', alt: 'Електролітичний конденсатор з двома ніжками, позначеними літерами.',
+      mk: [[116, 144], [146, 128]], ok: 1, why: 'Мінус — з боку світлої смуги з «−», і ця ніжка коротша.' },
+    { card: 'diodes', mirror: true, q: 'Де катод чорного діода 1N4007 (нижнього)?', alt: 'Два діоди, кінці виводів позначено літерами.',
+      mk: [[14, 106], [246, 106]], ok: 1, why: 'Смуга на корпусі — катод.' },
+    { card: 'diodes', mirror: true, q: 'Де анод скляного діода 1N4148 (верхнього)?', alt: 'Два діоди, кінці виводів позначено літерами.',
+      mk: [[14, 44], [246, 44]], ok: 0, why: 'Анод — кінець без смуги; смуга — катод.' },
+    { card: 'npn-transistor', q: 'BC547 лежить пласким боком до вас, ніжки вниз. Де база?', alt: 'Транзистор у корпусі TO-92 з трьома ніжками, позначеними літерами.',
+      mk: [[112, 128], [130, 128], [148, 128]], ok: 1, why: 'Для BC547: C — B — E зліва направо, база посередині.' },
+    { card: 'npn-transistor', q: 'Той самий BC547. Де емітер — вивід, який іде на GND у ключі?', alt: 'Транзистор у корпусі TO-92 з трьома ніжками, позначеними літерами.',
+      mk: [[112, 128], [130, 128], [148, 128]], ok: 2, why: 'Емітер — праворуч (C — B — E). Для «2N2222» невідомого виробника перевірте мультиметром.' },
+    { card: 'mosfet', q: 'Де стік (D) MOSFET AO3400A?', alt: 'Мікросхема SOT-23 з трьома виводами, позначеними літерами.',
+      mk: [[130, 20], [108, 112], [152, 112]], ok: 0, why: 'Стік — самотній вивід з одного боку; затвор і витік — пара з іншого.' },
+    { card: 'mosfet', q: 'А де затвор (G)?', alt: 'Мікросхема SOT-23 з трьома виводами, позначеними літерами.',
+      mk: [[130, 20], [108, 112], [152, 112]], ok: 1, why: 'Затвор — у парі, біля мітки-крапки; поруч — витік.' },
+    { card: 'multimeter', q: 'У яке гніздо вставляють чорний щуп?', alt: 'Мультиметр, три гнізда позначено літерами.',
+      mk: [[100, 124], [140, 124], [180, 124]], ok: 1, why: 'Чорний — завжди в COM, для будь-якого вимірювання.' },
+    { card: 'multimeter', q: 'Міряємо струм світлодіода, ≈15 мА. Куди червоний щуп?', alt: 'Мультиметр, три гнізда позначено літерами.',
+      mk: [[100, 124], [140, 124], [180, 124]], ok: 2, why: 'До 400 мА — гніздо VΩmA і перемикач на mA; 10A — лише для великих струмів. Після вимірювання поверніть перемикач на V.' },
+    { card: 'button', q: 'Який вивід з\'єднаний з виводом 1 навіть без натискання?', alt: 'Тактова кнопка з пронумерованими виводами; три виводи позначено літерами.',
+      mk: [[64, 50], [196, 50], [64, 100]], ok: 2, why: 'Виводи навпроти один одного через корпус — одна пластина: 1 з\'єднаний з 2 завжди. Натискання додає з\'єднання з 3 і 4.' },
+  ];
+  (function trainer() {
+    const fig = $('#tr-fig'), q = $('#tr-q'), opts = $('#tr-opts'), fb = $('#tr-fb'), sc = $('#tr-score');
+    const order = shuffle(TR.map((_, i) => i));
+    let pos = 0, right = 0, total = 0, cur = null;
+    function show() {
+      const it = TR[order[pos % order.length]];
+      pos++;
+      const src = $(`#${it.card} .atl-ill svg`);
+      if (!src) return;
+      const svg = src.cloneNode(true);
+      const W = svg.viewBox.baseVal.width;
+      const mirror = !!it.mirror && Math.random() < 0.5;
+      if (mirror) {
+        const g = svgEl('g', { transform: `translate(${W} 0) scale(-1 1)` });
+        while (svg.firstChild) g.appendChild(svg.firstChild);
+        svg.appendChild(g);
+        // Flip every label back around its own anchor so it reads normally at its mirrored place.
+        const SWAP = { start: 'end', end: 'start', middle: 'middle' };
+        $$('text', g).forEach((t) => {
+          const x = parseFloat(t.getAttribute('x')) || 0;
+          t.setAttribute('transform', `translate(${2 * x} 0) scale(-1 1)`);
+          t.setAttribute('text-anchor', SWAP[t.getAttribute('text-anchor') || 'start']);
+        });
+      }
+      if (it.trim) $$('.il-leg', svg).forEach((p) => p.setAttribute('d', it.trim));
+      svg.setAttribute('aria-label', it.alt);
+      const perm = shuffle(it.mk.map((_, i) => i));
+      const mks = svgEl('g', {}, svg);
+      opts.replaceChildren();
+      perm.forEach((orig, k) => {
+        const [x, y] = it.mk[orig];
+        const g = svgEl('g', { class: 'mk', transform: `translate(${mirror ? W - x : x} ${y})` }, mks);
+        svgEl('circle', { r: 11 }, g);
+        svgEl('text', { class: 'mk-t' }, g).textContent = LET[k];
+        g.addEventListener('click', () => answer(k));
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'opt'; b.textContent = LET[k];
+        b.setAttribute('aria-label', `Варіант ${LET[k]}`);
+        b.addEventListener('click', () => answer(k));
+        opts.appendChild(b);
+      });
+      cur = { it, perm, done: false, mks };
+      fig.className = 'tr-fig' + (mirror ? ' mirror' : '');
+      fig.replaceChildren(svg);
+      q.textContent = it.q;
+      fb.textContent = '';
+    }
+    function answer(k) {
+      if (!cur || cur.done) return;
+      cur.done = true; total++;
+      const okK = cur.perm.indexOf(cur.it.ok);
+      const good = k === okK;
+      if (good) right++;
+      const g = $$('.mk', cur.mks), b = $$('.opt', opts);
+      g[okK].classList.add('ok'); b[okK].classList.add('ok');
+      if (!good) { g[k].classList.add('bad'); b[k].classList.add('bad'); }
+      fig.classList.add('done');
+      fb.textContent = (good ? '✓ Так. ' : `✗ Ні, правильно — ${LET[okK]}. `) + cur.it.why;
+      sc.textContent = `${right} з ${total}`;
+    }
+    $('#tr-next').addEventListener('click', show);
+    show();
+  })();
+
+  /* ================================================================ W2 diode-mode tester */
+  // Readings are illustrative values inside the cited ranges (silicon junction 0,5…0,8 В; LEDs: a prediction).
+  const PIN = {
+    diode: { A: [0, 0], K: [60, 0] }, led: { A: [0, 0], K: [60, 0] },
+    npn: { B: [0, 0], C: [30, -30], E: [30, 30] }, nmos: { G: [0, 0], D: [30, -30], S: [30, 30] },
+  };
+  const DT = [
+    { label: '1N4148', sym: 'diode', pair: ['A', 'K'], fwd: 'A', val: '0.62',
+      f: 'Прямий напрямок: кремнієвий перехід відкритий і «з\'їдає» 0,5…0,8 В — прилад показує саме цей спад.',
+      r: 'Зворотний напрямок: перехід закритий, струму немає — OL. Діод справний, якщо в один бік число, а в інший OL.' },
+    { label: 'LED червоний', sym: 'led', pair: ['A', 'K'], fwd: 'A', val: '1.80', glow: true,
+      f: 'Прогноз: червоний світлодіод ледь жевріє і показує близько своєї прямої напруги (≈1,8–1,9 В).',
+      r: 'Навпаки світлодіод не проводить — OL. Так знаходять анод, коли ніжки обрізані.' },
+    { label: 'LED синій', sym: 'led', pair: ['A', 'K'], fwd: 'A', val: 'OL',
+      f: 'Прогноз: синьому потрібно близько 3 В і більше, а прилад дає не більше 3 В — тож буде OL або ледь помітне світіння. Це ще не означає, що LED зламаний.',
+      r: 'Навпаки — OL, як у будь-якого діода.' },
+    { label: 'BC547: B–E', sym: 'npn', pair: ['B', 'E'], fwd: 'B', val: '0.66',
+      f: 'База–емітер — p-n перехід анодом до бази: 0,5…0,8 В, як у звичайного діода.',
+      r: 'Червоний на емітері: перехід закритий — OL.' },
+    { label: 'BC547: B–C', sym: 'npn', pair: ['B', 'C'], fwd: 'B', val: '0.64',
+      f: 'База–колектор — другий перехід, теж анодом до бази. Обидва «діоди» дивляться від бази назовні — так і знаходять базу.',
+      r: 'Червоний на колекторі: перехід закритий — OL.' },
+    { label: 'BC547: C–E', sym: 'npn', pair: ['C', 'E'], fwd: null, val: 'OL',
+      f: 'Між колектором і емітером — два переходи назустріч один одному. Без струму бази струм не йде в жоден бік: OL обидва рази. Число близько нуля — транзистор пробитий.',
+      r: 'Між колектором і емітером — два переходи назустріч один одному. Без струму бази струм не йде в жоден бік: OL обидва рази. Число близько нуля — транзистор пробитий.' },
+    { label: 'AO3400A: S–D', sym: 'nmos', pair: ['S', 'D'], fwd: 'S', val: '0.58',
+      f: 'Усередині MOSFET є діод від витоку до стоку (body diode). Червоний на S — він відкритий: 0,5…0,8 В.',
+      r: 'Червоний на D: діод закритий, канал теж — OL. Мале число в обидва боки? Розрядіть затвор, замкнувши G і S, і повторіть.' },
+    { label: 'AO3400A: G–S', sym: 'nmos', pair: ['G', 'S'], fwd: null, val: 'OL',
+      f: 'Затвор відділений від каналу тонким шаром оксиду: струм не тече — OL в обидва боки. Зате прилад може трохи зарядити затвор, і транзистор відкриється, поки ви його не розрядите.',
+      r: 'Затвор відділений від каналу тонким шаром оксиду: струм не тече — OL в обидва боки. Зате прилад може трохи зарядити затвор, і транзистор відкриється, поки ви його не розрядите.' },
+  ];
+  const ORIGIN = { diode: [110, 88], led: [110, 88], npn: [130, 88], nmos: [130, 88] };
+  const LABEL_AT = { A: [-4, -16, 'end'], K: [4, -16, 'start'], B: [-6, -16, 'end'], G: [-6, -16, 'end'],
+    C: [12, -4, 'start'], D: [12, -4, 'start'], E: [12, 14, 'start'], S: [12, 14, 'start'] };
+  (function diodeTest() {
+    const box = $('#dt-parts'), pb = $('#dt-probe'), svg = $('#dt-svg');
+    let part = 3, redOn = 0; // default: BC547 B–E; the readout stays hidden by CSS until the prediction opens the gate
+    DT.forEach((d, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = d.label;
+      b.addEventListener('click', () => { part = i; redOn = 0; draw(); });
+      box.appendChild(b);
+    });
+    function draw() {
+      const d = DT[part], [ox, oy] = ORIGIN[d.sym], pins = PIN[d.sym];
+      $$('button', box).forEach((b, i) => b.setAttribute('aria-pressed', String(i === part)));
+      const red = d.pair[redOn], black = d.pair[1 - redOn];
+      const conducts = d.fwd === red && d.val !== 'OL';
+      svg.replaceChildren();
+      const at = (p) => [ox + pins[p][0], oy + pins[p][1]];
+      if (conducts) { const [x1, y1] = at(red), [x2, y2] = at(black); svgEl('path', { class: 'dt-path', d: `M${x1} ${y1}L${x2} ${y2}` }, svg); }
+      if (d.glow && conducts) svgEl('circle', { class: 'dt-glow', cx: ox + 30, cy: oy, r: 20 }, svg);
+      svgEl('use', { href: '#' + d.sym, x: ox, y: oy, class: 'sch-sym' }, svg);
+      Object.keys(pins).forEach((p) => {
+        const [x, y] = at(p), [dx, dy, anchor] = LABEL_AT[p];
+        const t = svgEl('text', { x: x + dx, y: y + dy, 'text-anchor': anchor, class: 'sch-pin' }, svg);
+        t.textContent = p;
+      });
+      // probes: red from the top-left corner, black from the bottom-left corner
+      const [rx, ry] = at(red), [kx, ky] = at(black);
+      svgEl('path', { d: `M14 20C70 20 ${rx > ox + 40 ? `${rx + 40} ${ry - 60}` : `${rx - 70} ${ry}`} ${rx} ${ry}`, fill: 'none', stroke: '#c62828', 'stroke-width': 3 }, svg);
+      svgEl('path', { d: `M14 150C70 150 ${kx > ox + 40 ? `${kx + 40} ${ky + 60}` : `${kx - 70} ${ky}`} ${kx} ${ky}`, class: 'dt-wire-k' }, svg);
+      svgEl('circle', { class: 'dt-probe-r', cx: rx, cy: ry, r: 6 }, svg);
+      svgEl('circle', { class: 'dt-probe-k', cx: kx, cy: ky, r: 6 }, svg);
+      svgEl('text', { x: 18, y: 14, class: 'sch-pin' }, svg).textContent = 'червоний (+)';
+      svgEl('text', { x: 18, y: 168, class: 'sch-pin' }, svg).textContent = 'чорний (COM)';
+      svg.setAttribute('aria-label', `${d.label}: червоний щуп на виводі ${red}, чорний на виводі ${black}`);
+      pb.replaceChildren();
+      d.pair.forEach((p, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = `Червоний на ${p}, чорний на ${d.pair[1 - i]}`;
+        b.setAttribute('aria-pressed', String(i === redOn));
+        b.addEventListener('click', () => { redOn = i; draw(); });
+        pb.appendChild(b);
+      });
+      const v = conducts ? d.val : 'OL';
+      $('#dt-val').textContent = v;
+      $('#dt-unit').textContent = v === 'OL' ? '' : 'V';
+      $('#dt-why').textContent = d.fwd === red ? d.f : d.r;
+    }
+    draw();
+  })();
+
+  /* ================================================================ W3 button continuity */
+  (function buttonLab() {
+    const fig = $('#btn-fig'), res = $('#btn-res'), hold = $('#btn-hold'), pairsBox = $('#btn-pairs');
+    const src = $('#button .atl-ill svg');
+    const svg = src.cloneNode(true);
+    svg.setAttribute('aria-label', 'Тактова кнопка згори з виводами 1–4; зелена лінія показує, між якими виводами зараз іде струм прозвонки.');
+    const PINS = { 4: [64, 50], 2: [64, 100], 3: [196, 50], 1: [196, 100] };
+    const line = svgEl('path', { class: 'pair' }, svg);
+    fig.appendChild(svg);
+    const PAIRS = [[1, 2], [3, 4], [1, 3], [2, 4], [1, 4], [2, 3]];
+    let pair = 0, pressed = false;
+    const side = (p) => (p === 3 || p === 4 ? 'top' : 'bottom'); // 4–3 and 2–1 are one plate each (Omron B3F)
+    PAIRS.forEach(([a, b], i) => {
+      const bt = document.createElement('button');
+      bt.type = 'button'; bt.textContent = `${a}–${b}`;
+      bt.setAttribute('aria-label', `Прозвонити виводи ${a} і ${b}`);
+      bt.addEventListener('click', () => { pair = i; draw(); });
+      pairsBox.appendChild(bt);
+    });
+    function draw() {
+      const [a, b] = PAIRS[pair];
+      const on = side(a) === side(b) || pressed;
+      $$('button', pairsBox).forEach((x, i) => x.setAttribute('aria-pressed', String(i === pair)));
+      const [x1, y1] = PINS[a], [x2, y2] = PINS[b];
+      line.setAttribute('d', `M${x1} ${y1}L${x2} ${y2}`);
+      line.classList.toggle('on', on);
+      res.className = 'btn-res ' + (on ? 'beep' : 'quiet');
+      res.textContent = on
+        ? `♪ Пищить: виводи ${a} і ${b} з'єднані${side(a) === side(b) ? ' завжди — це одна пластина' : ', бо кнопку натиснуто'}.`
+        : `Тиша, OL: виводи ${a} і ${b} на різних пластинах, а кнопку не натиснуто.`;
+      hold.setAttribute('aria-pressed', String(pressed));
+      hold.textContent = pressed ? 'Відпустити кнопку' : 'Натиснути кнопку';
+    }
+    hold.addEventListener('click', () => { pressed = !pressed; draw(); });
+    draw();
+  })();
+
+  /* ================================================================ W4 colour bands */
+  (function bands() {
+    const COL = [['чорний', '#1b1b1b'], ['коричневий', '#7a4a1e'], ['червоний', '#c62828'], ['помаранчевий', '#ef6c00'], ['жовтий', '#f2c400'],
+      ['зелений', '#2e7d32'], ['синій', '#1f5fc4'], ['фіолетовий', '#7b3fa0'], ['сірий', '#8a8a8a'], ['білий', '#f5f5f5']];
+    const POOL = [10, 22, 47, 100, 150, 220, 330, 470, 680, 1000, 1500, 2200, 3300, 4700, 6800, 10000, 15000, 22000, 47000, 68000, 100000, 220000, 470000, 1000000];
+    const box = $('#wk-res'), fb = $('#bd-fb'), inp = $('#bd-in'), sc = $('#bd-score');
+    $('#bd-legend').innerHTML = COL.map(([n, c], i) => `<span><i style="background:${c}"></i>${i} ${n}</span>`).join('')
+      + '<span><i style="background:#F1D863"></i>золотий: ×0,1 або допуск ±5 %</span>';
+    const bandsOf = (v) => { let e = 0; while (v / 10 ** e >= 100) e++; const b = Math.round(v / 10 ** e); return [Math.floor(b / 10), b % 10, e]; };
+    let value = 0, tries = 0, right = 0, done = false;
+    function fallbackSVG(v) {
+      const [a, b, e] = bandsOf(v);
+      return `<svg class="fallback" viewBox="0 0 260 60" role="img" aria-label="Резистор зі смугами ${COL[a][0]}, ${COL[b][0]}, ${COL[e][0]}, золотий">
+        <line x1="4" y1="30" x2="256" y2="30" stroke="#9aa3ab" stroke-width="4"/>
+        <rect x="70" y="12" width="120" height="36" rx="14" fill="#d5b597" stroke="#8a6d45"/>
+        <rect x="86" y="12" width="10" height="36" fill="${COL[a][1]}"/><rect x="104" y="12" width="10" height="36" fill="${COL[b][1]}"/>
+        <rect x="122" y="12" width="10" height="36" fill="${COL[e][1]}"/><rect x="166" y="12" width="10" height="36" fill="#F1D863"/></svg>`;
+    }
+    function render() {
+      box.innerHTML = fallbackSVG(value);
+      const [a, b, e] = bandsOf(value);
+      box.setAttribute('aria-label', `Резистор зі смугами: ${COL[a][0]}, ${COL[b][0]}, ${COL[e][0]}, золотий`);
+      box.setAttribute('role', 'img');
+    }
+    function next() {
+      let v; do { v = POOL[Math.floor(Math.random() * POOL.length)]; } while (v === value);
+      value = v; done = false; inp.value = ''; fb.textContent = ''; fb.className = 'bd-fb';
+      render();
+    }
+    $('#bd-form').addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const raw = inp.value.trim();
+      const v = Study.parseNum(raw);
+      const [a, b, e] = bandsOf(value);
+      const story = `${COL[a][0]}–${COL[b][0]}–${COL[e][0]}: ${a}${b} × ${fmt.num(10 ** e, 0)} = ${fmt.si(value, 'Ом')}, золота смуга — ±5 %.`;
+      if (!raw || Number.isNaN(v)) { fb.className = 'bd-fb bad'; fb.textContent = 'Не вдалося прочитати число. Спробуйте «470», «4,7к» або «4k7».'; return; }
+      const ok = Math.abs(v - value) <= value * 0.01;
+      if (!done) { tries++; if (ok) right++; done = ok; }
+      sc.textContent = `${right} з ${tries}`;
+      fb.className = 'bd-fb ' + (ok ? 'ok' : 'bad');
+      fb.textContent = ok ? `✓ Так: ${story}` : `✗ Ні, ${fmt.si(v, 'Ом')} — не те. Перша смуга — перша цифра, друга — друга, третя — скільки нулів дописати.`;
+      if (!ok) { const hint = $('#bd-legend').closest('details'); if (hint) hint.open = true; }
+    });
+    $('#bd-new').addEventListener('click', next);
+    next();
+  })();
+});
+
+</script>
+</body>
+</html>

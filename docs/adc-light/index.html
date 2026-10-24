@@ -12,7 +12,7 @@
 <meta name="description" content="Інтерактивний конспект модуля 1.6 для початківців: аналоговий і цифровий сигнал, АЦП ESP32-S3 на 4096 сходинок, фоторезистор, подільник напруги, піни ADC1/ADC2, ослаблення, шум і ковзне середнє — з живими схемами, прогнозами й тестом.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
 /* Layout: one long study sheet on graph paper (same system as pull-resistors/).
    Each topic = explanation column (predict → explain → worked example → "Головне") + live instrument. */
@@ -41,8 +41,8 @@
   --bad: #c62828;
   --band: rgba(139, 92, 214, .16);
   --light: #facc15;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Literata", Georgia, "Times New Roman", serif;
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -98,7 +98,7 @@ nav.toc a:hover { border-color: var(--accent); }
 
 .intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 18px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; min-width: 0; }
-.card h3 { font-size: .92rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.card h3, .card .card-h { font-size: .92rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .card ul, .card ol { margin: 0; padding-left: 20px; }
 .card li + li { margin-top: 3px; }
 .card p { margin: 0 0 6px; }
@@ -122,6 +122,7 @@ section.full { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--
 .key b:first-child { font: 700 .95rem var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-right: 6px; }
 .formula { font-family: var(--f-mono); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 10px 0; overflow-x: auto; white-space: pre; font-size: 13.5px; }
 .formula .m { color: var(--hi); font-weight: 600; }
+:is(.formula, .live, .tbl-wrap)[role="region"]:focus-visible { outline: 2.5px solid var(--focus, var(--accent)); outline-offset: 2px; }
 
 /* predict → reveal */
 .predict { border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; margin: 12px 0; background: var(--panel); }
@@ -137,7 +138,7 @@ section.full { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--
 
 /* worked + faded example */
 .worked { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; }
-.worked h4, .try h4 { margin: 0 0 4px; font: 700 1.05rem var(--f-display); letter-spacing: .04em; }
+.worked h3, .try h3 { margin: 0 0 4px; font: 700 1.05rem var(--f-display); letter-spacing: .04em; }
 .worked ol { margin: 0; padding-left: 20px; font-size: 14.5px; }
 .try { border: 1px solid var(--hi); border-radius: 8px; padding: 10px 12px; margin: 12px 0; background: var(--panel); }
 .try .tag { color: var(--hi); }
@@ -177,11 +178,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .hold[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
 .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; cursor: pointer; }
 .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+@media (pointer: coarse) { label.toggle { min-height: 44px; } }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 0; border-top: 1px solid var(--line); }
 .stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
 .stat:last-child { border-right: 0; }
-.stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat .k { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .stat .v { font: 600 1.15rem var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat .v.hi { color: var(--hi); } .stat .v.lo { color: var(--muted); } .stat .v.z { color: var(--z); } .stat .v.bad { color: var(--bad); } .stat .v.ok { color: var(--ok); } .stat .v.sig { color: var(--sig); }
 
@@ -189,7 +191,7 @@ canvas.scope { display: block; width: 100%; background: var(--scope); cursor: po
 canvas.scope.last { border-radius: 0 0 8px 8px; }
 canvas.plot { cursor: default; }
 .scope-wrap { position: relative; }
-.scope-wrap .paused { position: absolute; top: 8px; right: 10px; font: 600 11px var(--f-mono); color: var(--scope-text); background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 4px; pointer-events: none; }
+.scope-wrap .paused { position: absolute; top: 8px; right: 10px; font: 600 13px var(--f-mono); color: var(--scope-text); background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 4px; pointer-events: none; }
 
 .codeline { font: 13px/1.6 var(--f-mono); padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel-2); overflow-x: auto; white-space: pre; }
 .codeline:last-child { border-radius: 0 0 8px 8px; }
@@ -200,40 +202,52 @@ canvas.plot { cursor: default; }
 /* SVG instruments */
 svg.circuit, svg.taps, svg.pins, svg.ldr-pic { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none; }
 .circuit .w { fill: none; stroke: var(--lo); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.circuit .w.pwr { stroke: var(--pwr); } .circuit .w.gnd { stroke: var(--gnd); } .circuit .w.sig { stroke: var(--sig); }
+.circuit .w.pwr { stroke: var(--pwr); } .circuit .w.gnd { stroke: var(--gnd); } .circuit .w.sig { stroke: var(--nsig, var(--sig)); }
 .circuit .res { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
 .circuit .ldr-body { fill: color-mix(in srgb, var(--hi) 22%, var(--panel)); stroke: var(--ink); stroke-width: 2; }
 .circuit .track { fill: none; stroke: var(--pwr); stroke-width: 2; }
 .circuit .mcu { fill: var(--panel-2); stroke: var(--ink); stroke-width: 2; }
 .circuit .lbl { fill: var(--ink); font: 600 13px var(--f-body); }
 .circuit .sub { fill: var(--muted); font: 500 11.5px var(--f-mono); }
-.circuit .big { font: 700 16px var(--f-mono); fill: var(--sig); }
+.circuit .big { font: 700 16px var(--f-mono); fill: var(--nsig2, var(--sig)); }
 .circuit .raw { font: 700 15px var(--f-mono); fill: var(--hi); }
-.circuit .node { fill: var(--sig); }
+.circuit .node { fill: var(--nsig, var(--sig)); }
 .circuit .gs { fill: none; stroke: var(--gnd); stroke-width: 2.2; stroke-linecap: round; }
 .circuit .term { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
-.circuit .ray { stroke: var(--light); stroke-width: 3; stroke-linecap: round; fill: none; }
-.circuit .rayhead { fill: var(--light); }
-.circuit .flow { fill: none; stroke: var(--flow); stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 1 12; animation: flow .6s linear infinite; }
+/* light-panel drawings use the net tokens (≥ 3:1 on the sheet); the bright neon inks stay on the dark scope screens */
+.circuit .ray { stroke: var(--hi); stroke-width: 3; stroke-linecap: round; fill: none; }
+.circuit .rayhead { fill: var(--hi); }
+.circuit .flow { fill: none; stroke: var(--flow); stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 1 12; }
+.circuit .flow.run { animation: flow .6s linear infinite; }
 @keyframes flow { to { stroke-dashoffset: -13; } }
 
 .taps .pipe { fill: var(--panel-2); stroke: var(--ink); stroke-width: 2; }
 .taps .handle { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; transition: transform .35s ease; }
 .taps .knob { fill: var(--accent); stroke: var(--ink); stroke-width: 2; }
-.taps .water { stroke: var(--sig); stroke-linecap: round; fill: none; stroke-dasharray: 7 5; animation: drip .35s linear infinite; }
+.taps .water { stroke: var(--nsig2, var(--sig)); stroke-linecap: round; fill: none; stroke-dasharray: 7 5; }
+/* water and current dots run only for 5 s after the user touches a control (SPEC §8: nothing loops; WCAG 2.2.2) */
+/* phones: the three drawings keep labels ≥ 11 px and scroll sideways instead of shrinking */
+.scroll-hint { display: none; margin: 0; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) {
+  #taps-box, #ldr-pic-box, #div-svg { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #taps-box svg, #ldr-pic-box svg { min-width: 500px; }
+  #div-svg svg { min-width: 430px; }
+  .scroll-hint { display: block; }
+}
+.taps .water.run { animation: drip .35s linear infinite; }
 @keyframes drip { to { stroke-dashoffset: -12; } }
 .taps .glass { fill: none; stroke: var(--ink); stroke-width: 2; }
-.taps .liquid { fill: var(--sig); opacity: .5; }
+.taps .liquid { fill: var(--nsig2, var(--sig)); opacity: .5; }
 .taps .lbl { fill: var(--ink); font: 700 15px var(--f-display); letter-spacing: .04em; }
 .taps .sub { fill: var(--muted); font: 500 11.5px var(--f-mono); }
-.taps .val { fill: var(--hi); font: 700 15px var(--f-mono); }
+.taps .val { fill: var(--nsig-ink, var(--hi)); font: 700 15px var(--f-mono); }
 
 .ldr-pic .lamp { fill: var(--light); }
 .ldr-pic .glow { fill: var(--light); }
 .ldr-pic .disc { fill: color-mix(in srgb, var(--hi) 25%, var(--panel)); stroke: var(--ink); stroke-width: 2; }
 .ldr-pic .track { fill: none; stroke: var(--pwr); stroke-width: 3; }
-.ldr-pic .carrier { fill: var(--sig); }
-.ldr-pic .ray { stroke: var(--light); stroke-width: 3; stroke-linecap: round; }
+.ldr-pic .carrier { fill: var(--nsig2, var(--sig)); }
+.ldr-pic .ray { stroke: var(--hi); stroke-width: 3; stroke-linecap: round; }
 .ldr-pic .sub { fill: var(--muted); font: 500 11.5px var(--f-mono); }
 .ldr-pic .lbl { fill: var(--ink); font: 600 13px var(--f-body); }
 
@@ -244,8 +258,16 @@ svg.circuit, svg.taps, svg.pins, svg.ldr-pic { display: block; width: 100%; heig
 .pins .pin { cursor: pointer; outline: none; }
 .pins .pin circle { stroke: #0b1a28; stroke-width: 2; transition: r .15s; }
 .pins .pin text { font: 600 11.5px var(--f-mono); fill: #e8eef2; }
-.pins .pin:hover circle, .pins .pin:focus-visible circle { r: 10; stroke: var(--light); stroke-width: 3; }
-.pins .pin.sel circle { stroke: var(--light); stroke-width: 3.5; r: 10; }
+.pins .pin:hover circle { r: 10; stroke: var(--hi); stroke-width: 2.5; }
+.pins .pin.sel circle { stroke: var(--hi); stroke-width: 3.5; r: 10; }
+/* keyboard focus: the site's focus blue, distinct from hover/selected brass */
+.pins .pin:focus { outline: none; }
+.pins .pin circle.pf { fill: none; display: none; pointer-events: none; r: 14px; }
+.pins .pin:focus-visible circle.pf { display: inline; }
+/* focus: a dashed blue ring on a panel-coloured halo, readable on the navy board in both themes and distinct from the solid amber selection */
+.pins .pin .pf.h { stroke: var(--panel); stroke-width: 7; }
+.pins .pin .pf.f { stroke: var(--focus, #1d5fa8); stroke-width: 3; stroke-dasharray: 4 3; }
+.pins .pin .hit { fill: transparent; }
 .pins .pin.dim { opacity: .22; }
 .pins .adc1 { fill: var(--ok); } .pins .adc2 { fill: var(--hi); } .pins .strap { fill: var(--bad); } .pins .usbp { fill: var(--z); }
 .pins .pwr { fill: var(--pwr); } .pins .gnd { fill: #6b7c88; } .pins .other { fill: var(--lo); }
@@ -253,7 +275,7 @@ svg.circuit, svg.taps, svg.pins, svg.ldr-pic { display: block; width: 100%; heig
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 .pininfo { padding: 10px 12px; border-top: 1px solid var(--line); min-height: 96px; }
-.pininfo h4 { margin: 0 0 4px; font: 700 1.3rem var(--f-display); }
+.pininfo h3 { margin: 0 0 4px; font: 700 1.3rem var(--f-display); }
 .pininfo p { margin: 0; font-size: 14.5px; }
 .badge { display: inline-block; font: 600 11.5px var(--f-mono); border-radius: 999px; padding: 1px 8px; margin-right: 6px; border: 1px solid currentColor; }
 .badge.ok { color: var(--ok); } .badge.warn { color: var(--hi); } .badge.bad { color: var(--bad); } .badge.z { color: var(--z); } .badge.lo { color: var(--muted); }
@@ -268,7 +290,7 @@ table.att tr.pick:hover td { background: var(--panel-2); }
 table.att tr.on td { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); font-weight: 600; }
 
 .mist { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; }
-.mist .card h4 { margin: 0 0 4px; font: 700 1.15rem var(--f-display); }
+.mist .card h3 { margin: 0 0 4px; font: 700 1.15rem var(--f-display); text-transform: none; letter-spacing: 0; color: var(--ink); }
 .mist .card p { font-size: 14px; }
 .mist .card .fix { color: var(--ok); }
 .mist .card .sym { color: var(--muted); font-size: 13.5px; }
@@ -294,22 +316,20 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
   .taps .handle { transition: none; }
 }
 </style>
+<!-- design bridge: shared tokens, fonts and background override this page's own token block -->
+<link rel="stylesheet" href="../assets/theme.css">
 </head>
 <body>
-<nav class="site-nav" aria-label="Навігація сайтом">
-  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Усі матеріали</a>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.3–1.4</span><a href="../pull-resistors/">Підтяжка входу</a><a href="../lab/">Стенд ESP32-S3</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.5</span><a href="../scope-signals/">Теорія: осцилограф</a><a href="../bounce-lab/">ДЗ: брязкіт</a><a href="../bounce-bench/">Брязкіт на стенді</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 1.6</span><a href="../adc-light/" aria-current="page">Теорія: АЦП</a><a href="../ldr-lab/">ДЗ: люксметр</a></span>
-  <span class="sn-group"><span class="sn-mod">Міні-проєкт 1</span><a href="../twilight-relay/">Сутінковий перемикач</a></span>
-  <span class="sn-group"><span class="sn-mod">Модуль 2.2</span><a href="../power-loads/">Потужне навантаження</a></span>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="adc-light">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
 </nav>
+<p class="from-lesson" style="max-width:1240px;margin:8px auto 0;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font:500 14px/1.45 var(--f-body,system-ui,sans-serif)">Частина <a href="../lessons/1-6/">уроку 1.6 · АЦП і світло</a></p>
 <div class="wrap">
 
 <header class="top">
-  <div class="eyebrow">Модуль 1.6 · Введення в ADC · інтерактивний конспект</div>
+  <div class="eyebrow">Модуль 1 · Урок 1.6 · Глибше · вступ до АЦП</div>
   <h1>АЦП і <span>світло</span></h1>
-  <p>Як мікроконтролер, що знає лише 0 і 1, «бачить» плавне світло. Тут ми розберемо АЦП ESP32-S3, фоторезистор і подільник напруги. Кожен розділ працює так: <b>спрогнозуй → покрути прилад → перевір себе</b>. Помилитися в прогнозі — нормально: так мозок краще запам'ятовує.</p>
+  <p>Як мікроконтролер, що знає лише 0 і 1, «бачить» плавне світло. Тут ми розберемо АЦП ESP32-S3, фоторезистор і подільник напруги. Кожен розділ працює так: <b>спрогнозуйте → покрутіть прилад → перевірте себе</b>. Помилитися в прогнозі — нормально: так мозок краще запам'ятовує.</p>
   <nav class="toc" aria-label="Розділи">
     <a href="#world"><span>01</span>Аналог і цифра</a>
     <a href="#sampling"><span>02</span>Дискретизація</a>
@@ -325,7 +345,7 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
   </nav>
   <div class="intro">
     <div class="card">
-      <h3>Після цієї сторінки ти зможеш</h3>
+      <h2 class="card-h">Після цієї сторінки ви зможете</h2>
       <ol>
         <li>пояснити різницю між <code>digitalRead()</code> і <code>analogRead()</code>;</li>
         <li>перевести число АЦП у мілівольти й назад;</li>
@@ -336,19 +356,19 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
       </ol>
     </div>
     <div class="card">
-      <h3>Час і підготовка</h3>
+      <h2 class="card-h">Час і підготовка</h2>
       <p><span class="big-n">~40 хв</span> &nbsp;11 коротких розділів по 3–5 хвилин. Можна робити перерви між ними.</p>
-      <p><b>Згадай перед стартом:</b> закон Ома (<code>I = U / R</code>) і підтяжку входу з модуля 1.4. Pull-up — це вже <b>подільник напруги</b>: резистор зверху, кнопка знизу. Сьогодні замість кнопки буде фоторезистор. <a href="../pull-resistors/">Освіжити модуль 1.4 →</a></p>
+      <p><b>Згадайте перед стартом:</b> закон Ома (<code>I = U / R</code>) і підтяжку входу з модуля 1.4. Pull-up — це вже <b>подільник напруги</b>: резистор зверху, кнопка знизу. Сьогодні замість кнопки буде фоторезистор. <a href="../pull-resistors/">Освіжити модуль 1.4 →</a></p>
     </div>
     <div class="card">
-      <h3>Як працювати зі сторінкою</h3>
+      <h2 class="card-h">Як працювати зі сторінкою</h2>
       <ul>
-        <li><b>Спрогнозуй</b>: обери відповідь до того, як крутиш повзунки.</li>
-        <li><b>Покрути</b>: прилад справа показує, що відбувається насправді.</li>
-        <li><b>Твоя черга</b>: порахуй сам, поле одразу перевірить відповідь.</li>
-        <li>Клацни по осцилографу, щоб поставити його на паузу.</li>
+        <li><b>Спрогнозуйте</b>: оберіть відповідь до того, як крутите повзунки.</li>
+        <li><b>Покрутіть</b>: прилад справа показує, що відбувається насправді.</li>
+        <li><b>Ваша черга</b>: порахуйте самі, поле одразу перевірить відповідь.</li>
+        <li>Натисніть на осцилограф, щоб поставити його на паузу.</li>
       </ul>
-      <p style="margin-top:6px">Практика: <a href="../ldr-lab/">симуляція домашнього завдання →</a></p>
+      <p style="margin-top:6px">Практика: <a href="../ldr-lab/">інтерактивна модель ДЗ →</a></p>
     </div>
   </div>
 </header>
@@ -365,7 +385,7 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
     </ul>
     <p><b>Аналогія з краном.</b> Цифровий кран має два положення: закритий або відкритий. Аналоговий можна відкрити на 10 %, 50 % чи 99 %.</p>
     <div class="predict" data-ok="1" data-why="digitalRead() має лише дві відповіді. Поки напруга вище порогу, він каже 1. Коли вона опуститься нижче ~0,82 В, він раптом скаже 0. Усе, що між цим, губиться. analogRead() натомість показує, як число плавно зменшується.">
-      <span class="tag">Спрогнозуй</span>
+      <span class="tag">Спрогнозуйте</span>
       <p>Надворі повільно темніє. Датчик світла під'єднано до піна. Що побачить <code>digitalRead()</code>?</p>
       <div class="opts">
         <button type="button" class="opt">Плавно спадаючі числа: 3000, 2500, 2000…</button>
@@ -379,6 +399,7 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
   <div class="bench">
     <div class="panel">
       <div class="ph"><h3>Два крани</h3><span class="hint">цифровий: 2 положення · аналоговий: будь-яке</span></div>
+      <p class="scroll-hint" aria-hidden="true">↔ гортайте малюнок вбік</p>
       <div id="taps-box"></div>
       <div class="controls">
         <button type="button" class="hold" id="tap-d" aria-pressed="false">Цифровий кран: закрито</button>
@@ -386,7 +407,7 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
       </div>
     </div>
     <div class="panel">
-      <div class="ph"><h3>Датчик світла протягом «дня»</h3><span class="hint">14 с на екран · клацни для паузи</span></div>
+      <div class="ph"><h3>Датчик світла протягом «дня»</h3><span class="hint">14 с на екран · натисніть для паузи</span></div>
       <div class="scope-wrap"><canvas class="scope last" id="sc-world" height="260" role="img" aria-label="Осцилограф: напруга датчика світла, що бачать digitalRead і analogRead"></canvas></div>
       <div class="stats">
         <div class="stat"><div class="k">Напруга на піні</div><div class="v sig" id="w-v">—</div></div>
@@ -410,8 +431,8 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
     <div class="formula">кількість сходинок N = 2<sup>біт</sup>
 розмір сходинки  = діапазон / N
 12 біт:  N = 4096,  3100 мВ / 4096 ≈ <span class="m">0,76 мВ</span></div>
-    <div class="predict" data-ok="1" data-hook="bits3" data-why="2³ = 2·2·2 = 8 сходинок (коди 0…7). Повзунок «Розрядність» уже стоїть на 3 біти: подивись, яка груба виходить сходинка.">
-      <span class="tag">Спрогнозуй</span>
+    <div class="predict" data-ok="1" data-hook="bits3" data-why="2³ = 2·2·2 = 8 сходинок (коди 0…7). Повзунок «Розрядність» уже стоїть на 3 біти: подивіться, яка груба виходить сходинка.">
+      <span class="tag">Спрогнозуйте</span>
       <p>Скільки сходинок має 3-бітний АЦП?</p>
       <div class="opts">
         <button type="button" class="opt">3</button>
@@ -424,7 +445,7 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
   </div>
   <div class="bench">
     <div class="panel">
-      <div class="ph"><h3>Сигнал → виміри → сходинки</h3><span class="hint">1 секунда на екран · клацни для паузи</span></div>
+      <div class="ph"><h3>Сигнал → виміри → сходинки</h3><span class="hint">1 секунда на екран · натисніть для паузи</span></div>
       <div class="scope-wrap"><canvas class="scope" id="sc-quant" height="290" role="img" aria-label="Графік: плавний сигнал, точки вимірів і сходинки після квантування"></canvas></div>
       <div class="controls">
         <div class="ctl"><label for="q-bits">Розрядність АЦП <b id="q-bits-v">4 біти</b></label><input id="q-bits" type="range" min="1" max="12" step="1" value="4"></div>
@@ -446,12 +467,12 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
   <div class="explain">
     <h2><span class="n">03</span>АЦП — лінійка на 4096 поділок</h2>
     <p>АЦП у ESP32-S3 <b>12-бітний</b>. 2<sup>12</sup> = <b>4096</b> поділок, тож числа йдуть від <b>0 до 4095</b>. Найбільше число 4095, а не 4096, бо рахунок починається з нуля.</p>
-    <p>Уяви лінійку завдовжки 3100 мВ із 4096 рисками. АЦП каже номер риски, біля якої стоїть напруга. Щоб отримати мілівольти, рахуємо пропорцію:</p>
+    <p>Уявіть лінійку завдовжки 3100 мВ із 4096 рисками. АЦП каже номер риски, біля якої стоїть напруга. Щоб отримати мілівольти, рахуємо пропорцію:</p>
     <div class="formula">U = RAW / 4095 · U<sub>ref</sub>
 U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
-    <div class="note warn"><b>Чому 3100 мВ, а не 3300?</b> Живлення плати 3,3 В, але АЦП ESP32-S3 з типовим ослабленням 11 дБ вимірює лише <b>0…3100 мВ</b> (документація Espressif Arduino-ESP32). Усе, що вище ~3,1 В, він показує як 4095. У домашньому завданні тому й стоїть U<sub>ref</sub> = 3,1 В. Перемкни U<sub>ref</sub> справа і подивись, на скільки «бреше» формула з 3300.</div>
+    <div class="note warn"><b>Чому 3100 мВ, а не 3300?</b> Живлення плати 3,3 В, але АЦП ESP32-S3 з типовим ослабленням 11 дБ вимірює лише <b>0…3100 мВ</b> (документація Espressif Arduino-ESP32). Усе, що вище ~3,1 В, він показує як 4095. У домашньому завданні тому й стоїть U<sub>ref</sub> = 3,1 В. Перемкніть U<sub>ref</sub> справа і подивіться, на скільки «бреше» формула з 3300.</div>
     <div class="worked">
-      <h4>Розібраний приклад</h4>
+      <h3>Розібраний приклад</h3>
       <ol>
         <li><code>analogRead()</code> повернув <b>2048</b>.</li>
         <li>Ділимо на найбільше число: 2048 / 4095 = 0,5001 — це половина шкали.</li>
@@ -460,18 +481,18 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
       </ol>
     </div>
     <div class="try" data-ans="757" data-tol="2" data-unit="мВ">
-      <span class="tag">Твоя черга</span>
-      <h4><code>analogRead()</code> = 1000. Скільки це мілівольт (U<sub>ref</sub> = 3100)?</h4>
+      <span class="tag">Ваша черга</span>
+      <h3><code>analogRead()</code> = 1000. Скільки це мілівольт (U<sub>ref</sub> = 3100)?</h3>
       <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь у мілівольтах"><span>мВ</span><button type="button" class="btn">Перевірити</button></div>
       <div class="fb" aria-live="polite"></div>
       <details><summary>Підказка</summary>1000 / 4095 = 0,2442. Тепер помнож на 3100.</details>
     </div>
     <div class="try" data-ans="1585" data-tol="2" data-unit="">
-      <span class="tag">Твоя черга · навпаки</span>
-      <h4>На піні 1,2 В. Яке число поверне <code>analogRead()</code>?</h4>
+      <span class="tag">Ваша черга · навпаки</span>
+      <h3>На піні 1,2 В. Яке число поверне <code>analogRead()</code>?</h3>
       <div class="row"><input type="text" inputmode="numeric" aria-label="Відповідь: число АЦП"><button type="button" class="btn">Перевірити</button></div>
       <div class="fb" aria-live="polite"></div>
-      <details><summary>Підказка</summary>RAW = U / U<sub>ref</sub> · 4095 = 1200 / 3100 · 4095. Округли до цілого.</details>
+      <details><summary>Підказка</summary>RAW = U / U<sub>ref</sub> · 4095 = 1200 / 3100 · 4095. Округліть до цілого.</details>
     </div>
     <p class="key"><b>Головне</b>U = RAW / 4095 · 3100 мВ. Одна поділка ≈ 0,76 мВ.</p>
   </div>
@@ -521,8 +542,8 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
     <div class="formula">R ≈ 15 кОм · (10 / лк)<sup>0,7</sup>     (модель, схожа на GL5528)
 10 лк → 15 кОм,   100 лк → 3 кОм,   0,1 лк → 377 кОм</div>
     <p><b>Люкс (лк)</b> — одиниця освітленості. Місячна ніч — 0,1 лк, кімната — 100–300 лк, сонячний день — до 100 000 лк.</p>
-    <div class="predict" data-ok="0" data-hook="ldrDark" data-why="Палець закриває світло → носіїв заряду менше → опір росте. Повзунок уже переведено в «ніч»: дивись, як точка піднялася вгору по графіку.">
-      <span class="tag">Спрогнозуй</span>
+    <div class="predict" data-ok="0" data-hook="ldrDark" data-why="Палець закриває світло → носіїв заряду менше → опір росте. Повзунок уже переведено в «ніч»: дивіться, як точка піднялася вгору по графіку.">
+      <span class="tag">Спрогнозуйте</span>
       <p>Закриваємо фоторезистор пальцем. Що буде з його опором?</p>
       <div class="opts">
         <button type="button" class="opt">Зросте</button>
@@ -536,6 +557,7 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
   <div class="bench">
     <div class="panel">
       <div class="ph"><h3>Що відбувається всередині</h3><span class="hint">кульки — вільні носії заряду</span></div>
+      <p class="scroll-hint" aria-hidden="true">↔ гортайте малюнок вбік</p>
       <div id="ldr-pic-box"></div>
       <div class="controls">
         <div class="ctl"><label for="l-lux">Освітленість <b id="l-lux-v">100 лк</b></label><input id="l-lux" type="range" min="-1" max="5" step="0.01" value="2" aria-label="Освітленість, логарифмічна шкала"></div>
@@ -575,7 +597,7 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
     <div class="formula">U<sub>out</sub> = U<sub>in</sub> · R2 / (R1 + R2)</div>
     <p>Напруга ділиться пропорційно опорам. Хто має більший опір, на тому й більша частина напруги. Світло → R1 малий → майже вся напруга «доходить» до піна → <b>число росте</b>. Темрява → R1 величезний → пін тягнеться до GND через R2 → <b>число падає</b>.</p>
     <div class="worked">
-      <h4>Розібраний приклад (схема з ДЗ)</h4>
+      <h3>Розібраний приклад (схема з ДЗ)</h3>
       <ol>
         <li>У темряві LDR має R1 = 580,1 кОм, R2 = 10 кОм.</li>
         <li>R1 + R2 = 590,1 кОм.</li>
@@ -585,14 +607,14 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
       <button type="button" class="btn ghost" id="d-hw" style="margin-top:6px">Показати на схемі</button>
     </div>
     <div class="try" data-ans="1650" data-tol="5" data-unit="мВ">
-      <span class="tag">Твоя черга</span>
-      <h4>Світло таке, що LDR = 10 кОм. R2 = 10 кОм. Яка U<sub>out</sub>?</h4>
+      <span class="tag">Ваша черга</span>
+      <h3>Світло таке, що LDR = 10 кОм. R2 = 10 кОм. Яка U<sub>out</sub>?</h3>
       <div class="row"><input type="text" inputmode="decimal" aria-label="Відповідь у мілівольтах"><span>мВ</span><button type="button" class="btn">Перевірити</button></div>
       <div class="fb" aria-live="polite"></div>
       <details><summary>Підказка</summary>Опори однакові, тож напруга ділиться навпіл: 3300 · 10 / (10 + 10).</details>
     </div>
-    <div class="predict" data-ok="0" data-hook="divBright" data-why="LDR стоїть зверху. Світло зменшує його опір, тож на нижньому R2 лишається більша частка 3,3 В. Напруга на GPIO4 і число RAW ростуть. Тепер натисни «поміняти місцями»: усе стане навпаки.">
-      <span class="tag">Спрогнозуй</span>
+    <div class="predict" data-ok="0" data-hook="divBright" data-why="LDR стоїть зверху. Світло зменшує його опір, тож на нижньому R2 лишається більша частка 3,3 В. Напруга на GPIO4 і число RAW ростуть. Тепер натисніть «поміняти місцями»: усе стане навпаки.">
+      <span class="tag">Спрогнозуйте</span>
       <p>Вмикаємо яскраву лампу над LDR. Що буде з напругою на GPIO4?</p>
       <div class="opts">
         <button type="button" class="opt">Зросте</button>
@@ -601,13 +623,13 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
       </div>
       <div class="fb" aria-live="polite"></div>
     </div>
-    <div class="note"><b>Чому саме 10 кОм?</b> Подільник найчутливіший, коли R2 приблизно дорівнює опору LDR при потрібному світлі. Там крива найкрутіша (зелена пунктирна лінія на графіку). З нашою моделлю LDR і R2 = 10 кОм це ≈ 18 лк, тобто сутінки й тьмяна кімната: саме там найцікавіше «світло ↔ темно». Для яскравого приміщення краще 1–2 кОм, інакше напруга впирається в стелю 3,1 В. Покрути R2 і подивись.</div>
-    <div class="note warn">У симуляторі Wokwi готовий «photoresistor sensor» зібрано навпаки: 10 кОм зверху, LDR знизу. Там темрява дає <i>високу</i> напругу. Тому в нашому Wokwi-проєкті використано власний чип із правильною схемою ДЗ.</div>
+    <div class="note"><b>Чому саме 10 кОм?</b> Подільник найчутливіший, коли R2 приблизно дорівнює опору LDR при потрібному світлі. Там крива найкрутіша (зелена пунктирна лінія на графіку). З нашою моделлю LDR і R2 = 10 кОм це ≈ 18 лк, тобто сутінки й тьмяна кімната: саме там найцікавіше «світло ↔ темно». Для яскравого приміщення краще 1–2 кОм, інакше напруга впирається в стелю 3,1 В. Покрутіть R2 і подивіться.</div>
     <p class="key"><b>Головне</b>Подільник перетворює опір на напругу: U<sub>out</sub> = 3,3 · R2 / (R1 + R2). LDR зверху → більше світла дає більше число.</p>
   </div>
   <div class="bench">
     <div class="panel">
       <div class="ph"><h3>Схема · живі значення</h3><span class="hint">швидкість точок ~ сила струму</span></div>
+      <p class="scroll-hint" aria-hidden="true">↔ гортайте схему вбік</p>
       <div id="div-svg"></div>
       <div class="controls">
         <div class="ctl"><label for="d-lux">Світло <b id="d-lux-v">100 лк</b></label><input id="d-lux" type="range" min="-1.5" max="5" step="any" value="2" aria-label="Освітленість, логарифмічна шкала"></div>
@@ -643,15 +665,15 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
 <section class="topic" id="pins">
   <div class="explain">
     <h2><span class="n">06</span>Які піни можна для АЦП</h2>
-    <p>Не кожен пін ESP32-S3 вміє міряти напругу, і не кожен варто брати. Натисни на пін на платі справа, щоб побачити, що про нього треба знати.</p>
+    <p>Не кожен пін ESP32-S3 вміє міряти напругу, і не кожен варто брати. Натисніть на пін на платі справа, щоб побачити, що про нього треба знати.</p>
     <ul>
       <li><b style="color:var(--ok)">ADC1 — GPIO1…10.</b> Працюють завжди. Найкращий вибір. У ДЗ беремо <b>GPIO4</b> (ADC1, канал 3). Також зручні 1, 2, 5, 6, 7.</li>
-      <li><b style="color:var(--hi)">ADC2 — GPIO11…20.</b> Ділять АЦП з Wi-Fi. Коли Wi-Fi працює, читання може не вдатися: ESP-IDF повертає помилку <code>ESP_ERR_TIMEOUT</code>. Для датчиків краще не брати.</li>
+      <li><b style="color:var(--hi-ink, var(--hi))">ADC2 — GPIO11…20.</b> Ділять АЦП з Wi-Fi. Коли Wi-Fi працює, читання може не вдатися: у нашому ядрі 2.0.17 ESP-IDF повертає <code>ESP_ERR_INVALID_STATE</code>, і <code>analogRead()</code> дає 65535. Для датчиків краще не брати.</li>
       <li><b style="color:var(--bad)">Strapping-піни 0, 3, 45, 46.</b> Їх стан під час увімкнення вибирає режим запуску. Датчик на них може завадити прошивці стартувати.</li>
-      <li><b style="color:var(--z)">GPIO19/20</b> — USB. <b style="color:var(--z)">GPIO35–37</b> зайняті пам'яттю PSRAM на N16R8.</li>
+      <li><b style="color:var(--teach, var(--z))">GPIO19/20</b> — USB. <b style="color:var(--teach, var(--z))">GPIO35–37</b> зайняті пам'яттю PSRAM на N16R8.</li>
     </ul>
-    <div class="note bad"><b>Ніколи не подавай на пін більше 3,3 В.</b> Наприклад, 5 В від датчика на 5 В пошкодить мікроконтролер. Подільник між 3V3 і GND цього не допускає: його напруга завжди між 0 і 3,3 В.</div>
-    <p class="key"><b>Головне</b>Для датчиків бери ADC1 (GPIO1…10), у ДЗ — GPIO4. ADC2 конфліктує з Wi-Fi.</p>
+    <div class="note bad"><b>Ніколи не подавайте на пін більше 3,3 В.</b> Наприклад, 5 В від датчика на 5 В пошкодить мікроконтролер. Подільник між 3V3 і GND цього не допускає: його напруга завжди між 0 і 3,3 В.</div>
+    <p class="key"><b>Головне</b>Для датчиків беріть ADC1 (GPIO1…10), у ДЗ — GPIO4. ADC2 конфліктує з Wi-Fi.</p>
   </div>
   <div class="bench">
     <div class="panel">
@@ -684,7 +706,7 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
     <p>Сам АЦП усередині чипа «бачить» лише малі напруги, менше 1 В. Щоб міряти більші, перед ним стоїть <b>атенюатор</b> (ослаблювач). Він зменшує вхідну напругу в кілька разів. Його налаштування називається <b>ослабленням</b> (attenuation) і вимірюється в децибелах.</p>
     <p>Більше ослаблення → ширший діапазон, але кожна поділка грубіша. Типове значення в Arduino — <b>11 дБ</b>: діапазон 0…3100 мВ.</p>
     <div class="predict" data-ok="1" data-hook="att325" data-why="3,25 В вище стелі 3,1 В. АЦП «впирається» і повертає максимум 4095. Формула тоді покаже 3100 мВ, а не 3250. Тому краще не підходити впритул до 3,1 В.">
-      <span class="tag">Спрогнозуй</span>
+      <span class="tag">Спрогнозуйте</span>
       <p>Ослаблення 11 дБ, на піні 3,25 В. Що поверне <code>analogRead()</code>?</p>
       <div class="opts">
         <button type="button" class="opt">≈ 4033</button>
@@ -698,12 +720,12 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
       <li><code>analogRead(pin)</code> — «сире» число 0…4095 (RAW). Без калібрування.</li>
       <li><code>analogReadMilliVolts(pin)</code> — одразу мілівольти, <b>з калібруванням</b>. Кожен чип на заводі вимірюють і записують поправки в його eFuse (одноразову пам'ять). Функція їх враховує, тому зазвичай точніша за просту формулу.</li>
     </ul>
-    <div class="note">Пиши саме <code>analogReadMilliVolts</code>, з великою <b>V</b>. З малою (<code>Millivolts</code>, як в умові ДЗ) код не скомпілюється.</div>
+    <div class="note">Пишіть саме <code>analogReadMilliVolts</code>, з великою <b>V</b>. З малою (<code>Millivolts</code>, як в умові ДЗ) код не скомпілюється.</div>
     <p class="key"><b>Головне</b>Ослаблення 11 дБ = 0…3100 мВ. Вище 3,1 В буде 4095. <code>analogReadMilliVolts()</code> враховує калібрування чипа.</p>
   </div>
   <div class="bench">
     <div class="panel">
-      <div class="ph"><h3>ESP32-S3 · діапазони ослаблення</h3><span class="hint">натисни рядок</span></div>
+      <div class="ph"><h3>ESP32-S3 · діапазони ослаблення</h3><span class="hint">натисніть рядок</span></div>
       <div class="tbl-wrap">
         <table class="att" id="att-tbl">
           <thead><tr><th>Ослаблення</th><th>Діапазон</th><th>Поділка</th><th>Константа Arduino</th></tr></thead>
@@ -735,13 +757,13 @@ U<sub>ref</sub> = 3100 мВ   (ESP32-S3, ослаблення 11 дБ)</div>
     <div class="formula">середнє = (x₁ + x₂ + … + x<sub>N</sub>) / N
 шум зменшується приблизно в √N разів
 затримка ≈ (N − 1) / 2 · період</div>
-    <p>Але є ціна: <b>затримка</b>. Середнє реагує на зміну світла повільніше. Затисни «Закрити датчик рукою» і подивись, як жовта лінія запізнюється при великому N.</p>
+    <p>Але є ціна: <b>затримка</b>. Середнє реагує на зміну світла повільніше. Затисніть «Закрити датчик рукою» і подивіться, як жовта лінія запізнюється при великому N.</p>
     <div class="note">Детальніше про фільтри — у модулі 5.5. У ДЗ фільтр не обов'язковий, але знадобиться в міні-проєкті.</div>
     <p class="key"><b>Головне</b>Ковзне середнє з N вимірів зменшує шум у ~√N разів, але додає затримку.</p>
   </div>
   <div class="bench">
     <div class="panel">
-      <div class="ph"><h3>Потік вимірів · кожні 100 мс</h3><span class="hint">15 с на екран · клацни для паузи</span></div>
+      <div class="ph"><h3>Потік вимірів · кожні 100 мс</h3><span class="hint">15 с на екран · натисніть для паузи</span></div>
       <div class="scope-wrap"><canvas class="scope" id="sc-noise" height="260" role="img" aria-label="Осцилограф: сирі виміри з шумом і ковзне середнє"></canvas></div>
       <div class="controls">
         <div class="ctl"><label for="n-n">Вікно середнього N <b id="n-n-v">8</b></label><input id="n-n" type="range" min="1" max="32" step="1" value="8"></div>
@@ -770,8 +792,8 @@ i = (i + <span class="m">1</span>) % N;
 <section class="topic" id="mistakes">
   <div class="explain">
     <h2><span class="n">09</span>Типові помилки</h2>
-    <p>Ці помилки роблять майже всі на першій схемі з АЦП. Прочитай симптом і подумай, що могло статися, а потім глянь, як виправити.</p>
-    <p><b>Окремо про похибку у відсотках.</b> У ДЗ ти рахуєш відносну похибку: <code>(U_calc − U_meas) / U_meas · 100 %</code>. Навіть маленька різниця в кілька мілівольт стає величезною, коли U_meas близька до нуля. Ділення на «майже нуль» дає великі числа. Покрути прилад справа.</p>
+    <p>Ці помилки роблять майже всі на першій схемі з АЦП. Прочитайте симптом і подумайте, що могло статися, а потім гляньте, як виправити.</p>
+    <p><b>Окремо про похибку у відсотках.</b> У ДЗ ви рахуєте відносну похибку: <code>(U_calc − U_meas) / U_meas · 100 %</code>. Навіть маленька різниця в кілька мілівольт стає величезною, коли U_meas близька до нуля. Ділення на «майже нуль» дає великі числа. Покрутіть прилад справа.</p>
     <div class="formula">різниця 5 мВ при 1000 мВ →   0,5 %
 різниця 5 мВ при   20 мВ →  25 %
 різниця 5 мВ при    5 мВ → 100 %</div>
@@ -823,7 +845,7 @@ U_out = 3,3 В · R2 / (R_LDR + R2)
 пін: ADC1 = GPIO1…10 (у ДЗ GPIO4)
 більше світла → менший R_LDR → більше RAW</div>
       <p style="margin-top:8px"><b>Схема ДЗ:</b> 3V3 → LDR → <b>GPIO4</b> → 10 кОм → GND.</p>
-      <p><a href="../ldr-lab/">Відкрити симуляцію ДЗ →</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc" target="_blank" rel="noopener">код проєкту на GitHub ↗</a></p>
+      <p><a href="../ldr-lab/">Відкрити модель ДЗ →</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc" target="_blank" rel="noopener">код проєкту на GitHub ↗</a></p>
     </div>
     <div class="card">
       <h3>Глосарій</h3>
@@ -851,14 +873,14 @@ U_out = 3,3 В · R2 / (R_LDR + R2)
         <li><span class="lvl d">поглиблено</span><a href="https://org2.knuba.edu.ua/mod/book/tool/print/index.php?id=23040&amp;chapterid=126" target="_blank" rel="noopener">КНУБА: основні поняття теорії сигналів</a><small>Дискретизація, теорема Котельникова, квантування.</small></li>
         <li><span class="lvl d">поглиблено</span><a href="https://org2.knuba.edu.ua/mod/book/tool/print/index.php?id=32487" target="_blank" rel="noopener">КНУБА: аналого-цифрові й цифро-аналогові перетворювачі</a><small>Як АЦП влаштовані всередині: послідовне наближення та інші.</small></li>
         <li><span class="lvl o">офіційно</span><a href="https://docs.espressif.com/projects/arduino-esp32/en/latest/api/adc.html" target="_blank" rel="noopener">Arduino-ESP32: ADC API</a><small><code>analogRead</code>, <code>analogReadMilliVolts</code>, таблиця діапазонів ослаблення.</small></li>
-        <li><span class="lvl o">офіційно</span><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_oneshot.html" target="_blank" rel="noopener">ESP-IDF: ESP32-S3 ADC oneshot</a><small>Апаратні обмеження: ADC2 і Wi-Fi, <code>ESP_ERR_TIMEOUT</code>.</small></li>
+        <li><span class="lvl o">офіційно</span><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_oneshot.html" target="_blank" rel="noopener">ESP-IDF: ESP32-S3 ADC oneshot</a><small>Апаратні обмеження: ADC2 і Wi-Fi (<code>ESP_ERR_TIMEOUT</code> — це IDF 5.x; у ядрі 2.0.17 — <code>ESP_ERR_INVALID_STATE</code>).</small></li>
       </ul>
     </div>
   </div>
   <div class="note warn" id="fixes">
     <b>Виправлення до конспекту курсу.</b> Конспект добре пояснює ідеї. Три деталі варто уточнити для нашої плати:
     <ul style="margin:6px 0 0; padding-left:20px">
-      <li>Повна шкала АЦП ESP32-S3 при 11 дБ — <b>≈3,1 В</b>, а не 3,3 В. У формулі <code>U = RAW / 4095 · U_ref</code> бери 3100 мВ, як і в умові ДЗ. Приклад «2048 → 1,65 В» для S3 дає ≈1,55 В.</li>
+      <li>Повна шкала АЦП ESP32-S3 при 11 дБ — <b>≈3,1 В</b>, а не 3,3 В. У формулі <code>U = RAW / 4095 · U_ref</code> беріть 3100 мВ, як і в умові ДЗ. Приклад «2048 → 1,65 В» для S3 дає ≈1,55 В.</li>
       <li>Функція називається <code>analogReadMilliVolts()</code>, з великою V. В умові ДЗ написано <code>analogReadMillivolts()</code>, такий код не скомпілюється.</li>
       <li>Малюнок до «квантування» вертикальний: Analog → ADC → DAC → Filter. Після ADC на ньому окремі <b>точки-виміри</b>. «Сходинки» на ньому — це вихід ЦАП (DAC), а не АЦП. Підпис «аналоговий зліва, ступінчастий справа» до цього малюнка не пасує.</li>
     </ul>
@@ -866,8 +888,8 @@ U_out = 3,3 В · R2 / (R_LDR + R2)
 </section>
 
 <footer>
-  <p><a href="../">← Усі матеріали</a> · <a href="../pull-resistors/">Підтяжка входу (модуль 1.4)</a> · <a href="../ldr-lab/">Симуляція ДЗ модуля 1.6</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc" target="_blank" rel="noopener">esp32-s3-ldr-adc на GitHub</a></p>
-  <p>Дані: Arduino-ESP32 ADC API (діапазони ослаблення ESP32-S3), ESP-IDF ADC oneshot (ADC2 і Wi-Fi). Модель фоторезистора R = 15 кОм · (10 / лк)<sup>0,7</sup> спрощена й схожа на GL5528, та сама, що в Wokwi-чипі проєкту. АЦП тут ідеально лінійний. Справжній має невелику нелінійність біля країв шкали.</p>
+  <p><a href="../">← Усі матеріали</a> · <a href="../pull-resistors/">Підтяжка входу (модуль 1.4)</a> · <a href="../ldr-lab/">Модель ДЗ модуля 1.6</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc" target="_blank" rel="noopener">esp32-s3-ldr-adc на GitHub</a></p>
+  <p>Дані: Arduino-ESP32 ADC API (діапазони ослаблення ESP32-S3), ESP-IDF ADC oneshot (ADC2 і Wi-Fi). Модель фоторезистора R = 15 кОм · (10 / лк)<sup>0,7</sup> спрощена й схожа на GL5528. АЦП тут ідеально лінійний. Справжній має невелику нелінійність біля країв шкали.</p>
 </footer>
 </div>
 
@@ -928,12 +950,12 @@ function plot(cv, o) {
   const X = v => L + (tx(v) - tx(o.x0)) / (tx(o.x1) - tx(o.x0)) * pw;
   const Y = v => Tp + ph - (ty(v) - ty(o.y0)) / (ty(o.y1) - ty(o.y0)) * ph;
   ctx.strokeStyle = T['--scope-grid']; ctx.lineWidth = 1;
-  ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text'];
+  ctx.font = '500 13px \"JetBrains Mono\", monospace'; ctx.fillStyle = T['--scope-text'];
   ctx.textAlign = 'center';
   for (const [v, lab] of o.xt || []) { const x = Math.round(X(v)) + .5; ctx.beginPath(); ctx.moveTo(x, Tp); ctx.lineTo(x, Tp + ph); ctx.stroke(); if (lab) ctx.fillText(lab, x, Tp + ph + 14); }
   ctx.textAlign = 'right';
   for (const [v, lab] of o.yt || []) { const y = Math.round(Y(v)) + .5; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); if (lab) ctx.fillText(lab, L - 6, y + 3.5); }
-  ctx.textAlign = 'left'; if (o.yl) ctx.fillText(o.yl, 4, 11);
+  ctx.textAlign = 'left'; if (o.yl) ctx.fillText(o.yl, 4, 13);
   ctx.textAlign = 'right'; if (o.xl) ctx.fillText(o.xl, L + pw, H - 3);
   return { ctx, w, H, L, Tp, pw, ph, X, Y, clip() { ctx.save(); ctx.beginPath(); ctx.rect(L, Tp - 2, pw, ph + 4); ctx.clip(); } };
 }
@@ -942,17 +964,17 @@ function line(ctx, pts, color, width = 2, dash) {
   pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.setLineDash([]);
 }
 function legend(ctx, x, y, items) {
-  ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left';
+  ctx.font = '600 13px \"JetBrains Mono\", monospace'; ctx.textAlign = 'left';
   const x0 = x, maxX = ctx.canvas.clientWidth - 14;
   for (const [label, color] of items) {
     const lw = ctx.measureText(label).width;
-    if (x > x0 && x + 14 + lw > maxX) { x = x0; y += 14; }
+    if (x > x0 && x + 14 + lw > maxX) { x = x0; y += 17; }
     ctx.fillStyle = color; ctx.fillRect(x, y - 4, 10, 3); ctx.fillText(label, x + 14, y); x += lw + 30;
   }
 }
 // right-aligned caption that falls back to a shorter text on narrow canvases
 function caption(ctx, x, y, long, short) {
-  ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right';
+  ctx.font = '500 13px \"JetBrains Mono\", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right';
   ctx.fillText(ctx.measureText(long).width < x - 10 ? long : short, x, y);
 }
 class Trace {
@@ -969,7 +991,7 @@ function addSim(sim) {
   if (sim.cv) {
     const tag = document.createElement('span'); tag.className = 'paused'; sim.tag = tag;
     sim.paused = reduce && !sim.always;
-    const show = () => { tag.hidden = !sim.paused; tag.textContent = reduce ? 'ПАУЗА · клацни, щоб запустити' : 'ПАУЗА'; };
+    const show = () => { tag.hidden = !sim.paused; tag.textContent = reduce ? 'ПАУЗА · натисніть, щоб запустити' : 'ПАУЗА'; };
     sim.cv.parentElement.appendChild(tag); show();
     sim.cv.addEventListener('click', () => { sim.paused = !sim.paused; show(); });
   }
@@ -1006,12 +1028,14 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
   box.innerHTML = `<svg class="taps" viewBox="0 0 520 248" role="img" aria-label="Цифровий кран має два положення, аналоговий відкривається на будь-який відсоток">${tap(150, 'tapD', 'Цифровий', '0 або 1')}${tap(390, 'tapA', 'Аналоговий', '0…100 %')}</svg>`;
   const st = { d: 0, levelD: 0, levelA: 0 };
   const btn = $('#tap-d'), rng = $('#tap-a');
-  btn.addEventListener('click', () => { st.d = st.d ? 0 : 1; btn.setAttribute('aria-pressed', String(!!st.d)); btn.textContent = `Цифровий кран: ${st.d ? 'відкрито' : 'закрито'}`; draw(); });
-  rng.addEventListener('input', () => { $('#tap-a-v').textContent = rng.value + ' %'; draw(); });
+  let runUntil = 0; const kick = () => { runUntil = performance.now() + 5000; };
+  btn.addEventListener('click', () => { kick(); st.d = st.d ? 0 : 1; btn.setAttribute('aria-pressed', String(!!st.d)); btn.textContent = `Цифровий кран: ${st.d ? 'відкрито' : 'закрито'}`; draw(); });
+  rng.addEventListener('input', () => { kick(); $('#tap-a-v').textContent = rng.value + ' %'; draw(); });
   function setTap(id, frac, level, valText, angle) {
     const g = $('#' + id);
     g.querySelector('.h').style.transform = `rotate(${angle}deg)`;
     const w = g.querySelector('.water');
+    w.classList.toggle('run', frac > 0 && performance.now() < runUntil);
     w.setAttribute('stroke-width', frac > 0 ? (2 + 12 * frac).toFixed(1) : 0);
     w.setAttribute('y2', 198 - 66 * level);
     const lq = g.querySelector('.liquid'), h = 64 * level;
@@ -1025,7 +1049,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     setTap('tapA', a, st.levelA, `${Math.round(a * 100)} %`, -a * 120);
   }
   addSim({ root: box.closest('section'), always: true,
-    step(dt) { if (reduce) return;
+    step(dt) { if (reduce || performance.now() > runUntil) return;
       st.levelD += st.d * dt * 0.18; st.levelA += (+rng.value / 100) * dt * 0.18;
       if (st.levelD > 1) st.levelD = 0; if (st.levelA > 1) st.levelA = 0; },
     draw });
@@ -1055,12 +1079,12 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
       line(ctx, Array.from({ length: n }, (_, i) => [X(i + off), Y(tr.at('v', i))]), T['--sig'], 2.2);
       // digital row
       const yH = Tp + ph + 18, yL = Tp + ph + 40;
-      ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right'; ctx.font = '600 10.5px "JetBrains Mono", monospace'; ctx.fillText('D', L - 6, (yH + yL) / 2 + 3.5);
+      ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'right'; ctx.font = '600 13px \"JetBrains Mono\", monospace'; ctx.fillText('D', L - 6, (yH + yL) / 2 + 3.5);
       const pts = []; let prev = tr.at('d', 0); pts.push([X(off), prev ? yH : yL]);
       for (let i = 1; i < n; i++) { const dv = tr.at('d', i); if (dv !== prev) { pts.push([X(i + off), prev ? yH : yL], [X(i + off), dv ? yH : yL]); prev = dv; } }
       pts.push([X(N - 1), prev ? yH : yL]); line(ctx, pts, T['--hi'], 2);
       // analog numbers sampled every ~2 s along the trace
-      ctx.font = '600 10.5px "JetBrains Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = T['--sig'];
+      ctx.font = '600 13px \"JetBrains Mono\", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = T['--sig'];
       for (let i = n - 1; i > 0; i -= 60) { const vv = tr.at('v', i); ctx.beginPath(); ctx.arc(X(i + off), Y(vv), 3, 0, 7); ctx.fill(); ctx.fillText(rawOf(vv), X(i + off), Y(vv) - 8 > Tp + 8 ? Y(vv) - 8 : Y(vv) + 16); }
       legend(ctx, L + 8, Tp + 10, [['напруга (analogRead — числа)', T['--sig']], ['digitalRead()', T['--hi']]]);
       caption(ctx, L + pw, H - 4, 'фіолетова смуга — зона «ні те, ні се» для digitalRead', 'смуга — «ні те, ні се»');
@@ -1091,7 +1115,8 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
       const b = +bits.value, n = 2 ** b, lsb = FS / n, T_s = +ts.value / 1000;
       const q = v => clamp(Math.round(v / lsb), 0, n - 1) * lsb;
       const yt = n <= 16 ? Array.from({ length: n }, (_, i) => [i * lsb, n <= 8 ? `${i}` : (i % 2 ? '' : `${i}`)]) : [[0, '0'], [1, '1 В'], [2, '2 В'], [3, '3 В']];
-      const g = plot(cv, { x0: 0, x1: 1, y0: 0, y1: 3.2, L: 40, yt, xt: [[0, '0'], [0.25, '250'], [0.5, '500'], [0.75, '750'], [1, '1000 мс']], yl: n <= 16 ? 'код' : 'В' });
+      const narrow = cv.clientWidth < 420; // phones: the legend gets its own band above the plot, off the traces
+      const g = plot(cv, { x0: 0, x1: 1, y0: 0, y1: 3.2, L: 40, Tp: narrow ? 52 : 16, yt, xt: [[0, '0'], [0.25, '250'], [0.5, '500'], [0.75, '750'], [1, '1000 мс']], yl: n <= 16 ? 'код' : 'В' });
       if (!g) return;
       const { ctx, X, Y, L, pw, Tp } = g;
       g.clip();
@@ -1109,7 +1134,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
       ctx.fillStyle = T['--sig2'];
       for (let t0 = 0; t0 < 1; t0 += T_s) { ctx.beginPath(); ctx.arc(X(t0), Y(sig(t0)), 3.2, 0, 7); ctx.fill(); }
       ctx.restore();
-      legend(ctx, L + 8, Tp + 10, [['сигнал', T['--sig']], ['вимір', T['--sig2']], ['що бачить МК', T['--hi']]].concat(err.checked ? [['похибка', 'rgba(244,114,182,.6)']] : []));
+      legend(ctx, L + 8, narrow ? 16 : Tp + 10, [['сигнал', T['--sig']], ['вимір', T['--sig2']], ['що бачить МК', T['--hi']]].concat(err.checked ? [['похибка', 'rgba(244,114,182,.6)']] : []));
     } };
   [bits, ts, err].forEach(e => e.addEventListener('input', () => { labels(); sim.draw(); }));
   labels(); addSim(sim);
@@ -1127,7 +1152,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     const { ctx, w, H } = g, L = 14, pw = w - 26;
     // main ruler
     const y0 = 30, X = c => L + c / ADC_MAX * pw;
-    ctx.fillStyle = T['--scope-text']; ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = T['--scope-text']; ctx.font = '500 13px \"JetBrains Mono\", monospace'; ctx.textAlign = 'center';
     ctx.strokeStyle = T['--scope-text']; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(L + pw, y0); ctx.stroke();
     for (let c = 0; c <= 4096; c += 128) {
@@ -1139,7 +1164,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     const mx = X(raw);
     ctx.fillStyle = raw >= ADC_MAX ? T['--bad'] : T['--hi'];
     ctx.beginPath(); ctx.moveTo(mx, y0 - 2); ctx.lineTo(mx - 6, y0 - 12); ctx.lineTo(mx + 6, y0 - 12); ctx.fill();
-    ctx.font = '700 12px "JetBrains Mono", monospace'; ctx.textAlign = mx < 40 ? 'left' : mx > w - 40 ? 'right' : 'center';
+    ctx.font = '700 13px \"JetBrains Mono\", monospace'; ctx.textAlign = mx < 40 ? 'left' : mx > w - 40 ? 'right' : 'center';
     ctx.fillText(raw, mx, y0 - 16);
     // zoom: ±7 codes around raw
     const zy = 112, span = w < 520 ? 3 : 7, c0 = clamp(raw - span, 0, ADC_MAX - 2 * span), Z = c => L + 34 + (c - c0) / (2 * span) * (pw - 50);
@@ -1147,7 +1172,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     ctx.strokeStyle = T['--scope-grid']; ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(mx, y0 + 28); ctx.lineTo(Z(c0), zy - 26); ctx.moveTo(mx, y0 + 28); ctx.lineTo(Z(c0 + 2 * span), zy - 26); ctx.stroke(); ctx.setLineDash([]);
     ctx.strokeStyle = T['--scope-text']; ctx.beginPath(); ctx.moveTo(Z(c0), zy); ctx.lineTo(Z(c0 + 2 * span), zy); ctx.stroke();
-    ctx.font = '500 10px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+    ctx.font = '500 13px \"JetBrains Mono\", monospace'; ctx.textAlign = 'center';
     for (let c = c0; c <= c0 + 2 * span; c++) {
       const x = Z(c); ctx.strokeStyle = c === raw ? T['--hi'] : T['--scope-text']; ctx.lineWidth = c === raw ? 2.5 : 1;
       ctx.beginPath(); ctx.moveTo(x, zy - 8); ctx.lineTo(x, zy + 8); ctx.stroke();
@@ -1178,7 +1203,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
       $('#c-live').textContent = `${f(r, 0)} / 4095 · ${ref} = ${f(m, 1)} мВ`;
     } else {
       const m = num(cMv.value);
-      if (!isFinite(m) || m < 0) { $('#c-live').textContent = 'Введи напругу в мВ'; return; }
+      if (!isFinite(m) || m < 0) { $('#c-live').textContent = 'Введіть напругу в мВ'; return; }
       const r = clamp(Math.round(m / ref * ADC_MAX), 0, ADC_MAX); cRaw.value = r;
       $('#c-live').textContent = `${f(m, 1)} / ${ref} · 4095 = ${f(m / ref * ADC_MAX, 1)} → ${r}${m > ref ? '  (вище стелі — 4095)' : ''}`;
     }
@@ -1335,12 +1360,15 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     ctx.fillStyle = T['--sig']; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
     const lb = Math.log10(luxFromR(10 ** +r2In.value));
     if (lb > -1.5 && lb < 5) { ctx.strokeStyle = T['--ok']; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.moveTo(X(lb), g.Tp); ctx.lineTo(X(lb), g.Tp + g.ph); ctx.stroke(); ctx.setLineDash([]); }
-    ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'left';
+    ctx.font = '500 13px \"JetBrains Mono\", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'left';
     ctx.fillText('вище 3,1 В АЦП показує 4095', L + 6, Y(3.25) + 3.5);
     ctx.fillStyle = T['--ok']; if (lb > -1.5 && lb < 5) ctx.fillText('R_LDR = R2', X(lb) + 4, g.Tp + g.ph - 6);
   }
-  lIn.addEventListener('input', update); r2In.addEventListener('input', update); swap.addEventListener('change', render);
-  $$('[data-r2]').forEach(b => b.addEventListener('click', () => { r2In.value = Math.log10(+b.dataset.r2); update(); }));
+  // current dots: 5 s after each user change, then they stop
+  let flowT = 0;
+  const kick = () => { const fl = $('#dv-flow'); if (!fl || reduce) return; fl.classList.add('run'); clearTimeout(flowT); flowT = setTimeout(() => fl.classList.remove('run'), 5000); };
+  lIn.addEventListener('input', () => { update(); kick(); }); r2In.addEventListener('input', () => { update(); kick(); }); swap.addEventListener('change', () => { render(); kick(); });
+  $$('[data-r2]').forEach(b => b.addEventListener('click', () => { r2In.value = Math.log10(+b.dataset.r2); update(); kick(); }));
   $('#d-hw').addEventListener('click', () => { swap.checked = false; r2In.value = 4; lIn.value = Math.log10(luxFromR(580100)); render(); box.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); });
   hooks.divBright = () => { swap.checked = false; lIn.value = 3.5; render(); };
   redrawers.push(drawSens); window.addEventListener('resize', drawSens);
@@ -1356,7 +1384,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     const n = /^\d+$/.test(p) ? +p : null;
     if (p === 'GND') return ['gnd', 'GND', [['lo', 'земля']], 'Спільний «мінус». Нижній кінець R2 подільника йде сюди.'];
     if (p === '3V3') return ['pwr', '3V3', [['bad', 'живлення']], 'Вихід стабілізатора 3,3 В. Верхній кінець LDR іде сюди. Це максимум, який можна подавати на будь-який пін.'];
-    if (p === '5V') return ['pwr', '5V', [['bad', 'не на пін!']], 'Живлення від USB, 5 В. Ніколи не з\'єднуй із GPIO: 5 В пошкодять чип.'];
+    if (p === '5V') return ['pwr', '5V', [['bad', 'не на пін!']], 'Живлення від USB, 5 В. Ніколи не з\'єднуйте із GPIO: 5 В пошкодять чип.'];
     if (p === 'RST') return ['other', 'RST (EN)', [['lo', 'скидання']], 'Скидання чипа. LOW перезапускає програму. Не для датчиків.'];
     if (p === 'TX' || p === 'RX') return ['other', `${p} (GPIO${p === 'TX' ? 43 : 44})`, [['lo', 'UART0']], 'Послідовний порт до USB-UART перетворювача. Краще не займати.'];
     if (n >= 1 && n <= 10) {
@@ -1367,10 +1395,10 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     if (n >= 11 && n <= 20) {
       const b = [['warn', `ADC2_CH${n - 11}`]];
       if (n >= 19) { b.push(['z', 'USB']); return ['usbp', `GPIO${n}`, b, `USB ${n === 19 ? 'D−' : 'D+'}: через нього прошивка і Serial. Не чіпати.`]; }
-      return ['adc2', `GPIO${n}`, b, 'ADC2 ділить апаратуру з Wi-Fi. З увімкненим Wi-Fi analogRead() тут може не спрацювати (ESP_ERR_TIMEOUT в ESP-IDF). Без Wi-Fi працює.'];
+      return ['adc2', `GPIO${n}`, b, 'ADC2 ділить апаратуру з Wi-Fi. З увімкненим Wi-Fi analogRead() тут може не спрацювати (ESP_ERR_INVALID_STATE, analogRead() дає 65535). Без Wi-Fi працює.'];
     }
     if (n === 0 || n === 45 || n === 46) return ['strap', `GPIO${n}`, [['bad', 'strapping']], n === 0 ? 'Кнопка BOOT. LOW при старті переводить чип у режим прошивки. АЦП немає.' : 'Strapping-пін: його рівень при старті задає режим чипа. АЦП немає. Краще не підключати датчики.'];
-    if (n >= 35 && n <= 37) return ['usbp', `GPIO${n}`, [['z', 'PSRAM']], 'На модулі N16R8 цей пін зайнятий восьмибітною PSRAM. Не використовуй.'];
+    if (n >= 35 && n <= 37) return ['usbp', `GPIO${n}`, [['z', 'PSRAM']], 'На модулі N16R8 цей пін зайнятий восьмибітною PSRAM. Не використовуйте.'];
     return ['other', `GPIO${n}`, [['lo', 'цифровий']], `Звичайний цифровий пін. АЦП немає: analogRead() тут не працює.${n === 48 ? ' На багатьох платах DevKitC тут RGB-світлодіод.' : ''}${n >= 39 && n <= 42 ? ' Також використовується для JTAG.' : ''}`];
   }
   const rowH = 24, top = 70;
@@ -1388,14 +1416,14 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
   [[J1, 70, 'start', 18], [J3, 290, 'end', -18]].forEach(([J, x, anchor, dx]) => J.forEach((p, i) => {
     const [cat, name] = info(p), y = top + i * rowH, id = `pin-${x}-${i}`;
     all.push({ id, p, cat });
-    s += `<g class="pin" id="${id}" data-cat="${cat}" tabindex="0" role="button" aria-label="${name}"><circle class="${cat}" cx="${x}" cy="${y}" r="8"/><text x="${x + dx}" y="${y + 4}" text-anchor="${anchor}">${/^\d+$/.test(p) ? p : p}</text></g>`;
+    s += `<g class="pin" id="${id}" data-cat="${cat}" tabindex="0" role="button" aria-label="${name}"><rect class="hit" x="${x - 23}" y="${y - 12}" width="46" height="24"/><circle class="${cat}" cx="${x}" cy="${y}" r="8"/><circle class="pf h" cx="${x}" cy="${y}" r="14"/><circle class="pf f" cx="${x}" cy="${y}" r="14"/><text x="${x + dx}" y="${y + 4}" text-anchor="${anchor}">${/^\d+$/.test(p) ? p : p}</text></g>`;
   }));
   s += '</svg>';
   $('#pins-box').innerHTML = s;
   function select(el) {
     $$('.pins .pin').forEach(x => x.classList.toggle('sel', x === el));
     const p = all.find(a => a.id === el.id).p, [, name, badges, text] = info(p);
-    $('#pin-info').innerHTML = `<h4>${name}</h4><p>${badges.map(([c, t]) => `<span class="badge ${c}">${t}</span>`).join('')}</p><p style="margin-top:4px">${text}</p>`;
+    $('#pin-info').innerHTML = `<h3>${name}</h3><p>${badges.map(([c, t]) => `<span class="badge ${c}">${t}</span>`).join('')}</p><p style="margin-top:4px">${text}</p>`;
   }
   $$('.pins .pin').forEach(el => {
     el.addEventListener('click', () => select(el));
@@ -1490,15 +1518,15 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
 /* ================================================================ 09 mistakes + relative error */
 (() => {
   const M = [
-    ['LDR і 10 кОм переплутані', 'Світло вмикається, а число падає.', 'LDR — до 3V3, 10 кОм — до GND. Або просто інвертуй логіку в коді.'],
-    ['Пін з ADC2 і ввімкнений Wi-Fi', 'analogRead() повертає 0 або старі числа, тільки коли працює Wi-Fi.', 'Переходь на ADC1: GPIO1…10, у ДЗ — GPIO4.'],
+    ['LDR і 10 кОм переплутані', 'Світло вмикається, а число падає.', 'LDR — до 3V3, 10 кОм — до GND. Або просто інвертуйте логіку в коді.'],
+    ['Пін з ADC2 і ввімкнений Wi-Fi', 'analogRead() повертає 65535, тільки коли працює Wi-Fi.', 'Переходь на ADC1: GPIO1…10, у ДЗ — GPIO4.'],
     ['U_ref = 3,3 В замість 3,1 В', 'Обчислена напруга завжди на ~6 % більша за analogReadMilliVolts().', 'Для ESP32-S3 при 11 дБ U_ref = 3100 мВ.'],
-    ['Пін «висить»', 'Числа хаотично скачуть від 0 до 4095, і рука поруч їх змінює.', 'Перевір дріт від середньої точки до піна й контакт у макетці. <a href="../pull-resistors/#floating">Згадай модуль 1.4 →</a>'],
-    ['Більше 3,3 В на піні', 'Датчик живиться від 5 В. Пін гріється, чип зависає або гине.', 'Живи подільник від 3V3. 5-вольтові датчики — тільки через подільник або перетворювач рівнів.'],
+    ['Пін «висить»', 'Числа хаотично скачуть від 0 до 4095, і рука поруч їх змінює.', 'Перевірте дріт від середньої точки до піна й контакт у макетці. <a href="../pull-resistors/#floating">Згадайте модуль 1.4 →</a>'],
+    ['Більше 3,3 В на піні', 'Датчик живиться від 5 В. Пін гріється, чип зависає або гине.', 'Живіть подільник від 3V3. 5-вольтові датчики — тільки через подільник або перетворювач рівнів.'],
     ['Чекати люкси від RAW', '«RAW 2000 — це скільки люксів?» Прямої відповіді немає.', 'RAW → напруга → опір LDR → люкси за моделлю. Точність залежить від конкретного LDR.'],
-    ['Похибка 800 % у темряві', 'У темряві похибка у відсотках величезна, на світлі — мала.', 'Це ділення на «майже нуль». Дивись на абсолютну різницю в мВ або відкидай виміри нижче ~100 мВ.'],
+    ['Похибка 800 % у темряві', 'У темряві похибка у відсотках величезна, на світлі — мала.', 'Це ділення на «майже нуль». Дивіться на абсолютну різницю в мВ або відкидайте виміри нижче ~100 мВ.'],
   ];
-  $('#mist').innerHTML = M.map(([h, sym, fix]) => `<div class="card"><h4>${h}</h4><p class="sym">Симптом: ${sym}</p><p class="fix">Як виправити: ${fix}</p></div>`).join('');
+  $('#mist').innerHTML = M.map(([h, sym, fix]) => `<div class="card"><h3>${h}</h3><p class="sym">Симптом: ${sym}</p><p class="fix">Як виправити: ${fix}</p></div>`).join('');
   const cv = $('#sc-rel'), aIn = $('#e-abs'), uIn = $('#e-u');
   const U = () => 10 ** (+uIn.value * Math.log10(3100 / 2) + Math.log10(2));   // 2 … 3100 мВ, log
   function draw() {
@@ -1517,7 +1545,7 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     line(ctx, p, T['--hi'], 2.4);
     ctx.restore();
     ctx.fillStyle = T['--sig']; ctx.beginPath(); ctx.arc(X(u), Y(clamp(rel, 0.01, 1000)), 6, 0, 7); ctx.fill();
-    ctx.font = '500 10.5px "JetBrains Mono", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'left';
+    ctx.font = '500 13px \"JetBrains Mono\", monospace'; ctx.fillStyle = T['--scope-text']; ctx.textAlign = 'left';
     ctx.fillText('< 100 мВ: прошивка ДЗ не бере в підсумок', X(2) + 4, g.Tp + g.ph - 6);
   }
   [aIn, uIn].forEach(e => e.addEventListener('input', draw));
@@ -1541,9 +1569,9 @@ $$('.try').forEach(tr => {
   const inp = tr.querySelector('input'), fb = tr.querySelector('.fb'), ans = +tr.dataset.ans, tol = +tr.dataset.tol, unit = tr.dataset.unit;
   const check = () => {
     const v = num(inp.value);
-    if (!isFinite(v)) { fb.className = 'fb'; fb.textContent = 'Введи число (кома чи крапка — неважливо).'; return; }
+    if (!isFinite(v)) { fb.className = 'fb'; fb.textContent = 'Введіть число (кома чи крапка — неважливо).'; return; }
     if (Math.abs(v - ans) <= tol) { fb.className = 'fb ok'; fb.textContent = `✓ Правильно: ≈ ${f(ans, 0)}${unit ? ' ' + unit : ''}.`; }
-    else { fb.className = 'fb no'; fb.textContent = `Ще ні: правильна відповідь ${v < ans ? 'більша' : 'менша'}. Глянь підказку.`; }
+    else { fb.className = 'fb no'; fb.textContent = `Ще ні: правильна відповідь ${v < ans ? 'більша' : 'менша'}. Гляньте підказку.`; }
   };
   tr.querySelector('.btn').addEventListener('click', check);
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
@@ -1567,7 +1595,7 @@ $$('.try').forEach(tr => {
   box.innerHTML = Q.map(([q, opts], i) => `<div class="q" data-i="${i}"><p>${i + 1}. ${q}</p><div class="opts">${opts.map((o, j) => `<button type="button" class="opt" data-j="${j}">${o}</button>`).join('')}</div><div class="fb" aria-live="polite"></div></div>`).join('');
   const score = () => {
     const qs = $$('#qz .q'), done = qs.filter(q => q.dataset.done), right = done.filter(q => q.dataset.ok === '1').length;
-    $('#qz-score').textContent = `${right} / ${done.length} правильно з ${Q.length}` + (done.length === Q.length ? (right === Q.length ? ' · Чудово!' : right >= 7 ? ' · Добре!' : ' · Перечитай розділи з помилками') : '');
+    $('#qz-score').textContent = `${right} / ${done.length} правильно з ${Q.length}` + (done.length === Q.length ? (right === Q.length ? ' · Чудово!' : right >= 7 ? ' · Добре!' : ' · Перечитайте розділи з помилками') : '');
     retry.hidden = !done.some(q => q.dataset.ok === '0');
   };
   box.addEventListener('click', e => {
@@ -1589,6 +1617,18 @@ $$('.try').forEach(tr => {
 
 tokens();
 requestAnimationFrame(frame);
+
+// phone scroll boxes: focusable, named regions only while they really scroll sideways (keyboard users can then scroll them)
+function markScrollBoxes() {
+  const NAME = { formula: 'Формула', live: 'Розрахунок', 'tbl-wrap': 'Таблиця' };
+  $$('.formula, .live, .tbl-wrap').forEach(b => {
+    const scrolls = b.scrollWidth > b.clientWidth + 1, kind = Object.keys(NAME).find(k => b.classList.contains(k));
+    if (scrolls) { b.tabIndex = 0; b.setAttribute('role', 'region'); b.setAttribute('aria-label', NAME[kind] + ' (гортайте вбік)'); }
+    else if (b.getAttribute('role') === 'region') { b.removeAttribute('tabindex'); b.removeAttribute('role'); b.removeAttribute('aria-label'); }
+  });
+}
+markScrollBoxes(); setTimeout(markScrollBoxes, 1500); window.addEventListener('resize', markScrollBoxes);
 </script>
+<script src="../assets/course.js" defer></script><script src="../assets/site-nav.js" defer></script>
 </body>
 </html>

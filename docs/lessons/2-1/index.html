@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 2.1 · C++ для мікроконтролера</title>
+<meta name="description" content="Де живуть змінні на ESP32-S3 (Flash, SRAM, PSRAM), чому купа фрагментується, що насправді роблять volatile, const, constexpr і static, і як замінити delay() на millis() у суперциклі.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.fig-svg { display: block; width: 100%; height: auto; }
+.hs > figure { margin: 12px 0 16px; }
+.hs > figure figcaption { font-size: 14px; color: var(--muted); }
+.fig-svg text { font-family: var(--f-body); }
+.fig-svg .mono { font-family: var(--f-mono); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.readout b { font: 600 16px var(--f-mono); color: var(--ink); }
+.readout b.bad { color: var(--bad); }
+.readout b.ok { color: var(--ok); }
+.step-log { margin: 10px 0 0; min-height: 3em; font-size: 15px; }
+.step-log code { font-size: 14px; }
+
+/* W2-1a heap */
+.heap-wrap { position: relative; padding-top: 38px; margin: 0 0 6px; }
+.heap { position: relative; height: 58px; border: 2px solid var(--ink); border-radius: 6px; background: var(--panel-2); }
+.heap .hb, .heap .hole { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; font: 600 14px var(--f-mono); overflow: hidden; }
+.heap .hb { background: color-mix(in srgb, var(--accent) 24%, var(--panel)); border: 1.5px solid var(--accent); color: var(--ink); }
+.heap .hb small { font: 500 13px var(--f-mono); color: var(--muted); }
+.heap .hole { border: 1.5px dashed var(--ok); color: var(--ok); background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--ok) 14%, transparent) 6px 9px); }
+.heap .hb.new { animation: hb-in .45s ease-out; }
+@keyframes hb-in { from { transform: scaleY(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+.heap-ghost { position: absolute; top: 4px; height: 26px; border: 2px solid var(--bad); border-radius: 4px; color: var(--bad); font: 600 13px var(--f-mono); display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--bad) 10%, var(--panel)); white-space: nowrap; }
+.heap .hole.narrow { overflow: visible; }
+.heap .hole.narrow span { position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.heap-wrap.has-narrow { padding-bottom: 22px; }
+.heap-scale { display: flex; justify-content: space-between; font: 13px var(--f-mono); color: var(--muted); }
+
+/* W2-1b volatile */
+.vol-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+.vol-grid > * { min-width: 0; }
+@media (min-width: 720px) { .vol-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); } }
+.asm { margin: 0; padding: 8px 0; font: 14px/1.5 var(--f-mono); font-variant-ligatures: none; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+.asm span { display: block; padding: 1px 10px 1px 22px; position: relative; white-space: pre; }
+.asm span.pc { background: color-mix(in srgb, var(--hi) 22%, transparent); }
+.asm span.pc::before { content: "▶"; position: absolute; left: 6px; color: var(--hi-ink); font-size: 12px; top: 3px; }
+.asm i { font-style: normal; color: var(--muted); }
+@media (max-width: 560px) { .asm i { display: block; padding-left: 14px; } }
+.cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+.cell { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); }
+.cell .k { display: block; font-size: 13px; color: var(--muted); }
+.cell b { font: 600 20px var(--f-mono); }
+.cell.flash { animation: cell-flash .7s ease-out; }
+@keyframes cell-flash { from { background: color-mix(in srgb, var(--hi) 35%, var(--panel)); } to { background: var(--panel); } }
+.state { margin-top: 10px; font-weight: 600; }
+.state.ok { color: var(--ok); } .state.bad { color: var(--bad); }
+
+/* timeline canvas */
+.tl-canvas { display: block; width: 100%; height: 250px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+
+/* W2-1c where does it live */
+.where { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.where li { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--panel); }
+.where pre { margin: 0 0 8px; font-size: 14px; padding: 6px 10px; }
+.where .opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.where .opt { width: auto; min-width: 0; min-height: 40px; padding: 6px 4px; font-size: 14px; text-align: center; justify-content: center; }
+.where pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.where .opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel)); }
+.where .opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--panel)); }
+.where .ans { margin: 8px 0 0; font-size: 15px; }
+.where .ans:empty { display: none; }
+
+/* life stepper */
+.life-code { margin: 0; padding: 8px 0; font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+.life-code span { display: block; padding: 0 10px; white-space: pre; border-left: 3px solid transparent; }
+.life-code span.on { background: color-mix(in srgb, var(--hi) 20%, transparent); border-left-color: var(--hi); }
+.mem3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.mem3 > div { border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; min-height: 92px; background: var(--panel); }
+.mem3 h4 { margin: 0 0 6px; font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mem3 [data-m] { display: flex; flex-wrap: wrap; gap: 4px; }
+.mem3 .v { display: inline-block; margin: 3px 0; padding: 2px 6px; border-radius: 4px; font: 13px var(--f-mono); background: var(--panel-2); overflow-wrap: anywhere; }
+.mem3 .v.chg { background: color-mix(in srgb, var(--hi) 28%, var(--panel)); }
+.life-stage { margin: 10px 0 0; }
+.life-stage b { color: var(--accent); }
+.dots { display: inline-flex; gap: 5px; align-items: center; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--accent); }
+
+/* memory map */
+/* .wide breaks the figure out of the column; the map, its buttons and the note still keep a 560 px measure */
+.mm-fig > :is(svg, .btn-row, .mm-info) { max-width: 560px; margin-inline: auto; }
+.mm-blk rect { cursor: pointer; transition: stroke-width .2s; }
+.mm-blk.sel rect.b { stroke: var(--hi); stroke-width: 4; }
+.mm-info { min-height: 5.5em; margin-top: 10px; }
+.sizes td, .sizes th { font-family: var(--f-mono); }
+.where-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.const-fig .row-l { font-family: var(--f-mono); }
+/* §06 task question: an h3 (no level skip under the h2) that keeps the .try h4 look */
+.try h3.try-q { margin: 4px 0 8px; font-family: var(--f-body); font-size: 1.02rem; font-weight: 600; line-height: 1.5; letter-spacing: 0; }
+/* touch: page-local controls reach the 44 px floor of the shared coarse rule */
+@media (pointer: coarse) { .where .opt, .seg button { min-height: 44px; } }
+@media (max-width: 560px) {
+  .life-code span { white-space: pre-wrap; padding-left: calc(10px + 2ch); text-indent: -2ch; }
+  .mem3 { grid-template-columns: minmax(0, 1fr); }
+  .mem3 > div { min-height: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+  .mem3 h4 { margin: 0; min-width: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heap .hb.new, .cell.flash { animation: none; }
+}
+</style>
+</head>
+<body data-lesson="2-1">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:2-1">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 2 · Урок 2.1 · пн 28.09</p>
+    <h1>C++ для мікроконтролера: <span>обмеження і звички</span></h1>
+    <p class="lead">Мова та сама, але пам'ять скінченна, а цикл не має права зависати. Розберемо, де живуть змінні, чому купа «кришиться» і що насправді роблять <code>volatile</code>, <code>const</code> і <code>constexpr</code>.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: плата YD-ESP32-S3 і USB-кабель</a></li>
+      <li><a class="chip" href="../1-3/">Спершу: урок 1.3 (Blink)</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Метеостанція на ESP32 справно працювала три доби, а на четверту перестала відповідати. Код ніхто не чіпав, помилок у моніторі не було. Винуватець — один рядок у <code>loop()</code>: <code>String msg = "t=" + String(temp) + …</code>. Тисячі дрібних виділень пам'яті поступово посікли купу на дрібні шматки, і одного дня для буфера просто не знайшлося суцільного місця.</p>
+    <p>На ноутбуці ви б цього не помітили: там гігабайти пам'яті й операційна система, яка за вами прибирає. На мікроконтролері ваш код — єдиний господар. Тому кожна звичка тут або береже ресурс, або тихо його з'їдає.</p>
+    <figure>
+      <svg class="fig-svg" viewBox="0 0 320 160" role="img" aria-label="Ілюстрація: за чотири доби загальна вільна пам'ять майже не змінюється, а найбільший суцільний вільний блок поступово падає, доки виділення не провалюється.">
+        <line x1="40" y1="120" x2="310" y2="120" stroke="var(--line)" stroke-width="2"/>
+        <line x1="40" y1="14" x2="40" y2="120" stroke="var(--line)" stroke-width="2"/>
+        <text x="175" y="156" text-anchor="middle" fill="var(--muted)" font-size="14">доби роботи →</text>
+        <text x="48" y="137" fill="var(--muted)" font-size="13">1</text><text x="128" y="137" fill="var(--muted)" font-size="13">2</text><text x="208" y="137" fill="var(--muted)" font-size="13">3</text><text x="288" y="137" fill="var(--muted)" font-size="13">4</text>
+        <path d="M44 32 L120 36 L200 38 L300 40" fill="none" stroke="var(--ok)" stroke-width="3"/>
+        <text x="300" y="30" text-anchor="end" fill="var(--ok)" font-size="14">вільно всього</text>
+        <path d="M44 34 C110 44 160 70 210 86 S280 104 300 110" fill="none" stroke="var(--bad)" stroke-width="3" stroke-dasharray="7 4"/>
+        <text x="50" y="104" fill="var(--bad)" font-size="14">найбільший шматок</text>
+        <text x="300" y="104" text-anchor="end" fill="var(--bad)" font-size="14" font-weight="600">✕ malloc</text>
+      </svg>
+      <figcaption>Ілюстрація, не вимір: «вільно» стоїть майже рівно, а найбільший суцільний шматок тане.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b>, чому вбудований код уникає купи після старту, і <b>показати</b> фрагментацію на прикладі;</li>
+      <li><b>визначити</b> за оголошенням, де лежить змінна (Flash, RAM, стек), і <b>порахувати</b> її розмір;</li>
+      <li><b>пояснити</b>, що робить <code>volatile</code> і чого він не робить;</li>
+      <li><b>вибрати</b> між <code>const</code>, <code>constexpr</code> і <code>static</code> та <b>переписати</b> <code>delay()</code> на <code>millis()</code>.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea" id="idea-mem">
+      <h3>У плати три різні «склади» пам'яті</h3>
+      <p><b>Flash</b> — велика, переживає вимкнення, але писати в неї під час роботи незручно: тут код і константи. <b>SRAM</b> усередині чипа — швидка й невелика, стирається при вимкненні. У ній живуть глобальні змінні, <b>купа</b> (heap: пам'ять, яку програма просить уже під час роботи через <code>malloc</code> чи <code>new</code>) і <b>стеки</b> (stack: місце для локальних змінних функції, поки вона виконується). <b>PSRAM</b> — окрема мікросхема оперативної пам'яті в модулі: багато місця для великих буферів, але доступ іде через зовнішню шину й кеш.</p>
+      <p>Числа для нашого модуля: SRAM 512&nbsp;КБ<sup class="cite" data-fact="s3-sram"></sup>, Flash 16&nbsp;МБ і PSRAM 8&nbsp;МБ<sup class="cite" data-fact="wroom-n16r8-memory"></sup>. SRAM у 32 рази менша за Flash, і саме її з'їдають погані звички.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 236" role="img" aria-label="Три склади пам'яті: Flash 16 МБ (код і константи, зберігається без живлення), SRAM 512 КБ (змінні, купа, стеки, швидка), PSRAM 8 МБ (великі буфери, через кеш).">
+          <rect x="4" y="4" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--nsig2) 14%, var(--panel))" stroke="var(--nsig2)" stroke-width="2"/>
+          <text x="16" y="27" fill="var(--ink)" font-size="16" font-weight="600">Flash 16 МБ</text>
+          <text x="284" y="27" text-anchor="end" fill="var(--muted)" font-size="15">не стирається</text>
+          <text x="16" y="49" fill="var(--ink)" font-size="15">код, константи</text>
+          <rect x="4" y="68" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--n5) 12%, var(--panel))" stroke="var(--n5)" stroke-width="2"/>
+          <text x="16" y="91" fill="var(--ink)" font-size="16" font-weight="600">SRAM 512 КБ</text>
+          <text x="284" y="91" text-anchor="end" fill="var(--muted)" font-size="15">найшвидша</text>
+          <text x="16" y="113" fill="var(--ink)" font-size="15">змінні, купа, стеки · дефіцит</text>
+          <rect x="4" y="132" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--nsig3) 12%, var(--panel))" stroke="var(--nsig3)" stroke-width="2"/>
+          <text x="16" y="155" fill="var(--ink)" font-size="16" font-weight="600">PSRAM 8 МБ</text>
+          <text x="284" y="155" text-anchor="end" fill="var(--muted)" font-size="15">через шину й кеш</text>
+          <text x="16" y="177" fill="var(--ink)" font-size="15">великі буфери</text>
+          <text x="150" y="210" text-anchor="middle" fill="var(--muted)" font-size="15">не в масштабі: Flash у 32 рази</text>
+          <text x="150" y="229" text-anchor="middle" fill="var(--muted)" font-size="15">більша за SRAM</text>
+        </svg>
+        <figcaption>Три назви, які трапляться далі: <code>.rodata</code> — константи у Flash; <code>.data</code> — змінні з початковим значенням (RAM); <code>.bss</code> — змінні, які обнуляються при старті (RAM). Детальна карта — у <a href="#circuit">розділі 08</a>.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Що відоме до запуску, хай живе у Flash; SRAM — для того, що справді змінюється.</p>
+    </article>
+
+    <article class="idea" id="idea-heap">
+      <h3>Купа кришиться: «вільно» ще не означає «можна виділити»</h3>
+      <p>Уявіть парковку вздовж бордюру, куди приїжджають і від'їжджають машини різної довжини. Через день вільних метрів багато, але вони розкидані дрібними проміжками між машинами, і автобус уже не стане. Це <b>фрагментація</b>: <code>malloc()</code> потрібен суцільний шматок, а не сума дірок.</p>
+      <p>Друга біда — час: пошук місця триває щоразу по-різному. Тому правило таке: усе, що потрібно, виділіть один раз у <code>setup()</code>, а в <code>loop()</code> працюйте зі статичними буферами і стеком.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 176" role="img" aria-label="Парковка вздовж бордюру: між машинами три проміжки по 4, 5 і 3 метри, разом 12 метрів вільно, але автобус завдовжки 12 метрів не стає в жоден проміжок.">
+          <rect x="70" y="8" width="160" height="26" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 3"/>
+          <text x="150" y="26" text-anchor="middle" fill="var(--bad)" font-size="15" font-weight="600">автобус 12 м ✕</text>
+          <rect x="4" y="46" width="292" height="44" rx="5" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
+          <g fill="color-mix(in srgb, var(--accent) 26%, var(--panel))" stroke="var(--accent)" stroke-width="1.5">
+            <rect x="8" y="51" width="56" height="34" rx="8"/><rect x="108" y="51" width="44" height="34" rx="8"/><rect x="204" y="51" width="50" height="34" rx="8"/>
+          </g>
+          <g fill="none" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="4 3">
+            <rect x="66" y="51" width="40" height="34" rx="3"/><rect x="154" y="51" width="48" height="34" rx="3"/><rect x="256" y="51" width="36" height="34" rx="3"/>
+          </g>
+          <text x="86" y="73" text-anchor="middle" fill="var(--ok)" font-size="15">4 м</text>
+          <text x="178" y="73" text-anchor="middle" fill="var(--ok)" font-size="15">5 м</text>
+          <text x="274" y="73" text-anchor="middle" fill="var(--ok)" font-size="15">3 м</text>
+          <text x="4" y="112" fill="var(--ok)" font-size="15">вільно 12 м, але поспіль —</text>
+          <text x="4" y="130" fill="var(--ok)" font-size="15">максимум 5 м</text>
+          <text x="4" y="152" fill="var(--muted)" font-size="15">машини — зайняті блоки,</text>
+          <text x="4" y="170" fill="var(--muted)" font-size="15">проміжки — дірки</text>
+        </svg>
+        <figcaption>Як це виглядає в купі, ви спрогнозуєте й побачите в розділі 05.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Купа корисна при старті; у циклі вона з часом кришиться, тож у <code>loop()</code> — без <code>new</code>, <code>malloc</code> і <code>String</code>-склейок.</p>
+    </article>
+
+    <article class="idea" id="idea-loop">
+      <h3>Суперцикл: кожен прохід швидкий і нічого не чекає</h3>
+      <p><code>loop()</code> — як вахтер, що обходить двері: зазирнув, чи все гаразд, і пішов далі. <code>delay(500)</code> — це вахтер, який заснув на пів секунди: двері в цей час ніхто не перевіряє. Замість сну питайте годинник: «чи минуло 500&nbsp;мс з минулого разу?» Відповідь займає мікросекунди.</p>
+      <pre><code>uint32_t now = millis();
+// працює й після переповнення
+if (now - lastMs &gt;= kBlinkMs) {
+  lastMs = now;
+  toggleLed();
+}</code></pre>
+      <p class="small">На ESP32 <code>loop()</code> крутиться всередині задачі FreeRTOS<sup class="cite" data-fact="core-loop-task"></sup>, а <code>delay()</code> присипляє лише її<sup class="cite" data-fact="core-delay"></sup>: переривання і Wi-Fi живуть далі, але ваш цикл стоїть. Лічильник <code>millis()</code> переповнюється раз на ≈ 49,7&nbsp;доби<sup class="cite" data-fact="core-millis"></sup>; віднімання беззнакових чисел це переживає, а порівняння <code>now &gt;= lastMs + kBlinkMs</code> — ні.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 306 170" role="img" aria-label="Суперцикл: коло з трьома зупинками — прочитати входи, оновити стан, керувати виходами. Збоку блок delay, позначений як сон, під час якого кнопку ніхто не перевіряє.">
+          <circle cx="110" cy="88" r="58" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="8 5"/>
+          <path d="M162 70 l8 -12 l4 14 z" fill="var(--accent)"/>
+          <rect x="62" y="14" width="96" height="28" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="110" y="33" text-anchor="middle" fill="var(--ink)" font-size="14">1 входи</text>
+          <rect x="126" y="112" width="80" height="28" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="166" y="131" text-anchor="middle" fill="var(--ink)" font-size="14">2 стан</text>
+          <rect x="4" y="112" width="96" height="28" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="52" y="131" text-anchor="middle" fill="var(--ink)" font-size="14">3 виходи</text>
+          <text x="110" y="92" text-anchor="middle" fill="var(--muted)" font-size="14.5">мкс на прохід</text>
+          <rect x="220" y="40" width="82" height="52" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2"/>
+          <text x="261" y="62" text-anchor="middle" fill="var(--bad)" font-size="14" font-weight="600">delay</text>
+          <text x="261" y="80" text-anchor="middle" fill="var(--bad)" font-size="14.5">zzz 500 мс</text>
+          <text x="300" y="112" text-anchor="end" fill="var(--muted)" font-size="14.5">кнопку ніхто</text>
+          <text x="300" y="128" text-anchor="end" fill="var(--muted)" font-size="14.5">не перевіряє</text>
+        </svg>
+      </figure>
+      <p class="key"><b>Головне</b>Кожна функція в суперциклі робить крок і одразу повертається; чекання замінює перевірка <code>millis()</code>.</p>
+    </article>
+
+    <article class="idea" id="idea-volatile">
+      <h3><code>volatile</code> означає «перечитуй щоразу» — і нічого більше</h3>
+      <p><b>Переривання</b> — сигнал від заліза (скажімо, натиснули кнопку), за яким процесор на мить кидає ваш код і виконує коротку функцію-обробник, <b>ISR</b> (interrupt service routine). Детально — в <a href="../2-4/">уроці 2.4</a>; тут важливо одне: ISR може змінити змінну «за спиною» у <code>loop()</code>.</p>
+      <p>Компілятор економить: якщо в циклі змінну ніхто не змінює, він прочитає її один раз у регістр процесора і далі дивитиметься лише туди. Але прапорець може змінити <b>переривання</b>, а регістр периферії — саме <b>залізо</b>. <code>volatile</code> забороняє цю економію: кожне звернення в коді — справжнє читання чи запис пам'яті.</p>
+      <p>Чого він <b>не</b> дає: атомарності. <code>counter++</code> над <code>volatile</code> — це три окремі інструкції «прочитати, додати, записати»<sup class="cite" data-fact="xtensa-gcc-volatile-increment"></sup>, і переривання може вклинитися між ними. Для цього — коротка критична секція (на кілька інструкцій забороняє перериванням втручатися)<sup class="cite" data-fact="idf-critical-section"></sup> або <code>std::atomic</code>.</p>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 300 150" role="img" aria-label="Схема: переривання записує flag у пам'ять RAM. Цикл без volatile читає копію в регістрі a8 і не бачить зміни; з volatile цикл щоразу читає пам'ять.">
+          <rect x="8" y="50" width="96" height="54" rx="8" fill="var(--panel)" stroke="var(--n5)" stroke-width="2"/>
+          <text x="56" y="72" text-anchor="middle" fill="var(--ink)" font-size="14">RAM</text>
+          <text x="56" y="93" text-anchor="middle" fill="var(--ink)" font-size="15" class="mono">flag = 1</text>
+          <rect x="196" y="50" width="96" height="54" rx="8" fill="var(--panel)" stroke="var(--nsig2)" stroke-width="2"/>
+          <text x="244" y="72" text-anchor="middle" fill="var(--ink)" font-size="14">регістр</text>
+          <text x="244" y="93" text-anchor="middle" fill="var(--ink)" font-size="15" class="mono">a8 = 0</text>
+          <text x="244" y="120" text-anchor="middle" fill="var(--muted)" font-size="14.5">стара копія</text>
+          <path d="M56 8 V44" stroke="var(--hi)" stroke-width="2.5"/><path d="M50 36 l6 10 l6 -10 z" fill="var(--hi)"/>
+          <text x="64" y="22" fill="var(--hi-ink)" font-size="14">ISR пише</text>
+          <path d="M108 66 H190" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 4"/>
+          <text x="150" y="60" text-anchor="middle" fill="var(--muted)" font-size="14.5">1 раз</text>
+          <path d="M190 94 C160 140 120 140 108 98" fill="none" stroke="var(--ok)" stroke-width="2.5"/>
+          <path d="M104 106 l2 -12 l9 8 z" fill="var(--ok)"/>
+          <text x="150" y="146" text-anchor="middle" fill="var(--ok)" font-size="14.5">з volatile: щоразу</text>
+        </svg>
+      </figure>
+      <p class="key"><b>Головне</b><code>volatile</code> — для регістрів заліза і прапорців з ISR; він не робить операцію атомарною і не синхронізує задачі.</p>
+    </article>
+
+    <article class="idea" id="idea-const">
+      <h3><code>const</code> — «я не змінюю»; <code>constexpr</code> — «відомо ще під час компіляції»</h3>
+      <p><code>const</code> — обіцянка коду не змінювати значення. Де воно ляже, вирішує інше: чи відоме значення компілятору. <code>const int kCalib = readCalib();</code> — константа, але її значення з'являється лише після старту, тож вона живе в RAM<sup class="cite" data-fact="xtensa-gcc-placement"></sup>. <code>constexpr</code> вимагає, щоб значення було відоме компілятору: таблиця ляже у Flash<sup class="cite" data-fact="idf-const-in-flash"></sup>, а одне число часто взагалі стає частиною інструкції<sup class="cite" data-fact="xtensa-gcc-constexpr-immediate"></sup>.</p>
+      <p><code>static</code> усередині функції — змінна, що пам'ятає значення між викликами: вона лежить у RAM поруч із глобальними, а не на стеку.</p>
+      <p><b>Магічне число</b> — голе число в коді без імені, як <code>15</code> у <code>digitalWrite(15, HIGH)</code>: незрозуміло, що воно означає, і легко забути виправити його в усіх місцях. <code>constexpr uint8_t kLedPin = 15;</code> дає йому ім'я і не коштує жодного байта.</p>
+      <figure class="const-fig">
+        <svg class="fig-svg" viewBox="0 0 340 184" role="img" aria-label="Куди потрапляють три оголошення: constexpr kBlinkMs = 500 — ніде, число вшите в інструкцію; constexpr-таблиця kGamma — у Flash, секція .rodata; const kCalib = readCalib() — у RAM, секція .bss, бо значення з'являється лише після старту.">
+          <text x="4" y="18" fill="var(--muted)" font-size="14.5">оголошення</text><text x="336" y="18" text-anchor="end" fill="var(--muted)" font-size="14.5">де живе</text>
+          <rect x="4" y="28" width="332" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="12" y="47" fill="var(--ink)" font-size="15" class="mono">constexpr kBlinkMs = 500</text>
+          <text x="12" y="65" fill="var(--muted)" font-size="14.5">відоме компілятору, одне число</text>
+          <text x="328" y="56" text-anchor="end" fill="var(--accent)" font-size="14.5" font-weight="600">в інструкції</text>
+          <rect x="4" y="80" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--nsig2) 10%, var(--panel))" stroke="var(--nsig2)" stroke-width="1.5"/>
+          <text x="12" y="99" fill="var(--ink)" font-size="15" class="mono">constexpr kGamma[4]</text>
+          <text x="12" y="117" fill="var(--muted)" font-size="14.5">відома таблиця</text>
+          <text x="328" y="108" text-anchor="end" fill="var(--nsig2)" font-size="14.5" font-weight="600">Flash .rodata</text>
+          <rect x="4" y="132" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--n5) 10%, var(--panel))" stroke="var(--n5)" stroke-width="1.5"/>
+          <text x="12" y="151" fill="var(--ink)" font-size="15" class="mono">const kCalib = readCalib()</text>
+          <text x="12" y="169" fill="var(--muted)" font-size="14.5">значення — після старту</text>
+          <text x="328" y="160" text-anchor="end" fill="var(--n5)" font-size="14.5" font-weight="600">RAM .bss</text>
+        </svg>
+        <figcaption>Перевірено компіляцією для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-placement"></sup>.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>Пишіть <code>constexpr</code> для всього, що відоме наперед (піни, інтервали, таблиці); <code>const</code> — для «один раз обчислив і не чіпаю».</p>
+    </article>
+
+    <details class="more" id="life-box">
+      <summary>Покроково: життя змінних від компіляції до <code>loop()</code> (7 етапів)</summary>
+    <div class="panel wide" id="life">
+      <div class="ph"><h3>Життя змінних: від компіляції до <code>loop()</code></h3><span class="dots" id="life-dots" aria-hidden="true"></span></div>
+      <div class="pb">
+        <pre class="life-code" id="life-code" aria-label="Приклад коду для покрокового розбору"><span data-l="1">constexpr uint32_t kBlinkMs = 500;</span><span data-l="2">const uint8_t kGamma[4] = {0, 18, 92, 255};</span><span data-l="3">const int kCalib = readCalib();</span><span data-l="4">uint32_t g_count = 7;</span><span data-l="5">volatile bool g_pressed = false;</span><span data-l="6">void IRAM_ATTR onPress() { g_pressed = true; }</span><span data-l="7">void loop() {</span><span data-l="8">  static uint32_t lastMs = 0;</span><span data-l="9">  uint32_t now = millis();</span><span data-l="10">  if (now - lastMs &gt;= kBlinkMs) { lastMs = now; ++g_count; }</span><span data-l="11">  if (g_pressed) { g_pressed = false; /* … */ }</span><span data-l="12">}</span></pre>
+        <p class="life-stage" id="life-stage" aria-live="polite"></p>
+        <div class="mem3" id="life-mem">
+          <div><h4>Flash</h4><div data-m="flash"></div></div>
+          <div><h4>RAM</h4><div data-m="ram"></div></div>
+          <div><h4>Стек</h4><div data-m="stack"></div></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn sm" id="life-prev">◀ Назад</button>
+          <button type="button" class="btn sm primary" id="life-next">Крок ▶</button>
+          <span class="small" id="life-n"></span>
+        </div>
+      </div>
+    </div>
+    </details>
+
+    <details class="more">
+      <summary>Детальніше: винятки, RTTI і STL у нашій збірці</summary>
+      <p>Ядро Arduino-ESP32 2.0.17 компілює C++ з увімкненими винятками і <b>вимкненим</b> RTTI (<code>-fexceptions -fno-rtti</code>)<sup class="cite" data-fact="core-cpp-flags"></sup>. Отже, <code>typeid</code> і <code>dynamic_cast</code> униз по ієрархії (той, що перевіряє тип під час роботи) не скомпілюються, а <code>throw</code> скомпілюється, але додасть коду й непередбачуваний час розкручування стека. У вбудованому коді помилку частіше повертають значенням: <code>bool</code>, код помилки, «порожній» результат.</p>
+      <p>STL не заборонений цілком. <code>std::array</code>, <code>&lt;algorithm&gt;</code>, <code>&lt;cstdint&gt;</code>, <code>&lt;limits&gt;</code> купою не користуються. Небезпечні контейнери, що ростуть самі: <code>std::vector</code>, <code>std::string</code>, <code>std::map</code>, <code>std::function</code> з великим захопленням. Якщо вже потрібен <code>vector</code>, зробіть <code>reserve()</code> у <code>setup()</code> і не виходьте за цей розмір.</p>
+      <p>Збірка ядра оптимізує за розміром, <code>-Os</code><sup class="cite" data-fact="core-optimization-os"></sup>. Саме тому приклад з <code>volatile</code> у розділі 05 — не теорія: ми скомпілювали його тим самим компілятором.</p>
+    </details>
+    <details class="more">
+      <summary>Детальніше: три способи ініціалізувати периферію</summary>
+      <p><b>1. Явна <code>init()</code>.</b> Конструктор лише запам'ятовує пін, а залізо налаштовує <code>init()</code>, яку ви викликаєте з <code>setup()</code>. Глобальні об'єкти створюються ще до старту ядра Arduino, тож <code>pinMode</code> у конструкторі — ризик.</p>
+      <pre><code>class Led {
+ public:
+  constexpr explicit Led(uint8_t pin) : pin_(pin) {}
+  void init() const { pinMode(pin_, OUTPUT); }
+ private:
+  const uint8_t pin_;
+};</code></pre>
+      <p><b>2. Ліниво, через локальний <code>static</code>.</b> Ініціалізація при першому виклику. Зручно, але момент виконання неочевидний: перший виклик може статися будь-де, навіть у невдалий час.</p>
+      <p><b>3. Таблиця конфігурації <code>constexpr</code>.</b> Налаштування — це дані у Flash, а одна функція їх застосовує. Помилки конфігурації ловить <code>static_assert</code> ще до прошивки.</p>
+      <pre><code>struct PinCfg { uint8_t pin; uint8_t mode; };
+constexpr PinCfg kPins[] = { {15, OUTPUT}, {21, INPUT_PULLUP} };
+static_assert(kPins[0].pin != kPins[1].pin, "один пін двічі");
+void initPins() { for (const auto&amp; p : kPins) pinMode(p.pin, p.mode); }</code></pre>
+      <p class="small">У LMS приклад написано з <code>.dir = …</code> (позначені ініціалізатори). Це синтаксис C++20; наш GCC 8.4 у режимі <code>gnu++11</code>/<code>gnu++17</code> приймає його як розширення<sup class="cite" data-fact="gcc-designated-init-ext"></sup>.</p>
+    </details>
+    <details class="more">
+      <summary>Детальніше: що C++20 змінив у volatile</summary>
+      <p>C++20 оголосив застарілими кілька операцій над <code>volatile</code>: <code>++</code>/<code>−−</code>, складене присвоєння, ланцюжок <code>a = b = c</code>, <code>volatile</code>-параметри й значення, що повертаються<sup class="cite" data-fact="cpp20-volatile-deprecation"></sup>. Складені присвоєння згодом «помилували»<sup class="cite" data-fact="cpp23-volatile-bitwise"></sup>, тож <code>REG |= mask;</code> — нормальний код. Застаріле ≠ заборонене: компілюється, новіші GCC дають попередження. Сенс зміни — чесність: <code>v++</code> виглядає як одна дія, а це три.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <h3>1. Фрагментація купи</h3>
+    <div class="predict" data-ok="2" data-gate="w-heap"
+         data-why="malloc() потрібен суцільний шматок, а найбільша дірка — 2 КБ, тож повертається NULL. Зайняті блоки ніхто не посуне: на них уже дивляться ваші вказівники. Суму вільного показує ESP.getFreeHeap(), а найбільший шматок — ESP.getMaxAllocHeap().">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Купа на 16&nbsp;КБ. Після серії <code>malloc</code>/<code>free</code> вільно 5&nbsp;КБ: три дірки по 2, 2 і 1&nbsp;КБ між зайнятими блоками. Програма просить <code>malloc(3 КБ)</code>. Що вона отримає?</p>
+      <div class="opts">
+        <button class="opt">Вказівник: разом вільно 5 КБ, а це більше за 3</button>
+        <button class="opt">Вказівник: malloc спершу посуне блоки докупи</button>
+        <button class="opt">NULL: жодної дірки на 3 КБ поспіль немає</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-heap">
+      <div class="ph"><h3>Купа на 16 КБ, крок за кроком</h3><span class="small">алгоритм «перший, що підходить»</span></div>
+      <div class="pb">
+        <div class="heap-wrap">
+          <div class="heap" id="heap-bar" role="img" aria-label="Смуга купи: зайняті блоки підписані літерами, дірки позначені штрихуванням і розміром."></div>
+        </div>
+        <div class="heap-scale" aria-hidden="true"><span>0</span><span>4</span><span>8</span><span>12</span><span>16 КБ</span></div>
+        <p class="step-log" id="heap-log" aria-live="polite"></p>
+        <div class="readout">
+          <span>Вільно всього <b id="heap-free">16 КБ</b></span>
+          <span>Найбільший шматок <b id="heap-max">16 КБ</b></span>
+          <span>Крок <b id="heap-n">0/11</b></span>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn sm" id="heap-prev">◀ Назад</button>
+          <button type="button" class="btn sm primary" id="heap-next">Крок ▶</button>
+          <button type="button" class="btn sm" id="heap-play" aria-pressed="false">▶ Відтворити</button>
+          <button type="button" class="btn sm ghost" id="heap-reset">Скинути</button>
+        </div>
+        <p class="small">«Вільно всього» — це те, що повертає <code>ESP.getFreeHeap()</code>, а «найбільший шматок» — <code>ESP.getMaxAllocHeap()</code><sup class="cite" data-fact="core-heap-api-internal"></sup>. У міні-лабі (розділ 09) ви побачите ту саму картину на справжній купі.</p>
+      </div>
+    </div>
+
+    <h3>2. Що робить оптимізатор без <code>volatile</code></h3>
+    <div class="predict" data-ok="0" data-gate="w-vol"
+         data-why="Без volatile компілятор бачить: у тілі циклу flag ніхто не змінює. Він читає flag один раз, а далі ставить стрибок сам на себе. Запис з ISR лягає в пам'ять, але цикл туди вже не дивиться. Сторожовий таймер задач за loop() за замовчуванням не стежить, тож плата не перезавантажиться — просто зависне цей цикл.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Код <code>while (!flag) {}</code>, <code>flag</code> — звичайний <code>bool</code> без <code>volatile</code>, збірка з <code>-Os</code>, як у нашому ядрі. Цикл уже крутиться, коли переривання ставить <code>flag = true</code>. Що станеться?</p>
+      <div class="opts">
+        <button class="opt">Цикл не завершиться: flag прочитано лише раз</button>
+        <button class="opt">Цикл завершиться на наступному проході</button>
+        <button class="opt">Плата перезавантажиться від сторожового таймера</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-vol">
+      <div class="ph"><h3>Асемблер Xtensa від GCC 8.4 (скорочено)</h3>
+        <div class="seg" role="group" aria-label="Оголошення flag">
+          <button type="button" data-v="0" aria-pressed="true">bool flag</button>
+          <button type="button" data-v="1" aria-pressed="false">volatile bool flag</button>
+        </div>
+      </div>
+      <div class="pb">
+        <p class="small">Дочекайтеся, поки підсвічена інструкція почне крутитися в циклі (або дотисніть туди кнопкою «Крок»), і тоді натисніть «ISR». Перемкніть оголошення і повторіть.</p>
+        <div class="vol-grid">
+          <div>
+            <pre><code id="vol-src">bool flag = false;
+
+void waitFlag() {
+  while (!flag) {}
+}</code></pre>
+            <div class="cells">
+              <div class="cell" id="vol-mem"><span class="k">RAM: flag</span><b>0</b></div>
+              <div class="cell" id="vol-reg"><span class="k">регістр a8</span><b>—</b></div>
+            </div>
+            <p class="state" id="vol-state" aria-live="polite"></p>
+          </div>
+          <pre class="asm" id="vol-asm" aria-label="Асемблерний код функції; підсвічено поточну інструкцію"></pre>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn sm primary" id="vol-isr">⚡ ISR: flag = true</button>
+          <button type="button" class="btn sm" id="vol-step">Крок</button>
+          <button type="button" class="btn sm" id="vol-auto" aria-pressed="false">Авто</button>
+          <button type="button" class="btn sm ghost" id="vol-reset">Скинути</button>
+        </div>
+        <p class="small">Код скомпільовано тим самим GCC 8.4, що збирає наші проєкти, з <code>-Os</code><sup class="cite" data-fact="xtensa-gcc-volatile-loop"></sup>. Ми прибрали пролог функції (<code>entry sp, 32</code>) і перейменували мітки, решта — як у компілятора. <code>memw</code> — бар'єр, що впорядковує звернення до пам'яті. Підступність: якщо в тілі циклу є виклик чужої функції (скажімо, <code>Serial.print</code>), компілятор мусить перечитати <code>flag</code>, і баг зникає. Прибрали друк — баг повернувся.</p>
+      </div>
+    </div>
+
+    <h3>3. <code>delay()</code> проти <code>millis()</code></h3>
+    <div class="predict" data-ok="2" data-gate="w-time"
+         data-why="Скетч з двома delay(500) дивиться на кнопку лише раз на секунду. Натискання на 80 мс помічене, тільки якщо воно випадково накрило цю мить. Версія з millis() перевіряє кнопку на кожному проході, тобто постійно. Переривання під час delay() працюють, а от ваш loop() — ні.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Скетч блимає LED через <code>delay(500); … delay(500);</code>, а після цього читає кнопку. Кнопку п'ять разів коротко (по 80&nbsp;мс) натиснули у випадкові моменти. Скільки натискань він помітить?</p>
+      <div class="opts">
+        <button class="opt">Найімовірніше всі п'ять</button>
+        <button class="opt">Жодного: delay() зупиняє весь чип</button>
+        <button class="opt">Найімовірніше жодного або одне</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-time">
+      <div class="ph"><h3>Три секунди з життя двох скетчів</h3><button type="button" class="btn sm" id="tl-new">Нова серія натискань</button></div>
+      <div class="pb">
+        <canvas class="tl-canvas" id="tl" width="720" height="250" aria-label="Часова діаграма на 3 секунди: рядок натискань кнопки, рядок скетчу з delay, де кнопку перевіряють раз на секунду і більшість натискань пропущено, і рядок скетчу з millis, де помічено всі натискання."></canvas>
+        <p class="readout" id="tl-out" aria-live="polite"></p>
+        <p class="small">Верхній рядок — рівень кнопки (натиснута = LOW). Синя лінія — LED, помаранчеві позначки — моменти, коли скетч читає кнопку.</p>
+      </div>
+    </div>
+
+    <h3>4. Де живе змінна?</h3>
+    <details class="more" id="where-box">
+      <summary>Вправа на 3 хвилини: 9 оголошень — Flash, RAM, стек чи ніде?</summary>
+    <p>Для кожного оголошення виберіть, де воно опиниться. Відповіді перевірені компіляцією для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-placement"></sup>.</p>
+    <ol class="where" id="where"></ol>
+    <div class="where-foot"><p class="readout"><span>Правильно <b id="where-score">0 / 9</b></span></p><button type="button" class="btn sm ghost" id="where-reset">Скинути відповіді</button></div>
+    </details>
+  </section>
+
+  <!-- ============================================================ 06 example -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: скільки RAM займе масив структур</h2>
+    <p>На ESP32-S3 розміри типів такі<sup class="cite" data-fact="xtensa-gcc-type-sizes"></sup>:</p>
+    <div class="tbl">
+      <table class="sizes">
+        <thead><tr><th>Тип</th><th>Байт</th><th>Тип</th><th>Байт</th></tr></thead>
+        <tbody>
+          <tr><td>bool, char, uint8_t</td><td>1</td><td>float</td><td>4</td></tr>
+          <tr><td>short, uint16_t</td><td>2</td><td>double, int64_t</td><td>8</td></tr>
+          <tr><td>int, long, uint32_t</td><td>4</td><td>вказівник, size_t</td><td>4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Пастка: <code>long</code> тут 4 байти, а не 8, як на 64-бітному ПК. Друга пастка — <b>вирівнювання</b>: 4-байтове поле має починатися з адреси, кратної 4, тож компілятор вставляє порожні байти<sup class="cite" data-fact="xtensa-gcc-struct-padding"></sup>.</p>
+    <figure>
+      <svg class="fig-svg" viewBox="0 0 330 132" role="img" aria-label="Байтова сітка: struct з полями uint8_t, uint32_t, uint8_t займає 12 байт, з них 6 порожніх; після перестановки полів (uint32_t, uint8_t, uint8_t) — 8 байт, з них 2 порожні.">
+        <text x="4" y="16" fill="var(--ink)" font-size="14">ch, t_ms, raw → 12 Б</text>
+        <g id="pad-a"></g>
+        <text x="4" y="84" fill="var(--ink)" font-size="14">t_ms, ch, raw → 8 Б</text>
+        <g id="pad-b"></g>
+      </svg>
+      <figcaption>Сірі клітинки з рискою — байти вирівнювання: пам'ять зайнята, але даних там немає.</figcaption>
+    </figure>
+
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Задача:</b> <code>struct Reading { uint8_t ch; uint32_t t_ms; uint8_t raw; };</code> і буфер <code>Reading log[100];</code>. Скільки RAM?<span class="why">чому: буфер оголошено глобально, тож він займе RAM (.bss) з першої миті.</span></li>
+      <li><b>Поля:</b> 1 + 4 + 1 = 6 байт даних.<span class="why">чому: розміри з таблиці вище.</span></li>
+      <li><b>Вирівнювання:</b> після <code>ch</code> — 3 порожні байти, щоб <code>t_ms</code> почалося з адреси, кратної 4; у кінці ще 3, щоб розмір був кратний 4. <span class="formula">sizeof(Reading) = 12</span><span class="why">чому: у масиві кожен наступний елемент теж має бути вирівняний.</span></li>
+      <li><b>Разом:</b> <span class="formula">12 × 100 = 1200 Б</span><span class="why">чому: половина з них — порожні байти.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Переставте поля:</b> <code>struct Reading2 { uint32_t t_ms; uint8_t ch; uint8_t raw; };</code></li>
+      <li><b>Поля:</b> 4 + 1 + 1 = 6 байт даних.</li>
+      <li>
+        <div class="try" data-ans="8" data-tol="0.001" data-unit="Б" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Скільки займе <code>sizeof(Reading2)</code>?</p>
+          <details><summary>Підказка</summary>Розмір структури кратний найбільшому вирівнюванню серед її полів (тут 4).</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="800" data-tol="0.001" data-unit="Б" data-dec="0">
+          <p>Скільки займе <code>Reading2 log[100];</code>?</p>
+          <details><summary>Підказка</summary>Помножте розмір однієї структури на 100.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="512" data-tol="0.001" data-unit="Б" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h3 class="try-q">Скільки RAM займе <code>struct Sample { float v; bool ok; }; Sample s[64];</code>?</h3>
+      <details><summary>Підказка</summary>float — 4 байти, bool — 1; округліть розмір структури вгору до кратного 4.</details>
+    </div>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth" data-mc="E7">
+        <p class="seems"><code>volatile int counter</code> — і <code>counter++</code> з ISR та з <code>loop()</code> безпечний.</p>
+        <p class="truth"><code>volatile</code> лише забороняє кешувати значення. <code>++</code> — це «прочитати, додати, записати», і ISR може вклинитися посередині: одне збільшення загубиться.</p>
+        <p class="test">Подивіться асемблер <code>counter++</code>: три інструкції<sup class="cite" data-fact="xtensa-gcc-volatile-increment"></sup>. Захистіть їх <code>portENTER_CRITICAL(&amp;mux)</code> або візьміть <code>std::atomic</code>.</p>
+      </div>
+      <div class="myth" data-mc="const-flash">
+        <p class="seems">Будь-який <code>const</code> лежить у Flash і не займає RAM.</p>
+        <p class="truth">Важливо, коли відоме значення. <code>const int k = analogRead(4);</code> обчислюється після старту й живе в RAM.</p>
+        <p class="test">Зберіть проєкт і подивіться символ: <code>xtensa-esp32s3-elf-nm -C .pio/build/&lt;env&gt;/firmware.elf | grep kCalib</code> (програма лежить у <code>~/.platformio/packages/toolchain-xtensa-esp32s3/bin/</code>). Літера <code>b</code> (.bss) означає RAM, <code>r</code> (.rodata) — Flash.</p>
+      </div>
+      <div class="myth" data-mc="stl-ban">
+        <p class="seems">STL на мікроконтролері заборонений повністю.</p>
+        <p class="truth">Заборона стосується контейнерів, що самі ростуть у купі. <code>std::array</code>, <code>&lt;algorithm&gt;</code>, <code>&lt;cstdint&gt;</code> купи не чіпають.</p>
+        <p class="test">У проєкті <code>esp32-s3-embedded-cpp</code> немає жодного виклику <code>malloc</code> чи <code>new</code>, хоча він використовує <code>&lt;limits&gt;</code> і <code>&lt;cstdint&gt;</code> — див. <code>results/heap-symbols-cpp.txt</code>.</p>
+      </div>
+      <div class="myth" data-mc="new-ban">
+        <p class="seems"><code>new</code> і <code>malloc</code> не можна використовувати ніколи.</p>
+        <p class="truth">Один раз у <code>setup()</code>, без <code>free</code> — нормально: фрагментувати нічому. Шкодить чергування виділень і звільнень у циклі.</p>
+        <p class="test">Виведіть <code>ESP.getMaxAllocHeap()</code> після <code>setup()</code> і через годину роботи: якщо число не падає, купа здорова.</p>
+      </div>
+      <div class="myth" data-mc="exc-free">
+        <p class="seems">Винятки (<code>throw</code>/<code>catch</code>) нічого не коштують, поки не кинуті.</p>
+        <p class="truth">Навіть некинутий виняток тягне в прошивку код розкручування стека й таблиці; кинутий — працює непередбачуваний час. У нашій збірці винятки ввімкнені<sup class="cite" data-fact="core-cpp-flags"></sup>, але помилку краще повертати значенням.</p>
+        <p class="test">Зберіть скетч двічі: з одним <code>throw std::runtime_error("x")</code> і без нього. Порівняйте рядок «Flash: … used» у виводі <code>pio run</code>.</p>
+      </div>
+      <div class="myth" data-mc="E6">
+        <p class="seems"><code>delay()</code> зупиняє весь чип, навіть переривання.</p>
+        <p class="truth">На ESP32 <code>delay()</code> присипляє лише задачу з <code>loop()</code><sup class="cite" data-fact="core-delay"></sup>. Переривання спрацюють, але реагувати на прапорець ваш цикл буде лише після сну.</p>
+        <p class="test">Лічіть натискання в ISR, а в <code>loop()</code> поставте <code>delay(2000)</code>: лічильник росте, хоча друкується рідко.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 08 memory map instead of a schematic -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Карта пам'яті ESP32&#8209;S3 (замість схеми)</h2>
+    <p>У цьому уроці замість електричної схеми — карта пам'яті. Натисніть на блок або кнопку під картою.</p>
+    <figure class="wide mm-fig">
+      <svg class="fig-svg" id="mm" viewBox="0 0 360 440" role="img" aria-label="Карта пам'яті: усередині чипа ESP32-S3 — ROM 384 КБ, SRAM 512 КБ (IRAM для коду переривань і DRAM з .data, .bss, купою і стеками) та RTC SRAM 16 КБ. У модулі WROOM-1 N16R8 — Flash 16 МБ з кодом і .rodata та PSRAM 8 МБ для великих виділень; обидві підключені через кеш і MMU.">
+        <rect x="4" y="4" width="352" height="248" rx="10" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="16" y="24" fill="var(--muted)" font-size="14">чип ESP32-S3</text>
+        <g class="mm-blk" data-k="rom"><rect class="b" x="16" y="34" width="110" height="60" rx="6" fill="var(--panel-2)" stroke="var(--line)" stroke-width="2"/>
+          <text x="71" y="58" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="600">ROM</text><text x="71" y="80" text-anchor="middle" fill="var(--muted)" font-size="14">384 КБ</text></g>
+        <g class="mm-blk" data-k="rtc"><rect class="b" x="16" y="104" width="110" height="60" rx="6" fill="var(--panel-2)" stroke="var(--line)" stroke-width="2"/>
+          <text x="71" y="128" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="600">RTC SRAM</text><text x="71" y="150" text-anchor="middle" fill="var(--muted)" font-size="14">16 КБ</text></g>
+        <g class="mm-blk" data-k="sram"><rect class="b" x="136" y="34" width="208" height="206" rx="6" fill="color-mix(in srgb, var(--n5) 8%, var(--panel))" stroke="var(--n5)" stroke-width="2"/>
+          <text x="240" y="56" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="600">SRAM 512 КБ</text>
+          <rect x="146" y="66" width="188" height="34" rx="4" fill="var(--panel)" stroke="var(--line)"/>
+          <text x="240" y="88" text-anchor="middle" fill="var(--ink)" font-size="14">IRAM: код ISR</text>
+          <rect x="146" y="106" width="188" height="124" rx="4" fill="var(--panel)" stroke="var(--line)"/>
+          <text x="156" y="126" fill="var(--ink)" font-size="14" font-weight="600">DRAM</text>
+          <text x="156" y="146" fill="var(--ink)" font-size="14" class="mono">.data .bss</text>
+          <text x="156" y="166" fill="var(--ink)" font-size="14">купа (heap) →</text>
+          <text x="156" y="186" fill="var(--ink)" font-size="14">← стеки задач</text>
+          <text x="156" y="206" fill="var(--muted)" font-size="13">loop(): 8 КБ стека</text></g>
+        <text x="71" y="200" text-anchor="middle" fill="var(--muted)" font-size="13">кеш + MMU</text>
+        <path d="M71 208 V290" stroke="var(--muted)" stroke-width="2"/><path d="M65 282 l6 10 l6 -10 z" fill="var(--muted)"/>
+        <path d="M332 240 V290" stroke="var(--muted)" stroke-width="2"/><path d="M326 282 l6 10 l6 -10 z" fill="var(--muted)"/>
+        <rect x="4" y="266" width="352" height="170" rx="10" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="318" y="284" text-anchor="end" fill="var(--muted)" font-size="14">модуль WROOM-1 N16R8</text>
+        <g class="mm-blk" data-k="flash"><rect class="b" x="16" y="296" width="164" height="128" rx="6" fill="color-mix(in srgb, var(--nsig2) 10%, var(--panel))" stroke="var(--nsig2)" stroke-width="2"/>
+          <text x="98" y="320" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="600">Flash 16 МБ</text>
+          <text x="28" y="344" fill="var(--ink)" font-size="14" class="mono">.text</text><text x="80" y="344" fill="var(--muted)" font-size="13">код</text>
+          <text x="28" y="366" fill="var(--ink)" font-size="14" class="mono">.rodata</text><text x="98" y="366" fill="var(--muted)" font-size="13">константи</text>
+          <text x="28" y="388" fill="var(--muted)" font-size="13">копії значень .data</text>
+          <text x="28" y="410" fill="var(--muted)" font-size="13">не стирається</text></g>
+        <g class="mm-blk" data-k="psram"><rect class="b" x="190" y="296" width="154" height="128" rx="6" fill="color-mix(in srgb, var(--nsig3) 10%, var(--panel))" stroke="var(--nsig3)" stroke-width="2"/>
+          <text x="267" y="320" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="600">PSRAM 8 МБ</text>
+          <text x="202" y="346" fill="var(--ink)" font-size="14">купа для</text>
+          <text x="202" y="366" fill="var(--ink)" font-size="14">malloc &gt; 4 КБ</text>
+          <text x="202" y="390" fill="var(--muted)" font-size="13">Octal SPI</text>
+          <text x="202" y="410" fill="var(--muted)" font-size="13">стирається</text></g>
+      </svg>
+      <div class="btn-row" id="mm-btns" role="group" aria-label="Блоки пам'яті">
+        <button type="button" class="btn sm" data-k="flash">Flash</button>
+        <button type="button" class="btn sm" data-k="sram">SRAM</button>
+        <button type="button" class="btn sm" data-k="psram">PSRAM</button>
+        <button type="button" class="btn sm" data-k="rom">ROM</button>
+        <button type="button" class="btn sm" data-k="rtc">RTC SRAM</button>
+      </div>
+      <div class="note plain mm-info" id="mm-info" aria-live="polite">
+        <div data-k="flash" hidden><p><b>Flash 16&nbsp;МБ</b><sup class="cite" data-fact="wroom-n16r8-memory"></sup>: код (<code>.text</code>) і константи (<code>.rodata</code>). Процесор читає їх через кеш, ніби звичайну пам'ять: глобальні <code>const</code>/<code>constexpr</code>-дані лежать саме тут<sup class="cite" data-fact="idf-const-in-flash"></sup>. Тут же зберігаються стартові значення змінних з <code>.data</code>: при старті їх копіюють у RAM.</p></div>
+        <div data-k="sram" hidden><p><b>SRAM 512&nbsp;КБ</b><sup class="cite" data-fact="s3-sram"></sup>: частина під код, який має працювати без кешу (обробники з <code>IRAM_ATTR</code><sup class="cite" data-fact="idf-iram-isr"></sup>), решта — DRAM: <code>.data</code> (змінні з початковим значенням), <code>.bss</code> (обнулені при старті), купа і стеки задач. Стек <code>loop()</code> — 8&nbsp;КБ<sup class="cite" data-fact="core-loop-task"></sup>: локальний масив на 10&nbsp;КБ його переповнить.</p></div>
+        <div data-k="psram" hidden><p><b>PSRAM 8&nbsp;МБ</b><sup class="cite" data-fact="wroom-n16r8-memory"></sup> в режимі Octal<sup class="cite" data-fact="core-psram-mode"></sup>. У нашій збірці <code>malloc()</code> до 4096&nbsp;Б завжди бере внутрішню SRAM, а запити понад 4096&nbsp;Б спершу бере з PSRAM і лише якщо там не вийшло — з внутрішньої RAM<sup class="cite" data-fact="core-spiram-malloc-alwaysinternal"></sup><sup class="cite" data-fact="idf-malloc-psram-first"></sup>. Тому міні-лаба просить пам'ять явно з внутрішньої RAM, через <code>heap_caps_malloc(…, MALLOC_CAP_INTERNAL)</code>. <code>ESP.getFreeHeap()</code> PSRAM не рахує; для неї є <code>ESP.getFreePsram()</code><sup class="cite" data-fact="core-heap-api-internal"></sup>.</p></div>
+        <div data-k="rom" hidden><p><b>ROM 384&nbsp;КБ</b><sup class="cite" data-fact="s3-rom"></sup>: зашитий на заводі завантажувач і базові функції. Ваш код сюди не потрапляє, але саме ROM-завантажувач приймає прошивку по USB.</p></div>
+        <div data-k="rtc" hidden><p><b>RTC SRAM 16&nbsp;КБ</b><sup class="cite" data-fact="s3-rtc-sram"></sup>: маленька пам'ять, що не стирається в глибокому сні. Знадобиться, коли будемо економити батарею.</p></div>
+        <p class="small" data-k="none">Виберіть блок, щоб побачити, що в ньому лежить.</p>
+      </div>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома: зламайте купу навмисно</h2>
+    <p>Потрібно: плата YD-ESP32-S3, USB-кабель, PlatformIO. Жодних деталей на макетці.</p>
+    <ol>
+      <li>Створіть порожню теку проєкту і покладіть у неї готовий <a href="circuits/platformio.ini" download><code>platformio.ini</code></a> (середовище <code>heaplab</code>: платформа <code>espressif32@^7.1.0</code><sup class="cite" data-fact="build-platform"></sup>, тобто ядро 2.0.17<sup class="cite" data-fact="core-arduino-version"></sup>, і налаштування пам'яті N16R8 — ті самі, що в <code>esp32-s3-embedded-cpp</code>).</li>
+      <li>Скопіюйте скетч нижче в <code>src/main.cpp</code>. Він займає внутрішню купу блоками по 2000&nbsp;Б, звільняє кожен другий і просить 64&nbsp;КБ одним шматком; потім звільняє решту і просить ще раз.</li>
+      <li><b>До запуску</b> впишіть у таблицю прогнози (стовпчик «Прогноз»).</li>
+      <li>Прошийте, відкрийте монітор (<code>pio device monitor</code>) і натисніть RST, якщо вивід уже пробіг.</li>
+      <li>Запишіть виміряне і поясніть різницю.</li>
+    </ol>
+    <details class="more">
+      <summary>Скетч <code>heap-lab.cpp</code> (ядро 2.0.17)</summary>
+      <pre><code id="lab-code">// Урок 2.1 · міні-лаба «Фрагментація купи». Arduino-ESP32 2.0.17 (espressif32@^7.1.0).
+#include &lt;Arduino.h&gt;
+#include &lt;esp_heap_caps.h&gt;
+
+constexpr size_t   kBlockSize = 2000;          // блок, яким займаємо купу
+constexpr size_t   kMaxBlocks = 200;
+constexpr uint32_t kReserve   = 40 * 1024;     // лишаємо запас для USB, Serial і ядра
+constexpr size_t   kBig       = 64 * 1024;     // набагато менше за free після кроку 3
+// Лише внутрішня RAM: звичайний malloc() на платі з PSRAM запити &gt; 4096 Б
+// віддав би в PSRAM, і фрагментацію внутрішньої купи ми б не побачили.
+constexpr uint32_t kCaps      = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+
+void*  blocks[kMaxBlocks];                     // .bss: 200 вказівників по 4 Б
+size_t count = 0;
+
+void report(const char* step) {
+  Serial.printf("%-16s free=%6u max=%6u\n", step,
+                (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
+}
+
+void tryBig() {
+  void* p = heap_caps_malloc(kBig, kCaps);
+  Serial.printf("  malloc(%u) -&gt; %s\n", (unsigned)kBig, p ? "OK" : "NULL");
+  heap_caps_free(p);                           // free(nullptr) безпечний
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(3000);                                 // час відкрити монітор; у setup() це нормально
+  report("1 start");
+
+  while (count &lt; kMaxBlocks &amp;&amp; ESP.getFreeHeap() &gt; kReserve) {
+    void* p = heap_caps_malloc(kBlockSize, kCaps);
+    if (p == nullptr) break;
+    blocks[count++] = p;
+  }
+  Serial.printf("blocks: %u\n", (unsigned)count);
+  report("2 filled");
+
+  for (size_t i = 0; i &lt; count; i += 2) { heap_caps_free(blocks[i]); blocks[i] = nullptr; }
+  report("3 half freed");
+  tryBig();                                    // вільно багато, але суцільного шматка немає
+
+  for (size_t i = 1; i &lt; count; i += 2) { heap_caps_free(blocks[i]); blocks[i] = nullptr; }
+  report("4 all freed");
+  tryBig();                                    // ті самі байти, але тепер одним шматком
+}
+
+void loop() {}</code></pre>
+      <div class="btn-row"><button type="button" class="btn sm" id="lab-copy">Скопіювати скетч</button><a class="btn sm ghost" href="circuits/heap-lab.cpp" download>Завантажити .cpp</a></div>
+      <p class="small">У ядрі 3.x цей скетч збирається без змін: <code>ESP.getFreeHeap()</code>, <code>ESP.getMaxAllocHeap()</code> і <code>heap_caps_malloc()</code> там ті самі.</p>
+    </details>
+    <details class="more">
+      <summary>Для звірки: очікуваний результат на платі</summary>
+      <p>Точні байти залежать від плати й версії ядра, але закономірність та сама. Після кроку 3 <code>free</code> зростає приблизно на половину зайнятого, а <code>max</code> лишається таким самим, як після кроку 2, — тож <code>malloc(65536) -&gt; NULL</code>. Після кроку 4 ті самі байти лежать одним шматком, <code>free</code> і <code>max</code> повертаються до стартових — і 64&nbsp;КБ виділяються (<code>OK</code>). Чому <code>max</code> після кроків 2 і 3 однаковий? Цей шматок — не звільнені блоки (кожна дірка лише ≈&nbsp;2&nbsp;КБ), а частина запасу 40&nbsp;КБ, який скетч навмисно не займав. Різниця <code>free</code> між кроками ділена на кількість блоків трохи більша за 2000&nbsp;Б: кожен блок має ще службові дані купи (заголовок блоку і контрольні мітки налагодження).</p>
+    </details>
+    <div class="tbl">
+      <table class="measure" data-key="2-1-heap" data-calc="diff">
+        <caption>Купа до і після фрагментації (числа в байтах)</caption>
+        <thead><tr><th>Величина</th><th>Прогноз</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+        <tbody>
+          <tr><th>Блоків по 2000 Б виділено</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+          <tr><th>free після кроку 3</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+          <tr><th>max після кроку 3</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+          <tr><th>free після кроку 4</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">Підказка до прогнозу: блоків ≈ (free на старті − 40&nbsp;960) / 2000; після кроку 3 вільна пам'ять зростає на половину зайнятого, а найбільший шматок — ні: дірки між блоками лише по ≈ 2&nbsp;КБ.</p>
+    <div class="note tip" data-label="Розширення: що якщо…">
+      <p>…у <code>loop()</code> 1000 разів склеїти <code>String s = "t=" + String(millis()) + " adc=" + String(analogRead(4));</code>, а потім замінити це на <code>char buf[48]; snprintf(buf, sizeof buf, "t=%lu adc=%d", millis(), analogRead(4));</code>? Виведіть <code>ESP.getFreeHeap()</code> і <code>ESP.getMinFreeHeap()</code> (найнижча точка купи за весь час) до і після кожного варіанта. Потім зберіть <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-embedded-cpp">esp32-s3-embedded-cpp</a> і перевірте, що купа там не змінюється взагалі.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="2-1" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="2-1" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Рефакторинг шкідливого скетчу</h3>
+      <dl>
+        <dt>Мета</dt><dd>Переписати скетч нижче так, щоб він не блокувався, не кришив купу і не губив натискань. Поведінка та сама: LED на GPIO15 блимає 500/500&nbsp;мс, кожну секунду в журнал пишеться рядок з часом і АЦП, натискання кнопки GPIO21 рахуються.</dd>
+        <dt>Потрібно</dt><dd>Стенд з уроку 1.3 і проєкту <code>esp32-s3-embedded-cpp</code>: LED через резистор 220&nbsp;Ом на GPIO15, кнопка між GPIO21 і GND (внутрішня підтяжка <code>INPUT_PULLUP</code>).</dd>
+        <dt>Здати</dt><dd>Diff командного рішення (або посилання на PR у вашому форку <code>platformio-projects</code>) + рядки з монітора: <code>ESP.getFreeHeap()</code> і <code>ESP.getMinFreeHeap()</code> одразу після <code>setup()</code> і через 10 хвилин — для старого і нового скетчу.</dd>
+        <dt>Ролі</dt><dd><ul>
+          <li><b>Збирач</b>: прибирає блокування — <code>delay()</code> → <code>millis()</code>; показує стенд на камеру;</li>
+          <li><b>Вимірювач</b>: прибирає <code>String</code>-склейки — кільцевий буфер <code>char[]</code> + <code>snprintf</code>; знімає купу до і після;</li>
+          <li><b>Доповідач</b>: прибирає магічні числа й глобальну «кашу» — <code>constexpr</code>-конфіг, клас або анонімний простір імен; пише пост із результатом;</li>
+          <li><b>Скептик</b>: виправляє ISR (<code>volatile</code>, без <code>Serial</code> усередині, критична секція для лічильника) і перевіряє код інших за чеклістом нижче.</li>
+        </ul></dd>
+        <dt>Чекліст Скептика</dt><dd><details class="more"><summary>4 пункти перевірки</summary><ol>
+          <li>У <code>loop()</code> немає <code>delay()</code> і порожніх циклів очікування.</li>
+          <li>У <code>loop()</code> немає <code>String</code>-склейок, <code>new</code>, <code>malloc</code>, <code>push_back</code>.</li>
+          <li>ISR: <code>IRAM_ATTR</code>, спільні змінні <code>volatile</code>, жодного <code>Serial</code>; читання й скидання лічильника в <code>loop()</code> — в одній критичній секції.</li>
+          <li>Кожне число в коді має ім'я (<code>constexpr</code>), крім 0 і 1.</li>
+        </ol></details></dd>
+        <dt>Критерії</dt><dd>0–2 бали кожен: (1) у <code>loop()</code> немає <code>delay</code>; (2) у <code>loop()</code> немає виділень у купі: <code>getFreeHeap()</code> і <code>getMinFreeHeap()</code> через 10 хв ті самі, що після <code>setup()</code>; (3) ISR коротка й коректна; (4) немає магічних чисел.</dd>
+        <dt>Ускладнення</dt><dd>Додайте <code>static_assert</code>, що піни LED і кнопки різні, і виміряйте найдовший прохід <code>loop()</code> через <code>micros()</code>.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>Пост у GitHub Discussions, категорія «Командні виклики» (публікує Доповідач).</dd>
+      </dl>
+    </article>
+    <details class="more">
+      <summary>Шкідливий скетч (компілюється, але…)</summary>
+      <pre><code>#include &lt;Arduino.h&gt;
+
+String history = "";
+int count = 0;
+bool pressed = false;
+
+void isr() {
+  pressed = true;
+  count++;
+  Serial.println("press!");
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(15, OUTPUT);
+  pinMode(21, INPUT_PULLUP);
+  attachInterrupt(21, isr, FALLING);
+}
+
+void loop() {
+  digitalWrite(15, HIGH);
+  delay(500);
+  digitalWrite(15, LOW);
+  delay(500);
+  history += "t=" + String(millis()) + " adc=" + String(analogRead(4)) + "\n";
+  if (history.length() &gt; 2000) {
+    Serial.print(history);
+    history = "";
+  }
+  if (pressed) {
+    Serial.println(count);
+    pressed = false;
+  }
+}</code></pre>
+      <p class="small">Еталон — проєкт <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-embedded-cpp">esp32-s3-embedded-cpp</a>, але спершу спробуйте самі.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: плату з USB-кабелем, відкритий PlatformIO зі зібраним <code>esp32-s3-embedded-cpp</code>, прочитані розділи 04–05 і свій прогноз для міні-лаби.</p>
+    <div class="tnote">
+      <p><b>ConcepTest 1 (volatile).</b> «<code>volatile uint32_t presses;</code> ISR робить <code>presses++</code>, <code>loop()</code> друкує <code>presses</code>, а потім робить <code>presses = 0</code>. Чи може загубитися натискання?» А) ні, бо volatile; Б) так; В) лише на двох ядрах.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано: ≈ 55&nbsp;% А, 35&nbsp;% Б, 10&nbsp;% В → пари на 60&nbsp;с → після повторного голосування ≥ 75&nbsp;% Б. Поясніть часовою лінією на дошці: <code>loop()</code> прочитав 3 → друкує → <b>ISR: 3→4</b> → <code>loop()</code> пише 0, і четверте натискання зникло. Сам <code>++</code> в ISR тут не розривається: <code>loop()</code> не може перервати ISR на тому самому ядрі. Ліки: прочитати й обнулити в одній критичній секції. Варіант для сильної групи — міф E7 з розділу 07 (<code>++</code> і в ISR, і в <code>loop()</code>).</p></details>
+      <p><b>ConcepTest 2 (const).</b> «<code>const int kCalib = analogRead(4);</code> — де лежить?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано: ≈ 60&nbsp;% «Flash». Розгорніть вправу «Де живе змінна?» (розділ 05), пункт 4.</p></details>
+      <p><b>ConcepTest 3 (delay).</b> «У <code>loop()</code> стоїть <code>delay(1000)</code>. Чи спрацює ISR кнопки?»</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано: ≈ 40&nbsp;% «ні». Якщо правильних 30–70&nbsp;% — пари і переголосування; якщо &gt; 70&nbsp;% — коротке пояснення й далі.</p></details>
+      <p><b>POE-демо (12 хв).</b> На стіні прогнозів: «скільки байтів вдасться виділити після кроку 3?» Потім запускаєте <code>heap-lab.cpp</code> на камеру і питаєте: «вільно сотні кілобайтів, а 64&nbsp;КБ не дали — чому? І чому після кроку 4 дали?»</p>
+      <p><b>Знайди помилку (3 фрагменти; усі одночасно пишуть у чат номер рядка з помилкою, натискають Enter за командою):</b> (1) <code>bool flag;</code> без <code>volatile</code> + порожній <code>while(!flag){}</code>; (2) <code>if (millis() &gt;= last + 500)</code> — зламається на переповненні; (3) <code>char buf[16384];</code> локально в <code>loop()</code> — більше за стек 8&nbsp;КБ.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>3–11</td><td>Розминка</td><td><code>warmup/</code></td></tr>
+          <tr><td>18–22</td><td>Хук і цілі</td><td>розділи 01–02</td></tr>
+          <tr><td>22–34</td><td>Пам'ять + ConcepTest 2</td><td>розділ 08, віджет 4 розділу 05</td></tr>
+          <tr><td>34–46</td><td>POE: купа</td><td>віджет 1 розділу 05, потім heap-lab</td></tr>
+          <tr><td>46–55</td><td>volatile + ConcepTest 1, «Знайди помилку»</td><td>віджет 2 розділу 05</td></tr>
+          <tr><td>62–90</td><td>Пишемо разом: Blink на <code>millis()</code></td><td>віджет 3 розділу 05, проєкт</td></tr>
+          <tr><td>90–95</td><td>Спринт на дошці: «підпишіть на карті пам'яті, де лежить кожна з 5 змінних» (<code>kBlinkMs</code>, <code>kGamma</code>, <code>kCalib</code>, <code>lastMs</code>, <code>now</code>)</td><td>розділ 08, спільна дошка</td></tr>
+          <tr><td>95–108</td><td>Видача командного виклику</td><td>розділ 12</td></tr>
+          <tr><td>108–116</td><td>Квиток на вихід</td><td>розділ 14</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit ticket -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому volatile не робить counter++ безпечним між ISR і loop()."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip deep" href="../../lab/#led-blink">Стенд: миготіння LED і планувальник</a></li>
+      <li><a class="chip deep" href="../2-3/">Урок 2.3: суперцикл</a></li>
+      <li><a class="chip deep" href="../2-4/">Урок 2.4: переривання</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s8gaopa0813apeaqj2m">Урок 2.1 у LMS</a> (потрібен вхід).</li>
+      <li><a href="https://www.youtube.com/watch?v=GeblxEQIPFM">Ben Saks, «What Volatile Means (and Doesn't Mean) in C++ Programming», CppCon 2024</a> (англійською; українські субтитри працюють). Перші ≈ 15 хв — суть: що компілятор може «викинути» без <code>volatile</code>. Решта — для охочих: <code>volatile</code> і багатопоточність.</li>
+      <li>Статті з LMS: <a href="https://medium.com/@ethrynto/c-in-embedded-systems-modern-practices-for-resource-constrained-environments-84627194f855">C++ in embedded systems</a> · <a href="https://medium.com/@shadababe04/volatile-embedded-syatem-a9bf83b19591">volatile коротко</a> · <a href="https://aticleworld.com/cpp-const-vs-constexpr-explained/">const vs constexpr</a>.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul class="chips">
+      <li><a class="chip" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-embedded-cpp/cpp">esp32-s3-embedded-cpp / cpp</a></li>
+      <li><a class="chip" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-embedded-cpp/rust">esp32-s3-embedded-cpp / rust</a></li>
+      <li><a class="chip" href="circuits/heap-lab.cpp">heap-lab.cpp</a></li>
+    </ul>
+
+    <h3>Що виправлено порівняно з LMS</h3>
+    <details class="more" id="lms-fixed">
+    <summary>7 уточнень: розгорнути</summary>
+    <ol>
+      <li><b>«Спільні змінні задач RTOS мають бути volatile».</b> Для зв'язку між задачами <code>volatile</code> недостатньо: він не дає ні атомарності, ні порядку. Потрібні критична секція<sup class="cite" data-fact="idf-critical-section"></sup>, <code>std::atomic</code> або черги FreeRTOS.</li>
+      <li><b>«C++20 оголосив застарілим volatile для багатопотоковості».</b> Насправді застарілими стали окремі операції (<code>++</code>, складене присвоєння тощо)<sup class="cite" data-fact="cpp20-volatile-deprecation"></sup>, а складені присвоєння потім повернули<sup class="cite" data-fact="cpp23-volatile-bitwise"></sup>.</li>
+      <li><b>«constexpr майже завжди у Flash, const — як вийде».</b> Уточнено для ESP32: вирішує, чи відоме значення під час компіляції. Глобальний <code>const</code> з константним значенням теж лежить у Flash<sup class="cite" data-fact="idf-const-in-flash"></sup>, <code>const</code> з обчисленим при старті значенням — у RAM<sup class="cite" data-fact="xtensa-gcc-placement"></sup>, а скалярний <code>constexpr</code> часто взагалі не займає пам'яті<sup class="cite" data-fact="xtensa-gcc-constexpr-immediate"></sup>.</li>
+      <li><b>«Уникаємо винятків і RTTI».</b> Уточнено для нашої збірки: винятки ввімкнені, RTTI вимкнено<sup class="cite" data-fact="core-cpp-flags"></sup>, тож <code>typeid</code> і <code>dynamic_cast</code> униз по ієрархії не скомпілюються.</li>
+      <li><b>«Суперцикл — без ОС».</b> На Arduino-ESP32 <code>loop()</code> — задача FreeRTOS<sup class="cite" data-fact="core-loop-task"></sup>, а <code>delay()</code> присипляє лише її<sup class="cite" data-fact="core-delay"></sup>.</li>
+      <li><b>Приклад з <code>.dir = …</code></b> — це синтаксис C++20; GCC 8.4 у наших режимах приймає його лише як розширення<sup class="cite" data-fact="gcc-designated-init-ext"></sup>.</li>
+      <li><b>«Кілька кілобайт RAM».</b> На нашій платі 512&nbsp;КБ SRAM<sup class="cite" data-fact="s3-sram"></sup> і 8&nbsp;МБ PSRAM<sup class="cite" data-fact="wroom-n16r8-memory"></sup>; принцип економії той самий, бо купа фрагментується за будь-якого розміру.</li>
+    </ol>
+    </details>
+
+    <details class="more" id="src-box">
+      <summary>Джерела (номери в квадратних дужках)</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt } = Study;
+  const reduced = () => Study.reducedMotion();
+  const el = (tag, attrs = {}, text) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svgEl = (tag, attrs, parent) => {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const kb = (n) => `${fmt.num(n, 0)} КБ`;
+
+  /* ================= 04 life stepper: const / constexpr / static / volatile over time ================= */
+  const LIFE = [
+    { t: 'Компіляція', l: [1, 2], txt: '<b>Компіляція.</b> <code>kBlinkMs</code> не отримує комірки: число 500 вшивається просто в інструкції. Таблиця <code>kGamma</code> відома компілятору, тож лягає в <code>.rodata</code> у Flash.',
+      flash: ['код', '500 у коді*', 'kGamma[4]*'], ram: [], stack: [] },
+    { t: 'Старт: до setup()', l: [3, 4, 5, 8], txt: '<b>Старт, ще до <code>setup()</code>.</b> Стартовий код копіює <code>.data</code> з Flash у RAM (<code>g_count = 7</code>) і обнуляє <code>.bss</code>: там <code>g_pressed</code>, <code>lastMs</code> і поки що порожній <code>kCalib</code>.',
+      flash: ['код', '500 у коді', 'kGamma[4]', 'копія g_count=7*'], ram: ['g_count=7*', 'g_pressed=0*', 'lastMs=0*', 'kCalib=0*'], stack: [] },
+    { t: 'Конструктори глобальних', l: [3], txt: '<b>Ініціалізація глобальних.</b> Викликається <code>readCalib()</code>, і <code>kCalib</code> отримує значення. Це <code>const</code>, але значення з\'явилося під час виконання — тому воно в RAM, а не у Flash.',
+      flash: ['код', '500 у коді', 'kGamma[4]', 'копія g_count=7'], ram: ['g_count=7', 'g_pressed=0', 'lastMs=0', 'kCalib=512*'], stack: [] },
+    { t: 'loop(), прохід 1', l: [7, 9, 10], txt: '<b>Перший прохід <code>loop()</code>.</b> <code>now</code> — локальна змінна на стеку. 312 − 0 &lt; 500, тож нічого не робимо й одразу виходимо.',
+      flash: ['код', '500 у коді', 'kGamma[4]', 'копія g_count=7'], ram: ['g_count=7', 'g_pressed=0', 'lastMs=0', 'kCalib=512'], stack: ['now=312*'] },
+    { t: 'loop(), прохід N', l: [9, 10], txt: '<b>Через тисячі проходів.</b> Стек попереднього проходу зник, а копія у Flash лишилася на місці. <code>static lastMs</code> пам\'ятає значення, бо живе в RAM. 503 − 0 ≥ 500 → <code>lastMs = 503</code>, <code>g_count = 8</code>.',
+      flash: ['код', '500 у коді', 'kGamma[4]', 'копія g_count=7'], ram: ['g_count=8*', 'g_pressed=0', 'lastMs=503*', 'kCalib=512'], stack: ['now=503*'] },
+    { t: 'Переривання', l: [6], txt: '<b>Натиснули кнопку.</b> Обробник з <code>IRAM_ATTR</code> (позначка «тримати код у швидкій внутрішній RAM») пише <code>g_pressed = true</code> прямо в RAM. Цикл про це ще не знає.',
+      flash: ['код', '500 у коді', 'kGamma[4]', 'копія g_count=7'], ram: ['g_count=8', 'g_pressed=1*', 'lastMs=503', 'kCalib=512'], stack: [] },
+    { t: 'Наступний прохід', l: [9, 11], txt: '<b>Наступний прохід.</b> Бо <code>g_pressed</code> — <code>volatile</code>, компілятор справді читає RAM і бачить 1. Скидаємо прапорець і обробляємо натискання.',
+      flash: ['код', '500 у коді', 'kGamma[4]', 'копія g_count=7'], ram: ['g_count=8', 'g_pressed=0*', 'lastMs=503', 'kCalib=512'], stack: ['now=505*'] },
+  ];
+  let lifeI = 0;
+  const lifeDots = $('#life-dots');
+  LIFE.forEach(() => lifeDots.appendChild(el('i')));
+  function drawLife() {
+    const s = LIFE[lifeI];
+    $$('#life-code span').forEach((sp) => sp.classList.toggle('on', s.l.includes(+sp.dataset.l)));
+    $('#life-stage').innerHTML = s.txt;
+    for (const k of ['flash', 'ram', 'stack']) {
+      const box = $(`#life-mem [data-m="${k}"]`);
+      box.textContent = '';
+      if (!s[k].length) box.appendChild(el('span', { class: 'small' }, k === 'stack' ? 'порожньо' : '—'));
+      s[k].forEach((v) => {
+        const chg = v.endsWith('*');
+        box.appendChild(el('span', { class: 'v' + (chg ? ' chg' : '') }, chg ? v.slice(0, -1) : v));
+      });
+    }
+    $$('i', lifeDots).forEach((d, i) => d.classList.toggle('on', i === lifeI));
+    $('#life-n').textContent = `Етап ${lifeI + 1} з ${LIFE.length}: ${s.t}`;
+    $('#life-prev').disabled = lifeI === 0;
+    $('#life-next').disabled = lifeI === LIFE.length - 1;
+  }
+  $('#life-prev').addEventListener('click', () => { if (lifeI > 0) { lifeI--; drawLife(); } });
+  $('#life-next').addEventListener('click', () => { if (lifeI < LIFE.length - 1) { lifeI++; drawLife(); } });
+  drawLife();
+
+  /* ================= 05.1 heap fragmentation (W2-1a) ================= */
+  const HEAP_KB = 16;
+  const STEPS = [
+    { txt: 'Купа порожня: 16 КБ одним шматком.' },
+    { a: 'A', kb: 4, txt: '<code>A = malloc(4 КБ)</code> — буфер прийому даних.' },
+    { a: 'B', kb: 2, txt: '<code>B = malloc(2 КБ)</code> — тимчасовий <code>String</code>.' },
+    { a: 'C', kb: 3, txt: '<code>C = malloc(3 КБ)</code> — буфер дисплея.' },
+    { a: 'D', kb: 2, txt: '<code>D = malloc(2 КБ)</code> — ще один тимчасовий рядок.' },
+    { a: 'E', kb: 2, txt: '<code>E = malloc(2 КБ)</code> — JSON-пакет.' },
+    { a: 'F', kb: 1, txt: '<code>F = malloc(1 КБ)</code> — тимчасовий рядок.' },
+    { a: 'G', kb: 2, txt: '<code>G = malloc(2 КБ)</code> — черга подій. Купа повна.' },
+    { f: 'B', txt: '<code>free(B)</code> — рядок більше не потрібен: дірка 2 КБ.' },
+    { f: 'D', txt: '<code>free(D)</code> — ще дірка 2 КБ, не поруч з першою.' },
+    { f: 'F', txt: '<code>free(F)</code> — дірка 1 КБ. Разом вільно 5 КБ.' },
+    { a: 'H', kb: 3, txt: '<code>H = malloc(3 КБ)</code> → <b>NULL</b>: жодна дірка не має 3 КБ поспіль.' },
+  ];
+  function heapState(n) {
+    let blocks = []; let fail = null;
+    for (let i = 1; i <= n; i++) {
+      const s = STEPS[i];
+      if (s.f) { blocks = blocks.filter((b) => b.id !== s.f); continue; }
+      const sorted = [...blocks].sort((x, y) => x.at - y.at);
+      let at = 0, placed = false;
+      for (const b of sorted) { if (b.at - at >= s.kb) { placed = true; break; } at = b.at + b.kb; }
+      if (!placed && HEAP_KB - at >= s.kb) placed = true;
+      if (placed) blocks.push({ id: s.a, kb: s.kb, at, born: i }); else fail = s;
+    }
+    const sorted = [...blocks].sort((x, y) => x.at - y.at);
+    const holes = []; let at = 0;
+    for (const b of sorted) { if (b.at > at) holes.push({ at, kb: b.at - at }); at = b.at + b.kb; }
+    if (at < HEAP_KB) holes.push({ at, kb: HEAP_KB - at });
+    return { blocks: sorted, holes, fail };
+  }
+  let heapN = 0, heapTimer = null;
+  function drawHeap() {
+    const { blocks, holes, fail } = heapState(heapN);
+    const bar = $('#heap-bar');
+    bar.textContent = '';
+    const pct = (v) => `calc(${(v / HEAP_KB) * 100}% + 3px)`;
+    const wid = (v) => `calc(${(v / HEAP_KB) * 100}% - 6px)`;
+    blocks.forEach((b) => {
+      const d = el('div', { class: 'hb' + (b.born === heapN && !reduced() ? ' new' : '') });
+      d.style.left = pct(b.at); d.style.width = wid(b.kb);
+      d.append(el('span', {}, b.id));
+      if (b.kb >= 2) d.append(el('small', {}, `${b.kb}К`));
+      bar.appendChild(d);
+    });
+    let narrow = false;
+    holes.filter(() => heapN > 0).forEach((h) => {
+      const d = el('div', { class: 'hole' + (h.kb < 2 ? ' narrow' : '') });
+      d.appendChild(el('span', {}, `${h.kb}К`));
+      if (h.kb < 2) narrow = true;
+      d.style.left = pct(h.at); d.style.width = wid(h.kb);
+      bar.appendChild(d);
+    });
+    bar.parentElement.classList.toggle('has-narrow', narrow);
+    const ghost = $('.heap-ghost');
+    if (ghost) ghost.remove();
+    if (fail) {
+      const g = el('div', { class: 'heap-ghost' }, '3 КБ ✕ не влазить');
+      g.style.left = '30%'; g.style.width = 'max(19%, 140px)';
+      bar.parentElement.appendChild(g);
+    }
+    const free = holes.reduce((s, h) => s + h.kb, 0);
+    const max = holes.reduce((m, h) => Math.max(m, h.kb), 0);
+    $('#heap-free').textContent = kb(free);
+    const mx = $('#heap-max'); mx.textContent = kb(max); mx.className = heapN >= 10 ? 'bad' : '';
+    $('#heap-n').textContent = `${heapN}/${STEPS.length - 1}`;
+    $('#heap-log').innerHTML = STEPS[heapN].txt;
+    bar.setAttribute('aria-label', `Купа після кроку ${heapN}: вільно ${free} КБ, найбільший суцільний шматок ${max} КБ.`);
+    $('#heap-prev').disabled = heapN === 0;
+    $('#heap-next').disabled = heapN === STEPS.length - 1;
+  }
+  function heapStop() {
+    clearInterval(heapTimer); heapTimer = null;
+    $('#heap-play').setAttribute('aria-pressed', 'false'); $('#heap-play').textContent = '▶ Відтворити';
+  }
+  $('#heap-next').addEventListener('click', () => { heapStop(); if (heapN < STEPS.length - 1) { heapN++; drawHeap(); } });
+  $('#heap-prev').addEventListener('click', () => { heapStop(); if (heapN > 0) { heapN--; drawHeap(); } });
+  $('#heap-reset').addEventListener('click', () => { heapStop(); heapN = 0; drawHeap(); });
+  $('#heap-play').addEventListener('click', () => {
+    if (heapTimer) { heapStop(); return; }
+    if (heapN === STEPS.length - 1) heapN = 0;
+    $('#heap-play').setAttribute('aria-pressed', 'true'); $('#heap-play').textContent = '⏸ Пауза';
+    const tick = () => { heapN++; drawHeap(); if (heapN >= STEPS.length - 1) heapStop(); };
+    heapTimer = setInterval(tick, reduced() ? 2200 : 1100);
+    tick();
+  });
+  drawHeap();
+
+  /* ================= 05.2 volatile and the optimizer (W2-1b) ================= */
+  const ASM = {
+    0: [ // bool flag  (GCC 8.4, -Os): one load, then a jump to itself
+      { s: 'waitFlag:', c: '' },
+      { s: '  l32r   a8, .LC0', c: '; a8 = адреса flag' },
+      { s: '  l8ui   a8, a8, 0', c: '; ОДНЕ читання RAM → a8' },
+      { s: '  bnez.n a8, .L5', c: '; a8 ≠ 0 → на вихід' },
+      { s: '.L4:', c: '' },
+      { s: '  j      .L4', c: '; стрибок сам на себе' },
+      { s: '.L5:', c: '' },
+      { s: '  retw.n', c: '; повернення' },
+    ],
+    1: [ // volatile bool flag
+      { s: 'waitFlag:', c: '' },
+      { s: '  l32r   a9, .LC1', c: '; a9 = адреса flag' },
+      { s: '.L7:', c: '' },
+      { s: '  memw', c: '; бар\'єр пам\'яті' },
+      { s: '  l8ui   a8, a9, 0', c: '; читання RAM — щоразу' },
+      { s: '  extui  a8, a8, 0, 8', c: '; взяти молодший байт' },
+      { s: '  beqz.n a8, .L7', c: '; a8 = 0 → знову на .L7' },
+      { s: '  retw.n', c: '; повернення' },
+    ],
+  };
+  let vol = 0, vPc = 1, vMem = 0, vReg = null, vDone = false, vTimer = null;
+  function volDrawAsm() {
+    const pre = $('#vol-asm'); pre.textContent = '';
+    ASM[vol].forEach((ln, i) => {
+      const sp = el('span', { 'data-i': i }, ln.s.padEnd(22, ' '));
+      if (ln.c) sp.appendChild(el('i', {}, ln.c));
+      if (i === vPc) sp.className = 'pc';
+      pre.appendChild(sp);
+    });
+    $('#vol-src').textContent = `${vol ? 'volatile ' : ''}bool flag = false;\n\nvoid waitFlag() {\n  while (!flag) {}\n}`;
+    $('#vol-mem b').textContent = String(vMem);
+    $('#vol-reg b').textContent = vReg == null ? '—' : String(vReg);
+    const st = $('#vol-state');
+    if (vDone && vol === 0) { st.textContent = 'Пощастило: ISR спрацював ще до єдиного читання flag. Натисніть «Скинути» і дайте ISR, коли процесор уже крутиться на «j .L4».'; st.className = 'state'; }
+    else if (vDone) { st.textContent = '✓ Цикл завершився: побачили flag = 1.'; st.className = 'state ok'; }
+    else if (vMem === 1 && vol === 0 && vPc === 5) { st.textContent = '✕ flag у RAM уже 1, а процесор крутиться на «j .L4» і в пам\'ять більше не дивиться.'; st.className = 'state bad'; }
+    else { st.textContent = vMem ? 'flag = 1 у RAM. Що зробить наступна інструкція?' : 'Цикл крутиться, чекає на flag.'; st.className = 'state'; }
+  }
+  function flashCell(id) { const c = $(id); c.classList.remove('flash'); void c.offsetWidth; if (!reduced()) c.classList.add('flash'); }
+  function volStep() {
+    if (vDone) return;
+    if (vol === 0) {
+      if (vPc === 1) vPc = 2;
+      else if (vPc === 2) { vReg = vMem; flashCell('#vol-reg'); vPc = 3; }
+      else if (vPc === 3) vPc = vReg ? 7 : 5;
+      else if (vPc === 5) vPc = 5;
+      else if (vPc === 7) vDone = true;
+    } else {
+      if (vPc === 1) vPc = 3;
+      else if (vPc === 3) vPc = 4;
+      else if (vPc === 4) { vReg = vMem; flashCell('#vol-reg'); vPc = 5; }
+      else if (vPc === 5) vPc = 6;
+      else if (vPc === 6) vPc = vReg ? 7 : 3;
+      else if (vPc === 7) vDone = true;
+    }
+    volDrawAsm();
+  }
+  function volAuto(on) {
+    clearInterval(vTimer); vTimer = null;
+    $('#vol-auto').setAttribute('aria-pressed', String(on));
+    if (on) vTimer = setInterval(volStep, 650);
+  }
+  function volReset() { vPc = 1; vMem = 0; vReg = null; vDone = false; volDrawAsm(); }
+  $$('#w-vol .seg button').forEach((b) => b.addEventListener('click', () => {
+    vol = +b.dataset.v;
+    $$('#w-vol .seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    volReset();
+  }));
+  $('#vol-isr').addEventListener('click', () => { vMem = 1; flashCell('#vol-mem'); volDrawAsm(); });
+  $('#vol-step').addEventListener('click', () => { volAuto(false); volStep(); });
+  $('#vol-auto').addEventListener('click', () => volAuto($('#vol-auto').getAttribute('aria-pressed') !== 'true'));
+  $('#vol-reset').addEventListener('click', volReset);
+  $('#w-vol').addEventListener('predict', () => { if (!reduced()) volAuto(true); });
+  volDrawAsm();
+
+  /* ================= 05.3 delay() vs millis() timeline ================= */
+  const T = 3000, PRESS = 80;
+  let presses = [230, 870, 1310, 1960, 2600], tlOpen = false, tlT = T, tlRaf = 0;
+  const cv = $('#tl');
+  function randomPresses() {
+    const out = [];
+    while (out.length < 5) {
+      const t = 80 + Math.random() * (T - 240);
+      if (out.every((p) => Math.abs(p - t) > 250)) out.push(Math.round(t));
+    }
+    return out.sort((a, b) => a - b);
+  }
+  const POLLS = [1000, 2000, 3000];
+  const caughtDelay = (p) => POLLS.some((q) => q >= p && q <= p + PRESS);
+  function drawTl() {
+    const ctx = Study.fitCanvas(cv); const t = Study.tokens();
+    const W = ctx.w, H = ctx.h, L = W < 480 ? 70 : 96, R = W - 12;
+    const x = (ms) => L + (R - L) * ms / T;
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = `13px ${t['f-body']}`; ctx.textBaseline = 'middle';
+    const lanes = [{ y: 33, n: 'кнопка' }, { y: 92, n: 'delay()' }, { y: 172, n: 'millis()' }];
+    lanes.forEach((ln) => { ctx.fillStyle = t.muted; ctx.fillText(ln.n, 6, ln.y); });
+    // time axis
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1;
+    for (let ms = 0; ms <= T; ms += 500) {
+      ctx.beginPath(); ctx.moveTo(x(ms), 12); ctx.lineTo(x(ms), H - 24); ctx.stroke();
+      ctx.fillStyle = t.muted; ctx.textAlign = 'center';
+      if (ms % 1000 === 0 || W > 480) ctx.fillText(`${fmt.num(ms / 1000, 1)} с`, Math.min(x(ms), W - 14), H - 10);
+    }
+    ctx.textAlign = 'left';
+    const upto = tlOpen ? tlT : 0;
+    // button lane: HIGH idle, LOW while pressed (pull-up)
+    ctx.strokeStyle = t.ink; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(x(0), 22);
+    presses.forEach((p) => { ctx.lineTo(x(p), 22); ctx.lineTo(x(p), 44); ctx.lineTo(x(p + PRESS), 44); ctx.lineTo(x(p + PRESS), 22); });
+    ctx.lineTo(x(T), 22); ctx.stroke();
+    if (!tlOpen) return;
+    // LED waveform (same in both sketches): HIGH 500 ms, LOW 500 ms
+    const led = (y) => {
+      ctx.strokeStyle = t.accent; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(x(0), y - 14);
+      for (let ms = 0; ms < Math.min(T, upto); ms += 500) {
+        const on = (ms / 500) % 2 === 0, e = Math.min(ms + 500, upto, T);
+        ctx.lineTo(x(ms), on ? y - 14 : y); ctx.lineTo(x(e), on ? y - 14 : y);
+      }
+      ctx.stroke();
+    };
+    led(98); led(178);
+    // delay lane: the button is read once per second, after the second delay()
+    POLLS.filter((q) => q <= upto).forEach((q) => {
+      ctx.fillStyle = t.hi; ctx.beginPath(); ctx.arc(Math.min(x(q), R - 5), 110, 5, 0, Math.PI * 2); ctx.fill();
+    });
+    // millis lane: the button is read on every pass, i.e. all the time
+    ctx.strokeStyle = t.hi; ctx.lineWidth = 1;
+    for (let px = x(0); px <= x(Math.min(upto, T)); px += 4) { ctx.beginPath(); ctx.moveTo(px, 186); ctx.lineTo(px, 194); ctx.stroke(); }
+    // verdicts under each lane
+    ctx.font = `600 16px ${t['f-body']}`; ctx.textAlign = 'center';
+    let d = 0, m = 0;
+    presses.forEach((p) => {
+      if (p + PRESS > upto) return;
+      const okD = caughtDelay(p); if (okD) d++; m++;
+      ctx.fillStyle = okD ? t.ok : t.bad; ctx.fillText(okD ? '✓' : '✕', x(p + PRESS / 2), 132);
+      ctx.fillStyle = t.ok; ctx.fillText('✓', x(p + PRESS / 2), 210);
+    });
+    ctx.textAlign = 'left';
+    const done = upto >= T;
+    $('#tl-out').innerHTML = `<span>delay-версія помітила <b class="${d < 5 ? 'bad' : 'ok'}">${d} з ${done ? 5 : m}</b></span><span>millis-версія <b class="ok">${m} з ${done ? 5 : m}</b></span>`;
+  }
+  function tlPlay() {
+    cancelAnimationFrame(tlRaf);
+    if (reduced()) { tlT = T; drawTl(); return; }
+    const t0 = performance.now();
+    const frame = (now) => { tlT = Math.min(T, (now - t0) * 1.2); drawTl(); if (tlT < T) tlRaf = requestAnimationFrame(frame); };
+    tlRaf = requestAnimationFrame(frame);
+  }
+  $('#tl-new').addEventListener('click', () => { presses = randomPresses(); if (tlOpen) tlPlay(); else drawTl(); });
+  $('#w-time').addEventListener('predict', (e) => { tlOpen = true; if (e.detail && e.detail.restored) { tlT = T; drawTl(); } else tlPlay(); });
+  drawTl();
+  Study.onTheme(() => drawTl());
+  let rsz = 0; window.addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(drawTl, 120); });
+
+  /* ================= 05.4 where does it live (W2-1c) ================= */
+  const PLACES = ['Flash', 'RAM', 'Стек', 'Ніде'];
+  const WHERE = [
+    { c: 'constexpr uint8_t kLedPin = 15;', a: 3, why: 'Ніде: компілятор підставляє 15 прямо в інструкцію (<code>movi.n a10, 15</code>). Окремої комірки немає.' },
+    { c: 'constexpr uint16_t kLut[4] = {1, 2, 4, 8};', a: 0, why: 'Flash, секція <code>.rodata</code>: масив відомий компілятору і не змінюється.' },
+    { c: 'const uint16_t kTable[4] = {3, 5, 7, 9};', a: 0, why: 'Теж Flash (<code>.rodata</code>): значення відомі під час компіляції, тож <code>const</code> тут поводиться як <code>constexpr</code>.' },
+    { c: 'const int kCalib = readCalib();', a: 1, why: 'RAM (<code>.bss</code>)! Значення стане відомим лише після старту, тож його нема куди «зашити» у Flash. <code>const</code> лише забороняє змінювати.' },
+    { c: 'int counter = 5;', a: 1, why: 'RAM (<code>.data</code>). Стартове значення 5 лежить у Flash і копіюється в RAM при старті.' },
+    { c: 'uint16_t samples[64];', a: 1, why: 'RAM (<code>.bss</code>), 128 байт, обнулені при старті. Займає RAM з першої миті, навіть якщо ви ще нічого не записали.' },
+    { c: 'void loop() { char buf[64]; /* … */ }', a: 2, why: 'Стек задачі <code>loop()</code>: з\'являється на час виклику й зникає після виходу. Увесь стек — 8 КБ, тож великі масиви сюди не кладуть.' },
+    { c: 'void loop() { static uint32_t lastMs = 0; }', a: 1, why: 'RAM (<code>.bss</code>), не стек: <code>static</code> живе весь час роботи програми й пам\'ятає значення між викликами.' },
+    { c: 'const char* msg = "hello";  // де сам msg?', a: 1, why: 'Вказівник <code>msg</code> — у RAM (<code>.data</code>), бо його можна перенаправити. Текст "hello" — у Flash. Хочете й вказівник у Flash — <code>const char* const msg</code>.' },
+  ];
+  const whereList = $('#where'); let whereOk = 0;
+  WHERE.forEach((w, i) => {
+    const li = el('li');
+    const pre = el('pre'); pre.appendChild(el('code', {}, w.c)); li.appendChild(pre);
+    const opts = el('div', { class: 'opts', role: 'group', 'aria-label': `Де лежить: ${w.c}` });
+    const ans = el('p', { class: 'ans', 'aria-live': 'polite' });
+    PLACES.forEach((p, j) => {
+      const b = el('button', { type: 'button', class: 'opt' }, p);
+      b.addEventListener('click', () => {
+        if (li.dataset.done) return;
+        li.dataset.done = '1';
+        const ok = j === w.a; if (ok) whereOk++;
+        b.classList.add(ok ? 'right' : 'wrong');
+        if (!ok) opts.children[w.a].classList.add('right');
+        [...opts.children].forEach((x) => { x.disabled = true; });
+        ans.innerHTML = `${ok ? '✓ Так.' : '✕ Ні.'} ${w.why}`;
+        $('#where-score').textContent = `${whereOk} / ${WHERE.length}`;
+      });
+      opts.appendChild(b);
+    });
+    li.append(opts, ans);
+    whereList.appendChild(li);
+  });
+  $('#where-score').textContent = `0 / ${WHERE.length}`;
+  $('#where-reset').addEventListener('click', () => {
+    whereOk = 0;
+    $$('#where li').forEach((li) => {
+      delete li.dataset.done;
+      $$('.opt', li).forEach((b) => { b.disabled = false; b.classList.remove('right', 'wrong'); });
+      $('.ans', li).textContent = '';
+    });
+    $('#where-score').textContent = `0 / ${WHERE.length}`;
+  });
+
+  /* ================= 06 padding figure ================= */
+  function padRow(g, y, cells) {
+    const cw = 25;
+    cells.forEach((c, i) => {
+      const r = svgEl('rect', { x: 4 + i * cw, y, width: cw - 2, height: 30, rx: 3,
+        fill: c ? 'color-mix(in srgb, var(--accent) 22%, var(--panel))' : 'var(--panel-2)',
+        stroke: c ? 'var(--accent)' : 'var(--line)', 'stroke-width': 1.5 }, g);
+      if (c) { const tx = svgEl('text', { x: 4 + i * cw + (cw - 2) / 2, y: y + 20, 'text-anchor': 'middle', fill: 'var(--ink)', 'font-size': 13 }, g); tx.textContent = c; }
+      else svgEl('path', { d: `M${8 + i * cw} ${y + 25} L${cw - 2 + i * cw} ${y + 5}`, stroke: 'var(--muted)', 'stroke-width': 1.2 }, g);
+      void r;
+    });
+  }
+  padRow($('#pad-a'), 24, ['ch', '', '', '', 't', 't', 't', 't', 'raw', '', '', '']);
+  padRow($('#pad-b'), 92, ['t', 't', 't', 't', 'ch', 'raw', '', '']);
+
+  /* ================= 08 memory map ================= */
+  function mmSelect(k) {
+    $$('#mm .mm-blk').forEach((g) => g.classList.toggle('sel', g.dataset.k === k));
+    $$('#mm-btns button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    $$('#mm-info [data-k]').forEach((d) => { d.hidden = d.dataset.k !== k; });
+  }
+  $$('#mm .mm-blk').forEach((g) => g.addEventListener('click', () => mmSelect(g.dataset.k)));
+  $$('#mm-btns button').forEach((b) => b.addEventListener('click', () => mmSelect(b.dataset.k)));
+  mmSelect('none');
+
+  /* ================= 15 sources live in a <details>: open it when a citation is followed ================= */
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a, a.cite, sup.cite');
+    if (a) $('#src-box').open = true;
+  });
+  if (/^#(src|source|fact)/i.test(location.hash)) $('#src-box').open = true;
+
+  /* ================= 09 copy sketch ================= */
+  $('#lab-copy').addEventListener('click', () => Study.copy($('#lab-code').textContent));
+});
+</script>
+</body>
+</html>
