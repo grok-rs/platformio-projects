@@ -1,0 +1,22 @@
+
+running 17 tests
+test tests::duty_table_matches_spec ... ok
+test tests::fast_tap_is_not_lost ... ok
+test tests::ledc_duty_makes_255_fully_on ... ok
+test tests::levels_cycle_off_low_mid_high ... ok
+test tests::chatter_while_held_is_not_a_second_press ... ok
+test tests::duty_percent_rounds_to_nearest ... ok
+test tests::long_hold_is_one_event ... ok
+test tests::noise_spike_without_high_is_ignored ... ok
+test tests::press_reported_after_quiet_window ... ok
+test tests::press_detector_survives_millis_wraparound ... ok
+test tests::press_with_bounce_is_one_event ... ok
+test tests::soft_pwm_level_over_one_period ... ok
+test tests::soft_pwm_on_ticks_quantized_to_period ... ok
+test tests::sweep_ramps_holds_and_returns ... ok
+test tests::sweep_is_monotonic_while_ramping_up ... ok
+test tests::sweep_skips_stall_without_bursting ... ok
+test tests::two_separate_presses_are_two_events ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

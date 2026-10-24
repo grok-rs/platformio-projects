@@ -9,6 +9,7 @@
     { "path": "esp32-s3-ldr-adc/cpp", "name": "ldr-adc (C++)" },
     { "path": "esp32-s3-twilight-relay/cpp", "name": "twilight-relay (C++)" },
     { "path": "esp32-s3-embedded-cpp/cpp", "name": "embedded-cpp (C++)" },
+    { "path": "esp32-s3-bright-module/cpp", "name": "bright-module (C++)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {

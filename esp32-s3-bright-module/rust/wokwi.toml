@@ -1,0 +1,9 @@
+# Wokwi simulation of the Rust firmware `levels`.
+# Build first with `cargo build --release --features wokwi` (button on GPIO7, see README), then
+# F1 -> "Wokwi: Start Simulator" in this folder, or from the project folder:
+#   wokwi-cli rust --scenario ../wokwi/scenarios/levels.yaml --timeout 30000
+# Another stage: change `levels` to `switch`, `sweep` or `softpwm` in both paths below.
+[wokwi]
+version  = 1
+firmware = '../../target/xtensa-esp32s3-none-elf/release/levels'
+elf      = '../../target/xtensa-esp32s3-none-elf/release/levels'

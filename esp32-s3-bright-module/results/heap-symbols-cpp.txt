@@ -1,0 +1,14 @@
+# Невизначені символи наших об'єктних файлів (src/ + lib/), що означали б роботу з купою:
+# malloc/calloc/realloc/free/operator new/delete. Команда: xtensa-esp32s3-elf-nm -u <obj> | grep …
+levels lib987/board/button.cpp.o: none
+levels lib987/board/console.cpp.o: none
+levels src/levels.cpp.o: none
+softpwm lib987/board/button.cpp.o: none
+softpwm lib987/board/console.cpp.o: none
+softpwm src/softpwm.cpp.o: none
+sweep lib987/board/button.cpp.o: none
+sweep lib987/board/console.cpp.o: none
+sweep src/sweep.cpp.o: none
+switch lib987/board/button.cpp.o: none
+switch lib987/board/console.cpp.o: none
+switch src/switch.cpp.o: none

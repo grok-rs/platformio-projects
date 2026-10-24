@@ -1,0 +1,18 @@
+# Автотест ТЗ-A, етап 2 (прошивка switch): GPIO5 — цифровий вихід, HIGH і LOW по 3 с.
+#   C++:  (cd cpp && pio run -e switch) && wokwi-cli cpp --elf cpp/.pio/build/switch/firmware.elf --scenario ../wokwi/scenarios/switch.yaml --timeout 15000
+#   Rust: cargo build --release --bin switch && wokwi-cli rust --elf ../target/xtensa-esp32s3-none-elf/release/switch --scenario ../wokwi/scenarios/switch.yaml --timeout 15000
+name: 'Switch: GPIO5 HIGH 3 s, LOW 3 s'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'GPIO5 HIGH: LED on'
+  - delay: 1500ms
+  - expect-pin: { part-id: esp, pin: '5', value: 1 }
+  - expect-pin: { part-id: led1, pin: 'A', value: 1 }
+  - wait-serial: 'GPIO5 LOW: LED off'
+  - delay: 1500ms
+  - expect-pin: { part-id: esp, pin: '5', value: 0 }
+  - wait-serial: 'GPIO5 HIGH: LED on'
+  - delay: 1500ms
+  - expect-pin: { part-id: esp, pin: '5', value: 1 }

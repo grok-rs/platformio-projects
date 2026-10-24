@@ -1,0 +1,30 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 1 tests
+
+Processing test_logic in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+test/test_logic/test_main.cpp:186: test_levels_cycle_off_low_mid_high	[PASSED]
+test/test_logic/test_main.cpp:187: test_duty_table_matches_spec	[PASSED]
+test/test_logic/test_main.cpp:188: test_duty_percent_rounds_to_nearest	[PASSED]
+test/test_logic/test_main.cpp:189: test_press_with_bounce_is_one_event	[PASSED]
+test/test_logic/test_main.cpp:190: test_press_reported_after_quiet_window	[PASSED]
+test/test_logic/test_main.cpp:191: test_fast_tap_is_not_lost	[PASSED]
+test/test_logic/test_main.cpp:192: test_long_hold_is_one_event	[PASSED]
+test/test_logic/test_main.cpp:193: test_chatter_while_held_is_not_a_second_press	[PASSED]
+test/test_logic/test_main.cpp:194: test_two_separate_presses_are_two_events	[PASSED]
+test/test_logic/test_main.cpp:195: test_noise_spike_without_high_is_ignored	[PASSED]
+test/test_logic/test_main.cpp:196: test_press_detector_survives_millis_wraparound	[PASSED]
+test/test_logic/test_main.cpp:197: test_sweep_ramps_holds_and_returns	[PASSED]
+test/test_logic/test_main.cpp:198: test_sweep_is_monotonic_while_ramping_up	[PASSED]
+test/test_logic/test_main.cpp:199: test_sweep_skips_stall_without_bursting	[PASSED]
+test/test_logic/test_main.cpp:200: test_soft_pwm_on_ticks_quantized_to_period	[PASSED]
+test/test_logic/test_main.cpp:201: test_soft_pwm_level_over_one_period	[PASSED]
+----------------- native:test_logic [PASSED] Took 0.87 seconds -----------------
+
+=================================== SUMMARY ===================================
+Environment    Test        Status    Duration
+-------------  ----------  --------  ------------
+native         test_logic  PASSED    00:00:00.871
+================= 16 test cases: 16 succeeded in 00:00:00.871 =================

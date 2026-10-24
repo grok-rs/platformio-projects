@@ -1,0 +1,22 @@
+# Автотест ТЗ-A, етап 3 (прошивка sweep): розгін 0 → 255, пауза на 255, спад, пауза на 0.
+#   C++:  (cd cpp && pio run -e sweep) && wokwi-cli cpp --elf cpp/.pio/build/sweep/firmware.elf --scenario ../wokwi/scenarios/sweep.yaml --timeout 20000
+#   Rust: cargo build --release --bin sweep && wokwi-cli rust --elf ../target/xtensa-esp32s3-none-elf/release/sweep --scenario ../wokwi/scenarios/sweep.yaml --timeout 20000
+# Рівень виводу перевіряється посередині пауз (±1,5 с), де він постійний: 255 = завжди HIGH, 0 = LOW.
+name: 'Sweep: ramp up, hold 255, ramp down, hold 0'
+version: 1
+author: 'grok-rs'
+
+steps:
+  - wait-serial: 'Sweep: ramp up'
+  - wait-serial: 'Sweep: hold duty 255'
+  - delay: 1500ms
+  - expect-pin: { part-id: esp, pin: '5', value: 1 }
+  - delay: 7ms
+  - expect-pin: { part-id: esp, pin: '5', value: 1 }
+  - wait-serial: 'Sweep: ramp down'
+  - wait-serial: 'Sweep: hold duty 0'
+  - delay: 1500ms
+  - expect-pin: { part-id: esp, pin: '5', value: 0 }
+  - delay: 7ms
+  - expect-pin: { part-id: esp, pin: '5', value: 0 }
+  - wait-serial: 'Sweep: ramp up'

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="860" viewBox="0 0 1320 860">
+<rect width="1320" height="860" fill="#ffffff"/>
+<text x="40" y="46" font-size="20" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">ТЗ-A «Яскравий модуль»: ESP32-S3 керує яскравістю LED через ключ 2N2222, кнопка S1 перемикає рівні</text>
+<rect x="40" y="90" width="300" height="470" rx="14" fill="#eef2f7" stroke="#334" stroke-width="2.5"/>
+<text x="60" y="126" font-size="20" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">ESP32-S3</text>
+<text x="60" y="148" font-size="15" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">YD-ESP32-S3 / DevKitC-1</text>
+<text x="60" y="182" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">живлення: USB-C від ПК</text>
+<text x="60" y="204" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">логіка 3,3 В</text>
+<text x="54" y="394" font-size="11" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans Mono, monospace">ledcSetup(0, 5000, 8);</text>
+<text x="54" y="412" font-size="11" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans Mono, monospace">ledcAttachPin(5, 0);</text>
+<text x="54" y="430" font-size="11" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans Mono, monospace">ledcWrite(0, duty);</text>
+<text x="54" y="448" font-size="11" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans Mono, monospace">pinMode(6, INPUT_PULLDOWN);</text>
+<text x="54" y="466" font-size="11" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans Mono, monospace">attachInterrupt(6, onPress, RISING);</text>
+<text x="54" y="488" font-size="12" text-anchor="start" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">duty: 0 → 40 → 128 → 255 → 0</text>
+<rect x="334" y="164" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="328" y="175" font-size="15" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">3V3</text>
+<line x1="346" y1="170" x2="376" y2="170" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="334" y="234" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="328" y="231" font-size="15" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO6</text>
+<line x1="346" y1="240" x2="376" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="334" y="344" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="328" y="355" font-size="15" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO5</text>
+<line x1="346" y1="350" x2="376" y2="350" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="334" y="514" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="328" y="525" font-size="15" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<line x1="346" y1="520" x2="376" y2="520" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="376" y1="170" x2="440" y2="170" stroke="#6a1b9a" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="440" y1="170" x2="440" y2="184" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="440" y1="236" x2="440" y2="250" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="440" cy="184" r="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<circle cx="440" cy="236" r="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="454" y1="184" x2="454" y2="236" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="454" y1="210" x2="470" y2="210" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="470" y1="202" x2="470" y2="218" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="480" y="206" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">S1  кнопка</text>
+<polyline points="440,250 440,240 376,240" fill="none" stroke="#6a1b9a" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="480" y="228" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">натиснута → GPIO6 = 3,3 В</text>
+<text x="480" y="246" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">→ фронт RISING → ISR</text>
+<text x="480" y="268" font-size="13" text-anchor="start" font-weight="bold" fill="#7f1d1d" font-family="DejaVu Sans, Arial, sans-serif">тільки від 3V3, ніколи від 5 В!</text>
+<rect x="150" y="212" width="178" height="122" rx="8" fill="none" stroke="#7b8794" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="158" y="326" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif"></text>
+<text x="158" y="228" font-size="11" text-anchor="start" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">INPUT_PULLDOWN</text>
+<line x1="250" y1="240" x2="334" y2="240" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<circle cx="250" cy="240" r="4.5" fill="#222"/>
+<rect x="239" y="240" width="22" height="60" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="272" y="266" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif"></text>
+<text x="272" y="286" font-size="15" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif"></text>
+<text x="234" y="276" font-size="12" text-anchor="end" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">≈45 кОм</text>
+<line x1="250" y1="300" x2="250" y2="314" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="232" y1="314" x2="268" y2="314" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="239" y1="320" x2="261" y2="320" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="246" y1="326" x2="254" y2="326" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="722" cy="350" r="40" fill="#f4f7fb" stroke="#222" stroke-width="2"/>
+<line x1="700" y1="324" x2="700" y2="376" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+<line x1="700" y1="338" x2="740" y2="316" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="740" y1="316" x2="740" y2="310" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="700" y1="362" x2="740" y2="384" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="740" y1="384" x2="740" y2="390" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="714" y1="370" x2="736" y2="382" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<polygon points="736.0,382.0 724.1,380.8 728.5,372.6" fill="#222"/>
+<line x1="376" y1="350" x2="470" y2="350" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="470" y="339" width="80" height="22" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="510" y="330" font-size="15" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R1  1 кОм</text>
+<line x1="550" y1="350" x2="700" y2="350" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="395" y1="376" x2="455" y2="376" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<polygon points="455.0,376.0 443.9,380.7 443.9,371.3" fill="#1565c0"/>
+<text x="395" y="400" font-size="14" text-anchor="start" font-weight="bold" fill="#1565c0" font-family="DejaVu Sans, Arial, sans-serif">I<tspan font-size="11" dy="4">B</tspan><tspan dy="-4"> ≈ (3,3 − 0,7) / 1000 ≈ 2,6 мА</tspan></text>
+<text x="692" y="336" font-size="14" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">B</text>
+<text x="752" y="318" font-size="14" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">C</text>
+<text x="752" y="392" font-size="14" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">E</text>
+<text x="688" y="380" font-size="12" text-anchor="end" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">≈0,7 В</text>
+<text x="776" y="344" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Q1  2N2222</text>
+<text x="776" y="366" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">NPN, ключ «на землі»</text>
+<text x="776" y="386" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">увімкнено: U<tspan font-size="11" dy="4">CE</tspan><tspan dy="-4"> ≈ 0,1 В</tspan></text>
+<line x1="740" y1="130" x2="740" y2="148" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<polygon points="723,148 757,148 740,180" fill="#ef5350" stroke="#222" stroke-width="2"/>
+<line x1="723" y1="180" x2="757" y2="180" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="740" y1="180" x2="740" y2="200" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="718" y1="156" x2="700" y2="144" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+<polygon points="700.0,144.0 711.8,146.2 706.6,154.0" fill="#222"/>
+<line x1="718" y1="168" x2="700" y2="156" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+<polygon points="700.0,156.0 711.8,158.2 706.6,166.0" fill="#222"/>
+<text x="764" y="160" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">HL1  LED</text>
+<text x="764" y="180" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">червоний</text>
+<text x="730" y="144" font-size="14" text-anchor="end" font-weight="bold" fill="#b71c1c" font-family="DejaVu Sans, Arial, sans-serif">+</text>
+<text x="730" y="196" font-size="14" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">−</text>
+<line x1="740" y1="110" x2="740" y2="130" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="740" y1="200" x2="740" y2="222" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="729" y="222" width="22" height="60" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="762" y="248" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R2</text>
+<text x="762" y="268" font-size="15" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">220 Ом</text>
+<line x1="740" y1="282" x2="740" y2="310" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="850" y1="150" x2="850" y2="270" stroke="#e65100" stroke-width="2.5" stroke-linecap="round"/>
+<polygon points="850.0,270.0 845.3,258.9 854.7,258.9" fill="#e65100"/>
+<text x="864" y="180" font-size="14" text-anchor="start" font-weight="bold" fill="#e65100" font-family="DejaVu Sans, Arial, sans-serif">I<tspan font-size="11" dy="4">C</tspan><tspan dy="-4"> ≈ (5 − 2,0 − 0,1) / 220</tspan></text>
+<text x="864" y="202" font-size="14" text-anchor="start" font-weight="bold" fill="#e65100" font-family="DejaVu Sans, Arial, sans-serif">≈ 13 мА</text>
+<text x="864" y="228" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">іде від MB-102,</text>
+<text x="864" y="246" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">а не з піна ESP32</text>
+<rect x="1080" y="90" width="210" height="470" rx="14" fill="#fff4f2" stroke="#7f1d1d" stroke-width="2.5"/>
+<text x="1104" y="240" font-size="20" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">MB-102</text>
+<text x="1104" y="262" font-size="15" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">модуль живлення</text>
+<text x="1104" y="296" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">перемичка цієї</text>
+<text x="1104" y="316" font-size="14" text-anchor="start" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">сторони: 5V</text>
+<text x="1104" y="350" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">вхід: USB 5 В або</text>
+<text x="1104" y="370" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">DC-гніздо 6,5–12 В</text>
+<text x="1104" y="404" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">кнопка живлення: ON</text>
+<rect x="1074" y="104" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="1094" y="115" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">+5 В</text>
+<line x1="1074" y1="110" x2="1044" y2="110" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<rect x="1074" y="514" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="1094" y="525" font-size="15" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND (−)</text>
+<line x1="1074" y1="520" x2="1044" y2="520" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="740" y1="110" x2="1044" y2="110" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<text x="760" y="100" font-size="14" text-anchor="start" font-weight="bold" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">+5 В (шина «+» макетки)</text>
+<line x1="740" y1="390" x2="740" y2="520" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="376" y1="520" x2="1044" y2="520" stroke="#2e7d32" stroke-width="4" stroke-linecap="round"/>
+<circle cx="740" cy="520" r="4.5" fill="#2e7d32"/>
+<circle cx="416" cy="520" r="4.5" fill="#2e7d32"/>
+<line x1="416" y1="520" x2="416" y2="534" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<line x1="398" y1="534" x2="434" y2="534" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="405" y1="540" x2="427" y2="540" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="412" y1="546" x2="420" y2="546" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="470" y="508" font-size="15" text-anchor="start" font-weight="bold" fill="#2e7d32" font-family="DejaVu Sans, Arial, sans-serif">СПІЛЬНА ЗЕМЛЯ: GND ESP32 = «−» MB-102</text>
+<text x="470" y="560" font-size="13" text-anchor="start" font-weight="normal" fill="#2e7d32" font-family="DejaVu Sans, Arial, sans-serif">без цього дроту струм бази не має шляху назад → LED не світить</text>
+<text x="752" y="460" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">емітер → GND</text>
+<text x="40" y="620" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Як це працює</text>
+<text x="40" y="646" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">1.  GPIO5 видає ШІМ 5 кГц (LEDC, 8 біт). У фазі HIGH через R1 тече ≈ 2,6 мА → Q1 у насиченні; у фазі LOW Q1 закритий.</text>
+<text x="40" y="668" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">2.  Струм LED ≈ 13 мА іде імпульсами: +5 В → LED → R2 → C → E → GND → MB-102. Яскравість ∝ duty / 255:</text>
+<text x="70" y="690" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">OFF = 0 (0 %),  LOW = 40 (≈16 %),  MID = 128 (≈50 %),  HIGH = 255 (100 %, U<tspan font-size="11" dy="4">CE</tspan><tspan dy="-4"> ≈ 0,1–0,2 В).</tspan></text>
+<text x="40" y="712" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">3.  S1: відпущена — внутрішня підтяжка тримає GPIO6 у LOW; натиснута — 3,3 В → RISING → ISR ставить прапорець, рівень змінює loop().</text>
+<text x="40" y="734" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">4.  Запас: I<tspan font-size="11" dy="4">C</tspan><tspan dy="-4"></tspan> / I<tspan font-size="11" dy="4">B</tspan><tspan dy="-4"> ≈ 13 / 2,6 ≈ 5 — значно менше h</tspan><tspan font-size="11" dy="4">FE</tspan><tspan dy="-4"> 2N2222A (≥ 75 при 10 мА), тож ключ надійно в насиченні.</tspan></text>
+<text x="40" y="770" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Перевірка перед увімкненням (схему перемикати лише при вимкненому живленні)</text>
+<text x="40" y="794" font-size="14" text-anchor="start" font-weight="bold" fill="#7f1d1d" font-family="DejaVu Sans, Arial, sans-serif">• «−» MB-102 з'єднано з GND ESP32 — єдиний зв'язок між живленнями.   • +5 В MB-102 НЕ йде на 5V / VIN / піни ESP32.</text>
+<text x="40" y="816" font-size="14" text-anchor="start" font-weight="bold" fill="#7f1d1d" font-family="DejaVu Sans, Arial, sans-serif">• Кнопка — від 3V3.   • Довга ніжка LED (анод) — до +5 В.   • E-B-C визначено за вашим корпусом.</text>
+<text x="1100" y="604" font-size="14" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">2N2222 / PN2222A, TO-92</text>
+<path d="M1150,706 L1150,666 A40,40 0 0 1 1230,666 L1230,706 Z" fill="#333" stroke="#000" stroke-width="1.5"/>
+<text x="1190" y="692" font-size="11" text-anchor="middle" font-weight="normal" fill="#ddd" font-family="DejaVu Sans, Arial, sans-serif">плаский бік</text>
+<line x1="1166" y1="706" x2="1166" y2="748" stroke="#9e9e9e" stroke-width="3" stroke-linecap="round"/>
+<text x="1166" y="766" font-size="15" text-anchor="middle" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">E</text>
+<line x1="1190" y1="706" x2="1190" y2="748" stroke="#9e9e9e" stroke-width="3" stroke-linecap="round"/>
+<text x="1190" y="766" font-size="15" text-anchor="middle" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">B</text>
+<line x1="1214" y1="706" x2="1214" y2="748" stroke="#9e9e9e" stroke-width="3" stroke-linecap="round"/>
+<text x="1214" y="766" font-size="15" text-anchor="middle" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">C</text>
+<text x="1190" y="784" font-size="12" text-anchor="middle" font-weight="normal" fill="#7f1d1d" font-family="DejaVu Sans, Arial, sans-serif">звірте з даташитом</text>
+</svg>

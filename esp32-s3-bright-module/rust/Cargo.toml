@@ -1,0 +1,61 @@
+[package]
+name        = "bright-module"
+description = "ТЗ-A «Яскравий модуль»: транзисторний ключ 2N2222, ШІМ LEDC на GPIO5, кнопка GPIO6 з чотирма рівнями"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+publish.workspace      = true
+default-run = "levels"
+
+# Один бінарник на кожен етап ТЗ (аналог середовищ у platformio.ini):
+#   cargo run --release                  (levels: етап 4, ВП-1…ВП-8)
+#   cargo run --release --bin switch     (етап 2: GPIO5 HIGH/LOW по 3 с)
+#   cargo run --release --bin sweep      (етап 3: ШІМ 0 → 255 → 0)
+#   cargo run --release --bin softpwm    (рівень «+»: програмний ШІМ)
+[[bin]]
+name  = "levels"
+path  = "src/bin/levels.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "switch"
+path  = "src/bin/switch.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "sweep"
+path  = "src/bin/sweep.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "softpwm"
+path  = "src/bin/softpwm.rs"
+test  = false
+bench = false
+
+[lib]
+test  = true
+bench = false
+
+[features]
+# Для симулятора Wokwi: кнопка на GPIO7 замість GPIO6 (Wokwi тримає GPIO6 ESP32-S3 у HIGH, див. README).
+wokwi = []
+
+# Логіка (src/lib.rs) — без заліза й без залежностей, тому збирається й тестується на ПК.
+# Embassy тут свідомо немає: як і в C++, main — звичайний superloop, а кнопка — на перериванні.
+
+# Прошивка (src/hw.rs, src/bin/*.rs) — лише для ESP32-S3.
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+esp-hal.workspace                = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace          = true
+esp-println.workspace            = true
+critical-section.workspace       = true
+embedded-hal.workspace           = true
+heapless.workspace               = true
+
+[lints]
+workspace = true
