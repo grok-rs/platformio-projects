@@ -212,6 +212,20 @@ pre.snip .c { color: var(--muted); }
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;10&nbsp;хв основне · віджети й практика — ще 20&nbsp;хв</p>
+    <ol>
+      <li>Мікроконтролер виконує одну програму без операційної системи і стартує миттєво. <a href="#ideas">→ 04</a></li>
+      <li>Upload не копіює main.cpp: між ноутбуком і платою мандрує лише машинний код. <a href="#ideas">→ 04</a></li>
+      <li>Кожна помилка має свій етап конвеєра: за текстом визначайте, це компіляція чи завантаження. <a href="#ideas">→ 04</a></li>
+      <li><code>setup()</code> виконується один раз після кожного скидання, <code>loop()</code> — знову і знову, поки є живлення. <a href="#ideas">→ 04</a></li>
+      <li>Один прохід <code>loop()</code> = сума всіх затримок: 500 + 1500&nbsp;мс → 1 спалах на 2&nbsp;с. <a href="#example">→ 06</a></li>
+      <li>Вивід — вимикач до 3,3&nbsp;В, а не джерело струму: струм обмежує резистор, з 220&nbsp;Ом це ≈&nbsp;6&nbsp;мА. <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -793,6 +807,19 @@ monitor_speed = 115200</code></pre>
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p><b>Підготуйте до дзвінка:</b> плату, підключену до комп'ютера (PlatformIO → Devices її бачить), кабель, макетку, LED, 220&nbsp;Ом, 2 перемички. Проєкт Blink створіть заздалегідь — на занятті лише Upload. Прочитайте розділи 01–05.</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір і розминка</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22</span><span class="cp-a">Найменш зрозуміле з квитків, переказ від студента, навіщо й цілі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34</span><span class="cp-a">Ідеї 1–2 + ConcepTest, потім віджет «Конвеєр прошивки»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → демо: Upload з від'єднаним USB — де він зупиниться?</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">«Знайдіть 3 помилки»: номери рядків водоспадом у чат</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">ConcepTest про <code>setup()</code> і водоспад «<code>delay(50)</code>: що побачимо?»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо разом: LED_BUILTIN → GPIO15 → вимірювання (розділ 09)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Дошка: розставте 7 етапів прошивки по порядку у своєму підфреймі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">Показ команд по 3&nbsp;хв і командний квіз; оголошення виклику «Азбука Морзе»</span><span class="cp-r">Збирач · Доповідач · Скептик</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>ConcepTest 1 (хв 22–34):</b> «Що записується на плату під час Upload? А — main.cpp, Б — машинний код, В — уся тека проєкту».</p>
       <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуємо ≈&nbsp;45&nbsp;% Б, 40&nbsp;% А, 15&nbsp;% В. Якщо правильних 30–70&nbsp;% — «публічна пара» (А проти Б по 60&nbsp;с), переголосування, потім віджет «Конвеєр прошивки».</p></details>

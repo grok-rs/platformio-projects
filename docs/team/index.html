@@ -40,6 +40,18 @@ details.ch[open] > summary { border-bottom: 1px dashed var(--line); }
 .rub-row b { color: var(--ink); }
 .rub-total { font: 700 1.5rem var(--f-display); }
 .rub-say { margin: 4px 0 0; }
+/* self-check 0–8 → scoreboard points (0–3): the live result beside the sum, and the mapping table */
+.rub-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.rub-pts { font: 600 15px/1.4 var(--f-body); color: var(--muted); }
+.rub-pts b { font: 700 1.5rem var(--f-display); color: var(--accent); }
+.rub-map { max-width: 520px; }
+.rub-map td.num { font: 700 1.15rem var(--f-mono); font-variant-numeric: tabular-nums; }
+.rub-map tbody th { white-space: normal; }
+.rub-map tbody th small { display: block; font: 400 14px/1.4 var(--f-body); color: var(--muted); }
+.rub-map thead th small { display: block; text-transform: none; letter-spacing: 0; font: 400 13px/1.35 var(--f-body); color: var(--muted); }
+:root .rub-map tr.cur > * { background: color-mix(in srgb, var(--accent) 11%, var(--panel)); }
+.rub-map tr.cur > th { box-shadow: inset 3px 0 0 var(--accent); }
+.rub-map .here { margin-left: 8px; }
 /* rota: one column grid whose children may shrink, so a wide output table scrolls inside instead of
    widening the page at 375 px. The form stays in the 760 px reading column. */
 .rota { padding: 16px; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
@@ -166,9 +178,19 @@ details.ch[open] > summary { border-bottom: 1px dashed var(--line); }
     <p>Бали ставлять за чотирма критеріями конкретного виклику: вони є в його картці вище і на сторінці уроку. Нижче — загальна рамка, яка підходить до будь-якого виклику: перед здачею оцініть свій результат самі. Якщо десь ставите 0 чи 1, ви вже знаєте, що доробити.</p>
     <div class="panel"><div class="pb">
       <div class="rub" id="rub"></div>
-      <p class="rub-total" aria-live="polite"><span id="rub-sum">0</span> / 8</p>
-      <p class="small">Самооцінка за критеріями 0–8 — для вашої команди: вона показує, що доробити перед здачею. Бали заліку рахуються окремо (<a href="#points">§05</a>).</p>
+      <p class="rub-total" aria-live="polite"><span><span id="rub-sum">0</span> / 8</span><span class="rub-pts" id="rub-pts"></span></p>
       <p class="rub-say" id="rub-say"></p>
+      <h3>Від самооцінки до балів заліку</h3>
+      <p class="small">Це дві різні шкали. Самооцінка 0–8 — сума чотирьох критеріїв по 0–2: вона показує, що доробити перед здачею. У заліку команд (<a href="#points">§05</a>) виклик дає до 3 балів, і сума за критеріями переходить у них так:</p>
+      <div class="tbl rub-map"><table>
+        <thead><tr><th scope="col">Самооцінка<small>сума 4 критеріїв, 0–8</small></th><th scope="col">Бали заліку<small>за виклик, 0–3</small></th></tr></thead>
+        <tbody id="rub-map">
+          <tr data-p="3"><th scope="row">7–8<small>усе або майже все на 2</small></th><td class="num">3</td></tr>
+          <tr data-p="2"><th scope="row">4–6<small>працює, але є що доробити</small></th><td class="num">2</td></tr>
+          <tr data-p="1"><th scope="row">1–3<small>початок: більшість критеріїв ще на 0–1</small></th><td class="num">1</td></tr>
+          <tr data-p="0"><th scope="row">0<small>не здано або нічого не виконано</small></th><td class="num">0</td></tr>
+        </tbody>
+      </table></div>
     </div></div>
     <div class="tnote"><p>Калібрування раз на модуль: у середу всі оцінюють один і той самий приклад голосуванням, потім обговорюєте розбіжності. Після цього рецензії студентів стають помітно надійнішими.</p></div>
   </section>
@@ -261,6 +283,7 @@ document.addEventListener('study:ready', async () => {
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const dm = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
   const parseISO = (s) => new Date(s + 'T12:00:00');
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
   const mondayOf = (d) => { const m = new Date(d); m.setHours(12, 0, 0, 0); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return m; };
   const lessons = C.modules.flatMap((m) => (m.lessons || []).map((l) => ({ ...l, module: m })));
   const lessonById = (id) => lessons.find((l) => l.id === id);
@@ -298,7 +321,7 @@ document.addEventListener('study:ready', async () => {
         <dt>Мета</dt><dd>${rich(c.goal)}</dd>
         <dt>Здати</dt><dd>${rich(c.deliver)}</dd>
         <dt>Ролі</dt><dd><ul>${roles}</ul></dd>
-        <dt>Критерії</dt><dd>${crit}: самооцінка по 0–2, разом до 8 — для вашої команди (<a href="#rubric">як оцінити себе</a>).</dd>
+        <dt>Критерії</dt><dd>${crit}: самооцінка по 0–2, разом до 8; 7–8 дає 3 бали заліку, 4–6 — 2, 1–3 — 1 (<a href="#rubric">як оцінити себе</a>).</dd>
         <dt>Ускладнення</dt><dd>${rich(c.stretch)}</dd>
         <dt>Термін</dt><dd>${esc(due)}</dd>
       </dl>
@@ -352,10 +375,23 @@ document.addEventListener('study:ready', async () => {
   const rub = $('#rub');
   rub.innerHTML = (CH.rubric || []).map((r) => `<div class="rub-row"><p><b>${esc(r.t)}.</b> ${esc(r.d)}</p>
     <div class="seg" role="group" aria-label="${esc(r.t)}">${[0, 1, 2].map((v) => `<button type="button" data-k="${esc(r.k)}" data-v="${v}" aria-pressed="${(rs[r.k] ?? -1) === v}">${v}</button>`).join('')}</div></div>`).join('');
+  // 0–8 self-check → scoreboard points for a challenge (the table under the sum).
+  const toPts = (sum) => (sum >= 7 ? 3 : sum >= 4 ? 2 : sum >= 1 ? 1 : 0);
   const rubSay = () => {
     const vals = (CH.rubric || []).map((r) => rs[r.k]);
     const sum = vals.reduce((a, v) => a + (v || 0), 0);
     $('#rub-sum').textContent = sum;
+    const full = vals.length > 0 && !vals.some((v) => v === undefined), p = toPts(sum);
+    $('#rub-pts').innerHTML = full
+      ? `→ <b>${p}</b> ${plural(p, 'бал', 'бали', 'балів')} заліку з 3`
+      : `→ бали заліку: ${vals.some((v) => v !== undefined) ? `поки ${p} з 3, ` : ''}оцініть усі рядки`;
+    $$('#rub-map tr').forEach((tr) => {
+      const on = full && +tr.dataset.p === p;
+      tr.classList.toggle('cur', on);
+      const th = tr.querySelector('th'), tag = th.querySelector('.here');
+      if (on && !tag) th.insertAdjacentHTML('beforeend', '<span class="today-chip here">ви тут</span>');
+      if (!on && tag) tag.remove();
+    });
     const weak = (CH.rubric || []).filter((r) => rs[r.k] !== undefined && rs[r.k] < 2).map((r) => r.t.toLowerCase());
     $('#rub-say').textContent = vals.some((v) => v === undefined) ? 'Оцініть усі чотири рядки.'
       : sum === 8 ? 'Готово до здачі. Попросіть Скептика перевірити ще раз свіжим оком.'
@@ -411,7 +447,6 @@ document.addEventListener('study:ready', async () => {
     rotaMd = `**Ролі команди ${tname}**\n\n| Тиждень з | ${roles.join(' | ')}${extra ? ' | Резерв' : ''} |\n|${'---|'.repeat(roles.length + 1 + (extra ? 1 : 0))}\n` +
       rows.map((r) => `| ${dm(r.d)} | ${r.who.join(' | ')}${extra ? ' | ' + r.spare.join(', ') : ''} |`).join('\n');
   }
-  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
   const CALL_ROLES = ['Хронометрист', 'Чат-монітор', 'Писар дошки', 'Підсумовувач'];
   const narrow = window.matchMedia('(max-width: 599px)');
   function drawCohort() {
@@ -464,7 +499,7 @@ document.addEventListener('study:ready', async () => {
     const chRule = rules.find((r) => r.k === 'challenge');
     if (chRule) {
       const pn = $('#pts-note');
-      pn.innerHTML = `У залік: ${esc(chRule.t.charAt(0).toLowerCase() + chRule.t.slice(1))} — ${chRule.pts} ${plural(chRule.pts, 'бал', 'бали', 'балів')} (див. <a href="#rubric">критерії</a>).`;
+      pn.innerHTML = `У залік: ${esc(chRule.t.charAt(0).toLowerCase() + chRule.t.slice(1))} — ${chRule.pts} ${plural(chRule.pts, 'бал', 'бали', 'балів')}: 7–8 за критеріями — 3, 4–6 — 2, 1–3 — 1, 0 — 0 (див. <a href="#rubric">критерії</a>).`;
       pn.hidden = false;
     }
     const capOf = Object.fromEntries(rules.map((r) => [r.k, r.cap || Infinity]));

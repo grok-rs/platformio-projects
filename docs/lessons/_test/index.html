@@ -75,6 +75,21 @@
     </ul>
   </section>
 
+  <!-- «Коротко» pattern for every hub: an <aside class="tldr"> (never a section.hs, so the TOC and rail ignore it)
+       right after #goals. 4–6 takeaways, only what the page already teaches, same numbers; each links to its section
+       («→ NN» = the .n of that section's h2). Time line: main = words of 04 + 06 + 07 / 150 per min; the rest = widgets
+       and practice (05, 08, 09, 12, plus hands-on time). -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 2 хв основне · віджети й практика — ще ≈ 10 хв</p>
+    <ol>
+      <li>У колі без розгалужень струм всюди однаковий; ділиться напруга, а не струм. <a href="#ideas">→ 04</a></li>
+      <li>Напруга на резисторі: U<sub>R</sub> = 3,3 − 1,9 = 1,4&nbsp;В. <a href="#example">→ 06</a></li>
+      <li>За законом Ома з 220&nbsp;Ом: I = 1,4&nbsp;В / 220&nbsp;Ом ≈ 6,4&nbsp;мА. <a href="#example">→ 06</a></li>
+      <li>LED забирає частину напруги, а не струму: амперметр до і після нього показує те саме. <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up
        Real hubs: <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div> picks warmup:true items
        from earlier lessons in COURSE (only lessons whose `quiz` count is > 0 or status 'ready').
@@ -287,6 +302,17 @@
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p>Підготуйте до дзвінка: макетку, LED, резистори 220&nbsp;Ом і 470&nbsp;Ом, мультиметр.</p>
+    <!-- «План дзвінка» pattern: student-facing, before the .tnote. Rows come from the .tnote and the 120-min template in
+         teacher/. Spoiler-free: what happens and what to have ready, never answers, expected votes or bug locations.
+         .cp-r = the active team role (Збирач, Вимірювач, Доповідач, Скептик), «усі», «команди», or omitted. -->
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11 хв</span><span class="cp-a">Збір і розминка: питання в опитуванні або «водоспадом» у чаті</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34 хв</span><span class="cp-a">Головна ідея і голосування; якщо думки розійдуться — обговорення в парах і повторне голосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46 хв</span><span class="cp-a">Прогноз → перевірка: ваш прогноз, потім вимірювання на камеру</span><span class="cp-r">Вимірювач</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Збираємо коло разом: ви повторюєте вдома, контрольні точки кожні ~5&nbsp;хв</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14)</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p>ConcepTest: «Який струм після LED?» Очікуваний розподіл голосів: 40&nbsp;% «менший», 60&nbsp;% «той самий».</p>
       <p>Після голосування покажіть на екрані віджет із розділу 05.</p>

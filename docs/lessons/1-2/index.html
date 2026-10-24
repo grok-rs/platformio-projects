@@ -71,6 +71,8 @@ figure.plain.why-pair svg { flex: 1 1 260px; max-width: 320px; margin: 0; }
 figure.plain svg { display: block; width: 100%; height: auto; max-width: 620px; margin: 0 auto; }
 /* 360-unit sheet: at 400 px its 15-unit headings render ≈ 16.7 px, on the figure-label scale */
 figure.plain.par-led svg { max-width: 400px; }
+/* worked-example sheet (06): 340 units at ≤ 400 px keeps its 13-unit labels ≥ 13 px from 375 px up */
+figure.plain.ex-sch svg { max-width: 400px; }
 figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted); margin-top: 6px; }
 .svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
 .svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
@@ -151,6 +153,20 @@ figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted)
       <li><b>виміряти</b> V<sub>f</sub> світлодіодів різних кольорів і пояснити різницю.</li>
     </ul>
   </section>
+
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;10&nbsp;хв основне · віджети й практика — ще 15&nbsp;хв</p>
+    <ol>
+      <li>Після «коліна» біля V<sub>f</sub> кожні 0,1–0,2&nbsp;В подвоюють струм, тож струм світлодіода задає те, що стоїть з ним послідовно. <a href="#ideas">→ 04</a></li>
+      <li>R = (V<sub>s</sub> − V<sub>f</sub>) / I, і результат округлюйте вгору до найближчого більшого номіналу E12. <a href="#example">→ 06</a></li>
+      <li>Плануйте 5–15&nbsp;мА. «20&nbsp;мА» в даташиті — умова тесту, а абсолютний максимум — 30&nbsp;мА для червоного і 25&nbsp;мА для зеленого. <a href="#ideas">→ 04</a></li>
+      <li>Колір = своя V<sub>f</sub>: червоний ≈&nbsp;1,9&nbsp;В, зелений 2,2&nbsp;В, синій і білий 3,3&nbsp;В (до 4,0&nbsp;В). Від 3,3&nbsp;В синьому майже не лишається запасу. <a href="#ideas">→ 04</a></li>
+      <li>Перевіряйте потужність резистора P = U·I: від 0,25&nbsp;Вт беріть запас приблизно вдвічі. <a href="#example">→ 06</a></li>
+      <li>«Опір» світлодіода не сталий: закон Ома застосовують до резистора, а для LED беруть V<sub>f</sub>. Кожному LED — свій резистор. <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
 
   <!-- ============================================================ 03 warm-up -->
   <section class="hs" id="warmup">
@@ -432,6 +448,38 @@ figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted)
       <li><b>Номінал:</b> у ряду E12 після 820 іде 1000, тож беремо <b>1&nbsp;кОм</b><sup class="cite" data-fact="iec-e12"></sup>. В E24 є 910&nbsp;Ом<sup class="cite" data-fact="iec-e24"></sup>.<span class="why">чому: округлюємо вгору, тоді струм буде трохи меншим за 10&nbsp;мА: (12 − 3,3)/1000 ≈ 8,7&nbsp;мА.</span></li>
       <li><b>Потужність резистора:</b> <span class="formula">P = 8,7 В · 8,7 мА ≈ 0,076 Вт</span> — у 3 рази менше за 0,25&nbsp;Вт<sup class="cite" data-fact="res-axial-quarter-watt"></sup>.<span class="why">чому: запас більший за двократний, тож звичайний резистор підходить.</span></li>
     </ol>
+    <!-- the same worked example drawn as a circuit: where the 12 V go -->
+    <figure class="plain ex-sch">
+      <svg viewBox="0 0 340 200" role="img" aria-label="Схема розібраного прикладу: джерело 12 вольт, резистор R1 1 кілоом, білий світлодіод LED1, GND. На резисторі падає 8,7 вольта, на світлодіоді 3,3 вольта, разом 12 вольт. Струм у петлі близько 8,7 міліампера, на резисторі розсіюється близько 76 міліват.">
+        <use class="sch-sym" href="#vsrc" x="40" y="70" transform="rotate(90 40 70)"/>
+        <text class="sch-ref" x="64" y="100">G1</text>
+        <text class="sch-val" x="64" y="116">12 В</text>
+        <path class="sch-w" d="M40 70V40H110"/>
+        <text class="svg-m" x="48" y="32">+12 В</text>
+        <use class="sch-sym" href="#res" x="110" y="40"/>
+        <text class="sch-ref" x="140" y="64" text-anchor="middle">R1</text>
+        <text class="sch-val" x="140" y="80" text-anchor="middle">1 кОм</text>
+        <text class="svg-m" x="140" y="96" text-anchor="middle" style="fill:var(--hi-ink)">P ≈ 76 мВт</text>
+        <!-- voltage across R1: bracket over the body -->
+        <path d="M112 28V22H168V28" fill="none" stroke="var(--hi-ink)" stroke-width="1.5"/>
+        <text class="svg-m" x="140" y="15" text-anchor="middle" style="fill:var(--hi-ink)">8,7 В</text>
+        <path class="sch-w net-sig" d="M170 40H240V55"/>
+        <path class="net-sig" d="M200 34l10 6-10 6z" style="fill:currentColor"/>
+        <text class="svg-m" x="212" y="28" text-anchor="middle" style="fill:var(--nsig-ink)">I ≈ 8,7 мА</text>
+        <use class="sch-sym" href="#led" x="240" y="55" transform="rotate(90 240 55)"/>
+        <text class="sch-ref" x="224" y="82" text-anchor="end">LED1</text>
+        <text class="sch-val" x="224" y="98" text-anchor="end">білий</text>
+        <!-- voltage across LED1: bracket from anode (+) to cathode (−) -->
+        <path d="M290 57H295V113H290" fill="none" stroke="var(--hi-ink)" stroke-width="1.5"/>
+        <text class="svg-m" x="299" y="68" style="fill:var(--hi-ink)">+</text>
+        <text class="svg-m" x="300" y="90" style="fill:var(--hi-ink)">3,3 В</text>
+        <text class="svg-m" x="299" y="116" style="fill:var(--hi-ink)">−</text>
+        <path class="sch-w net-gnd" d="M240 115V150H40V130"/>
+        <use class="sch-sym net-gnd" href="#gnd" x="145" y="150"/>
+        <text class="svg-t" x="170" y="192" text-anchor="middle">12 В = 8,7 В на R1 + 3,3 В на LED1</text>
+      </svg>
+      <figcaption>Розібраний приклад на схемі: білий LED бере свої 3,3&nbsp;В, решту 8,7&nbsp;В забирає R1. Той самий струм ≈&nbsp;8,7&nbsp;мА тече через усю петлю.</figcaption>
+    </figure>
 
     <span class="tag ex-label">Доробіть самі</span>
     <ol class="faded">
@@ -654,6 +702,19 @@ figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted)
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p><b>Підготуйте до дзвінка:</b> макетку з модулем MB-102 (перемичка на 5&nbsp;В), USB-кабель живлення модуля, 2–3 червоні LED і по одному інших кольорів, резистори 220&nbsp;Ом, 1&nbsp;кОм і 10&nbsp;кОм, мультиметр з робочою батареєю. Прочитайте розділи 01–05 і зробіть усі три прогнози.</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір і розминка</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22</span><span class="cp-a">Найменш зрозуміле з квитків, переказ від студента, навіщо й цілі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34</span><span class="cp-a">Ідеї 1–2 + ConcepTest: голосування, суперечка в парі, переголосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → демо: світлодіод без резистора у віджеті «Робоча точка»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">Ідеї 3–5 + ConcepTest на віджеті «Колір і струм»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">Перерва, запас часу на питання</span><span class="cp-r">—</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо коло міні-лаби й міряємо V<sub>f</sub> різних кольорів (розділи 08–09)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Дошка: у своєму фреймі коло 3,3&nbsp;В → R → LED з підписами U<sub>R</sub>, V<sub>f</sub>, I</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">«Тест на згоряння» на камеру з прогнозом перед кожним кроком; видача виклику «Палітра V<sub>f</sub>»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>ConcepTest 1 (M3).</b> «Резистор до LED чи після: де LED світить яскравіше?» А — до; Б — після; В — однаково.</p>
       <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуваний розподіл: А ≈ 35&nbsp;%, Б ≈ 10&nbsp;%, В ≈ 55&nbsp;%. Якщо правильних 30–70&nbsp;%, двоє з різними відповідями сперечаються 60&nbsp;с, потім переголосування. Розв'язка — мотузка-петля: рука гальмує всю петлю, хоч де за неї вхопитися.</p></details>

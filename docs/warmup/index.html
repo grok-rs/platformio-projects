@@ -39,6 +39,58 @@
 .wu-help ol, .wu-help ul { font-size: 15px; }
 .wu-help code { white-space: nowrap; }
 @media (max-width: 640px) { .wu-tools { width: 100%; } .wu-cur { flex: 1 1 100%; } .wu-cur select { flex: 1; max-width: none; } }
+/* «Командний»: the projector plus a team tally. Each team is a column: a toggle chip («відповіли правильно» on the
+   revealed question) over its running total, sized for a Zoom screen share at 1280. */
+.wt { display: grid; gap: 10px; padding: 12px clamp(12px, 1.4vw, 18px); border: 1.5px solid var(--line-2); border-radius: 14px; background: var(--panel-2); }
+.wt-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.wt-h { margin: 0; flex: 1 1 16rem; font: 600 clamp(15px, 1.2vw, 18px)/1.35 var(--f-body); color: var(--ink); }
+.wt-h .k { font: 600 13px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); margin-right: 8px; }
+.wt-h kbd { font-size: 13px; }
+.wt-reset { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.wt-reset .q { font: 600 14px var(--f-body); color: var(--bad); }
+.wt-reset .btn { min-height: 44px; }
+.wt-reset .btn.confirm { border-color: var(--bad); color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--panel)); }
+.wt-teams { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .wt-teams { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* phones: two teams per row are too narrow for chip + number side by side, so the number sits under its chip */
+@media (max-width: 759px) { .wt-teams > div { flex-direction: column; align-items: stretch; gap: 4px; } .wt-n { text-align: center; } }
+.wt-teams > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.wt-teams [data-team="ohm"] { --tc: var(--team-ohm); --tg: "Ω"; }
+.wt-teams [data-team="volt"] { --tc: var(--team-volt); --tg: "V"; }
+.wt-teams [data-team="amp"] { --tc: var(--team-amp); --tg: "A"; }
+.wt-teams [data-team="farad"] { --tc: var(--team-farad); --tg: "F"; }
+.wt-chip { flex: 1 1 auto; min-width: 0; min-height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 7px; border-radius: 999px;
+  border: 2px solid var(--tc); background: var(--panel); color: var(--tc); font: 700 clamp(16px, 1.35vw, 20px)/1.1 var(--f-body); cursor: pointer;
+  transition: background-color .15s, color .15s, transform .1s; }
+.wt-chip::before { content: var(--tg); flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--tc); color: var(--panel); font: 700 15px/1 var(--f-mono); }
+.wt-chip .st { font: 700 .95em var(--f-body); white-space: nowrap; }
+.wt-chip .st:empty { display: none; }
+.wt-h .keys { white-space: nowrap; }
+.wt-chip:hover:not(:disabled) { background: color-mix(in srgb, var(--tc) 10%, var(--panel)); }
+.wt-chip:active:not(:disabled) { transform: translateY(1px); }
+.wt-chip[aria-pressed="true"] { background: var(--tc); color: var(--panel); }
+.wt-chip[aria-pressed="true"]::before { background: var(--panel); color: var(--tc); }
+.wt-chip:disabled { cursor: default; border-style: dashed; }
+.wt-n { flex: none; min-width: 2ch; text-align: right; font: 700 clamp(34px, 3.2vw, 48px)/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.wt-n.bump { animation: wt-bump .35s ease-out; }
+@keyframes wt-bump { 40% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .wt-n.bump { animation: none; } .wt-chip { transition: none; } }
+/* 1280 × 720 share: one row (label | four teams | reset), and the key hint line goes (it is in «Як провести»), so
+   «Показати відповідь» stays above the fold as in the plain projector */
+@media (min-width: 1100px) {
+  .wt { grid-template-columns: 11rem minmax(0, 1fr) auto; align-items: center; column-gap: 18px; padding: 8px 14px; }
+  .wt-top { display: contents; }
+  .wt-h { grid-area: 1 / 1; font-size: 15px; }
+  .wt-h .k { display: block; margin: 0; }
+  .wt-teams { grid-area: 1 / 2; }
+  .wt-reset { grid-area: 1 / 3; max-width: 16rem; justify-content: flex-end; }
+  body:has(.wt) .qp { gap: 10px; padding-block: 18px; }
+  body:has(.wt) .qp-stem { margin-bottom: 16px; }
+  body:has(.wt) .qp-keys, body:has(.wt) .wu-info { display: none; }
+  .wt-chip { min-height: 44px; }
+}
+@media (forced-colors: active) { .wt-chip::before { forced-color-adjust: none; border: 2px solid CanvasText; background: Canvas; color: CanvasText; } .wt-chip[aria-pressed="true"] { border-width: 4px; } }
 </style>
 </head>
 <body>
@@ -55,6 +107,7 @@
       <div class="seg" role="group" aria-label="Режим показу">
         <button type="button" data-mode="self" aria-pressed="true">Самостійно</button>
         <button type="button" data-mode="present" aria-pressed="false">Проєктор</button>
+        <button type="button" data-mode="team" aria-pressed="false">Командний</button>
       </div>
       <label class="wu-cur">Розминка до <select id="wu-current" aria-label="Урок, до якого розминка"></select></label>
       <button type="button" class="btn ghost sm" id="wu-reseed" title="Вибрати інші питання з тих самих уроків">Інші питання</button>
@@ -72,13 +125,14 @@
       <li>Кожне питання: Zoom-опитування <i>або</i> «водоспад» у чаті. Усі пишуть букву <b>А/Б/В/Г</b>, але натискають Enter лише на «3-2-1». Так ніхто не підглядає. Кнопка «Скопіювати для чату» дає текст питання з варіантами.</li>
       <li>Якщо правильних 30–70%: двоє з різними відповідями пояснюють свій вибір (60&nbsp;с), потім <b>Голосування 2</b> (<kbd>V</kbd>) і повторний вибір.</li>
       <li><b>Показати відповідь</b> (<kbd>Enter</kbd>), а тоді одна людина читає свою відповідь і пояснює її. Далі <kbd>→</kbd>.</li>
+      <li>У режимі <b>Командний</b> після відповіді натисніть команди, які відповіли правильно (або клавіші <kbd>1</kbd>–<kbd>4</kbd>: Ом, Вольт, Ампер, Фарад). Повторне натискання знімає позначку. Рахунок зберігається в цьому браузері до кнопки «Скинути рахунок».</li>
     </ol>
     <p>Посилання з налаштуваннями:</p>
     <ul>
       <li><code>?mix=last:2,week:1,old:2</code>: 2 питання з 1–2 попередніх уроків, 1 з 3–5 уроків тому, 2 зі старіших (типово).</li>
       <li><code>?current=2-4</code>: розминка до уроку 2.4 (питання лише з попередніх уроків).</li>
       <li><code>?q=1-4-q03,1-1-q07</code>: конкретні питання в заданому порядку.</li>
-      <li><code>?t=45</code>: таймер на 45&nbsp;с замість 60; <code>?mode=self</code> або <code>?mode=projector</code>: самоперевірка чи проєктор. Без параметра сторінка відкривається в режимі «Самостійно», а в режимі викладача — у «Проєкторі».</li>
+      <li><code>?t=45</code>: таймер на 45&nbsp;с замість 60; <code>?mode=self</code>, <code>?mode=projector</code> або <code>?mode=team</code>: самоперевірка, проєктор чи проєктор з командним рахунком. Без параметра сторінка відкривається в режимі «Самостійно», а в режимі викладача — у «Проєкторі».</li>
     </ul>
     <p class="small">Питання для розминки — це пункти квізів уроків, позначені <code>warmup: true</code>. Добірка однакова протягом дня, тож посилання, надіслане заздалегідь, покаже ті самі питання; «Інші питання» перемішує їх заново.</p>
   </details>
@@ -112,6 +166,7 @@ document.addEventListener('study:ready', () => {
   const state = {
     mode: modeParam === 'self' ? 'self'
       : modeParam === 'projector' || modeParam === 'present' ? 'present'
+        : modeParam === 'team' ? 'team'
         : document.documentElement.classList.contains('teacher') ? 'present' : 'self',
     current: P.has('current') ? P.get('current') : defaultCurrent(),
     mix: P.get('mix') || 'last:2,week:1,old:2',
@@ -168,11 +223,121 @@ document.addEventListener('study:ready', () => {
       box.innerHTML = '<div class="qz-msg"><p><b>Питань не знайдено.</b> Перевірте посилання або виберіть інший урок.</p></div>';
       return;
     }
+    const mode = state.mode;
+    teams.detach();
     Q.mount(box, {
-      mode: state.mode === 'self' ? 'warmup' : 'present', questions, time: state.t,
+      mode: mode === 'self' ? 'warmup' : 'present', questions, time: state.t,
       title: `Розминка: ${questions.length} ${questions.length < 5 ? 'питання' : 'питань'} з попередніх уроків`,
-    });
+    }).then((r) => { if (mode === 'team' && state.mode === 'team' && r && r.ctl) teams.attach(r.ctl, r.questions); }).catch((e) => console.error(e));
   }
+
+  // ---------------------------------------------------------------- «Командний»: team tally over the projector
+  // Storage is optional (blocked or private mode): the tally then lives for this page view only.
+  const TK = 'warmup.teams.v1';
+  const TEAMS = [['ohm', 'Ом'], ['volt', 'Вольт'], ['amp', 'Ампер'], ['farad', 'Фарад']];
+  const teams = (() => {
+    const blank = () => ({ score: Object.fromEntries(TEAMS.map(([k]) => [k, 0])), marks: {} });
+    let data = blank();
+    try {
+      const v = JSON.parse(localStorage.getItem(TK) || 'null');
+      if (v && typeof v === 'object') {
+        TEAMS.forEach(([k]) => { const n = Math.round(+((v.score || {})[k])); data.score[k] = Number.isFinite(n) && n > 0 ? n : 0; });
+        // Per-question marks are kept for today only (so a re-shown question keeps its chips); the totals stay.
+        Object.entries(v.marks || {}).forEach(([q, t]) => { if (q.startsWith(today + '|') && Array.isArray(t)) data.marks[q] = t.filter((x) => data.score[x] !== undefined); });
+      }
+    } catch { /* storage blocked: keep the in-memory tally */ }
+    const save = () => { try { localStorage.setItem(TK, JSON.stringify(data)); } catch { /* storage blocked */ } };
+    let ui = null, obs = null, ctl = null, qs = [], armTimer = 0;
+    const qKey = () => { const q = ctl && qs[ctl.index]; return q ? `${today}|${q.id}` : ''; };
+    const revealed = () => !!(ui && ui.closest('.qp') && ui.closest('.qp').querySelector('.qp-q.revealed'));
+    const pts = (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'бал' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'бали' : 'балів'}`;
+    const draw = (bumped) => {
+      if (!ui) return;
+      const on = revealed(), key = qKey(), marked = new Set(data.marks[key] || []);
+      const done = !!(ctl && ctl.index >= qs.length);
+      ui.querySelector('.wt-h').innerHTML = done
+        ? '<span class="k">Рахунок</span>Розминку завершено. Рахунок збережено до наступної розминки.'
+        : on ? `<span class="k">Питання ${ctl.index + 1}</span>Хто відповів правильно? <span class="sr-only">Клавіші 1–4.</span><span class="keys" aria-hidden="true"><kbd>1</kbd>–<kbd>4</kbd></span>`
+          : '<span class="k">Рахунок команд</span>Позначте команди після відповіді.';
+      TEAMS.forEach(([k, name]) => {
+        const b = ui.querySelector(`.wt-chip[data-k="${k}"]`), n = ui.querySelector(`.wt-n[data-k="${k}"]`);
+        const p = on && !done && marked.has(k);
+        b.disabled = !on || done;
+        b.setAttribute('aria-pressed', String(p));
+        b.querySelector('.st').textContent = p ? '✓' : '';
+        n.textContent = data.score[k];
+        n.setAttribute('aria-label', `${name}: ${pts(data.score[k])}`);
+        if (bumped === k) { n.classList.remove('bump'); void n.offsetWidth; n.classList.add('bump'); }
+      });
+    };
+    const toggle = (k) => {
+      if (!revealed()) return;
+      const key = qKey();
+      if (!key) return;
+      const m = new Set(data.marks[key] || []);
+      if (m.has(k)) { m.delete(k); data.score[k] = Math.max(0, data.score[k] - 1); } else { m.add(k); data.score[k] += 1; }
+      data.marks[key] = [...m];
+      save();
+      draw(k);
+    };
+    // «Скинути рахунок» → «Скинути?» + «Так, скинути» / «Ні»; falls back by itself after 6 s.
+    const disarm = () => {
+      clearTimeout(armTimer);
+      if (!ui) return;
+      ui.querySelector('.wt-reset').innerHTML = '<button type="button" class="btn ghost sm" data-r="arm">Скинути рахунок</button>';
+    };
+    const arm = () => {
+      ui.querySelector('.wt-reset').innerHTML = '<span class="q" id="wt-q">Скинути?</span><button type="button" class="btn sm confirm" data-r="yes" aria-describedby="wt-q">Так, скинути</button><button type="button" class="btn ghost sm" data-r="no">Ні</button>';
+      ui.querySelector('[data-r="yes"]').focus();
+      clearTimeout(armTimer);
+      armTimer = setTimeout(disarm, 6000);
+    };
+    const reset = () => {
+      data = blank();
+      save();
+      disarm();
+      draw();
+      ui.querySelector('[data-r="arm"]').focus();
+      if (window.Study && Study.toast) Study.toast('Рахунок команд скинуто');
+    };
+    // Digits 1–4 toggle a team while an answer is shown (quiz.js leaves digits alone).
+    document.addEventListener('keydown', (e) => {
+      if (!ui || !ui.isConnected || e.altKey || e.ctrlKey || e.metaKey || e.target.closest('input, textarea, select, [contenteditable]')) return;
+      const i = ['1', '2', '3', '4'].indexOf(e.key);
+      if (i < 0 || !revealed()) return;
+      e.preventDefault();
+      toggle(TEAMS[i][0]);
+    });
+    return {
+      attach(c, list) {
+        const qp = box.querySelector('.qp');
+        if (!qp) return;
+        ctl = c; qs = list || [];
+        ui = document.createElement('section');
+        ui.className = 'wt';
+        ui.setAttribute('aria-label', 'Командний рахунок');
+        ui.innerHTML = `<div class="wt-top"><p class="wt-h" id="wt-h"></p><span class="wt-reset"></span></div>
+          <div class="wt-teams" role="group" aria-labelledby="wt-h">${TEAMS.map(([k, name]) => `<div data-team="${k}">
+            <button type="button" class="wt-chip" data-k="${k}" aria-pressed="false">${name}<span class="st" aria-hidden="true"></span></button>
+            <output class="wt-n" data-k="${k}" aria-live="polite">0</output></div>`).join('')}</div>`;
+        qp.querySelector('.qp-ctrl').before(ui);
+        ui.addEventListener('click', (e) => {
+          const b = e.target.closest('button');
+          if (!b) return;
+          if (b.dataset.k) toggle(b.dataset.k);
+          else if (b.dataset.r === 'arm') arm();
+          else if (b.dataset.r === 'yes') reset();
+          else if (b.dataset.r === 'no') { disarm(); ui.querySelector('[data-r="arm"]').focus(); }
+        });
+        disarm();
+        // quiz.js redraws the stage on every reveal / next / back: follow it instead of patching quiz.js.
+        obs = new MutationObserver(() => draw());
+        obs.observe(qp.querySelector('.qp-stage'), { childList: true });
+        draw();
+      },
+      detach() { if (obs) obs.disconnect(); obs = null; clearTimeout(armTimer); if (ui) ui.remove(); ui = null; ctl = null; },
+    };
+  })();
   async function reload() {
     box.innerHTML = '<div class="qz-msg"><p class="muted">Завантаження питань…</p></div>';
     try { questions = await pick(); } catch (e) { console.error(e); questions = []; }
@@ -181,7 +346,7 @@ document.addEventListener('study:ready', () => {
   const syncURL = () => {
     const u = new URL(location.href);
     const set = (k, v) => (v ? u.searchParams.set(k, v) : u.searchParams.delete(k));
-    set('mode', state.mode === 'self' ? 'self' : 'projector');
+    set('mode', state.mode === 'self' ? 'self' : state.mode === 'team' ? 'team' : 'projector');
     if (!state.q && !state.src) set('current', state.current === defaultCurrent() ? '' : state.current || 'all');
     try { history.replaceState(null, '', u); } catch { /* file:// */ }
   };

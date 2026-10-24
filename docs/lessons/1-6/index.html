@@ -125,6 +125,20 @@
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;8&nbsp;хв основне · віджети й практика — ще 15&nbsp;хв</p>
+    <ol>
+      <li>Цифровий вхід стискає напругу до одного біта, АЦП зберігає її як число 0…4095 (12&nbsp;біт, крок ≈&nbsp;0,76&nbsp;мВ). <a href="#ideas">→ 04</a></li>
+      <li>4095 означає «≈&nbsp;3,1&nbsp;В або більше», а не рівно 3,3&nbsp;В. Для вольтів беріть <code>analogReadMilliVolts()</code>. <a href="#ideas">→ 04</a></li>
+      <li>АЦП міряє напругу, тож LDR потрібен другий резистор: 5&nbsp;кОм зверху і 10&nbsp;кОм знизу дають 2,2&nbsp;В, тобто ≈&nbsp;2906. <a href="#example">→ 06</a></li>
+      <li>Напрям числа задає місце LDR у подільнику: зверху — світло → число росте, знизу — падає. <a href="#ideas">→ 04</a></li>
+      <li>Датчик — на ADC1 (GPIO1…10, краще 4–7); ADC2 працює лише з вимкненим Wi-Fi. <a href="#ideas">→ 04</a></li>
+      <li>Верх подільника — тільки на 3V3: виводи S3 витримують не більше ≈&nbsp;3,6&nbsp;В. <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -533,6 +547,19 @@ void loop() {
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p>Підготуйте до дзвінка: плату з кабелем, фоторезистор, резистор 10&nbsp;кОм, макетку, 4 дроти, мультиметр, ліхтарик телефона. Прочитайте розділи 01–05 і зробіть усі три прогнози.</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір і розминка (питання 1.4–1.5)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22</span><span class="cp-a">Найменш зрозуміле з квитків, переказ від студента, навіщо й цілі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34</span><span class="cp-a">Ідеї 1–3 + ConcepTest на віджеті «Сходинки квантування»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → демо: подільник на камеру, перед кожною дією голос «↑ / ↓ / =» у чат</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">Піни АЦП і «Знайди помилку» в коді та схемі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">Перерва</span><span class="cp-r">—</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо разом (розділ 08), дивимось Serial Plotter</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Дошка: подільник у своєму кадрі зі стрілкою напряму числа</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">Показ командних викликів 1.4–1.5; анонс виклику 1.6</span><span class="cp-r">Збирач · Доповідач · Скептик</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p>Студенти вже бачили прогнози 05 удома, тому обидва ConcepTest — <b>варіанти на перенесення</b>, а не повтор: відповідь із сайту напряму не підходить.</p>
       <p><b>ConcepTest 1 (на початку блоку 34–46, до віджета):</b> «Тепер LDR <i>знизу</i> (між GPIO4 і GND), 10&nbsp;кОм зверху. Закрили LDR долонею: число А) росте, Б) падає, В) не змінюється?»</p>

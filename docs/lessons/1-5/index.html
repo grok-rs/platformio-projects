@@ -102,6 +102,20 @@
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;8&nbsp;хв основне · віджети й практика — ще 15&nbsp;хв</p>
+    <ol>
+      <li>Рахуйте поділки й множте на В/под або с/под. Масштаб часу вирішує, які деталі ви взагалі побачите. <a href="#ideas">→ 04</a></li>
+      <li>Тригер — «почни малювати, коли сигнал перетне цей рівень у цей бік». Без нього повторюваний сигнал пливе. <a href="#ideas">→ 04</a></li>
+      <li>f = 1 / T, D = t<sub>HIGH</sub> / T: 4 поділки × 0,5&nbsp;мс = 2&nbsp;мс → 500&nbsp;Гц. <a href="#example">→ 06</a></li>
+      <li>З <code>INPUT_PULLUP</code> і кнопкою до GND натискання — це спад, FALLING. <a href="#mistakes">→ 07</a></li>
+      <li>Фронт має тривалість: між 0,25 і 0,75·VDD цифровий вхід нічого не гарантує. <a href="#ideas">→ 04</a></li>
+      <li>Аналізатор — багато каналів 0/1 і довгий запис, осцилограф — форма напруги, а Serial Plotter малює лише те, що надрукувала програма. <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
+
   <!-- 03 warm-up -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -634,6 +648,19 @@
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p>Підготуйте до дзвінка: плату, кнопку, резистор 10&nbsp;кОм, аналізатор (якщо є) і прочитані розділи 04–05. Тримайте під рукою чат: будуть голосування «А/Б/В» на 3-2-1.</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір і розминка (питання 1.3–1.4)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22</span><span class="cp-a">Найменш зрозуміле з квитків, огляд уроку, мета</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34</span><span class="cp-a">Шкали й тригер на «Міні-осцилографі» + ConcepTest</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → демо: лічильник переривань на камеру; конкурс оцінок — ваше число в чат</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">Гонка читання екрана: тренажер з розділу 06, відповіді водоспадом на 3-2-1</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">Перерва</span><span class="cp-r">—</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо стенд і підключаємо аналізатор (розділ 08, PulseView / Logic 2)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Дошка: у своєму фреймі осцилограма натискання й відпускання</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">Живий дебаг стенду студента (з #help, за згодою) або міні-виклади</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>ConcepTest 1 (хв 22–34).</b> «INPUT_PULLUP, кнопка до GND: натискання — це RISING чи FALLING?»</p>
       <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано з першого голосу: ≈&nbsp;50–60&nbsp;% RISING (інтуїція «увімкнули = вгору» і текст LMS), 40–50&nbsp;% FALLING. Якщо правильних 30–70&nbsp;%, двоє з різними відповідями сперечаються 60&nbsp;с, потім переголосування; очікувано ≥&nbsp;85&nbsp;% FALLING.</p></details>

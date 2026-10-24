@@ -109,6 +109,20 @@ canvas.hy { display: block; width: 100%; height: clamp(270px, 46vw, 340px); bord
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;9&nbsp;хв основне · віджети й практика — ще 15&nbsp;хв</p>
+    <ol>
+      <li>Система — ланцюжок перетворень сигналу. Міряйте знизу вгору (живлення → земля → сигнали → код) і шукайте першу ланку, після якої сигнал уже неправильний. <a href="#ideas">→ 04</a></li>
+      <li>Транзистор — кран для струму (закритий / насичений). Реле — контакт COM, який магніт перекидає з NC на NO. <a href="#ideas">→ 04</a></li>
+      <li>GPIO керує базою, а напругу на IN задають R4 і 5&nbsp;В: транзистор — і перетворювач рівнів, і інвертор. <a href="#ideas">→ 04</a></li>
+      <li>Гістерезис = два пороги + пам'ять стану. Мертва зона має бути ширшою за шум. <a href="#ideas">→ 04</a></li>
+      <li>Усі GND — один провід: плата, модуль живлення, транзистор, модуль реле. <a href="#ideas">→ 04</a></li>
+      <li>Ключ насичується, якщо I<sub>C</sub> / I<sub>B</sub> ≤ 20: I<sub>B</sub> = (3,3 − 0,7) / 10&nbsp;кОм = 0,26&nbsp;мА, I<sub>C</sub> ~5&nbsp;мА, тобто ≈&nbsp;19. <a href="#example">→ 06</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -628,6 +642,19 @@ digitalWrite(kRelayPin, relayOn ? HIGH : LOW);  // 3. HIGH → реле ON</code
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p><b>Підготуйте до дзвінка:</b> зібраний (хоча б частково) перемикач, мультиметр, відкритий монітор Serial і цю сторінку. Якщо щось не працює — чудово: принесіть як кандидата на живе налагодження (напишіть у Slack #help до 18:00).</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір і розминка</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22</span><span class="cp-a">Найменш зрозуміле з квитків, переказ від студента, навіщо й цілі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34</span><span class="cp-a">Ідеї 1–3 + ConcepTest: голосування, суперечка в парі, переголосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → перевірка на віджеті «Гра в гістерезис»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">«Знайди помилку» на віджеті «Ланцюжок причин»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">Перерва</span><span class="cp-r">—</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо разом (розділ 08, вкладка «Макетка»)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Спринт на дошці у своїй рамці</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">Живе налагодження збірки добровольця: гіпотези водоспадом, голос «що міряти першим?»; реліз виклику</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>ConcepTest 1</b> (після ідеї 3): «GPIO2 = HIGH, модуль active-LOW. Реле?» А — ON, Б — OFF, В — залежить від коду.</p>
       <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікування: ≈45&nbsp;% А, ≈40&nbsp;% Б, ≈15&nbsp;% В.</p></details>

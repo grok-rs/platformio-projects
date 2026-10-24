@@ -174,6 +174,20 @@
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: an aside, not a section.hs, so the TOC skips it -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 12 хв основне · віджети й практика — ще ≈ 35 хв</p>
+    <ol>
+      <li>У плати три склади пам'яті: Flash 16&nbsp;МБ (код і константи), SRAM 512&nbsp;КБ (змінні, купа, стеки — дефіцит) і PSRAM 8&nbsp;МБ. Що відоме до запуску, хай живе у Flash. <a href="#ideas">→ 04</a></li>
+      <li>Купа кришиться: «вільно» ще не означає «можна виділити». Виділяйте один раз у <code>setup()</code>, а в <code>loop()</code> — без <code>new</code>, <code>malloc</code> і <code>String</code>-склейок. <a href="#ideas">→ 04</a></li>
+      <li>Замість <code>delay()</code> питайте годинник: <code>now - lastMs &gt;= kBlinkMs</code>. Віднімання беззнакових чисел переживає переповнення <code>millis()</code> раз на ≈&nbsp;49,7 доби. <a href="#ideas">→ 04</a></li>
+      <li><code>volatile</code> означає «перечитуй щоразу» і нічого більше: <code>counter++</code> — це три інструкції, тож потрібна критична секція або <code>std::atomic</code>. <a href="#mistakes">→ 07</a></li>
+      <li><code>constexpr</code> — для всього, що відоме наперед; <code>const</code>, значення якого з'являється після старту, лежить у RAM. <a href="#ideas">→ 04</a></li>
+      <li>Вирівнювання: <code>long</code> тут 4 байти, а структура з полями 1&nbsp;+&nbsp;4&nbsp;+&nbsp;1 байт займає 12 байт, половина з них порожні. <a href="#example">→ 06</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -810,6 +824,19 @@ void loop() {
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p>Підготуйте до дзвінка: плату з USB-кабелем, відкритий PlatformIO зі зібраним <code>esp32-s3-embedded-cpp</code>, прочитані розділи 04–05 і свій прогноз для міні-лаби.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11 хв</span><span class="cp-a">Збір: одне слово в чат, потім розминка — питання в опитуванні або «водоспадом» у чаті</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22 хв</span><span class="cp-a">Найменш зрозуміле з минулих квитків, короткий підсумок минулого уроку від студента за графіком, «Навіщо це» і цілі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34 хв</span><span class="cp-a">Пам'ять: карта з розділу 08 і перше голосування; якщо думки розійдуться — обговорення в парах і повторне голосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46 хв</span><span class="cp-a">Прогноз → демо про купу: ваш прогноз на «Стіні прогнозів», потім запуск на камеру і «чому?»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55 хв</span><span class="cp-a"><code>volatile</code>, ще одне голосування і «Знайди помилку»: номер рядка в чат, Enter — за командою</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці, щоб отримати допомогу</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Пишемо разом Blink на <code>millis()</code>: ви повторюєте вдома, контрольні точки кожні ~5&nbsp;хв</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">90–95 хв</span><span class="cp-a">Спринт на дошці: підпишіть на карті пам'яті, де лежать п'ять змінних</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108 хв</span><span class="cp-a">Видача командного виклику (розділ 12), ролі тижня, 2&nbsp;хв з напарником: «з чого почнеш?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>ConcepTest 1 (volatile).</b> «<code>volatile uint32_t presses;</code> ISR робить <code>presses++</code>, <code>loop()</code> друкує <code>presses</code>, а потім робить <code>presses = 0</code>. Чи може загубитися натискання?» А) ні, бо volatile; Б) так; В) лише на двох ядрах.</p>
       <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікувано: ≈ 55&nbsp;% А, 35&nbsp;% Б, 10&nbsp;% В → пари на 60&nbsp;с → після повторного голосування ≥ 75&nbsp;% Б. Поясніть часовою лінією на дошці: <code>loop()</code> прочитав 3 → друкує → <b>ISR: 3→4</b> → <code>loop()</code> пише 0, і четверте натискання зникло. Сам <code>++</code> в ISR тут не розривається: <code>loop()</code> не може перервати ISR на тому самому ядрі. Ліки: прочитати й обнулити в одній критичній секції. Варіант для сильної групи — міф E7 з розділу 07 (<code>++</code> і в ISR, і в <code>loop()</code>).</p></details>

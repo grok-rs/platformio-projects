@@ -224,6 +224,20 @@
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;7&nbsp;хв основне · віджети й практика — ще 20&nbsp;хв</p>
+    <ol>
+      <li>У послідовному колі струм однаковий у всіх точках; між деталями ділиться напруга, а не струм. <a href="#ideas">→ 04</a></li>
+      <li>Вольтметр — паралельно: щупи на два виводи деталі, коло не розривають. <a href="#ideas">→ 04</a></li>
+      <li>Амперметр — послідовно, у розрив. Паралельно він закорочує ділянку, а щупи на «+» і GND палять запобіжник 0,5&nbsp;А. <a href="#ideas">→ 04</a></li>
+      <li>V<sub>R</sub> + V<sub>LED</sub> = V<sub>джерела</sub> і I = U<sub>R</sub> / R: при 5&nbsp;В, 220&nbsp;Ом і червоному LED (1,9&nbsp;В) це ≈&nbsp;14&nbsp;мА. <a href="#example">→ 06</a></li>
+      <li>Опір міряють лише без живлення; п'ять отворів стовпчика макетки — один вузол, тож дві ніжки в одному стовпчику закорочують деталь. <a href="#ideas">→ 04</a></li>
+      <li>На розриві струму немає, але напруга є: кілька вольт, а не 0. <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up (first lesson: recall of the pre-course theory) -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -810,6 +824,19 @@
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p><b>Підготуйте до дзвінка:</b> мультиметр із перевіреною батареєю, макетку з модулем MB-102 на 5&nbsp;В, червоний LED, резистори 220&nbsp;Ом і 1&nbsp;кОм. Прочитайте розділи 04–05 і зробіть хоча б три місії віртуального мультиметра.</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір: одне слово в чат; розминка з розділу 03</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–22</span><span class="cp-a">Найменш зрозуміле з чату, переказ теорії від студента, навіщо й цілі</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–34</span><span class="cp-a">Головні ідеї + ConcepTest: голосування, суперечка в парі, переголосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → перевірка: опитування, потім віртуальний мультиметр на екрані</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">«Знайди коротке» на макетці з розділу 08</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">Перерва</span><span class="cp-r">—</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо разом міні-лабу: ви вдома, викладач на камері; виміряні числа в чат</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Спринт на дошці: у своїй рамці tldraw позначте, де стоїть амперметр</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">Видача виклику «Детективи напруги», ролі тижня; 2&nbsp;хв з напарником: «перший крок?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>ConcepTest 1 «Два амперметри»</b> (віджет мотузки, розділ 05).</p>
       <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Очікуваний розподіл: 55–65&nbsp;% «однаково», 25–35&nbsp;% «A1 більше» (M1), 5–10&nbsp;% «A2 більше».</p></details>

@@ -124,6 +124,14 @@ section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--l
 .ph .note { font-size: 12.5px; color: var(--muted); }
 /* provenance: modelled numbers, not a bench measurement */
 .model-chip { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 1px 7px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+/* bounce-model mode: teaching (exaggerated) vs bench-like statistics */
+.bmode { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-start; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.bm-seg button { font: 500 13px var(--f-body); min-height: 36px; padding: 6px 12px; }
+@media (pointer: coarse) { .bm-seg button { min-height: 44px; } }
+.bm-note { flex: 1 1 340px; min-width: 0; font-size: 13.5px; line-height: 1.5; }
+.bm-note p { margin: 0 0 4px; max-width: 86ch; }
+.bm-note p:last-child { margin: 0; color: var(--muted); }
+.bm-note .model-chip { margin: 0 4px 0 0; }
 .pb { padding: 12px; }
 .prose p, .prose li { max-width: 70ch; }
 .prose p { margin: 0 0 10px; }
@@ -513,6 +521,16 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       <div class="ph"><h3>Макетна плата · аналізатор · ноутбук <span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span></h3>
         <button type="button" class="btn" id="asmBtn" aria-pressed="false">🔧 Збираємо крок за кроком</button>
       </div>
+      <div class="bmode">
+        <div class="seg bm-seg" role="group" aria-label="Режим моделі брязкоту для «Мої натискання»" id="bmSeg">
+          <button type="button" data-bm="teach" aria-pressed="true">Навчальний (брязкіт щоразу)</button>
+          <button type="button" data-bm="bench" aria-pressed="false">Як на стенді (рідко)</button>
+        </div>
+        <div class="bm-note">
+          <p><span class="model-chip" title="Дані моделі в браузері, не вимір на стенді">модель</span> в обох режимах: фронти генерує браузер, це не запис зі стенду. Навчальний режим <b>навмисно перебільшує</b>: брязкотить кожне натискання, щоб було що міряти. На нашому стенді натискання брязкотіло лише <b>1 раз із 91</b>, відпускання — 35 з 91 (<a href="../bounce-bench/">«Брязкіт на стенді»</a>). Справжні кнопки різні: усе залежить від типу, зносу і того, як ви натискаєте.</p>
+          <p id="bmNow" aria-live="polite">Зараз: <b>навчальний</b>. Сила й швидкість пальця змінюють брязкіт (модель у межах вимірів Ганссла, ~0,3–6 мс).</p>
+        </div>
+      </div>
       <p class="scroll-hint" aria-hidden="true">↔ гортайте стенд вбік</p>
       <div id="benchSvg" tabindex="0" role="region" aria-label="Стенд: макетка, аналізатор, ноутбук (гортайте вбік)"></div>
       <div class="bench-under"><span id="lvlBadge" class="lvl-badge lvl-hi"><span id="lvlText">GPIO16 = HIGH (відпущена)</span></span></div>
@@ -728,7 +746,7 @@ details.q p, details.q li { font-size: 14px; max-width: 75ch; }
       </div>
       <div class="tbl-wrap"><table class="res" id="resTable"></table></div>
       <p class="explain" id="tblNote"></p>
-      <p class="explain model-vs-bench">Порівняйте зі справжньою кнопкою на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>: там натискання брязкотіло лише 1 раз із 91 (10&nbsp;мкс), а серед подій з брязкотом медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс. Модель тут брязкотить навмисно на кожному натисканні, щоб було що вимірювати.</p>
+      <p class="explain model-vs-bench">Порівняйте зі справжньою кнопкою на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>: там натискання брязкотіло лише 1 раз із 91 (10&nbsp;мкс), а серед подій з брязкотом медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс. Модель у навчальному режимі брязкотить навмисно на кожному натисканні, щоб було що вимірювати; режим «Як на стенді» в розділі 2 відтворює статистику справжньої кнопки.</p>
     </div>
   </section>
 
@@ -835,7 +853,7 @@ pio device monitor                   # s, r, h</pre>
 
   <footer>
     <p><a href="../">← Усі матеріали</a> · <a href="../scope-signals/">Теорія: осцилограф і кнопка</a> · <a href="../pull-resistors/">Підтяжка входу і тригер Шмітта</a> · <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce">Код на GitHub</a></p>
-    <p>«Запис моделі» — 10 модельних натискань із прошивкою <code>bounce-lab</code>: канали BUTTON та ISR і вивід Serial з одного прогону. Модель переривань (прапорець + затримка + тривалість ISR) з параметрами цього запису відтворює кількість запусків ISR у ньому з похибкою &lt; 1 %. «Мої натискання» генерує модель брязкоту в межах вимірів Ганссла (сер. ~1,6 мс, до 6 мс). Записи справжньої кнопки — на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>.</p>
+    <p>«Запис моделі» — 10 модельних натискань із прошивкою <code>bounce-lab</code>: канали BUTTON та ISR і вивід Serial з одного прогону. Модель переривань (прапорець + затримка + тривалість ISR) з параметрами цього запису відтворює кількість запусків ISR у ньому з похибкою &lt; 1 %. «Мої натискання» у навчальному режимі генерує модель брязкоту в межах вимірів Ганссла (сер. ~1,6 мс, до 6 мс). У режимі «Як на стенді» — імовірність брязкоту (натискання 1 з 91, відпускання 35 з 91) і послідовності інтервалів між фронтами з журналу переривань стенду: <code>esp32-s3-bounce-test/docs/bench-11-40.serial.txt</code>, 17.10.2026, події класифіковано як на сторінці «Брязкіт на стенді». Аномалію 51,7 мс (повторний дотик пальця) й імпульси під час утримання модель не відтворює; імпульс ~1 мкс там, де ISR загубила фронт (парність не сходиться), — модельний. Записи справжньої кнопки — на сторінці <a href="../bounce-bench/">«Брязкіт на стенді»</a>.</p>
   </footer>
 </div>
 
@@ -1309,6 +1327,28 @@ function genBounce(toLevel, force, speed) {
   for (const x of g) { t += Math.max(0.1, x * sc); l ^= 1; edges.push({ t, l }); }
   return edges;
 }
+// Bench-like mode: resamples the real bench recording (../bounce-bench/, esp32-s3-bounce-test/docs/bench-11-40.serial.txt,
+// 17.10.2026, classification as on that page). Presses bounced 1 of 91, releases 35 of 91. Gaps (µs) are the ISR
+// micros() log of each bounced event; the release set leaves out the one 51.7 ms anomaly (finger re-touch, not
+// contact bounce), so durations come from the other 34. Where the ISR edge count has the wrong parity the ISR
+// lost an edge: the model adds one ~1 µs pulse after the first edge (modelled value, not in the data).
+const BENCH = {
+  pressP: 1 / 91, releaseP: 35 / 91, lostPulseUs: 1,
+  press: [[10]],
+  release: [[131], [102], [386, 8, 578], [12, 12], [82], [10, 3, 6], [61, 1744], [5, 283, 872, 1382, 1015], [182], [184],
+    [134, 44, 6, 45], [38, 348, 171], [15, 349], [26, 7, 39], [3, 151], [85], [311, 165, 33, 71], [5, 225, 93, 20, 253],
+    [328, 289, 163], [4, 114], [1267], [20, 709, 30, 438, 306, 258, 188], [69], [55, 59], [125, 60, 107, 33, 115], [39, 90],
+    [44], [177, 4], [82], [4, 40], [242], [574], [627], [100]],
+};
+function genBench(toLevel) {
+  const press = toLevel === 0;
+  if (Math.random() >= (press ? BENCH.pressP : BENCH.releaseP)) return [{ t: 0, l: toLevel }];
+  const set = press ? BENCH.press : BENCH.release, gaps = set[Math.floor(Math.random() * set.length)];
+  const ts = [0];
+  for (const g of gaps) ts.push(ts[ts.length - 1] + g);
+  if (ts.length % 2 === 0) ts.splice(1, 0, BENCH.lostPulseUs);
+  return ts.map((t, i) => ({ t, l: toLevel ^ (i & 1) }));
+}
 // What an analyzer at fs MHz records: the level at sample instants (n + φ)/fs.
 function sampleEdges(edges, lb, fs) {
   if (!fs) return edges;
@@ -1377,7 +1417,7 @@ function debounce(ev, s, Nms) {
    ===================================================================== */
 const app = {
   src: 'real', fw: 'lab', playing: false, speed: 1, T: REAL_END, last: performance.now(),
-  L: 14, D: 0.3, live: [], liveT: 0, pressed: false, force: 0.5, speedK: 0.5,
+  L: 14, D: 0.3, live: [], liveT: 0, pressed: false, force: 0.5, speedK: 0.5, bm: 'teach',
   view: null, follow: true, fs: 24, curA: null, curB: null,
   sel: null, selUser: false, mcuMode: 'CHANGE', tau: -5, rate: 25, mcuPlaying: false, mcuWin: 60, mcuDone: false,
   db: 'stable', dbN: 5, dbSel: 0, serialFrozen: false, asm: 0,
@@ -1622,9 +1662,31 @@ function setSrc(src) {
   app.sel = null; app.selUser = false; resetMcuAnim();
   app.playing = false; updatePlayBtn();
   lastBenchEv = null; serialState.key = '';
-  $('#laSrcName').textContent = $('#tblSrc').textContent = src === 'real' ? 'запис моделі' : 'мої натискання';
+  if (src === 'real' && app.bm !== 'teach') setBm('teach');
+  srcLabel();
   dirtyAll();
 }
+const srcLabel = () => { $('#laSrcName').textContent = $('#tblSrc').textContent = app.src === 'real' ? 'запис моделі' : app.bm === 'bench' ? 'мої натискання · як на стенді' : 'мої натискання'; };
+// Bounce-model mode for live presses. The recording is always the teaching one, so "bench" switches to live presses
+// and picking the recording switches back to "teach". Changing the mode starts the live presses afresh.
+function setBm(m) {
+  if (app.bm === m) return;
+  app.bm = m;
+  $$('#bmSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.bm === m));
+  const bench = m === 'bench';
+  $('#force').disabled = $('#speedK').disabled = bench;
+  $('#bmNow').innerHTML = bench
+    ? 'Зараз: <b>як на стенді</b>. Натискання брязкотить з імовірністю 1/91, відпускання — 35/91; фронти й інтервали беруться з випадкової події запису стенду (медіана відпускання ≈ 0,18 мс, максимум 3,56 мс). Сила й швидкість пальця тут не впливають. Натисніть S1 разів 20 — більшість подій будуть чистими.'
+    : 'Зараз: <b>навчальний</b>. Сила й швидкість пальця змінюють брязкіт (модель у межах вимірів Ганссла, ~0,3–6 мс).';
+  app.live = []; app.liveT = 0;
+  if (app.src === 'live') {
+    app.view = null; app.follow = true; $('#laFollow').checked = true; app.curA = app.curB = null; app.sel = null; app.selUser = false;
+    resetMcuAnim(); lastBenchEv = null; serialState.key = '';
+  }
+  if (bench && app.src !== 'live') setSrc('live');
+  srcLabel(); dirtyAll();
+}
+$$('#bmSeg button').forEach(b => b.addEventListener('click', () => setBm(b.dataset.bm)));
 function pressDown() {
   if (app.pressed) return;
   if (app.src !== 'live') setSrc('live');
@@ -1643,7 +1705,7 @@ function addLive(toLevel) {
   if (prev) t0 = Math.max(t0, prev.t0 + prev.bounce / 1000 + 0.3);
   const lb = prev ? prev.last : 1;
   if (lb === toLevel) return;
-  const edges = genBounce(toLevel, app.force, app.speedK);
+  const edges = app.bm === 'bench' ? genBench(toLevel) : genBounce(toLevel, app.force, app.speedK);
   L.push(makeEvent(L.length, t0, lb, edges, null, 'live'));
   if (L.length > 60) { L.splice(0, 2); L.forEach((e, i) => e.id = i); }
   dirty.la = dirty.mcu = true;
@@ -2036,6 +2098,7 @@ function drawMCU(dt) {
 function mcuText(ev, m, tau) {
   const A = ev.edges.length, C = m.change.length, mergedN = m.change.reduce((s, r) => s + r.merged.length, 0);
   const flips = m.change.filter((r, i) => i && r.level === m.change[i - 1].level).length;
+  if (A === 1 && tau < 0) return `Чиста подія: <b>1</b> фронт, брязкоту немає. ISR спрацює один раз — тут аналізатор і ESP32 збігаються. Натисніть «▶ Повільно».`;
   if (tau < 0) return `Подія з <b>${A}</b> фронтів за <b>${fmtUs(ev.bounce)}</b>. Затримка входу в ISR <b>${app.L} мкс</b>. Найкоротший імпульс <b>${fmtUs(ev.minGap)}</b>: він коротший за затримку, тож частина фронтів зіллється. Натисніть «▶ Повільно».`;
   if (tau < ev.bounce) return `Зелені риски — фронти, що запустили ISR. Червоні — ті, що прийшли, поки прапорець уже стояв: вони <b>злилися</b>. Наприкінці: <b>${C}</b> запусків ISR на <b>${A}</b> фронтів, злилося <b>${mergedN}</b>.`;
   return `Підсумок події: аналізатор — <b>${A}</b>, ESP32 (CHANGE) — <b>${C}</b> (${Math.round(C / A * 100)} %). ISR ${flips ? `<b>${flips}</b> разів прочитав той самий рівень, що й минулого разу (позначка «!»): між ними був фронт, який він «проспав»` : 'щоразу читав новий рівень'}. Код з умови (FALLING) додав би <b>${m.falling.length}</b>${ev.kind === 'release' ? ', хоча це відпускання' : ''}.`;
@@ -2412,7 +2475,7 @@ function renderAnswers() {
     card('2', '2. Коли мікроконтролер пропускає брязкіт, а коли рахує зайве?',
       `<p><b>Пропускає:</b> коли фронти йдуть щільніше, ніж ISR встигає. Прапорець переривання — один біт, тож фронти за ті ${n(app.L + ' мкс')} до входу в обробник зливаються. У ваших даних злилося ${n(mergedN)} фронтів (модель), найкоротший імпульс — ${n(isFinite(minPulse) ? fmtUs(minPulse) : '—')}. А ${n(flips)} разів ISR прочитав той самий рівень двічі поспіль: між ними був фронт, який він «проспав».</p><p><b>Рахує зайве:</b> з погляду «одне натискання = +1» лічильник FALLING завжди рахує зайве. Брязкіт дає десятки фронтів униз, і ${n(Drel)} з ${n(D)} прийшли під час <i>відпускання</i>. Ще зайве рахують завади на довгому дроті без підтяжки (див. «Підтяжка входу»).</p>`) +
     card('3', '3. Яка середня тривалість брязкоту для вашої кнопки?',
-      `<p>Натискання: ${n(fmtUs(avg(presses)))} у середньому, відпускання: ${n(fmtUs(avg(rels)))}, найдовший — ${n(fmtUs(maxB))}. ${app.src === 'real' ? 'Модель кнопки брязкотить ~2 мс завжди. Справжня 6×6 кнопка дає від десятків мкс до кількох мс і по-різному від сили натискання (див. «Брязкіт на стенді»).' : 'Порівняйте з виміром Ганссла: у середньому 1.6 мс, максимум 6.2 мс у 16 кнопок.'}</p>`) +
+      `<p>Натискання: ${n(fmtUs(avg(presses)))} у середньому, відпускання: ${n(fmtUs(avg(rels)))}, найдовший — ${n(fmtUs(maxB))}. ${app.src === 'real' ? 'Модель кнопки брязкотить ~2 мс завжди. Справжня 6×6 кнопка дає від десятків мкс до кількох мс і по-різному від сили натискання (див. «Брязкіт на стенді»).' : app.bm === 'bench' ? 'Режим «Як на стенді»: тривалості взято із запису справжньої кнопки, тож більшість подій чисті (0). Серед відпускань з брязкотом на стенді медіана ≈ 0,18 мс, максимум 3,56 мс (див. «Брязкіт на стенді»).' : 'Порівняйте з виміром Ганссла: у середньому 1.6 мс, максимум 6.2 мс у 16 кнопок.'}</p>`) +
     card('4', '4. Який мінімальний debounce був би достатній?',
       `<p>Найдовший брязкіт ${n(fmtUs(maxB))} × запас 1.5 → ${n('≥ ' + dms + ' мс')}. Зі способом «чекати стабільності ${dms} мс» правильно відпрацювали ${n(stableOk + ' / ' + fin.length)} подій. Перевірте в розділі 8.</p><p>Запас потрібен, бо 10 натискань — мала вибірка, а кнопка старіє. Верхня межа: debounce має бути набагато коротшим за найшвидше подвійне натискання (~50–100 мс) і за поріг помітної затримки (~100 мс).</p>`);
   $$('details', box).forEach(d => d.addEventListener('toggle', () => { if (d.open) tick('questions'); }));

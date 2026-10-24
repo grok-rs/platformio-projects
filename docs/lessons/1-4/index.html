@@ -164,6 +164,20 @@ ol.fixes > li { margin-bottom: 8px; }
     </ul>
   </section>
 
+  <!-- ============================================================ «Коротко»: the lesson in 2 minutes (an aside, not a TOC section) -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈&nbsp;8&nbsp;хв основне · віджети й практика — ще 20&nbsp;хв</p>
+    <ol>
+      <li>Вихід сам тримає 0 або 1. Вхід нічого не тримає: рівень на ньому мусить задати хтось інший, інакше він «плаває». <a href="#ideas">→ 04</a></li>
+      <li>Чіткий сигнал — нижче 0,82&nbsp;В або вище 2,48&nbsp;В. Усе між ними — лотерея, усе вище 3,6&nbsp;В — шкода. <a href="#ideas">→ 04</a></li>
+      <li><code>INPUT_PULLUP</code> + кнопка до GND: відпущено → 1, натиснуто → 0. <a href="#ideas">→ 04</a></li>
+      <li>Струм через підтяжку тече лише при натиснутій кнопці, повз вхід: 3,3&nbsp;В / 10&nbsp;кОм = 0,33&nbsp;мА. У сам вхід — до 50&nbsp;нА. <a href="#example">→ 06</a></li>
+      <li>Пін вибирають двічі: що вміє чип (матриця) і що вже зайняла плата (розпіновка). <a href="#ideas">→ 04</a></li>
+      <li>Absolute Max — заборона, Recommended — робоча зона, min/max — гарантія. «Typ» — не обіцянка. <a href="#ideas">→ 04</a></li>
+    </ol>
+  </aside>
+
   <!-- ============================================================ 03 warm-up -->
   <section class="hs" id="warmup">
     <h2><span class="n">03</span> Розминка: згадаймо</h2>
@@ -737,6 +751,19 @@ void loop() {
   <section class="hs" id="incall">
     <h2><span class="n">13</span> На занятті</h2>
     <p><b>Підготуйте до дзвінка:</b> плату з кабелем у роз’єм «USB», кнопку, LED, 220&nbsp;Ом, 10&nbsp;кОм, мультиметр; прочитані розділи 04–05 і зроблений прогноз у віджеті «Що прочитає пін?».</p>
+    <h3>План дзвінка, хв</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–11</span><span class="cp-a">Збір і розминка (питання 1.1–1.3)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">11–21</span><span class="cp-a">Продуктивна невдача: 3&nbsp;хв малюєте кнопку у своїй рамці tldraw, потім розбір ескізів</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">21–34</span><span class="cp-a">Ідеї 1–3 + ConcepTest: голосування, суперечка в парі, переголосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">34–46</span><span class="cp-a">Прогноз → демо: вхід без підтяжки на камеру, Serial Plotter</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">46–55</span><span class="cp-a">Інтерактивна розпіновка + ConcepTest про пін плати</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62</span><span class="cp-a">Перерва</span><span class="cp-r">—</span></li>
+      <li><span class="cp-t">62–90</span><span class="cp-a">Збираємо схему розділу 08 разом</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">90–95</span><span class="cp-a">Дошка: підпишіть піни на фото плати</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108</span><span class="cp-a">Старт виклику «Даташит-детективи», ролі тижня; 2&nbsp;хв з напарником: «перший крок?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120</span><span class="cp-a">Квиток на вихід (розділ 14), ролі на наступний дзвінок</span><span class="cp-r">усі</span></li>
+    </ol>
     <div class="tnote">
       <p><b>Продуктивна невдача (10 хв, до пояснень).</b> «Спроєктуйте кнопку так, щоб пін читав чітку 1 без натискання і 0 з натисканням, без короткого замикання». Кожен малює у своїй рамці tldraw 3 хв. Потім покажіть 3 різні ескізи (часто: кнопка просто до 3,3&nbsp;В; кнопка між 3,3&nbsp;В і GND через пін — КЗ) і канонічне рішення з ідеї 3.</p>
       <p><b>ConcepTest 1</b> (INPUT_PULLUP, натиснуто → ?).</p>
