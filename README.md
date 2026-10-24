@@ -48,6 +48,7 @@ Served by GitHub Pages from [`docs/`](docs/): **https://grok-rs.github.io/platfo
 | [Стенд ESP32-S3](https://grok-rs.github.io/platformio-projects/lab/) | Step-through model of all three firmwares: live circuit levels and current, executing code lines, variables, logic analyzer, Serial monitor, slow motion, what-if experiments (blocking `delay()`, no pull-up, no debounce) |
 
 The pages are plain HTML files; to open them locally: `python3 -m http.server -d docs` → http://localhost:8000.
+Every page follows the system light/dark theme; the switch at the end of the navigation strip ([`docs/site-theme.js`](docs/site-theme.js)) forces Light or Dark and remembers the choice.
 
 ## Simulation in Wokwi
 

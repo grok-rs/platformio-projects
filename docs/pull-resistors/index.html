@@ -8,6 +8,7 @@
 <link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
 <meta name="description" content="Інтерактивний посібник до модуля 1.4: вхід, що висить, pull-up і pull-down, R·C і частота, тригер Шмітта, брязкіт контактів — з осцилографами в реальному часі.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -470,6 +471,7 @@ function tokens() {
 }
 tokens();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', tokens);
+addEventListener('themechange', tokens); // ручний перемикач теми (site-theme.js)
 new MutationObserver(tokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 // Schmitt trigger with state

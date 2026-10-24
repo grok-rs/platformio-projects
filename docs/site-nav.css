@@ -32,3 +32,14 @@
   .site-nav .sn-group a { padding: 4px 6px; }
 }
 @media print { .site-nav { display: none; } }
+
+/* Theme switch (added by site-theme.js): last item of .site-nav, pushed to the right. */
+.theme-btn {
+  margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--ink); font: 600 13px/1.3 var(--f-mono, ui-monospace, monospace); cursor: pointer;
+}
+.theme-btn:hover { color: var(--accent); border-color: var(--accent); }
+.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) { .theme-btn { font-size: 12px; padding: 4px 8px; } }
+@media print { .theme-btn { display: none; } }

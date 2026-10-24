@@ -8,6 +8,7 @@
 <link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
 <meta name="description" content="Інтерактивний конспект модуля 1.6 для початківців: аналоговий і цифровий сигнал, АЦП ESP32-S3 на 4096 сходинок, фоторезистор, подільник напруги, піни ADC1/ADC2, ослаблення, шум і ковзне середнє — з живими схемами, прогнозами й тестом.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -904,6 +905,7 @@ function tokens() {
 const redrawers = [];
 function redrawAll() { for (const r of redrawers) r(); }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', tokens);
+addEventListener('themechange', tokens); // ручний перемикач теми (site-theme.js)
 new MutationObserver(tokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 // ---------- canvas helpers ----------

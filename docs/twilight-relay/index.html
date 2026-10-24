@@ -8,6 +8,7 @@
 <link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
 <meta name="description" content="Міні-проєкт блоку 1: фоторезистор у подільнику → АЦП ESP32-S3 → гістерезис → BC547B → модуль реле 5 В з навантаженням. Жива макетка з модулем живлення Type-C, принципова схема, анімація електронів, деталі з попередніх уроків, правила креслення, збирання, відладчик і тест.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2298,6 +2299,7 @@ function initControls() {
   });
   if ('ResizeObserver' in window) new ResizeObserver(() => { dirty.plot = true; }).observe($('#plot'));
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { dirty.plot = true; });
+  addEventListener('themechange', () => { dirty.plot = true; }); // ручний перемикач теми (site-theme.js)
 }
 
 let lastNow = performance.now(), uiAcc = 1;

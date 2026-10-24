@@ -7,6 +7,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="site-nav.css">
+<script src="site-theme.js"></script>
 <meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): осцилограф і брязкіт кнопки, АЦП і фоторезистор, транзисторний ключ для потужного навантаження, стенд проєктів, підтяжка входів, проєкти Wokwi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,7 +75,7 @@ footer a { color: var(--accent); }
     <p>Інтерактивні сторінки до лабораторних із репозиторію. Код, схеми та тести лежать поруч у тих самих папках проєктів.</p>
   </header>
 
-  <nav class="jump" aria-label="Модулі">
+  <nav class="jump" aria-label="Модулі" data-theme-slot>
     <a href="#m1-4">1.3–1.4 · GPIO і кнопки</a>
     <a href="#m1-5">1.5 · Сигнали та кнопка</a>
     <a href="#m1-6">1.6 · АЦП і світло</a>
