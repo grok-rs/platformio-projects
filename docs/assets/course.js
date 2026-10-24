@@ -31,7 +31,7 @@
     site: 'https://grok-rs.github.io/platformio-projects/',
     verified: '2026-10-24',
     exitTicketUrl: null, // [ВИКЛАДАЧ] optional Google Form URL for exit tickets
-    giscus: { repo: 'grok-rs/platformio-projects', repoId: 'R_kgDOUZinEw', category: 'Уроки', categoryId: null }, // [ВЛАСНИК]
+    giscus: { repo: 'grok-rs/platformio-projects', repoId: 'R_kgDOUZinEw', category: 'Уроки', categoryId: 'DIC_kwDOUZinE84DJhi6' }, // [ВЛАСНИК]
 
     modules: [
       { id: '1', title: 'Модуль 1 · Електроніка і перша прошивка', short: 'Модуль 1', lessons: [
