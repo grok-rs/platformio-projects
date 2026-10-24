@@ -28,7 +28,6 @@
     "recommendations": [
       "platformio.platformio-ide",
       "rust-lang.rust-analyzer",
-      "wokwi.wokwi-vscode",
       "tamasfe.even-better-toml"
     ]
   }

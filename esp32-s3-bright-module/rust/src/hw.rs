@@ -96,19 +96,6 @@ impl Button {
     }
 }
 
-/// Пін кнопки (`config::button::PIN`): GPIO6, а з feature `wokwi` — GPIO7. Пін у Rust — тип, тож
-/// вибір теж на рівні типів, в одному місці для обох бінарників: `button_pin!(peripherals)`.
-#[macro_export]
-macro_rules! button_pin {
-    ($peripherals:ident) => {{
-        #[cfg(not(feature = "wokwi"))]
-        let pin = $peripherals.GPIO6;
-        #[cfg(feature = "wokwi")]
-        let pin = $peripherals.GPIO7;
-        $crate::hw::checked_pin(pin, $crate::config::button::PIN)
-    }};
-}
-
 /// Перевірити, що взятий пін — саме той, що в `config` (ВП-8). Константа і тип піна живуть окремо,
 /// і без цієї перевірки зміна лише одного з них мовчки розійшлася б із написом у Serial.
 pub fn checked_pin<P: Pin>(pin: P, expected: u8) -> P {

@@ -128,8 +128,6 @@ cargo run --release --bin homework           # код з умови ДЗ (FALLIN
 cargo +stable host-test -p bounce-test       # тести аналізу (src/lib.rs) на ПК, без плати
 ```
 
-Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator* (`rust/wokwi.toml`).
-
 Логіку відокремлено від заліза: `src/lib.rs` (журнал фронтів `EdgeLog`, класифікація
 PRESS/RELEASE/GLITCH, перевірка парності, формат рядків звіту) не знає про GPIO і перевіряється
 модульними тестами на ПК, а `src/bin/lab.rs` лише налаштовує виводи, переривання й UART.
@@ -152,14 +150,11 @@ cpp/
   platformio.ini      плата YD-ESP32-S3 N16R8
   src/homework.cpp    код з умови ДЗ (лічильник FALLING), BUTTON_IN = 21
   src/main.cpp        ISR CHANGE → час кожного фронту → звіт; маркер BOUNCE (GPIO40), підписи LABEL (GPIO41)
-  wokwi.toml          симуляція C++-прошивки (diagram.json — посилання на спільну схему)
 rust/
   Cargo.toml          пакет bounce-test: bins `lab` (типовий) і `homework`
   src/lib.rs          аналіз подій без заліза + тести на ПК
   src/bin/lab.rs      ISR на обидва фронти → EdgeLog → звіт; BOUNCE (GPIO40), LABEL (UART1 TX, GPIO41)
   src/bin/homework.rs код з умови ДЗ: FALLING, AtomicU32
-  wokwi.toml          симуляція Rust-прошивки
-diagram.json          схема Wokwi (кнопка + аналізатор: BUTTON, BOUNCE, LABEL), спільна для обох мов
 docs/
   bench-11-40.serial.txt  справжній запис 190 подій з уроку (вивід прошивки lab)
   schematic.png/svg   принципова схема з логічним аналізатором

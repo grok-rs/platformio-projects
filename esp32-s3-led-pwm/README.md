@@ -67,7 +67,6 @@ duty 100 % (ledcWrite 255)   ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
    на око менша, ніж між 16 і 64 — око сприймає яскравість нелінійно.
 3. **Логічний аналізатор** (PulseView, fx2lafw, частота ≥ 1 МГц): на CH1 — прямокутний сигнал з періодом
    200 мкс і HIGH 50 мкс. PulseView сам покаже частоту й duty, якщо навести курсор на імпульс.
-   У Wokwi той самий аналізатор уже стоїть у `diagram.json` (канал `LED`).
 
 ## 5. Завдання для самоперевірки
 
@@ -86,8 +85,7 @@ cd esp32-s3-led-pwm/rust
 cargo run --release                    # зібрати, прошити, відкрити монітор
 ```
 
-Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*. Логіки без заліза
-тут немає, тож і `src/lib.rs` з тестами теж.
+Логіки без заліза тут немає, тож і `src/lib.rs` з тестами теж.
 
 | Arduino (core 2.x) | esp-hal | Що робить |
 |---|---|---|
@@ -105,12 +103,9 @@ Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Star
 cpp/
   platformio.ini   плата YD-ESP32-S3 N16R8, Arduino core 2.0.x
   src/main.cpp     код з уроку: ledcSetup → ledcAttachPin → ledcWrite
-  wokwi.toml       прошивка з .pio/build для Wokwi (diagram.json — посилання на ../diagram.json)
 rust/
   Cargo.toml       пакет led-pwm у робочому просторі Cargo (корінь репозиторію)
   src/main.rs      LEDC: таймер → канал → set_duty_cycle
-  wokwi.toml       прошивка з ../../target для Wokwi
-diagram.json     схема Wokwi (LED + логічний аналізатор), спільна для обох версій
 docs/
   schematic.png/svg   принципова схема з LEDC і логічним аналізатором
   breadboard.png/svg  розкладка на макетній платі з аналізатором

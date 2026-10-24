@@ -37,14 +37,7 @@ struct Config {
 
   // ВП-3, ВП-5: кнопка 3V3 → GPIO6, внутрішня підтяжка до GND.
   struct Button {
-#ifndef WOKWI
     static constexpr uint8_t  kPin        = 6;
-#else
-    // Лише для симулятора (середовища *_wokwi): Wokwi тримає GPIO6 ESP32-S3 у HIGH, щойно його
-    // налаштовано як вхід, — навіть із зовнішнім резистором до GND (на ESP32 без «-S3» GPIO6…11 —
-    // це флеш). На справжній платі GPIO6 вільний. Див. README, розділ «Симуляція».
-    static constexpr uint8_t  kPin        = 7;
-#endif
     static constexpr uint32_t kDebounceMs = 50;  // тиша після останнього фронту = подія завершилась
   };
 

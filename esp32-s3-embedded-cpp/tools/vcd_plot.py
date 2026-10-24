@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Часова діаграма LED + BUTTON із запису логічного аналізатора Wokwi (VCD).
+"""Часова діаграма LED + BUTTON із запису логічного аналізатора (VCD).
 
-    wokwi-cli cpp --scenario ../wokwi/scenarios/modes.yaml --vcd-file modes.vcd
-    python3 tools/vcd_plot.py modes.vcd docs/modes-timeline.png
+    # PulseView: File → Export → Value Change Dump (.vcd), канали LED і BUTTON
+    python3 tools/vcd_plot.py modes.vcd modes-timeline.png
 
 Друкує кожне натискання: скільки фронтів дав брязкіт і через скільки мс після останнього
 фронту змінився LED (має бути ≈ debounce 30 мс + до одного проходу циклу).
 """
 
 import sys
+from pathlib import Path
 
 import matplotlib
 
@@ -80,7 +81,7 @@ def main(vcd, png):
     full.set_xlim(0, end / 1e9)
     full.set_yticks([0, 1, 1.5, 2.5], ["LOW", "HIGH", "off", "on"])
     full.set_xlabel("час, с")
-    full.set_title("Wokwi: BLINK → STEADY_ON → STEADY_OFF → BLINK (натискання = BUTTON у LOW)")
+    full.set_title("BLINK → STEADY_ON → STEADY_OFF → BLINK (натискання = BUTTON у LOW)")
     full.legend(loc="upper right", fontsize=8)
     full.grid(alpha=0.3)
 
@@ -99,6 +100,7 @@ def main(vcd, png):
     zoom.grid(alpha=0.3)
 
     fig.tight_layout()
+    Path(png).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(png, dpi=120)
     print(f"saved {png}")
 

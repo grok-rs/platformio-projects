@@ -5,7 +5,7 @@
 #![no_main]
 
 use bright_module::{
-    button_pin, config,
+    config,
     hw::{Button, SoftPwmOutput, checked_pin, run_levels},
 };
 use esp_backtrace as _;
@@ -19,7 +19,7 @@ fn main() -> ! {
 
     let output = SoftPwmOutput::new(checked_pin(peripherals.GPIO5, config::pwm::PIN));
 
-    let button = Button::new(button_pin!(peripherals), peripherals.IO_MUX); // GPIO6 (у Wokwi — GPIO7)
+    let button = Button::new(checked_pin(peripherals.GPIO6, config::button::PIN), peripherals.IO_MUX);
 
     run_levels(output, &button)
 }

@@ -19,23 +19,12 @@ pio run -t upload          # зібрати та прошити
 pio device monitor         # 115200: банер і повідомлення «Mode -> …» при кожній зміні режиму
 ```
 
-### Симуляція
+### Інтерактивні сторінки
 
-| Де | Як |
+| Сторінка | Що показує |
 |----|----|
-| [**Wokwi у браузері**](https://wokwi.com/projects/476609614353588225) | нічого не встановлювати: зелена кнопка ▶, клавіша `1` = S1, `2` = BOOT |
-| VS Code | розширення *Wokwi Simulator*, `pio run` у `cpp/`, далі F1 → *Wokwi: Start Simulator* (`cpp/wokwi.toml` + `diagram.json`) |
-| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/mode-switch.yaml --timeout 20000` (токен — у `../.envrc`) |
 | [**Інтерактивний стенд**](https://grok-rs.github.io/platformio-projects/lab/#two-buttons) | модель цієї програми з підсвіткою рядків коду, змінними, логічним аналізатором і експериментами (`delay()`, вхід без підтяжки) |
 | [**Підтяжка входу**](https://grok-rs.github.io/platformio-projects/pull-resistors/) | теорія модуля 1.4 в анімаціях: pull-up/pull-down, R·C і частота, тригер Шмітта, брязкіт |
-
-Схема у Wokwi повторює розкладку з розділу 4: плата в рядах 1–22, D1/D2 з резисторами в рядах 26–42,
-S1 — у рядах 46/48 діагональними ніжками. У Wokwi літери рядів дзеркальні (`a` зверху), тому гребінці стоять
-у `b`/`i`. Кнопка BOOT — на самій платі: у Wokwi вона накладена поверх намальованої BOOT разом із
-резистором 10 кОм, яких симулятор не має. `diagram.json` генерує `wokwi/gen_diagram.py`.
-
-Сценарій `mode-switch.yaml` перевіряє справжню прошивку: старт у режимі 1, BOOT → режим 2 «липкий»,
-S1 → знову режим 1, а також що аноди світлодіодів справді отримують рівень виводу через макетку.
 
 ---
 
@@ -297,8 +286,7 @@ void updateLeds() {
 ## Rust-версія
 
 Та сама прошивка на Rust лежить у [`rust/`](rust/): `no_std`, [esp-hal](https://docs.espressif.com/projects/rust/esp-hal/)
-та async/await від [Embassy](https://embassy.dev). Банер і повідомлення в Serial — байт у байт як у C++,
-тому сценарій `mode-switch.yaml` перевіряє обидві прошивки.
+та async/await від [Embassy](https://embassy.dev). Банер і повідомлення в Serial — байт у байт як у C++.
 
 ```bash
 source ~/export-esp.sh                    # тулчейн Xtensa від espup (один раз на термінал)
@@ -307,9 +295,6 @@ cargo run --release                       # зібрати, прошити, ві
 cargo +stable host-test -p two-buttons    # тести логіки режимів на ПК, без плати
 ```
 
-Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
-`wokwi-cli rust --scenario ../wokwi/scenarios/mode-switch.yaml --timeout 20000`.
-
 | | C++ (`cpp/src/main.cpp`) | Rust (`rust/src/`) |
 |---|---|---|
 | Режими | таблиця `kPatterns[]` + вказівник на функцію `isOn` + `enum PatternId` + `static_assert` | `enum Mode { Sync, Alternate }`, назва/крок/`is_on` — методи з вичерпним `match` |
@@ -317,7 +302,7 @@ Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Star
 | Кнопки | `loop()` опитує `digitalRead()` кожну 1 мс | `select_array` чекає `wait_for_falling_edge()` усіх кнопок разом із `Timer::at(наступний крок)`; між подіями процесор спить |
 | Пріоритет кнопок | порядок у `kButtons[]` | порядок у масиві `buttons` (`select_array` перевіряє по черзі) |
 | Виводи | номери `uint8_t`, `pinMode()` | `peripherals.GPIO15` — власний тип; переміщується в `Output`, другий раз його не взяти |
-| Тести | лише Wokwi | `cargo +stable host-test` (логіка) + той самий сценарій Wokwi |
+| Тести | немає (перевірка на платі) | `cargo +stable host-test` (логіка на ПК) |
 
 Відмінність у поведінці: Rust-версія реагує на **фронт** натискання, тож кнопка, затиснута ще до старту,
 режим не змінить (у C++ — змінить на першому ж проході `loop()`).
@@ -328,16 +313,10 @@ Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Star
 cpp/
   platformio.ini      плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
   src/main.cpp        уся програма
-  wokwi.toml          прошивка з .pio/build для симулятора (diagram.json — посилання на ../diagram.json)
 rust/
   Cargo.toml          пакет two-buttons робочого простору (версії залежностей — у ../../Cargo.toml)
   src/lib.rs          логіка без заліза: enum Mode, Blinker + тести
   src/main.rs         прошивка: GPIO, async-очікування кнопок і таймера
-  wokwi.toml          прошивка з ../../target/… для симулятора
-diagram.json          схема Wokwi (макетка), спільна для обох версій
-wokwi/
-  gen_diagram.py      генератор diagram.json;  breadboard.py — геометрія макетки та плати
-  scenarios/          автотести wokwi-cli
 docs/
   schematic.png/svg   принципова схема
   breadboard.png/svg  розкладка на макетній платі

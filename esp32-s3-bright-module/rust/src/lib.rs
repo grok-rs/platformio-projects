@@ -36,12 +36,7 @@ pub mod config {
 
     /// ВП-3, ВП-5: кнопка 3V3 → GPIO6, внутрішня підтяжка до GND.
     pub mod button {
-        /// З feature `wokwi` — GPIO7: Wokwi тримає GPIO6 ESP32-S3 у HIGH, щойно його налаштовано як
-        /// вхід (на ESP32 без «-S3» GPIO6…11 — це флеш). На справжній платі GPIO6 вільний.
-        #[cfg(not(feature = "wokwi"))]
         pub const PIN: u8 = 6;
-        #[cfg(feature = "wokwi")]
-        pub const PIN: u8 = 7;
         pub const DEBOUNCE_MS: u32 = 50; // тиша після останнього фронту = подія завершилась
     }
 

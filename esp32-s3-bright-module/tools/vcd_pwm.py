@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Апаратний чи програмний ШІМ: частота, заповнення й тремтіння періоду з запису Wokwi (VCD).
+"""Апаратний чи програмний ШІМ: частота, заповнення й тремтіння періоду з запису логічного аналізатора (VCD).
 
-    wokwi-cli cpp --elf cpp/.pio/build/levels_wokwi/firmware.elf  --scenario ../wokwi/scenarios/levels.yaml --vcd-file ledc.vcd
-    wokwi-cli cpp --elf cpp/.pio/build/softpwm_wokwi/firmware.elf --scenario ../wokwi/scenarios/levels.yaml --vcd-file soft.vcd
+    # PulseView: File → Export → Value Change Dump (.vcd); канал PWM — GPIO5 прошивок levels і softpwm
     python3 tools/vcd_pwm.py ledc.vcd soft.vcd [docs/pwm-compare.png]
 
 Канал PWM (D0 логічного аналізатора) ділиться на «пачки» періодів: між натисканнями заповнення

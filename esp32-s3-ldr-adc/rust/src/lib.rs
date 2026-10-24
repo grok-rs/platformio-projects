@@ -139,8 +139,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn formula_matches_wokwi_scenario() {
-        // Числа з wokwi/scenarios/light-levels.yaml.
+    fn formula_matches_reference_readings() {
+        // Опорні точки: сирий відлік → мВ (лінійна формула, 4095 → 3100 мВ).
         assert_eq!(format!("{:.1}", raw_to_millivolts(1744)), "1320.2");
         assert_eq!(format!("{:.1}", raw_to_millivolts(113)), "85.5");
         assert_eq!(format!("{:.1}", raw_to_millivolts(4095)), "3100.0");

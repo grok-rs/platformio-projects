@@ -89,17 +89,14 @@ ISR onFallingEdge()  ─ на кожному спадаючому фронті G
 повертається, тож задачі не заважають одна одній, а цикл обертається десятки тисяч разів на
 секунду.
 
-**Чому антибрязкіт саме такий.** Одне натискання — це пачка фронтів за кілька мілісекунд (у Wokwi —
-від 71 до 167 фронтів, див. діаграму нижче). Брязкіт при *відпусканні* теж дає спадаючі фронти. Тому
+**Чому антибрязкіт саме такий.** Одне натискання — це пачка фронтів за кілька мілісекунд (десятки
+фронтів). Брязкіт при *відпусканні* теж дає спадаючі фронти. Тому
 ISR лише каже «був фронт», `EdgeDebouncer` чекає 30 мс тиші, а тоді читаємо рівень: LOW — натиснули,
 HIGH — це був брязкіт відпускання або завада. Затримка реакції — 30 мс, людина її не помічає.
 
-![Часова діаграма з логічного аналізатора Wokwi](docs/modes-timeline.png)
-
-*Вгорі — увесь сценарій: блимання 500/500 мс, натискання 1 → постійно увімкнено, 2 → вимкнено,
-3 → знову блимання (з «увімкнено»). Внизу — натискання 2 зблизька: 103 фронти брязкоту за 2.4 мс,
-а LED змінюється один раз, після 30 мс тиші. Діаграму будує [`tools/vcd_plot.py`](tools/vcd_plot.py)
-із запису логічного аналізатора Wokwi.*
+Перевірити це можна логічним аналізатором на GPIO15 (LED) і GPIO21 (кнопка): з експортованого VCD
+[`tools/vcd_plot.py`](tools/vcd_plot.py) будує часову діаграму й друкує для кожного натискання, скільки
+фронтів дав брязкіт і через скільки мс після останнього змінився LED.
 
 ## 4. Концепції Embedded C++ у цьому коді
 
@@ -163,10 +160,8 @@ HIGH — це був брязкіт відпускання або завада. 
   там усі рядки коротші за 64 символи.
 * З STL лише `<cstdint>` і `<limits>`. Це заголовки без коду й без купи.
 
-Перевірено двома способами (файли в [`results/`](results/)):
-[`heap-symbols-cpp.txt`](results/heap-symbols-cpp.txt) — в об'єктних файлах проєкту немає посилань
-на `malloc`, `operator new` чи `free`; [`wokwi-cpp-modes.heap.csv`](results/wokwi-cpp-modes.heap.csv) —
-вільна купа впродовж усього сценарію (≈300 звітів, 3 натискання) стоїть на 8 756 135 байт.
+Перевірено: [`results/heap-symbols-cpp.txt`](results/heap-symbols-cpp.txt) — в об'єктних файлах
+проєкту немає посилань на `malloc`, `operator new` чи `free`.
 
 ### Безпечна робота з периферією
 
@@ -206,7 +201,7 @@ Press #2 -> mode STEADY_OFF
 Press #3 -> mode BLINK
 ```
 
-(числа — з Wokwi, див. нижче, чому на платі вони будуть інші)
+(числа — лише приклад формату; на платі вони свої, див. розділ 6)
 
 **Як міряється ітерація.** На кожному проході `profile()` читає лічильник тактів CPU
 (`ESP.getCycleCount()`, 240 МГц → роздільність ≈ 4 нс; `micros()` дав би лише 1 мкс) і рахує
@@ -224,43 +219,25 @@ Press #3 -> mode BLINK
 |---|---|---|
 | Модульні тести C++ (`pio test -e native`) | 11/11 пройшли | [`native-tests-cpp.txt`](results/native-tests-cpp.txt) |
 | Модульні тести Rust (`cargo +stable host-test`) | 11/11 пройшли | [`host-tests-rust.txt`](results/host-tests-rust.txt) |
-| Wokwi, сценарій [`modes.yaml`](wokwi/scenarios/modes.yaml) | пройшов (C++ і Rust) | [`wokwi-cpp-modes.serial.txt`](results/wokwi-cpp-modes.serial.txt), [`wokwi-rust-modes.serial.txt`](results/wokwi-rust-modes.serial.txt) |
-| Wokwi, сценарій [`blink.yaml`](wokwi/scenarios/blink.yaml) | пройшов (C++ і Rust) | [`wokwi-cpp-blink.serial.txt`](results/wokwi-cpp-blink.serial.txt), [`wokwi-rust-blink.serial.txt`](results/wokwi-rust-blink.serial.txt) |
-| Брязкіт і реакція (логічний аналізатор Wokwi) | 71 / 103 / 167 фронтів на натискання → по одній події; LED реагує через 29.7–30 мс після останнього фронту | [`wokwi-cpp-modes.presses.txt`](results/wokwi-cpp-modes.presses.txt) |
-| Купа | не змінюється за весь сценарій; у коді немає `malloc`/`new` | [`wokwi-cpp-modes.heap.csv`](results/wokwi-cpp-modes.heap.csv), [`heap-symbols-cpp.txt`](results/heap-symbols-cpp.txt) |
+| Купа | у коді немає `malloc`/`new` | [`heap-symbols-cpp.txt`](results/heap-symbols-cpp.txt) |
 | Розмір (`pio run`) | modes: RAM 19.5 КБ, Flash 268 КБ; blink: 18.9 КБ / 265 КБ | [`build-size-cpp.txt`](results/build-size-cpp.txt) |
 
-Сценарії перевіряють рівень GPIO15 посередині кожного півперіоду. У режимі BLINK — увімкнено /
-вимкнено / увімкнено, після натискання 1 — увімкнено двічі поспіль із паузою 600 мс, після натискання 2 —
-вимкнено. Після натискання 3 блимання починається знову, а брязкіт при відпусканні новим натисканням
-не вважається.
-
-**Тривалість ітерації в Wokwi** (усі звіти сценарію):
-
-| | Звітів | Середнє `avg` | Найменше `min` | Найбільше `max` |
-|---|---|---|---|---|
-| C++ | 303 | 16.6 мкс | 0.57 мкс | 185 мкс |
-| Rust | 260 | 19.8 мкс | 17.9 мкс | 111 мкс |
-
-Wokwi — емулятор: інструкції він виконує правильно, але час доступу до периферії (таймерів, USB)
-не відповідає справжньому кристалу. Тому ці числа показують, що вимірювання працює, але не
-кажуть, скільки триває ітерація на платі. Справжні числа — на платі:
+**Тривалість ітерації** залежить від плати, ядра й навантаження USB, тож її міряють на платі:
 
 ```bash
 pio run -e modes -t upload && pio device monitor | tee ../results/board-cpp-modes.serial.txt
 ```
 
 > **Скільки рядків на секунду.** Звіт кожні 1000 ітерацій — так у завданні. Але чим швидша ітерація,
-> тим частіше звіт: при 16 мкс (Wokwi) це ~60 рядків/с, а при одиницях мікросекунд — сотні рядків
+> тим частіше звіт: при 16 мкс це ~60 рядків/с, а при одиницях мікросекунд — сотні рядків
 > на секунду, і повідомлення `Press #…` губляться в потоці. Цикл від цього не зупиниться: що не
 > влізе в буфер USB, `tryPrintf` пропустить. Для спостереження довше збільште
 > `Config::Profiler::kWindowIterations` (наприклад, до 100000) — більше нічого міняти не треба.
 
 ## 7. Rust-версія
 
-[`rust/`](rust/) — та сама прошивка на `esp-hal` 1.x: та сама логіка, той самий текст у Serial, ті
-самі сценарії Wokwi. Embassy тут свідомо немає: тема ДЗ — superloop, тож `main` — звичайний
-нескінченний цикл, як `loop()`.
+[`rust/`](rust/) — та сама прошивка на `esp-hal` 1.x: та сама логіка, той самий текст у Serial.
+Embassy тут свідомо немає: тема ДЗ — superloop, тож `main` — звичайний нескінченний цикл, як `loop()`.
 
 ```bash
 cd esp32-s3-embedded-cpp/rust
@@ -290,34 +267,17 @@ cargo +stable host-test -p embedded-cpp
 
 *Чому `print_line`, а не `println!`:* `esp-println` надсилає кожен шматок формату («Mode: », «BLINK»,
 «\n») окремим USB-пакетом і на кожному чекає хоста. Якщо хост не забрав попередній пакет за ~50 000
-спроб, шматок пропускається. В емуляторі Wokwi через це губився `\n`: виходило
+спроб, шматок пропускається. Через це міг загубитися `\n`: виходило
 `Press #1 -> mode STEADY_ONLoop x1000…`. `print_line` форматує весь рядок на стеку й віддає одним
 пакетом. Якщо хост не читає зовсім, esp-println після першого невдалого очікування далі просто
 відкидає дані, тож цикл зупиниться не більше ніж на кілька мілісекунд.
-
-## 8. Wokwi
-
-```bash
-cd esp32-s3-embedded-cpp
-(cd cpp && pio run -e modes) && wokwi-cli cpp  --scenario ../wokwi/scenarios/modes.yaml --timeout 30000
-cargo build --release        && wokwi-cli rust --scenario ../wokwi/scenarios/modes.yaml --timeout 30000
-
-# Часова діаграма (docs/modes-timeline.png) із запису логічного аналізатора:
-wokwi-cli cpp --scenario ../wokwi/scenarios/modes.yaml --vcd-file modes.vcd
-python3 tools/vcd_plot.py modes.vcd docs/modes-timeline.png
-```
-
-Для `blink` — команди в коментарі [`wokwi/scenarios/blink.yaml`](wokwi/scenarios/blink.yaml).
 
 ## Файли
 
 ```
 README.md             цей файл
-diagram.json          схема Wokwi (та сама, що в esp32-s3-led-button): LED, кнопка, логічний аналізатор
 cpp/                  прошивка C++ (PlatformIO), див. розділ 2
 rust/                 прошивка Rust: src/lib.rs (логіка + тести), src/hw.rs (залізо), src/bin/{modes,blink}.rs
-wokwi/scenarios/      автотести wokwi-cli (ті самі для C++ і Rust)
-results/              результати запусків: тести, Serial з Wokwi, аналіз брязкоту, купа, розмір
-docs/modes-timeline.png   часова діаграма LED + кнопка з логічного аналізатора Wokwi
-tools/vcd_plot.py     VCD → діаграма + звіт по натисканнях
+results/              результати запусків: тести, символи купи, розмір
+tools/vcd_plot.py     VCD логічного аналізатора → діаграма + звіт по натисканнях
 ```

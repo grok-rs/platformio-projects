@@ -16,7 +16,7 @@ pio run -e softpwm -t upload && pio device monitor   # рівень «+»: пр�
 pio test -e native                                   # модульні тести логіки на ПК, плата не потрібна
 ```
 
-Та сама прошивка на Rust — у [`rust/`](rust/), див. [розділ 8](#8-rust-версія).
+Та сама прошивка на Rust — у [`rust/`](rust/), див. [розділ 7](#7-rust-версія).
 
 ![ТЗ-A](../docs/power-loads/tz-a-spec.png)
 
@@ -30,9 +30,9 @@ pio test -e native                                   # модульні тест
 | ВП-5 антибрязкіт 50 мс, одне натискання = один перехід | [`lib/logic/press_detector.h`](cpp/lib/logic/press_detector.h) — автомат станів, `LevelsApp::handleButton` |
 | ВП-6 OFF → LOW → MID → HIGH → OFF | `next()` у [`brightness.h`](cpp/lib/logic/brightness.h) |
 | ВП-7 рівень у Serial 115200 | `LevelsApp` у [`src/levels_app.h`](cpp/src/levels_app.h) |
-| ВП-8 піни й рівні в константах | [`include/config.h`](cpp/include/config.h) — єдине місце з числами, перевірене `static_assert` (див. [примітки](#10-примітки-до-тз)) |
+| ВП-8 піни й рівні в константах | [`include/config.h`](cpp/include/config.h) — єдине місце з числами, перевірене `static_assert` (див. [примітки](#9-примітки-до-тз)) |
 | Етапи 1–4 | [розділ 4](#4-етапи-тз-що-прошивати-й-що-міряти) — окрема прошивка на кожен етап |
-| Рівень «+» | [розділ 5](#5-рівень--програмний-шім-проти-ledc) — `softpwm` і заміри з логічного аналізатора |
+| Рівень «+» | [розділ 5](#5-рівень--програмний-шім-проти-ledc) — `softpwm` і порівняння з LEDC (заміри на платі ще треба перезаписати) |
 
 ## 1. Схема
 
@@ -68,7 +68,7 @@ U<sub>КЕ</sub> ≈ 0,1–0,2 В, і майже вся напруга пада�
 
 ```
 cpp/
-├── platformio.ini        середовища levels, switch, sweep, softpwm (+ *_wokwi) і native
+├── platformio.ini        середовища levels, switch, sweep, softpwm і native
 ├── include/config.h      struct Config — усі піни, частоти й рівні; static_assert-перевірки
 ├── lib/logic/            чиста логіка без Arduino.h → тестується на ПК
 │   ├── brightness.h      enum class Brightness, next(), name(), DutyTable, dutyPercent()
@@ -160,7 +160,7 @@ Released ──фронт──▶ Arming ──50 мс минуло, HIGH ба�
 | Етап | Прошивка | Що робить | Що виміряти / побачити |
 |---|---|---|---|
 | 1. Живлення й розпіновка | — | — | Мультиметр на шині MB-102: **4,75–5,25 В**. Виводи 2N2222: у режимі «діод» червоний щуп на базу — B→E і B→C по ≈ 0,6–0,7 В (B→C зазвичай трохи менше); на E↔C — обрив в обидва боки. Для пластикових 2N2222A/PN2222A типово **E-B-C** (плаский бік до себе), але звірте з даташитом свого екземпляра |
-| 2. Керування з GPIO | `switch` | GPIO5 HIGH 3 с / LOW 3 с, рядок у Serial на кожне перемикання | HIGH → LED світить, **U<sub>БЕ</sub> ≈ 0,6–0,8 В**; LOW → не світить. Перевірка спільної землі: вимкнути живлення, зняти дріт GND, увімкнути — LED не має світитися (див. [примітку 1](#10-примітки-до-тз)) |
+| 2. Керування з GPIO | `switch` | GPIO5 HIGH 3 с / LOW 3 с, рядок у Serial на кожне перемикання | HIGH → LED світить, **U<sub>БЕ</sub> ≈ 0,6–0,8 В**; LOW → не світить. Перевірка спільної землі: вимкнути живлення, зняти дріт GND, увімкнути — LED не має світитися (див. [примітку 1](#9-примітки-до-тз)) |
 | 3. ШІМ | `sweep` | заповнення 0 → 255 за 3,06 с, 3 с на 255, спад, 3 с на 0 | Яскравість плавно росте. Мультиметр DC між колектором і GND: на паузі 255 — **≈ 0,1–0,2 В**; під час розгону — плавно падає; на паузі 0 — кілька вольт (LED без струму, вхід мультиметра 10 МОм) |
 | 4. Кнопка й ISR | `levels` | ВП-1…ВП-8 | Відео з натисканнями й Serial: `Press #1 -> LOW (duty 40, 16%)` … |
 | Рівень «+» | `switch`, `softpwm` | — | U<sub>КЕ(нас)</sub> на `switch` у фазі HIGH; порівняння ШІМ — [розділ 5](#5-рівень--програмний-шім-проти-ledc) |
@@ -186,7 +186,12 @@ Press #4 -> OFF (duty 0, 0%)
 
 `softpwm` — той самий застосунок, але замість LEDC вихід перемикає сам процесор: на кожному проході
 циклу `SoftPwm::level(millis(), duty)` вирішує, HIGH чи LOW. Обидві прошивки записано логічним
-аналізатором Wokwi на тому самому сценарії й розібрано [`tools/vcd_pwm.py`](tools/vcd_pwm.py):
+аналізатором на тих самих натисканнях і розібрано [`tools/vcd_pwm.py`](tools/vcd_pwm.py).
+
+> **Увага:** таблиця, графік і `results/pwm-compare-{cpp,rust}.txt` записані ще не на реальній
+> платі, а в ідеальній симуляції — тому розкид періоду LEDC рівно 0 мкс. На стенді їх треба
+> перезаписати: PulseView → File → Export → Value Change Dump (.vcd), канал GPIO5, далі `vcd_pwm.py`.
+> Частота й заповнення мають збігтися з розрахунком нижче; тремтіння на платі буде більшим.
 
 | | Частота | LOW = 40 | MID = 128 | Розкид періоду | Процесор |
 |---|---|---|---|---|---|
@@ -215,54 +220,24 @@ Press #4 -> OFF (duty 0, 0%)
 період 1000 мкс → 1 кГц і всі 256 рівнів заповнення 0…255) або апаратний таймер з перериванням. Але на ESP32 для цього є
 LEDC — вісім каналів, які нічого не коштують процесору.
 
-## 6. Симуляція у Wokwi
-
-[`diagram.json`](diagram.json) — та сама плата на макетці, але з двома відмінностями від справжньої схеми:
-
-1. **Транзистора немає** — у Wokwi їх не буває. LED підключено просто до GPIO5 через 220 Ом, тож
-   логіка та сама (HIGH = світить), але струм і напруги ключа тут не перевірити — лише на платі.
-2. **Кнопка на GPIO7, а не на GPIO6.** Wokwi тримає GPIO6 ESP32-S3 у HIGH, щойно прошивка налаштовує
-   його як вхід — навіть з `INPUT` без підтяжки і з зовнішнім резистором 10 кОм до GND (перевірено:
-   на GPIO7 та сама прошивка працює, видно справжній брязкіт). Ймовірно, модель успадкована від ESP32
-   без «-S3», де GPIO6…11 — це флеш. На справжній платі GPIO6 вільний. Тому для симулятора є окремі
-   збірки: `pio run -e levels_wokwi` / `softpwm_wokwi` (прапорець `-DWOKWI`) і
-   `cargo build --release --features wokwi`. `switch` і `sweep` кнопки не мають — вони однакові.
-
-```bash
-cd esp32-s3-bright-module
-(cd cpp && pio run -e levels_wokwi -e softpwm_wokwi -e switch -e sweep)
-wokwi-cli cpp --scenario ../wokwi/scenarios/levels.yaml --timeout 30000
-wokwi-cli cpp --elf cpp/.pio/build/softpwm_wokwi/firmware.elf --scenario ../wokwi/scenarios/levels.yaml --timeout 30000
-wokwi-cli cpp --elf cpp/.pio/build/switch/firmware.elf --scenario ../wokwi/scenarios/switch.yaml --timeout 15000
-wokwi-cli cpp --elf cpp/.pio/build/sweep/firmware.elf  --scenario ../wokwi/scenarios/sweep.yaml  --timeout 25000
-# з --vcd-file levels.vcd — запис логічного аналізатора для tools/vcd_pwm.py
-```
-
-Сценарії: [`levels.yaml`](wokwi/scenarios/levels.yaml) — повне коло з чотирьох натискань, рівень GPIO5
-на OFF (постійно 0) і HIGH (постійно 1), утримання 1,5 с і брязкіт відпускання не дають зайвих
-переходів; [`switch.yaml`](wokwi/scenarios/switch.yaml) — HIGH/LOW по 3 с;
-[`sweep.yaml`](wokwi/scenarios/sweep.yaml) — постійний HIGH на паузі 255 і LOW на паузі 0.
-
-## 7. Результати
+## 6. Результати
 
 | Що | Результат | Файл |
 |---|---|---|
 | Модульні тести C++ (`pio test -e native`, `-Werror`) | 16/16 | [`native-tests-cpp.txt`](results/native-tests-cpp.txt) |
 | Модульні тести Rust (`cargo +stable host-test`) | 17/17 | [`host-tests-rust.txt`](results/host-tests-rust.txt) |
-| Wokwi `levels.yaml` на `levels` і `softpwm` | пройшли (C++ і Rust) | [`wokwi-cpp-levels.serial.txt`](results/wokwi-cpp-levels.serial.txt), [`wokwi-rust-levels.serial.txt`](results/wokwi-rust-levels.serial.txt), `…-softpwm.serial.txt` |
-| Wokwi `switch.yaml`, `sweep.yaml` | пройшли (C++ і Rust) | `wokwi-{cpp,rust}-{switch,sweep}.serial.txt` |
-| LEDC проти програмного ШІМ | таблиця вище | [`pwm-compare-cpp.txt`](results/pwm-compare-cpp.txt), [`pwm-compare-rust.txt`](results/pwm-compare-rust.txt) |
+| LEDC проти програмного ШІМ | таблиця вище (не з реальної плати — перезаписати PulseView) | [`pwm-compare-cpp.txt`](results/pwm-compare-cpp.txt), [`pwm-compare-rust.txt`](results/pwm-compare-rust.txt) |
 | Купа | у наших об'єктних файлах немає `malloc`/`new`/`free` | [`heap-symbols-cpp.txt`](results/heap-symbols-cpp.txt) |
 | Розмір (`pio run`) | levels: RAM 19,6 КБ, Flash 274 КБ | [`build-size-cpp.txt`](results/build-size-cpp.txt) |
 | Попередження компілятора | 0 (C++ `-Wall -Wextra` для `src/` і `lib/board/`, Rust clippy з лінтами робочого простору) | — |
 
-Текст у Serial у C++ і Rust однаковий (Arduino `println` закінчує рядок `\r\n`, Rust — `\n`), тому
-одні й ті самі сценарії перевіряють обидві мови.
+Текст у Serial у C++ і Rust однаковий (Arduino `println` закінчує рядок `\r\n`, Rust — `\n`), тож
+вивід обох мов можна порівнювати рядок у рядок.
 
-## 8. Rust-версія
+## 7. Rust-версія
 
-[`rust/`](rust/) — те саме на `esp-hal` 1.x: та сама логіка, той самий текст у Serial, ті самі сценарії
-Wokwi. Embassy свідомо немає: як і в C++, це superloop з кнопкою на перериванні.
+[`rust/`](rust/) — те саме на `esp-hal` 1.x: та сама логіка, той самий текст у Serial.
+Embassy свідомо немає: як і в C++, це superloop з кнопкою на перериванні.
 
 ```bash
 cd esp32-s3-bright-module/rust
@@ -275,25 +250,24 @@ cargo +stable host-test -p bright-module
 |---|---|
 | `LevelsApp<Output>` — шаблон; вимоги до `Output` неявні | `run_levels(impl DutyOutput, …)` — трейт `DutyOutput`; вимоги перевіряє компілятор |
 | `struct Config { static constexpr … }` + `static_assert` після структури | `mod config { pub const … }` + `const _: () = assert!(…)` поруч |
-| `#ifdef WOKWI` для піна кнопки | `#[cfg(feature = "wokwi")]` у макросі `button_pin!` — пін тут тип (`GPIO6`/`GPIO7`), тож і заміна на рівні типів |
 | пін = константа з `Config`: `pinMode(Config::Pwm::kPin, …)` | пін — тип, а константа лише число: `checked_pin(peripherals.GPIO5, config::pwm::PIN)` на старті перевіряє, що вони не розійшлися |
 | `ledcSetup` / `ledcAttachPin` / `ledcWrite(канал, …)`; 255 → 256 робить ядро; тактування — кварц 40 МГц | `Ledc` → `timer.configure(…)` → `channel.configure(…)` → `SetDutyCycle`; 255 → 256 робить `ledc_duty()`; тактування — APB 80 МГц. Частота однакова: 5000,0 Гц |
 | помилка LEDC → `ERROR: …` у Serial, робота триває | `expect(…)`: параметри — константи, вже перевірені під час компіляції; помилка тут — баг, panic з повідомленням |
 | `INPUT_PULLDOWN`, `attachInterruptArg(…, RISING)` | `Pull::Down`, `Io::set_interrupt_handler` + `listen(Event::RisingEdge)` |
 | `volatile bool` + `portENTER_CRITICAL` для «прочитати й скинути» | `static AtomicBool` + `swap(false)` — одна неподільна операція; обробник один на всі GPIO, тож перевіряє `is_interrupt_set()` |
-| `beginConsole` чекає монітор до 2 с, щоб банер не загубився | не чекає: якщо монітор відкрили пізніше, банер на платі може загубитися (у Wokwi — ні); рядки `Press #…` друкуються як завжди |
+| `beginConsole` чекає монітор до 2 с, щоб банер не загубився | не чекає: якщо монітор відкрили пізніше, банер на платі може загубитися; рядки `Press #…` друкуються як завжди |
 | канал LEDC — член `LedcOutput` | канал позичає таймер (`Channel<'a>` з `&'a Timer`), тож таймер живе в `main`: це правило позичання, а не стиль |
 | `enum class Brightness` + `name()` | `enum Brightness` + `impl Display` |
 | `pio test -e native` (Unity) | `cargo +stable host-test` (`#[test]`) |
 
-## 9. Схеми
+## 8. Схеми
 
 [`docs/schematic.svg`](docs/schematic.svg) і [`docs/breadboard.svg`](docs/breadboard.svg) згенеровані
 скриптами з [`docs/tools/`](docs/tools/) (`render.sh` — SVG → PNG через headless Chrome і копія на
 сторінку курсу). Макетка — та сама модель YD-ESP32-S3, що й у
 [`esp32-s3-bounce-test`](../esp32-s3-bounce-test/docs/tools/yd_board.py).
 
-## 10. Примітки до ТЗ
+## 9. Примітки до ТЗ
 
 1. **Тест «зняти спільну GND — LED гасне» (етап 2) може не спрацювати.** Якщо MB-102 живиться від USB
    того самого комп'ютера, що й ESP32, їхні «мінуси» вже з'єднані через комп'ютер, і LED світитиме

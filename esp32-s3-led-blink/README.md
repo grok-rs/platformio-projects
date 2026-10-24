@@ -5,8 +5,7 @@
 зміну швидкості та режим, у якому обидва світлодіоди керуються **одним** GPIO.
 
 Та сама прошивка є у двох варіантах: [`cpp/`](cpp/) — C++ / Arduino / PlatformIO і [`rust/`](rust/) —
-Rust / esp-hal / Embassy (див. [Rust-версія](#rust-версія)). Поведінка й текст у Serial однакові,
-тож обидві проходять ті самі сценарії Wokwi.
+Rust / esp-hal / Embassy (див. [Rust-версія](#rust-версія)). Поведінка й текст у Serial однакові.
 
 ![Принципова схема](docs/schematic.png)
 
@@ -23,23 +22,12 @@ pio device monitor         # 115200; плата скидається при пі
 | `esp32-s3-devkitc-1`   | GPIO4 червоний, GPIO5 синій, GPIO6 зелений | `pio run -t upload`                         |
 | `esp32-s3-single-gpio` | обидва світлодіоди на GPIO7                | `pio run -e esp32-s3-single-gpio -t upload` |
 
-## Симуляція
+## Інтерактивний стенд
 
-| Де | Два GPIO | Один GPIO |
-|----|----------|-----------|
-| Wokwi у браузері | [**відкрити**](https://wokwi.com/projects/476610317583371265) | [**відкрити**](https://wokwi.com/projects/476610461509906433) |
-| VS Code (*Wokwi Simulator*) | тека `cpp/`: `pio run`, F1 → *Wokwi: Start Simulator* | `pio run -e esp32-s3-single-gpio`, F1 → *Wokwi: Select Config File* → `wokwi/single-gpio/wokwi.toml` |
-| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/blink-controls.yaml --timeout 20000` | `wokwi-cli wokwi/single-gpio --scenario self-test.yaml --timeout 10000` |
-| [Інтерактивний стенд](https://grok-rs.github.io/platformio-projects/lab/) | [вкладка «Миготіння LED»](https://grok-rs.github.io/platformio-projects/lab/#led-blink) | [вкладка «Один GPIO»](https://grok-rs.github.io/platformio-projects/lab/#single-gpio) |
-
-У Wokwi: BOOT — кнопка на самій платі (клавіша `B`), команди `1/2/3/0/p/v` — у Serial-моніторі.
-Кнопка в симуляторі має брязкіт, тож видно, як працює антидребезг. Схеми на макетці генерує
-`wokwi/gen_diagram.py`. Плата стоїть у рядах 1–22, світлодіоди — вертикально, резистори — від ряду 26.
-Літери рядів у Wokwi дзеркальні (`a` зверху). Сценарії перевіряють справжню прошивку: самотест, патерн,
-коротке й довге натискання BOOT, команди Serial і що аноди світлодіодів отримують рівень через макетку.
-Для онлайн-версії «Один GPIO» прапорець `SINGLE_GPIO_MODE` визначено на початку `main.cpp`, бо
-онлайн-збірка не читає `platformio.ini`. Команди `wokwi-cli` виконуються з теки проєкту; шлях до сценарію —
-відносно теки, переданої першим аргументом.
+[Модель прошивки](https://grok-rs.github.io/platformio-projects/lab/) з підсвіткою рядків коду:
+вкладки [«Миготіння LED»](https://grok-rs.github.io/platformio-projects/lab/#led-blink) (два GPIO) і
+[«Один GPIO»](https://grok-rs.github.io/platformio-projects/lab/#single-gpio). BOOT — кнопка на самій платі,
+команди `1/2/3/0/p/v` — у Serial-моніторі.
 
 ## Монтаж
 
@@ -87,10 +75,8 @@ pio device monitor         # 115200; плата скидається при пі
 ## Структура коду
 
 ```
-diagram.json                 схема Wokwi (два GPIO) — спільна для cpp/ і rust/
 cpp/
   platformio.ini             два середовища: esp32-s3-devkitc-1, esp32-s3-single-gpio
-  wokwi.toml, diagram.json   симуляція (diagram.json — посилання на ../diagram.json); прошивка — з .pio/build
   include/
     config.hpp               усі піни та часові константи
     frame.hpp                Led (один світлодіод) та Frame (набір увімкнених LED)
@@ -106,10 +92,6 @@ cpp/
     main.cpp                 збирання компонентів, setup()/loop()
     patterns.cpp             таблиці кадрів і пресети швидкості
 rust/                        див. «Rust-версія»
-wokwi/
-  gen_diagram.py             генератор обох diagram.json;  breadboard.py — геометрія макетки та плати
-  scenarios/                 автотести wokwi-cli (два GPIO)
-  single-gpio/               diagram.json, wokwi.toml (C++) і автотест для режиму одного GPIO
 docs/
   *.png, *.svg               схема та розкладки на макетці
   tools/                     генератори діаграм (python3 + headless Chrome): tools/render.sh;
@@ -134,19 +116,9 @@ cargo run --release --features single-gpio      # один GPIO (аналог -e
 cargo +stable host-test -p led-blink            # модульні тести логіки — на ПК, без плати
 ```
 
-| Wokwi | Два GPIO | Один GPIO |
-|-------|----------|-----------|
-| VS Code | тека `rust/`: `cargo build --release`, F1 → *Wokwi: Start Simulator* | `cargo build --release --features single-gpio`, F1 → *Wokwi: Select Config File* → `rust/single-gpio/wokwi.toml` |
-| CLI | `wokwi-cli rust --scenario ../wokwi/scenarios/blink-controls.yaml --timeout 20000` | `wokwi-cli rust/single-gpio --scenario ../../wokwi/single-gpio/self-test.yaml --timeout 10000` |
-
-Обидва варіанти збираються в той самий файл `target/…/release/led-blink`, тож у симуляторі
-працює той, що зібраний останнім.
-
 ```
 rust/
   Cargo.toml                 пакет led-blink; feature single-gpio
-  wokwi.toml, diagram.json   симуляція (diagram.json — посилання на ../diagram.json)
-  single-gpio/               wokwi.toml для режиму одного GPIO
   src/
     lib.rs                   логіка без заліза (no_std) — збирається й тестується на ПК
       frame.rs               Frame — бітові прапорці (крейт bitflags)
@@ -176,4 +148,4 @@ rust/
 | Таблиці | `static_assert` лише для індексу | `const _: () = { … }` перевіряє й вміст: патерн без кадрів не скомпілюється |
 | `delay()` у самотесті | блокує все | `Timer::after(step).await` — інші задачі працюють |
 | Один пін на два LED | `pinMode()` на ходу | `Flex` — вивід, що перемикається вихід ↔ Hi-Z; власник лише драйвер |
-| Тести | лише Wokwi | `cargo +stable host-test` (логіка на ПК) **і** ті самі сценарії Wokwi |
+| Тести | немає (перевірка на платі) | `cargo +stable host-test` (логіка на ПК) |

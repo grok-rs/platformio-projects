@@ -1,9 +1,0 @@
-# Wokwi simulation (VS Code extension "Wokwi Simulator" or wokwi-cli).
-# Firmware comes from PlatformIO: build first with `pio run -e levels_wokwi`, then F1 -> "Wokwi: Start Simulator".
-# Another stage: build `pio run -e sweep` (switch, softpwm_wokwi) and change `levels_wokwi` below.
-# Wokwi has no transistors: the diagram drives the LED straight from GPIO5; the button is on GPIO7,
-# because Wokwi holds GPIO6 of the ESP32-S3 high (see README).
-[wokwi]
-version  = 1
-firmware = '.pio/build/levels_wokwi/firmware.bin'
-elf      = '.pio/build/levels_wokwi/firmware.elf'

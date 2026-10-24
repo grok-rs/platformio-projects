@@ -4,5 +4,3 @@
 .vscode/launch.json
 .vscode/ipch
 __pycache__/
-# Downloaded by `wokwi-cli chip compile`
-wokwi/chip/wokwi-api.h

@@ -1,6 +1,0 @@
-# Wokwi simulation (VS Code extension "Wokwi Simulator" or wokwi-cli).
-# Firmware comes from PlatformIO: build first with `pio run`, then F1 -> "Wokwi: Start Simulator".
-[wokwi]
-version  = 1
-firmware = '.pio/build/lab/firmware.bin'
-elf      = '.pio/build/lab/firmware.elf'

@@ -15,16 +15,7 @@ pio run -e hold -t upload && pio device monitor     # крок 1
 pio run -e toggle -t upload && pio device monitor   # крок 2 (або просто pio run -t upload)
 ```
 
-### Симуляція
-
-| Де | Як |
-|----|----|
-| VS Code | розширення *Wokwi Simulator*, відкрити теку `cpp/`, `pio run`, далі F1 → *Wokwi: Start Simulator*; клавіша `1` = кнопка |
-| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000` (токен — у `../.envrc`) |
-
-`cpp/wokwi.toml` вказує на прошивку `toggle`; щоб симулювати крок 1 — `pio run -e hold` і замінити
-`toggle` на `hold` у шляхах. `diagram.json` — та сама макетка, що й у
-[`esp32-s3-two-buttons`](../esp32-s3-two-buttons/), без другого LED і BOOT.
+Макетка — та сама, що й у [`esp32-s3-two-buttons`](../esp32-s3-two-buttons/), без другого LED і BOOT.
 
 ---
 
@@ -81,9 +72,6 @@ pio run -e toggle -t upload && pio device monitor   # крок 2 (або про�
    останнього відскоку — це і є затримка антибрязкоту. Виміряйте її курсорами.
 4. `hold`: D0 повторює D1 інвертовано, разом із брязкотом — і на світлодіоді його не видно лише тому,
    що він триває мілісекунди.
-
-У Wokwi той самий аналізатор уже стоїть у `diagram.json` (канали `LED`, `BUTTON`); після зупинки
-симуляції він зберігає VCD, який відкривається в PulseView.
 
 ## 4. Крок 1 — `hold`: стан кнопки → стан LED
 
@@ -158,8 +146,8 @@ return stableLevel == LOW;             // true лише на натисканн�
 ## Rust-версія
 
 Той самий урок на Rust — тека [`rust/`](rust/): **esp-hal** (HAL від Espressif) і **Embassy**
-(async/await), без Arduino і без ESP-IDF. Вивід у Serial і поведінка — ті самі, тож і автотест Wokwi
-той самий. Встановлення тулчейну й загальні правила — у [кореневому README](../README.md#rust).
+(async/await), без Arduino і без ESP-IDF. Вивід у Serial і поведінка — ті самі.
+Встановлення тулчейну й загальні правила — у [кореневому README](../README.md#rust).
 
 ```bash
 source ~/export-esp.sh                       # тулчейн Xtensa від espup, раз на термінал
@@ -168,9 +156,6 @@ cargo run --release --bin hold               # крок 1: зібрати, пр�
 cargo run --release                          # крок 2 (toggle — бінарник за замовчуванням)
 cargo +stable host-test -p led-button        # тести антибрязкоту на ПК, без плати
 ```
-
-Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
-`wokwi-cli rust --scenario ../wokwi/scenarios/toggle.yaml --timeout 10000`.
 
 | | C++ (Arduino) | Rust (esp-hal + Embassy) |
 |---|---|---|
@@ -188,15 +173,11 @@ cpp/
   platformio.ini      плата YD-ESP32-S3 N16R8; середовища hold і toggle
   src/hold.cpp        крок 1: LED = стан кнопки
   src/toggle.cpp      крок 2: натискання перемикає LED, антибрязкіт 30 мс
-  wokwi.toml          прошивка toggle з .pio/build для Wokwi (diagram.json — посилання на ../diagram.json)
 rust/
   Cargo.toml          пакет led-button у робочому просторі Cargo (корінь репозиторію)
   src/lib.rs          Debouncer — антибрязкіт без заліза, з тестами
   src/bin/hold.rs     крок 1
   src/bin/toggle.rs   крок 2
-  wokwi.toml          прошивка toggle з ../../target для Wokwi
-diagram.json          схема Wokwi (макетка), спільна для обох версій
-wokwi/scenarios/      автотест wokwi-cli (той самий для C++ і Rust)
 docs/
   schematic.png/svg   принципова схема з логічним аналізатором
   breadboard.png/svg  розкладка на макетній платі з аналізатором

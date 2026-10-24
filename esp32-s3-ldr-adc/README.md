@@ -18,25 +18,12 @@ pio run -t upload          # зібрати та прошити
 pio device monitor         # 115200: таблиця вимірів кожні 100 мс, підсумок раз на 10 с
 ```
 
-### Інтерактивні сторінки та симуляція
+### Інтерактивні сторінки
 
-| Де | Як |
+| Сторінка | Що показує |
 |----|----|
 | [**АЦП і світло**](https://grok-rs.github.io/platformio-projects/adc-light/) | теорія модуля 1.6 простими словами: аналог і цифра, квантування, подільник з LDR, які піни можна, ослаблення, шум, тест |
 | [**Люксметр на ESP32-S3**](https://grok-rs.github.io/platformio-projects/ldr-lab/) | ця прошивка в анімації: макетка з платою, схема, як АЦП шукає число, код і блок-схема крок за кроком, Serial, графік, звідки похибка |
-| VS Code | розширення *Wokwi Simulator*, `pio run` у `cpp/`, далі F1 → *Wokwi: Start Simulator*. Клікніть на чип *LDR divider* — з'явиться повзунок світла |
-| CLI / автотест | `wokwi-cli cpp --scenario ../wokwi/scenarios/light-levels.yaml --timeout 20000` (токен — у `../.envrc`) |
-
-У Wokwi немає «голого» фоторезистора. Його модуль *photoresistor sensor* зібраний навпаки
-(LDR до GND, живлення 5 В): там у темряві напруга *зростає*, а при 3.3 В вихід доходить до 5 В.
-Тому подільник із завдання змодельовано власним чипом `wokwi/chip/ldr-divider`. Він рахує
-`3V3 ── LDR ── OUT ── 10 кОм ── GND` і подає на АЦП ту напругу, яку бачив би справжній ESP32-S3.
-Повзунок чипа задає `log10(лк)`: `0` = 1 лк, `2` = 100 лк, `4` = 10 000 лк.
-
-> **Похибка в симуляторі не справжня.** У Wokwi немає калібрувальних даних eFuse, тому
-> `analogReadMilliVolts()` перераховує RAW «типовим» коефіцієнтом. Похибка виходить ≈ −14…−23 %,
-> а вище 3.1 В вона безглузда: 4095 → 5090 мВ. Справжню похибку свого чипа можна побачити лише на
-> реальній платі. Сценарій тому перевіряє `RAW` і `U_calc`, а `U_meas` не чіпає.
 
 ---
 
@@ -91,7 +78,7 @@ pio device monitor         # 115200: таблиця вимірів кожні 10
 
 ## 4. Монтаж на макетній платі
 
-Розкладка та сама, що в `diagram.json` (плата в рядах 1–22, антеною праворуч):
+Розкладка (плата в рядах 1–22, антеною праворуч):
 
 1. **GND** (ряд 1) → синя шина «−»; **3V3** (ряд 22) → червона шина «+».
 2. **LDR**: одна ніжка в шину «+», друга — у ряд 30.
@@ -135,7 +122,7 @@ loop:   минуло ≥ 100 мс?  ── ні ──────────�
 - **Похибка біля нуля.** Різниця 3 мВ при 10 мВ — це вже 30 %. Тому в підсумок потрапляють лише
   виміри від 100 мВ: він має описувати АЦП, а не ділення на «майже нуль».
 
-Вивід (Wokwi, повзунок світла 1 → −1):
+Приклад виводу (світло від яскравого до темряви):
 
 ```
 === ESP32-S3: LDR light meter (module 1.6) ===
@@ -152,11 +139,10 @@ U_calc = RAW / 4095 * 3100 mV; error = (U_calc - U_meas) / U_meas * 100 %
 --- summary: 100 samples >= 100 mV, |error| avg 38.26 %, max 39.10 % ---
 ```
 
-`U_meas` і `error` тут із симулятора, тож ≈ −20 % (див. вище). Підсумок ще гірший, бо
-більшість цих 10 с повзунок стояв на «сонці», де Wokwi дає 4095 → 5090 мВ. На реальній платі чекайте кілька
-відсотків. Знак показує напрям: «−» означає, що формула з 3100 мВ занижує напругу. У рядку
+Числа в прикладі ілюструють формат; `U_meas` і `error` тут не з реального чипа. На реальній платі
+з каліброваним АЦП чекайте похибку в кілька відсотків. Знак показує напрям: «−» означає, що формула з 3100 мВ занижує напругу. У рядку
 `esp32-hal-adc.c … Characterized using …` (рівень логів 3) видно, яке калібрування застосувалося:
-`eFuse …` на справжньому чипі, `Default Vref` у Wokwi.
+`eFuse …` (дані калібрування з чипа) або `Default Vref` (типовий коефіцієнт, якщо їх немає).
 
 ## 7. Звідки береться похибка
 
@@ -199,8 +185,7 @@ U_calc = RAW / 4095 * 3100 mV; error = (U_calc - U_meas) / U_meas * 100 %
 ## Rust-версія
 
 Та сама прошивка на Rust лежить у [`rust/`](rust/): `no_std`, [esp-hal](https://docs.espressif.com/projects/rust/esp-hal/)
-та [Embassy](https://embassy.dev). Таблиця й підсумок у Serial — байт у байт як у C++, тому сценарій
-`light-levels.yaml` перевіряє обидві прошивки.
+та [Embassy](https://embassy.dev). Таблиця й підсумок у Serial — байт у байт як у C++.
 
 ```bash
 source ~/export-esp.sh                # тулчейн Xtensa від espup (один раз на термінал)
@@ -208,9 +193,6 @@ cd esp32-s3-ldr-adc/rust
 cargo run --release                   # зібрати, прошити, відкрити монітор (espflash)
 cargo +stable host-test -p ldr-adc    # тести формули, рядка таблиці, шкали й підсумку на ПК
 ```
-
-Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Start Simulator*, або з теки проєкту
-`wokwi-cli rust --scenario ../wokwi/scenarios/light-levels.yaml --timeout 20000`.
 
 | | C++ (`cpp/src/main.cpp`) | Rust (`rust/src/`) |
 |---|---|---|
@@ -220,7 +202,7 @@ Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Star
 | Похибка при U_meas = 0 | прапорець `hasError` + `errorPct` | `error_pct: Option<f32>` — прочитати «неіснуючу» похибку неможливо |
 | Рядок таблиці | `printf` у буфери `char bar[17]`, `char err[12]` | `impl Display for Row` / `LightBar` — пише прямо у вихід, без буферів |
 | Період 100 мс | `lastSampleAt += kSamplePeriodMs` | `Ticker::every(100 ms)` — так само без «повзання» |
-| Тести | лише Wokwi | `cargo +stable host-test` (логіка) + той самий сценарій Wokwi |
+| Тести | немає (перевірка на платі) | `cargo +stable host-test` (логіка на ПК) |
 
 ## Структура
 
@@ -228,18 +210,9 @@ Wokwi: `cargo build --release`, далі в теці `rust/` F1 → *Wokwi: Star
 cpp/
   platformio.ini      плата YD-ESP32-S3 N16R8 (як esp32-s3-devkitc-1), USB CDC для Serial
   src/main.cpp        уся програма
-  wokwi.toml          прошивка з .pio/build і чип LDR (diagram.json — посилання на ../diagram.json)
 rust/
   Cargo.toml          пакет ldr-adc робочого простору (версії залежностей — у ../../Cargo.toml)
   src/lib.rs          логіка без заліза: формула, Sample, Stats, рядок таблиці + тести
   src/main.rs         прошивка: ADC1 з калібруванням, Ticker 100 мс, підсумок раз на 10 с
-  wokwi.toml          прошивка з ../../target/… і той самий чип LDR
-diagram.json          схема Wokwi (макетка), спільна для обох версій
-wokwi/
-  gen_diagram.py      генератор diagram.json;  breadboard.py — геометрія макетки та плати
-  chip/               чип «LDR + 10 кОм» для Wokwi: .c, .chip.json і зібраний .chip.wasm
-                      (перезібрати: wokwi-cli chip compile wokwi/chip/ldr-divider.chip.c
-                                    -o wokwi/chip/ldr-divider.chip.wasm)
-  scenarios/          автотест wokwi-cli
 docs/schematic.svg/png  принципова схема
 ```

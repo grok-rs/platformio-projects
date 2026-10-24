@@ -10,7 +10,7 @@ __pycache__/
 # Local secrets (direnv)
 .envrc
 
-# Wokwi logic-analyzer recordings
+# Logic-analyzer recordings
 *.vcd
 
 # Cargo build output (Rust workspace)

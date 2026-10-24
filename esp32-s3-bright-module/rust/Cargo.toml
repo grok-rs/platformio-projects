@@ -40,10 +40,6 @@ bench = false
 test  = true
 bench = false
 
-[features]
-# Для симулятора Wokwi: кнопка на GPIO7 замість GPIO6 (Wokwi тримає GPIO6 ESP32-S3 у HIGH, див. README).
-wokwi = []
-
 # Логіка (src/lib.rs) — без заліза й без залежностей, тому збирається й тестується на ПК.
 # Embassy тут свідомо немає: як і в C++, main — звичайний superloop, а кнопка — на перериванні.
 

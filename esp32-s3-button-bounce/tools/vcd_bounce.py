@@ -4,8 +4,7 @@
     python3 tools/vcd_bounce.py capture.vcd                      # channel named BUTTON, or the first one
     python3 tools/vcd_bounce.py capture.vcd --button D0 --isr D1 # PulseView names channels D0, D1, ...
 
-Works with Wokwi recordings (wokwi-cli --vcd-file, or the file the simulator saves when you stop it)
-and with PulseView: File -> Export -> Value Change Dump (.vcd). The table has the same columns as the
+Works with any logic-analyzer VCD capture, e.g. from PulseView: File -> Export -> Value Change Dump (.vcd). The table has the same columns as the
 firmware's Serial report, so the two can be compared line by line.
 
 With --isr (the GPIO17 marker channel) it also prints how many times the interrupt handler ran and
