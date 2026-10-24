@@ -1,0 +1,68 @@
+<!doctype html>
+<!-- Source of ../tz-b-spec.png — the ТЗ-Б text only (no schematics). Rendered by render.sh in this folder. -->
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>ТЗ-Б. Реле і хронометр</title>
+<link rel="stylesheet" href="spec.css">
+</head>
+<body>
+<header>
+  <h1>ТЗ-Б. Модуль <span>«Реле і хронометр»</span></h1>
+  <div class="tag">Модуль 2.2 · ESP32-S3</div>
+</header>
+
+<h2><b>1</b>Мета</h2>
+<p>Збудувати реле-перемикач з гальванічною розв'язкою та виміряти час його спрацювання (затримка від команди до замикання контакту) за допомогою переривання.</p>
+
+<h2><b>2</b>Компоненти (тільки з набору)</h2>
+<div class="chips">
+  <span>ESP32-S3</span><span>5-вольтовий реле-модуль (1 канал)</span><span>MB-102 (+5 В)</span><span>LED</span><span>резистор 220 Ом</span><span>макетка</span><span>дроти</span><span>мультиметр</span>
+</div>
+
+<div class="grid2">
+<section>
+<h2><b>3</b>Вимоги до апаратної частини</h2>
+<table>
+  <tr><th>№</th><th>З'єднання</th><th>Вимога</th></tr>
+  <tr><td class="id">ВА-1</td><td>VCC реле → +5 В MB-102</td><td></td></tr>
+  <tr><td class="id">ВА-2</td><td>GND реле, GND MB-102, GND ESP32</td><td>Спільна земля</td></tr>
+  <tr><td class="id">ВА-3</td><td>GPIO10 → IN реле</td><td></td></tr>
+  <tr><td class="id">ВА-4<br><small>режим А</small></td><td>+5 В MB-102 → COM; NO → 220 Ом → LED → GND</td><td>Лише для етапу 2</td></tr>
+  <tr><td class="id">ВА-5<br><small>режим Б</small></td><td>COM → 3V3 ESP32; NO → GPIO11</td><td>Для етапів 3–4, коло режиму А повністю знято</td></tr>
+</table>
+<div class="ban"><b>Заборони:</b>
+  <ul class="bans">
+    <li>COM не підключати одночасно до +5 В і до 3V3, а режими А і Б не збирати одночасно.</li>
+    <li>5 В не подавати на жоден пін ESP32-S3.</li>
+    <li>Активний рівень IN перевірити на своєму модулі й записати в чек-лист (HIGH чи LOW).</li>
+  </ul>
+</div>
+</section>
+
+<section>
+<h2><b>4</b>Вимоги до програмної частини</h2>
+<table>
+  <tr><th>№</th><th>Вимога</th></tr>
+  <tr><td class="id">ВП-1</td><td>Керування реле через GPIO10, активний рівень у константі</td></tr>
+  <tr><td class="id">ВП-2</td><td>GPIO11 — <code>INPUT_PULLDOWN</code>, переривання <code>RISING</code></td></tr>
+  <tr><td class="id">ВП-3</td><td>ISR лише записує <code>millis()</code> і ставить прапорець <code>volatile</code>, виводу в ISR немає</td></tr>
+  <tr><td class="id">ВП-4</td><td>Затримка = момент замикання мінус момент команди, у мс</td></tr>
+  <tr><td class="id">ВП-5</td><td>Цикл: вимкнути реле, пауза 500 мс, скинути прапорець, увімкнути, дочекатись контакту</td></tr>
+  <tr><td class="id">ВП-6</td><td>Тайм-аут очікування контакту 100 мс; якщо контакту немає, повідомлення про помилку й перехід до наступного виміру</td></tr>
+  <tr><td class="id">ВП-7</td><td>10 вимірювань підряд, кожне в Serial (115200), після них середнє</td></tr>
+  <tr><td class="id">ВП-8</td><td>Піни й активний рівень винесені в константи</td></tr>
+</table>
+</section>
+</div>
+
+<h2><b>5</b>Етапи та критерії прийняття</h2>
+<table>
+  <tr><th>Етап</th><th style="width:220px">Дія</th><th>Критерій прийняття</th><th style="width:200px">Доказ</th></tr>
+  <tr><td class="num">1</td><td>Реле з GPIO</td><td>Реле клацає й змінює індикатор модуля за командою GPIO10; активний рівень визначено</td><td>Відео зі звуком</td></tr>
+  <tr><td class="num">2</td><td>Режим А: навантаження</td><td>LED у вторинному колі світиться лише при ввімкненому реле</td><td>Фото, відео</td></tr>
+  <tr><td class="num">3</td><td>Режим Б: зворотний зв'язок</td><td>Serial реагує на зміну GPIO11 при кожному спрацюванні</td><td>Скрін Serial</td></tr>
+  <tr><td class="num">4</td><td>Хронометр</td><td>Виконано ВП-4…ВП-7, 10 значень і середнє; значення стабільні й мають порядок одиниць–десятків мс</td><td>Скрін Serial</td></tr>
+</table>
+</body>
+</html>

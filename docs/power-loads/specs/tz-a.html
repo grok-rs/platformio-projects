@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- Source of ../tz-a-spec.png — the ТЗ-A text only (no schematics). Rendered by render.sh in this folder. -->
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>ТЗ-A. Яскравий модуль</title>
+<link rel="stylesheet" href="spec.css">
+</head>
+<body>
+<header>
+  <h1>ТЗ-A. Модуль <span>«Яскравий модуль»</span> (транзисторний ключ)</h1>
+  <div class="tag">Модуль 2.2 · ESP32-S3</div>
+</header>
+
+<h2><b>1</b>Мета</h2>
+<p>Збудувати ключ на 2N2222, яким ESP32-S3 керує яскравістю LED з окремого живлення. Керування здійснюється кнопкою з чотирма рівнями.</p>
+
+<h2><b>2</b>Компоненти (тільки з набору)</h2>
+<div class="chips">
+  <span>ESP32-S3</span><span>MB-102 (+5 В)</span><span>2N2222</span><span>LED</span><span>резистори 220 Ом і 1 кОм</span><span>кнопка</span><span>макетка</span><span>дроти</span><span>мультиметр</span>
+</div>
+
+<div class="grid2">
+<section>
+<h2><b>3</b>Вимоги до апаратної частини</h2>
+<table>
+  <tr><th>№</th><th>З'єднання</th><th>Вимога</th></tr>
+  <tr><td class="id">ВА-1</td><td>+5 В MB-102 → LED → 220 Ом → колектор</td><td>Полярність LED дотримана</td></tr>
+  <tr><td class="id">ВА-2</td><td>Емітер → спільна GND</td><td></td></tr>
+  <tr><td class="id">ВА-3</td><td>GPIO5 → 1 кОм → база</td><td>Резистор у базі обов'язковий</td></tr>
+  <tr><td class="id">ВА-4</td><td>GND MB-102 ↔ GND ESP32</td><td>Єдиний зв'язок між двома живленнями</td></tr>
+  <tr><td class="id">ВА-5</td><td>3V3 → кнопка → GPIO6</td><td>Тільки 3V3, ніколи 5 В</td></tr>
+</table>
+<div class="ban"><b>Заборони:</b> 5 В від MB-102 не подавати на 5V/VIN/піни ESP32; схему перемикати лише при вимкненому живленні.</div>
+</section>
+
+<section>
+<h2><b>4</b>Вимоги до програмної частини</h2>
+<table>
+  <tr><th>№</th><th>Вимога</th></tr>
+  <tr><td class="id">ВП-1</td><td>PWM через LEDC: 5 кГц, 8 біт, вихід GPIO5</td></tr>
+  <tr><td class="id">ВП-2</td><td>Рівні яскравості: <code>OFF = 0</code>, <code>LOW = 40</code>, <code>MID = 128</code>, <code>HIGH = 255</code></td></tr>
+  <tr><td class="id">ВП-3</td><td>Кнопка GPIO6, <code>INPUT_PULLDOWN</code>, переривання <code>RISING</code></td></tr>
+  <tr><td class="id">ВП-4</td><td>ISR лише ставить прапорець <code>volatile</code>, уся логіка в <code>loop()</code></td></tr>
+  <tr><td class="id">ВП-5</td><td>Антидребезг 50 мс (<code>millis</code>), одне натискання = один перехід</td></tr>
+  <tr><td class="id">ВП-6</td><td>Рівні перемикаються по колу: OFF → LOW → MID → HIGH → OFF</td></tr>
+  <tr><td class="id">ВП-7</td><td>Поточний рівень виводиться в Serial (115200)</td></tr>
+  <tr><td class="id">ВП-8</td><td>Піни й рівні винесені в константи на початку файлу</td></tr>
+</table>
+</section>
+</div>
+
+<h2><b>5</b>Етапи та критерії прийняття</h2>
+<table>
+  <tr><th>Етап</th><th style="width:200px">Дія</th><th>Критерій прийняття</th><th style="width:220px">Доказ</th></tr>
+  <tr><td class="num">1</td><td>Живлення та розпіновка</td><td>+5 В на шині MB-102 в межах 4,75–5,25 В; E-B-C визначено за вашим корпусом</td><td>Фото мультиметра</td></tr>
+  <tr><td class="num">2</td><td>Керування з GPIO</td><td>HIGH вмикає LED, LOW вимикає; U(БЕ) ≈ 0,6–0,8 В у ввімкненому стані; при знятій спільній GND LED не світиться</td><td>Відео, фото вимірювання</td></tr>
+  <tr><td class="num">3</td><td>PWM</td><td>Яскравість змінюється плавно від 0 до 255; середня напруга колектор-земля (DC) падає при зростанні duty, при 255 ≈ 0,2 В</td><td>Скрін коду, фото вимірювання</td></tr>
+  <tr><td class="num">4</td><td>Кнопка та ISR</td><td>Виконано ВП-3…ВП-7</td><td>Відео з натисканнями й Serial</td></tr>
+</table>
+
+<div class="grid2">
+<section>
+<h2><b>6</b>Результат здачі</h2>
+<p>Працююча схема на камеру, код у репозиторії, чек-лист з усіма етапами на борді.</p>
+</section>
+<section>
+<h2><b>7</b>Рівень «+» (необов'язково)</h2>
+<div class="opt">Виміряти U(КЕ) насичення ключа. Реалізувати програмний PWM на <code>millis()</code> замість LEDC і порівняти з апаратним.</div>
+</section>
+</div>
+</body>
+</html>

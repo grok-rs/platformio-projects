@@ -7,7 +7,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): осцилограф і брязкіт кнопки, АЦП і фоторезистор, стенд проєктів, підтяжка входів, проєкти Wokwi.">
+<meta name="description" content="Інтерактивні симуляції та конспекти до лабораторних ESP32-S3 (PlatformIO): осцилограф і брязкіт кнопки, АЦП і фоторезистор, транзисторний ключ для потужного навантаження, стенд проєктів, підтяжка входів, проєкти Wokwi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
@@ -78,6 +78,7 @@ footer a { color: var(--accent); }
     <a href="#m1-5">1.5 · Сигнали та кнопка</a>
     <a href="#m1-6">1.6 · АЦП і світло</a>
     <a href="#mp1">Міні-проєкт · сутінковий перемикач</a>
+    <a href="#m2-2">2.2 · Потужне навантаження</a>
   </nav>
 
   <section class="module" id="m1-4">
@@ -204,6 +205,27 @@ footer a { color: var(--accent); }
     </div>
   </section>
 
+  <section class="module" id="m2-2">
+    <div class="mod-head">
+      <span class="mod-num">Модуль 2.2</span>
+      <h2>Пасивні й активні: як підключити потужне навантаження</h2>
+    </div>
+    <p class="lead">Чому мотор не можна вішати на пін, транзисторний ключ і резистор бази, вибір BJT чи логічного MOSFET, захисний діод, конденсатори, brownout і спільна земля.</p>
+    <div class="grid">
+      <a class="card" href="power-loads/">
+        <span class="tag">Теорія + ДЗ</span>
+        <h3>Потужне навантаження</h3>
+        <p>Сортувальник компонентів, бюджет струму піна, живий NPN-ключ, калькулятор R<sub>Б</sub>, підбір ключа, осцилограф викиду з діодом і без, brownout, спільна земля, «знайди помилку», часова діаграма реле, ШІМ з UART і LEDC, тест і режим викладача.</p>
+        <span class="go">Відкрити →</span>
+      </a>
+      <a class="card ext" href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bright-module" target="_blank" rel="noopener">
+        <span class="tag">Код · esp32-s3-bright-module</span>
+        <h3>ТЗ-A «Яскравий модуль»</h3>
+        <p>2N2222 вмикає LED з живлення MB-102, ШІМ LEDC на GPIO5, кнопка GPIO6 з чотирма рівнями. Прошивка на кожен етап ТЗ, C++ і Rust, тести й порівняння з програмним ШІМ.</p>
+        <span class="go">GitHub ↗</span>
+      </a>
+    </div>
+  </section>
   <footer>Код і документація: <a href="https://github.com/grok-rs/platformio-projects">github.com/grok-rs/platformio-projects</a></footer>
 </div>
 </body>
