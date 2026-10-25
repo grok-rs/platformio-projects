@@ -165,7 +165,8 @@
       const TA = 25, TAU = 3, TBREAK = 300;
       const st = { on: false, vs: 5, col: 'red', R: 220, dead: false, Tj: TA, Idisp: 0 };
       const fx = fxLayer($('#lb-fx')), dots = dotsOn($('#lb-dots'), $('#lb-path'), 24);
-      let dirty = true, lastMsg = '';
+      let dirty = true, lastMsg = '', burntOnce = false;
+      const litSafe = new Set(); // colours lit from 5 В at 10–20 мА (mission «every colour»)
       const real = realBench($('#lb-real'), 0.5, 55, 153);
 
       const m = () => LED[st.col];
@@ -177,13 +178,14 @@
       const tss = (s) => TA + s.vl * s.I * m().rth;
 
       function burn() {
-        st.dead = true; st.Idisp = 0;
+        st.dead = true; st.Idisp = 0; burntOnce = true;
         if (!reduced()) { const p = real.ledTop(); fx.burst(p.x, p.y + 10, 'flash'); fx.burst(p.x, p.y, 'sparks'); fx.burst(p.x, p.y - 16, 'smoke'); }
         render();
       }
 
       function render() {
         const s = solve(), led = m();
+        if (st.on && !st.dead && st.vs === 5 && s.I >= 0.010 && s.I <= 0.020) litSafe.add(st.col);
         if (reduced()) { st.Tj = st.on && !st.dead ? tss(s) : TA; st.Idisp = s.I; if (st.Tj >= TBREAK && !st.dead) { burn(); return; } }
         $('#lb-lever').setAttribute('x2', st.on ? 92 : 88); $('#lb-lever').setAttribute('y2', st.on ? 40 : 20);
         $('#lb-vlbl').textContent = fmt.num(st.vs, 1) + ' В';
@@ -323,6 +325,18 @@
       Study.onTheme(() => { dirty = true; sim.draw(); });
       addEventListener('resize', () => { dirty = true; sim.draw(); });
       render();
+      // missions: each check reads the bench state (st) and the steady operating point (solve)
+      const safe = (lo, hi) => { const I = solve().I; return st.on && !st.dead && I >= lo && I <= hi; };
+      Study.missions($('#lb-ms'), { key: 'bench', items: [
+        { id: 'red', text: 'Увімкніть живлення: червоний LED від 5 В має світити безпечним струмом 5–20 мА.', hint: 'Струм видно в показі «Струм». З R1 = 220 Ом виходить ≈ 14 мА.',
+          check: () => st.col === 'red' && st.vs === 5 && safe(0.005, 0.020) },
+        { id: 'burn', text: 'Спаліть світлодіод навмисно, а потім поставте новий.', hint: 'Зменшуйте R1 до 0 Ом і стежте за термометром Tj: без резистора струм — сотні міліампер, кристал перегрівається за кілька секунд. Потім «Нова LED».',
+          check: () => burntOnce && !st.dead },
+        { id: 'all', text: 'Засвітіть від 5 В кожен із п\'яти кольорів яскраво й безпечно: 10–20 мА.', hint: 'R = (5 − V<sub>f</sub>) / I. Синьому й білому (V<sub>f</sub> ≈ 3,3 В) лишається лише ≈ 1,7 В, тож їм потрібен менший R1, ніж червоному: з 220 Ом вони світять слабше.',
+          check: () => litSafe.size === Object.keys(LED).length },
+        { id: 'e12', text: 'Від 12 В підберіть для червоного LED резистор із ряду E12 на 10 мА: найближчий більший за розрахунок.', hint: 'R = (12 − 1,9) В / 0,010 А ≈ 1010 Ом. Такого номіналу в E12 немає; округлюйте вгору, щоб струм не перевищив розрахунковий.',
+          check: () => st.on && !st.dead && st.vs === 12 && st.col === 'red' && st.R === 1200 },
+      ] });
     })();
 
     /* =================================================================== ANIM: why an LED without a resistor burns */

@@ -56,6 +56,7 @@
 .kit-lbl { font: 600 46px var(--f-mono); fill: var(--ink); }
 .kit-val { font-weight: 500; fill: var(--muted); }
 #bb-btn .kit-lbl { font-size: 32px; } #bb-btn .kit-lbl.mid { dominant-baseline: central; } /* ≈ 13 px: the sheet is ≥ 480 px wide */
+.hn-stage .kit-lbl { font-size: 38px; }
 .kitv .kit-lead { fill: none; stroke: var(--muted); stroke-width: 3; stroke-dasharray: 9 6; }
 text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig { fill: var(--nsig-ink, var(--nsig)); } text.kit-lbl.net-gnd { fill: var(--ngnd-ink, var(--ngnd)); }
 .kitv .schem-flow { stroke-width: 12; stroke-dasharray: 10 38; animation-name: kit-flow; }
@@ -227,6 +228,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
     <p class="lab-note" id="b5-note" aria-live="polite">Натисніть S1: осцилограф чекає на спад ↓ (натискання з підтяжкою вгору — це HIGH → LOW).</p>
     <p class="lab-note b5-model" id="b5-mnote"><span class="model-chip">модель</span> <span id="b5-mtext"></span></p>
     <a class="lab-more" href="../../bounce-lab/">Повна лабораторія брязкоту →</a>
+    <div class="missions" id="b5-ms"></div>
   </section>
 
   <figure class="anim wide" id="b5-anim" aria-labelledby="b5-anim-h">
@@ -693,6 +695,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
       <p class="test">Подайте з потенціометра 1,6&nbsp;В і почитайте пін: результат на різних платах може бути різним.</p>
     </div>
     </details>
+    <div class="hunt" id="hunt-btn"></div>
   </section>
 
   <!-- 08 circuit -->
@@ -963,7 +966,10 @@ document.addEventListener('study:ready', () => {
        its GND right and up into the «−» rail. The WB-102 rails are split between columns 31 and 33: the «+» rail is used
        on the left half only (columns 3 and 30); the «−» rail has GND on both halves, so a short black bridge
        bottom-31 → bottom-33 joins them (CH1 at column 34 keeps clear of it). */
-  function btnBench(parent, { nets = false, analyzer = true, cut = null } = {}) {
+  // Fault options (the «Знайди несправність» scenes; defaults = the correct bench): sigCol (board column of the yellow
+     // jumper), s1To ('-' | '+': rail of S1's black jumper), plusBridge (orange bridge over the «+» rail split), chCol (strip of
+     // the CH1 lead), laGnd (false: the analyzer's GND lead hangs loose), highlight (ring around GPIO21 on the board).
+  function btnBench(parent, { nets = false, analyzer = true, cut = null, sigCol = null, s1To = '-', plusBridge = false, chCol = null, laGnd = true, highlight = true } = {}) {
     const K = window.Kit;
     const sv = (tag, a, p) => S.svg(tag, a, p);
     const bb = K.part('breadboard', { parent, title: 'Макетка' });
@@ -985,37 +991,45 @@ document.addEventListener('study:ready', () => {
     const C0 = 3, cG = C0 + 21, c21 = C0 + 17, N = 34, cLA = N + 3; // N = the GPIO21 node column (S1 left legs, R1 right leg)
     const p0 = bb.hole(C0, 'i');
     const esp = K.part('esp32s3', { parent, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: гребінки в рядах i та b' });
-    esp.set({ highlight: ['GPIO21'] });
+    if (highlight) esp.set({ highlight: ['GPIO21'] });
     const res = K.part('resistor', { parent, ohms: 10000, span: 4, ...bb.hole(N - 4, 'h'), title: `R1 10 кОм: стовпчики ${N - 4} і ${N}, ряд h` });
     const btn = K.part('button', { parent, ...bb.hole(N, 'e'), title: `Кнопка S1: ніжки в стовпчиках ${N} і ${N + 2}, над жолобком` });
     const laneT = bb.hole(1, 'a').y - K.P * 1.15; // the strip between the top rails and row a
-    const a21 = bb.at('a' + c21), aN = bb.at('a' + N);
+    const cS = sigCol ?? c21, a21 = bb.at('a' + cS), aN = bb.at('a' + N);
     const w = {
-      sig: route([a21, { x: a21.x, y: laneT }, { x: aN.x, y: laneT }, aN], 'yellow', 'gpio21', 'net-sig', `GPIO21 плати (a${c21}) → a${N}`),
+      sig: route([a21, { x: a21.x, y: laneT }, { x: aN.x, y: laneT }, aN], 'yellow', 'gpio21', 'net-sig', `${cS === c21 ? 'GPIO21' : 'Пін'} плати (a${cS}) → a${N}`),
       v33: route(['j' + C0, 'bottom+' + C0], 'orange', 'v33', 'net-3v3', `3V3 плати (j${C0}) → шина плюс`),
       gnd: route(['j' + cG, 'bottom-' + cG], 'black', 'gnd', 'net-gnd', `GND плати (j${cG}) → шина мінус`),
       r: route(['j' + (N - 4), 'bottom+' + (N - 4)], 'orange', 'v33', 'net-3v3', `Стовпчик ${N - 4} (R1) → шина плюс`),
-      k: route(['j' + (N + 2), 'bottom-' + (N + 2)], 'black', 'gnd', 'net-gnd', `Стовпчик ${N + 2} (S1) → шина мінус`),
+      k: route(['j' + (N + 2), 'bottom' + s1To + (N + 2)], 'black', 'gnd', 'net-gnd', `Стовпчик ${N + 2} (S1) → шина ${s1To === '+' ? 'плюс' : 'мінус'}`),
       br: route(['bottom-31', 'bottom-33'], 'black', 'gnd', 'net-gnd', 'Перемичка через розрив шини мінус: стовпчик 31 → 33'),
     };
+    if (plusBridge) w.pbr = route(['bottom+31', 'bottom+33'], 'orange', 'v33', 'net-3v3', 'Перемичка через розрив шини плюс: стовпчик 31 → 33');
     let la = null;
     if (analyzer) {
       // rot 0: header on the right, CH1 = top of the inner column → straight up; GND = bottom of the outer column → right, up
       la = K.part('logic-analyzer', { parent, title: 'Логічний аналізатор 24 МГц, 8 каналів' });
-      const jN = bb.at('j' + N), l = la.local.CH1;
+      const jN = bb.at('j' + (chCol ?? N)), l = la.local.CH1;
       la.place(jN.x - l.x, 620);
       la.set({ pwr: true, hl: ['CH1', 'GND'] });
       const g = la.pins.GND, r35 = bb.at('bottom-' + cLA);
-      // CH1: one straight green lead. Its last 2,6 mm run over the analyzer's own header (the Dupont plug on the pin), so
-      // that bit is drawn inside the analyzer group: the header sits 5 mm below the case top, and a lead that enters the
-      // case's bounding box from above would otherwise read as «over the part» although it only touches its own pin.
-      const ch = la.pins.CH1, hTop = { x: ch.x, y: la.toParent(0, 53.5).y };
-      w.ch1 = route([hTop, jN], 'green', 'gpio21', 'net-sig', `CH1 аналізатора → j${N}`);
+      // CH1: one straight green lead. Everything below the case top (the run over the case to the Dupont plug on the pin) is
+      // drawn inside the analyzer group: a lead that enters the case's bounding box from above would otherwise read as
+      // «over the part» although it only touches its own pin.
+      const ch = la.pins.CH1, hTop = { x: ch.x, y: la.toParent(0, 0).y }; // the case top: the lead over the case belongs to the plug
+      w.ch1 = route([hTop, jN], 'green', 'gpio21', 'net-sig', `CH1 аналізатора → j${chCol ?? N}`);
       w.ch1.querySelector('circle')?.remove(); // no ring where the lead meets its plug
       const plug = route([ch, hTop], 'green', 'gpio21', 'net-sig', 'CH1 аналізатора');
       plug.querySelectorAll('circle')[1]?.remove();
       la.appendChild(plug);
-      w.lag = route([g, { x: r35.x, y: g.y }, r35], 'black', 'gnd', 'net-gnd', 'GND аналізатора → шина мінус');
+      if (laGnd) w.lag = route([g, { x: r35.x, y: g.y }, r35], 'black', 'gnd', 'net-gnd', 'GND аналізатора → шина мінус');
+      else { // the GND lead plugged into the analyzer only: its free end hangs in the air under the breadboard
+        w.lag = K.route(parent, [g, { x: r35.x, y: g.y }, { x: r35.x, y: g.y - 2.6 * K.P }], 'black', { ends: ['ring', 'none'] });
+        sv('title', {}, w.lag).textContent = 'GND аналізатора: другий кінець ні до чого не під’єднаний';
+        const e = w.lag.pins.b;
+        sv('rect', { x: e.x - 6, y: e.y - 22, width: 12, height: 22, rx: 2, fill: '#202124' }, w.lag);
+        sv('rect', { x: e.x - 2, y: e.y - 36, width: 4, height: 15, fill: '#c9cdd2' }, w.lag);
+      }
     }
     return { bb, btn, res, esp, la, w, N, C0, c21, cLA };
   }
@@ -1367,6 +1381,26 @@ document.addEventListener('study:ready', () => {
     new ResizeObserver(() => { const w = cv.parentElement.clientWidth; if (Math.abs(w - rw) < 1) return; rw = w; ctx = Study.fitCanvas(cv); draw(); }).observe(cv.parentElement);
     Study.onTheme(draw);
     mtext(); rebuild(); redraw();
+
+    /* ---------- missions: goals checked from the lab's own state (st, EVS, count) ---------- */
+    const shownEv = () => trigEvent(now());
+    Study.missions($('#b5-ms'), { key: 'bench', items: [
+      { id: 'zoom', text: 'Зловіть брязкіт: поставте 100 мкс/под і натисніть S1 так, щоб на екрані було кілька фронтів.',
+        hint: 'На 1 мс/под і більше весь брязкіт стискається в одну риску. Перемкніть «Час/под» на 100 мкс і натисніть S1 ще раз.',
+        check: () => { const e = shownEv(); return st.sdiv === 1e-4 && !!e && e.n > 1; } },
+      { id: 'extra', text: 'Доведіть, що програма помиляється: «Порахувала програма» має стати більше, ніж «Натиснули насправді».',
+        hint: 'Вимкніть антибрязкіт і RC-фільтр, у навчальній моделі натисніть S1 кілька разів: кожен зайвий спад — ще одне «натискання».',
+        check: () => { const c = count(now()); return !st.db && c.prog > c.real; } },
+      { id: 'honest', text: 'Зробіть лічильник чесним: щонайменше 10 натискань, і програма нарахувала рівно стільки ж.',
+        hint: 'Увімкніть «Програмний антибрязкіт 30 мс» і натисніть «10 натискань». Вікно 30 мс довше за будь-який брязкіт, тож зайві спади програма не слухає.',
+        check: () => { const c = count(now()); return st.db && c.real >= 10 && c.prog === c.real; } },
+      { id: 'bench', text: 'Перемкніть модель «як на стенді» і зробіть у ній 10 натискань: чи часто брязкотить саме натискання?',
+        hint: 'Кнопка «10 натискань» зробить усе сама. На стенді натискання брязкотіло 1 раз із 91, тож майже всі фронти будуть чистими.',
+        check: () => EVS.filter((e) => e.kind === 'press' && e.mode === 'bench').length >= 10 },
+      { id: 'release', text: 'У моделі «як на стенді» зловіть брязкіт відпускання: тригер ↑ і подія з кількома фронтами на екрані.',
+        hint: 'Тригер «↑ відпускання», 100 мкс/под. На стенді брязкотіло 35 відпускань із 91, тож відпускайте S1 кілька разів, доки не з’являться зайві фронти.',
+        check: () => { const e = shownEv(); return st.mode === 'bench' && st.trig === 1 && !!e && e.kind === 'release' && e.mode === 'bench' && e.n > 1; } },
+    ] });
   })();
 
   /* ==================== explainer: inside the contacts (slowed down) ==================== */
@@ -2063,6 +2097,59 @@ document.addEventListener('study:ready', () => {
     b.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); set(false); } });
     b.addEventListener('blur', () => set(false));
     upd();
+  })();
+
+  /* ---------- 07 «Знайди несправність»: the section 08 bench with exactly one fault per case ---------- */
+  (function () {
+    // f = btnBench fault options + cap: [left, right] columns of a C1 100 нФ standing in row c
+    const scene = (stage, f, aria, mark) => {
+      const K = window.Kit, P = K.P;
+      const svg = K.svg(stage, '-40 -24 1180 924', aria);
+      svg.id = 'hb-' + Math.random().toString(36).slice(2, 8); svg.classList.add('kitv');
+      const B = btnBench(svg, { cut: 945, highlight: false, ...f });
+      const L = (x, y, t, cls = '', anc = 'start') => { const e = S.svg('text', { class: ('kit-lbl ' + cls).trim(), x, y, 'text-anchor': anc }, svg); e.textContent = t; return e; };
+      const lead = (x1, y1, x2, y2) => S.svg('path', { class: 'kit-lead', d: `M${x1} ${y1}L${x2} ${y2}` }, svg);
+      const colX = (c) => B.bb.at('j' + c).x, mX = 1012;
+      const tY = (B.btn.pins['1a'].y + B.btn.pins['1b'].y) / 2;
+      lead(colX(B.N + 2) + 16, tY, mX - 12, tY); L(mX, tY + 13, 'S1');
+      const rY = B.res.pins[1].y; lead(B.res.pins[2].x + 14, rY, mX - 12, rY); L(mX, rY + 13, 'R1');
+      if (f.cap) {
+        const p = B.bb.at('c' + f.cap);
+        const c = K.part('cap-ceramic', { parent: svg, x: p.x, y: p.y, leg: 18, code: '104', title: `C1 100 нФ: ніжки в c${f.cap} і c${f.cap + 1}` });
+        const cy = p.y - 18 - 34; lead(p.x + P / 2 + 30, cy, mX - 12, cy); L(mX, cy + 13, 'C1');
+        B.w.c1 = c;
+      }
+      L(colX(B.N + 3) + 8, 600, 'GND', 'net-gnd'); L(colX(f.chCol ?? B.N) - 16, 600, 'CH1', 'net-sig', 'end');
+      L(B.la.pins.USB.x - 40, B.la.pins.USB.y + 12, 'аналізатор', '', 'end');
+      Object.entries(mark).forEach(([k, i]) => { const n = k === 'btn' ? B.btn : k === 'res' ? B.res : B.w[k]; if (n) n.setAttribute('data-hunt', String(i)); });
+    };
+    Study.hunt($('#hunt-btn'), { key: '1-5', cases: [
+      { title: 'Кнопка нічого не змінює',
+        symptom: 'Скетч з <code>INPUT_PULLUP</code> на GPIO21 весь час друкує 1 — і коли кнопку відпущено, і коли натиснуто. Осцилограф на вузлі показує рівні 3,3&nbsp;В.',
+        build: (st) => scene(st, { s1To: '+', plusBridge: true }, 'Стенд з кнопкою S1, R1, аналізатором; чорний дріт від стовпчика 36 (друга сторона S1) встромлений у червону шину плюс, а шина плюс перемичкою з’єднана з 3V3.', { k: 0, res: 1, sig: 2 }),
+        options: ['Чорний дріт від S1 стоїть у шині «+» (3V3), а не в «−»', 'R1 підтягує пін не до того живлення', 'Жовтий дріт іде не на GPIO21'], answer: 0,
+        explain: 'Друга сторона S1 (стовпчик 36) встромлена в червону шину «+», а там через перемичку 3V3. З <code>INPUT_PULLUP</code> пін і так тягнеться до 3,3&nbsp;В, тож натискання з’єднує 3,3&nbsp;В з 3,3&nbsp;В — нічого не змінюється. З підтяжкою вгору кнопка має замикати пін на GND (синя шина «−»), і тоді натискання — спад, FALLING. Колір дроту нічого не гарантує: дивіться, в яку шину він встромлений.' },
+      { title: 'Сміття на аналізаторі',
+        symptom: 'PulseView показує натискання на CH1, але між ними купа коротких випадкових імпульсів, і картинка змінюється, коли ви торкаєтеся дротів.',
+        build: (st) => scene(st, { laGnd: false }, 'Стенд з кнопкою і аналізатором; чорний дріт GND аналізатора відходить від його гребінки, але другий кінець висить у повітрі під макеткою.', { ch1: 0, lag: 1, br: 2 }),
+        options: ['CH1 стоїть не в тому стовпчику', 'GND аналізатора ні з чим не з’єднаний', 'Перемичка на шині «−» замикає вузол на землю'], answer: 1,
+        explain: 'Другий кінець чорного дроту GND аналізатора висить у повітрі. Аналізатор вирішує «0 чи 1», порівнюючи напругу на CH1 зі своєю землею, а без спільної землі з платою цей «нуль» гуляє: зв’язок лише через два USB-кабелі й комп’ютер, і така довга петля ловить завади. Першим під’єднуйте GND аналізатора до GND плати, потім щупи.' },
+      { title: 'Аналізатор не бачить кнопки',
+        symptom: 'Serial чесно рахує натискання, а на CH1 — рівна лінія або хаос: жодного спаду, коли тиснете S1.',
+        build: (st) => scene(st, { chCol: 35 }, 'Стенд з кнопкою і аналізатором; зелений провід CH1 встромлений у стовпчик 35, між ніжками S1 (34 і 36).', { btn: 0, lag: 1, ch1: 2 }),
+        options: ['S1 стоїть не через жолобок', 'GND аналізатора не на шині «−»', 'CH1 у стовпчику 35, де нічого немає'], answer: 2,
+        explain: 'Зелений провід CH1 стоїть у стовпчику 35. Між ніжками S1 (34 і 36) цей стовпчик ні з чим не з’єднаний, тож вхід аналізатора «висить у повітрі». Щуп має бути в стовпчику вузла 34 — там, де R1, ніжка S1 і жовтий дріт до GPIO21. П’ять отворів одного стовпчика з’єднані, а сусідній стовпчик — уже інше коло.' },
+      { title: 'Конденсатор не допомагає',
+        symptom: 'Поставили C1 100&nbsp;нФ проти брязкоту, але програма й далі рахує зайві натискання, а на осцилографі ті самі гострі відскоки.',
+        build: (st) => scene(st, { cap: 35 }, 'Стенд з кнопкою; синій конденсатор C1 104 у верхній половині макетки: ліва ніжка в стовпчику 35, права в стовпчику 36.', { c1: 0, res: 1, k: 2 }),
+        options: ['C1 однією ніжкою в порожньому стовпчику 35', 'R1 10 кОм замалий для фільтра', 'Чорний дріт S1 не на шині «−»'], answer: 0,
+        explain: 'Ліва ніжка C1 у стовпчику 35, де більше нічого немає; права — у 36, з’єднаному через S1 з GND. Конденсатор під’єднаний лише одним кінцем, тож фільтра немає. Для RC-фільтра C1 має стояти між вузлом GPIO21 (стовпчик 34) і GND (36): разом з R1 це τ = 10&nbsp;кОм · 100&nbsp;нФ = 1&nbsp;мс, як у лабораторії вгорі.' },
+      { title: 'Лічильник стоїть на нулі',
+        symptom: 'Аналізатор на CH1 бачить кожне натискання разом з брязкотом, а скетч, що читає GPIO21, не нарахував жодного.',
+        build: (st) => scene(st, { sigCol: 19 }, 'Стенд з кнопкою і аналізатором; жовтий дріт іде від стовпчика 19 правої гребінки плати (пін 47) до вузла кнопки.', { btn: 0, sig: 1, ch1: 2 }),
+        options: ['S1 стоїть не через жолобок', 'Жовтий дріт від сусіднього піна GPIO47, а не GPIO21', 'CH1 стоїть не в тому стовпчику'], answer: 1,
+        explain: 'Жовтий дріт встромлений у стовпчик 19, під пін з написом «47», а GPIO21 — сусідній, стовпчик 20. Аналізатор дивиться на вузол кнопки й бачить усе, а програма читає GPIO21, до якого нічого не під’єднано: там лише внутрішня підтяжка, тож завжди 1. Звіряйте пін за написом на платі, рахуючи від краю.' },
+    ] });
   })();
 
   /* ---------- 09 lab summary ---------- */

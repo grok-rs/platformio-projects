@@ -170,6 +170,7 @@ pre { white-space: pre; }
     <p class="small muted fx-src">Звідки факти розбору: зворотний діод на котушці<sup class="cite" data-fact="uln2003a-flyback-diodes"></sup>; АЦП2 і Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>, 65535 замість числа<sup class="cite" data-fact="core-adc2-wifi-returns-0"></sup>, канали АЦП1<sup class="cite" data-fact="s3-adc1-pins"></sup>; модуль active-LOW і 3,3&nbsp;В на IN<sup class="cite" data-fact="relay-module-active-low"></sup>. Модель світла і LDR — зі стенда twilight-relay.</p>
     <p class="lab-note" id="fx-note" aria-live="polite">Усе справно. Увімкніть одну поломку і запустіть захід сонця.</p>
     <a class="lab-more" href="../../twilight-relay/#bench">Повна лабораторія: «Що буде, якщо…» на макетці і схемі →</a>
+    <div class="missions" id="fx-ms"></div>
   </section>
 
   <figure class="anim wide" id="dbg-anim" aria-labelledby="dbg-anim-h">
@@ -567,7 +568,7 @@ document.addEventListener('study:ready', () => {
         fix: 'Екран між лампою і LDR або LDR, спрямований убік (експонат 4).' },
     };
     const st = { t: 0.2, on: false, arm: false, raw: null, clicks: 0, spikes: 0, ramp: 0, simT: 0, acc: 0, lampLux: 0,
-      f: {}, mode: 'explore', secret: null, guess: null, probe: 'in', hist: [], serial: [], lastPrint: 0 };
+      f: {}, mode: 'explore', secret: null, guess: null, probe: 'in', hist: [], serial: [], lastPrint: 0, last: null, solved: new Set() };
     const cfg = { hyst: true, center: 550, dark: K.DARK, light: K.LIGHT };
     const view = T.views($('#fx-kit'), $('#fx-svg'), $('#fx-view'), { id: 'fx' });
     const faults = () => (st.mode === 'riddle' ? (st.secret ? { [st.secret]: true } : {}) : st.f);
@@ -670,7 +671,11 @@ document.addEventListener('study:ready', () => {
       if (st.ramp) {
         st.t = T.clamp(st.t + st.ramp * dt / 30, 0, 1);
         $('#fx-time').value = Math.round(st.t * 1000);
-        if (st.t <= 0 || st.t >= 1) { st.ramp = 0; syncBtns(); }
+        if (st.t <= 0 || st.t >= 1) {
+          st.last = { dir: st.ramp, clicks: st.clicks, mode: st.mode, faults: Object.keys(st.f).filter((k) => st.f[k]).length };
+          st.ramp = 0; syncBtns();
+          if (st.ms) st.ms.check();   // the list may be below the screen: tick it now, before the next run
+        }
       }
       st.lampLux += ((f.lamp && st.arm ? K.LAMP_LUX : 0) - st.lampLux) * (1 - Math.exp(-dt / K.LDR_TAU));
       st.simT += dt; st.acc += dt;
@@ -681,8 +686,10 @@ document.addEventListener('study:ready', () => {
     const syncBtns = () => { pauseBtn.textContent = sim.running ? '⏸ Пауза' : '▶ Пуск'; };
     const run = (dir) => {
       st.ramp = dir; st.clicks = 0; st.spikes = 0;
-      if (dir > 0 && st.t > 0.9) st.t = 0.2;
-      if (dir < 0 && st.t < 0.1) st.t = 0.95;
+      // a jump back to the start of the run puts the relay where it stands at that hour (no phantom click)
+      const jump = (t, on) => { st.t = t; st.on = on; const f = faults(); st.arm = T.solve(rlNow(f), st.on, f).coil; };
+      if (dir > 0 && st.t > 0.9) jump(0.2, false);
+      if (dir < 0 && st.t < 0.1) jump(0.95, true);
       if (!sim.running) sim.play();
       syncBtns();
     };
@@ -715,6 +722,7 @@ document.addEventListener('study:ready', () => {
         if (!st.secret) { out.innerHTML = '<p>Спершу натисніть «Нова загадка».</p>'; return; }
         if (!st.guess) { out.innerHTML = '<p>Виберіть свою версію в рядку «Ваша версія». Підказка: міряйте знизу вгору — живлення, земля, сигнали, код.</p>'; return; }
         const ok = st.guess === st.secret;
+        if (ok) st.solved.add(st.secret);
         out.innerHTML = (ok ? '<p><b>Влучно!</b> Ось розбір:</p>' : `<p><b>Ні, це не «${NAMES[st.guess]}».</b> Правильна відповідь і розбір:</p>`) + card(st.secret, ok);
       } else {
         const on = Object.keys(st.f).filter((k) => st.f[k]);
@@ -750,6 +758,25 @@ document.addEventListener('study:ready', () => {
     Study.onTheme(() => paint(0));
     addEventListener('resize', () => paint(0));
     paint(0); syncBtns();
+    // missions: the explore mode first (one fault at a time, measured with the probe), then riddles
+    const only = (k) => st.mode === 'explore' && Object.keys(st.f).filter((x) => st.f[x]).join() === k;
+    st.ms = Study.missions($('#fx-ms'), { key: 'faults', items: [
+      { id: 'clean', text: 'Справна збірка: запустіть «Захід сонця» і отримайте одне чисте клацання.',
+        hint: 'У режимі «Дослідження» вимкніть усі поломки й дочекайтеся ночі: «Клацань» = 1.',
+        check: () => st.last && st.last.dir > 0 && st.last.mode === 'explore' && st.last.faults === 0 && st.last.clicks === 1 },
+      { id: 'gnd', text: 'Увімкніть лише «Немає спільної GND» і доведіть прозвонкою, що землі не з’єднані.',
+        hint: 'Щуп «GND ↔ GND»: справна збірка пищить (0 Ом), а тут — OL, тиша.',
+        check: () => only('noGnd') && st.probe === 'gnd' },
+      { id: 'r433', text: 'Увімкніть лише «R4 до 3,3 В» і виміряйте IN, коли GPIO2 = LOW: там 3,3&nbsp;В замість 5&nbsp;В.',
+        hint: 'Удень (до заходу) GPIO2 = LOW. Щуп «IN» покаже, до чого R4 підтягує вхід модуля.',
+        check: () => only('r433') && st.probe === 'in' && !st.on },
+      { id: 'spike', text: 'Увімкніть лише «Немає діода на котушці» і зловіть на осцилографі хоча б один викид.',
+        hint: 'Щуп «Котушка». Викид буває, коли реле <b>вимикається</b>: після ночі запустіть «Світанок».',
+        check: () => only('noDiode') && st.probe === 'coil' && st.spikes >= 1 },
+      { id: 'riddles', text: 'Режим «Загадка»: правильно діагностуйте 3 різні несправності.',
+        hint: 'Нова загадка → захід або світанок → щуп знизу вгору: VCC, GND ↔ GND, сигнали, Serial. Потім версія і «Діагностувати».',
+        check: () => st.solved.size >= 3 },
+    ] });
   })();
 
   /* ================================================================ ANIM: debugging walk-through (exhibit 2) */

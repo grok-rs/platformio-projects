@@ -215,6 +215,7 @@ figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted)
     <details class="more lb-more"><summary>Як влаштована модель</summary>
       <p>V<sub>f</sub> і струми — з даташитів: червоний 1,9&nbsp;В при 10&nbsp;мА<sup class="cite" data-fact="led-red-3mm-vf"></sup>, жовтий 1,95&nbsp;В<sup class="cite" data-fact="led-yellow-3mm-vf"></sup>, зелений 2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>, синій і білий 3,3&nbsp;В при 20&nbsp;мА<sup class="cite" data-fact="led-blue-3mm-vf"></sup><sup class="cite" data-fact="led-white-3mm-vf"></sup>. Крива — спрощена модель (експонента плюс малий опір кристала). Яскравість — це струм у відсотках від абсолютного максимуму (30&nbsp;мА, у зеленого 25&nbsp;мА<sup class="cite" data-fact="led-test-current-vs-rating"></sup>), а не сила світла. Tj&nbsp;=&nbsp;25&nbsp;°C&nbsp;+&nbsp;P·R<sub>th</sub><sup class="cite" data-fact="led-red-3mm-rth"></sup>, межі Tj за кольорами<sup class="cite" data-fact="led-3mm-tj-by-colour"></sup>; резистор — 0,25&nbsp;Вт<sup class="cite" data-fact="res-axial-quarter-watt"></sup>. Швидкість нагріву (≈&nbsp;3&nbsp;с) і момент руйнування (300&nbsp;°C) <b>умовні</b>: вони показують тенденцію, а не точний час.</p>
     </details>
+    <div class="missions" id="lb-ms"></div>
     <a class="lab-more" href="#w-burn">Повна лабораторія: тест на згоряння з графіком температури →</a>
   </section>
 
@@ -728,6 +729,8 @@ figure.plain figcaption, .idea figcaption { font-size: 14px; color: var(--muted)
       <p class="test">Порахуйте струм для 180 і 220&nbsp;Ом при 5&nbsp;В і зеленому LED у калькуляторі вище.</p>
     </div>
     </details>
+    <!-- «Знайди несправність»: five faulty benches (Kit parts, tidy layout), drawn by the page script (hunt12) -->
+    <div class="hunt" id="hunt-12"></div>
   </section>
 
   <!-- ============================================================ 08 dual figure -->
@@ -1307,6 +1310,76 @@ document.addEventListener('study:ready', () => {
     wires.forEach(([w, dir]) => S.flow(w, { mA: flowOn ? I1 * 1000 : 0, dir }));
     $('#flow-out').textContent = flowOn ? `I ≈ (5 − 1,8) / 1000 ≈ ${mA(I1)} — однаковий на кожному дроті` : '';
   });
+
+  /* ---------- «Знайди несправність»: five faulty benches ---------- */
+  // Every scene is the bench of section 08 (MB-102 → bottom rails → red jumper j13 → R1 1 кОм h13–h17 → LED1 anode f17 /
+  // cathode f18 → black jumper j18 → «−»), drawn with Kit parts, with exactly one fault. data-hunt = index of the option.
+  (function hunt12() {
+    const host = $('#hunt-12'); if (!host) return;
+    function bench(stage, o) {
+      const svg = K.svg(stage, '-115 -40 735 640', o.label);
+      svg.id = 'hn12-svg';
+      const defs = S.svg('defs', {}, svg);
+      const fg = S.svg('linearGradient', { id: 'hn12-fade-g', gradientUnits: 'userSpaceOnUse', x1: 22.6 * P, x2: 24.2 * P, y1: 0, y2: 0 }, defs);
+      S.svg('stop', { offset: 0, 'stop-color': '#fff' }, fg); S.svg('stop', { offset: 1, 'stop-color': '#000' }, fg);
+      S.svg('rect', { x: -600, y: -600, width: 3200, height: 2000, fill: 'url(#hn12-fade-g)' },
+        S.svg('mask', { id: 'hn12-fade', maskUnits: 'userSpaceOnUse', x: -600, y: -600, width: 3200, height: 2000 }, defs));
+      const bd = K.part('breadboard', { parent: S.svg('g', { mask: 'url(#hn12-fade)' }, svg) });
+      const at = bd.rail('top', '+', 4);
+      const pm = K.part('power-module', { parent: svg, x: at.x, y: at.y, title: 'Модуль живлення MB-102' }).set({ on: true, top: 'OFF', bottom: o.supply || '5V' });
+      S.svg('text', { x: pm.pins['B+'].x + P / 2, y: 21 * P + 46, 'text-anchor': 'middle', style: 'fill:var(--ink);font:600 26px var(--f-body)' }, svg).textContent = 'MB-102';
+      const H = (c, r) => bd.hole(c, r), b = { svg, bd, pm, H };
+      b.red = K.route(svg, [bd.at('bottom+' + (o.p || 13)), bd.at('j' + (o.p || 13))], 'red');
+      if (o.res !== false) {
+        const r0 = H(13, o.res === 'strip' ? 'f' : 'h');
+        b.res = K.part('resistor', { parent: svg, ohms: 1000, x: r0.x, y: r0.y, rot: o.res === 'strip' ? 90 : 0, span: o.res === 'strip' ? 3 : 4, title: 'R1 1 кОм' });
+      }
+      const l0 = H(o.ledRev ? 18 : 17, 'f');
+      b.led = K.part('led', { parent: svg, color: o.col || 'red', x: l0.x, y: l0.y, leg: 40, mirror: !!o.ledRev, title: 'LED1' });
+      b.led.set({ on: o.lit || 0, burnt: !!o.burnt });
+      b.blk = K.route(svg, [bd.at('j18'), bd.at('bottom-18')], 'black');
+      return b;
+    }
+    const tag = (n, i, label) => { n.setAttribute('data-hunt', String(i)); if (label) n.setAttribute('aria-label', label); return n; };
+    Study.hunt(host, { key: '1-2', cases: [
+      { title: 'Спалах і темрява', symptom: 'Увімкнули модуль — LED1 яскраво спалахнув, і за мить згас. Тепер він не світиться зовсім.',
+        build(st) {
+          const b = bench(st, { p: 17, res: false, burnt: true, label: 'Макетка: MB-102, червоний дріт з шини плюс у стовпчик 17, червоний LED1 анодом у 17, катодом у 18, чорний дріт зі стовпчика 18 на мінус. Резистора немає.' });
+          tag(b.red, 0, 'Червоний дріт у стовпчику 17'); tag(b.led, 1, 'Світлодіод LED1'); tag(b.blk, 2, 'Чорний дріт');
+        },
+        options: ['Резистора немає: дріт з «+» іде прямо в стовпчик анода', 'LED1 вставлено навпаки', 'Чорний дріт не на шині «−»'], answer: 0,
+        explain: 'Червоний дріт приносить 5 В прямо в смужку 17, де анод. Струм обмежує лише крихітний опір кристала — сотні міліампер при максимумі 30 мА, і кристал перегрівається за мить. Між «+» і LED завжди стоїть резистор: тут R1 1 кОм зі стовпчика 13 у 17.' },
+      { title: 'Резистор є, світла немає', symptom: 'LED1 темний. Вольтметр: у стовпчику 13 є 5 В, а на аноді LED1 (стовпчик 17) — 0 В.',
+        build(st) {
+          const b = bench(st, { res: 'strip', label: 'Макетка: MB-102, червоний дріт з шини плюс у стовпчик 13, резистор R1 стоїть уздовж стовпчика 13 (рядки f–i), червоний LED1 анодом у 17, катодом у 18, чорний дріт на мінус.' });
+          tag(b.res, 0, 'Резистор R1 у стовпчику 13'); tag(b.led, 1, 'Світлодіод LED1'); tag(b.red, 2, 'Червоний дріт');
+        },
+        options: ['Обидві ніжки R1 в одній смужці 13, до стовпчика 17 нічого не доходить', 'LED1 вставлено навпаки', 'Червоний дріт не на шині «+»'], answer: 0,
+        explain: 'П\'ять отворів стовпчика з\'єднані металевою смужкою. R1 стоїть уздовж смужки 13, тож обидві його ніжки — одна точка: він закорочений і нічого ні з чим не з\'єднує. Від 13 до 17 провідника немає, коло розірване. Резистор кладуть поперек смужок: зі стовпчика 13 у 17.' },
+      { title: 'Усе за схемою, а темно', symptom: 'Модуль увімкнений, деталі ті самі, що на схемі. LED1 не світить, а вольтметр на його виводах показує ≈ 5 В.',
+        build(st) {
+          const b = bench(st, { ledRev: true, label: 'Макетка: MB-102, червоний дріт у стовпчик 13, R1 1 кОм з 13 у 17, червоний LED1 катодом у 17, анодом у 18, чорний дріт зі стовпчика 18 на мінус.' });
+          tag(b.led, 0, 'Світлодіод LED1'); tag(b.res, 1, 'Резистор R1'); tag(b.blk, 2, 'Чорний дріт');
+        },
+        options: ['LED1 вставлено навпаки: катод до R1, анод до «−»', 'R1 завеликий: 1 кОм — забагато', 'Чорний дріт не на шині «−»'], answer: 0,
+        explain: 'Світлодіод пропускає струм лише від анода (довга ніжка) до катода (коротка, з боку плаского зрізу). Тут анод у смужці 18, що йде на «−»: LED закритий, струму немає, тож на R1 нуль, і вся напруга стоїть на LED. Розверніть його: анод у 17, катод у 18.' },
+      { title: 'Синій ледь жевріє', symptom: 'Замінили червоний LED1 на синій — і він ледь-ледь жевріє, хоч коло те саме, з R1 1 кОм. Червоний у цьому колі світив.',
+        build(st) {
+          const b = bench(st, { col: 'blue', supply: '3.3V', lit: 0.04, label: 'Макетка: MB-102, перемичка нижніх шин на 3,3 вольта, червоний дріт у стовпчик 13, R1 1 кОм з 13 у 17, синій LED1 анодом у 17, катодом у 18, чорний дріт на мінус.' });
+          tag(b.pm, 0, 'Модуль живлення MB-102'); tag(b.led, 1, 'Синій світлодіод LED1'); tag(b.res, 2, 'Резистор R1');
+        },
+        options: ['Перемичка нижніх шин MB-102 стоїть на 3,3 В, а не на 5 В', 'Синій LED1 вставлено навпаки', 'R1 1 кОм стоїть в одній смужці'], answer: 0,
+        explain: 'Жовта перемичка нижніх шин на модулі стоїть на 3,3 В. Синьому LED потрібні ≈ 3,3 В на сам кристал, тож резисторові майже нічого не лишається: струм — частки міліампера. Червоному (≈ 1,8 В) запасу вистачало. Переставте перемичку на 5 В: тоді I ≈ (5 − 3,3) / 1 кОм ≈ 1,7 мА.' },
+      { title: 'Резистор не допоміг', symptom: 'R1 1 кОм стоїть, як на схемі, але LED1 спалахнув і згорів, щойно ввімкнули модуль.',
+        build(st) {
+          const b = bench(st, { burnt: true, label: 'Макетка: MB-102, червоний дріт у стовпчик 13, R1 1 кОм з 13 у 17, жовта перемичка з i13 в i17 поруч із резистором, червоний LED1 анодом у 17, катодом у 18, чорний дріт на мінус.' });
+          const y = K.route(b.svg, [b.bd.at('i13'), b.bd.at('i17')], 'yellow');
+          tag(y, 0, 'Жовта перемичка з 13 у 17'); tag(b.res, 1, 'Резистор R1'); tag(b.led, 2, 'Світлодіод LED1');
+        },
+        options: ['Жовта перемичка з 13 у 17 іде в обхід R1', 'R1 замалого номіналу', 'LED1 вставлено навпаки'], answer: 0,
+        explain: 'Жовта перемичка з\'єднує стовпчики 13 і 17 напряму, паралельно R1. Струм іде дротом майже без опору, а резистор ніби вийняли: LED опиняється просто на 5 В. Перемичка паралельно резистору = резистора немає. Приберіть її.' },
+    ] });
+  })();
 
   /* ---------- sources live in a <details>: open it when a footnote is followed ---------- */
   const srcMore = $('#src-more');

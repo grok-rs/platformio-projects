@@ -514,8 +514,13 @@
       const ov = el('g', { class: 'tw-kov' }, root);
       if (o.labels) {
         const top = -46, bot = 566;                          // above the board / under it, clear of every wire
-        ref(ov, R.ldr.toParent(12.7, 0).x + 30, top, 'R1', 'start');
-        ref(ov, (R.r2.pins[1].x + R.r2.pins[2].x) / 2 + 12, top, 'R2', 'end');
+        if (f.swap) {   // LDR on the GND end (left), R2 to its right: the refs swap sides too
+          ref(ov, R.ldr.toParent(12.7, 0).x - 30, top, 'R1', 'end');
+          ref(ov, (R.r2.pins[1].x + R.r2.pins[2].x) / 2 - 12, top, 'R2', 'start');
+        } else {
+          ref(ov, R.ldr.toParent(12.7, 0).x + 30, top, 'R1', 'start');
+          ref(ov, (R.r2.pins[1].x + R.r2.pins[2].x) / 2 + 12, top, 'R2', 'end');
+        }
         ref(ov, X(18), top, 'R3');
         ref(ov, X(17) - 16, bot, 'R4', 'end');
         ref(ov, X(17) + 16, bot, 'VT1', 'start');

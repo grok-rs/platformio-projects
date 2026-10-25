@@ -967,6 +967,59 @@ button.sw:disabled { opacity: .55; cursor: not-allowed; }
 .anim-n { flex: none; font: 600 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 @media (pointer: coarse) { .anim-btn { min-width: 44px; min-height: 44px; } .anim-steps button { height: 44px; padding: 19px 0; } }
 
+/* missions (Study.missions): small goals under a lab, each ticked by a check of the lab's state */
+.missions { margin: 0; padding: 12px 18px 14px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--accent) 4%, var(--panel)); }
+.ms-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ms-head b { font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+.ms-n { font: 600 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ms-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line-2); overflow: hidden; }
+.ms-bar > span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s var(--ease); }
+.ms-reset { min-width: 32px; min-height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); cursor: pointer; font: 600 15px/1 var(--f-body); }
+.ms-reset:hover { color: var(--ink); border-color: var(--line-strong); }
+.ms-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ms-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 10px; align-items: start; margin: 0; padding: 6px 10px; border-radius: 10px; font-size: 15px; }
+.ms-dot { width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; border: 2px solid var(--line-strong); box-sizing: border-box; }
+.ms-list li.done .ms-dot { border-color: var(--accent); background: var(--accent); position: relative; }
+.ms-list li.done .ms-dot::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent-ink); font: 700 12px/1 var(--f-body); }
+.ms-list li.done .ms-t { color: var(--muted); }
+.ms-list li.just { animation: ms-pop 1.2s var(--ease); }
+@keyframes ms-pop { 0% { background: color-mix(in srgb, var(--accent) 30%, transparent); } 100% { background: transparent; } }
+.ms-hint { grid-column: 2; font-size: 14px; color: var(--muted); }
+.ms-hint summary { cursor: pointer; width: max-content; }
+.ms-hint p { margin: 4px 0 0; }
+.missions.all-done .ms-head b::after { content: " · усе виконано"; color: var(--ok); }
+@media (pointer: coarse) { .ms-reset { min-width: 44px; min-height: 44px; } }
+
+/* «Знайди несправність» (Study.hunt): numbered cases with a faulty breadboard scene */
+.hunt { margin: 24px 0; border-radius: var(--r-lg); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); overflow: hidden; }
+.hn-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.hn-head b { font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--bad); }
+.hn-head b::before { content: "🔍 "; }
+.hn-n { font: 600 13px var(--f-mono); color: var(--muted); }
+.hn-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 18px 0; }
+.hn-tabs button { min-width: 40px; min-height: 40px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.hn-tabs button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.hn-tabs button.ok { background: color-mix(in srgb, var(--ok) 14%, var(--panel)); border-color: var(--ok); }
+.hn-tabs button.ok::after { content: "✓"; margin-left: 3px; color: var(--ok); }
+.hn-case { padding: 10px 18px 16px; }
+.hn-title { margin: 4px 0 4px; font-size: 1.15rem; }
+.hn-sym { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--bad); background: color-mix(in srgb, var(--bad) 6%, var(--panel)); border-radius: 0 8px 8px 0; }
+.hn-stage { position: relative; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.hn-stage > svg { display: block; width: 100%; height: auto; max-height: 460px; margin: 0 auto; }
+.hn-stage [data-hunt] { cursor: pointer; }
+.hn-stage [data-hunt]:hover, .hn-stage [data-hunt]:focus-visible { filter: drop-shadow(0 0 4px var(--focus)); outline: none; }
+.hn-stage .hn-hit { filter: drop-shadow(0 0 5px var(--bad)); }
+.hn-stage .hn-found { filter: drop-shadow(0 0 6px var(--ok)) drop-shadow(0 0 2px var(--ok)); }
+.hn-ask { margin: 12px 0 6px; font-size: 15px; color: var(--muted); }
+.hn-opts { display: grid; gap: 6px; }
+.hn-opts .opt { text-align: left; }
+.hn-opts .opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel)); }
+.hn-opts .opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--panel)); }
+.hn-fb { margin-top: 10px; min-height: 1.5em; }
+.hn-fb.ok { color: var(--ink); padding: 8px 12px; border-left: 3px solid var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--panel)); border-radius: 0 8px 8px 0; }
+.hn-fb.no { color: var(--bad); }
+.hn-nav { margin-top: 10px; display: flex; justify-content: flex-end; }
+
 /* soft predict gate: the widget works right away; this hint points back to the question until it is answered */
 .gate-hint { display: block; width: 100%; margin: 0 0 8px; padding: 8px 14px; border: 1px dashed color-mix(in srgb, var(--hi) 55%, var(--line));
   border-radius: 10px; background: color-mix(in srgb, var(--hi) 7%, var(--panel)); color: var(--hi-ink); font: 600 14px/1.4 var(--f-body);

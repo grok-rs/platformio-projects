@@ -183,6 +183,16 @@ pre.sl-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding:
   .hub .idea:has(.idea-ctl) .fig-svg :is(.t, .m) { font-size: 14px; }
 }
 .fig-svg .dyn { transition: none; }
+/* «Знайди несправність»: the firmware next to the faulty bench; lines with data-hunt are clickable answers */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
 </style>
 </head>
 <body data-lesson="2-3">
@@ -265,6 +275,7 @@ pre.sl-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding:
     </div>
     <p class="lab-note" id="sl-note" aria-live="polite">Прошивка з delay(): кнопку S1 читають лише раз за прохід. Потримайте S1 і подивіться на «Реакцію».</p>
     <a class="lab-more" href="../../lab/#two-buttons">Повна лабораторія: стенд «Дві кнопки» з блокуючим delay() →</a>
+    <div class="missions" id="sl-ms"></div>
   </section>
 
   <figure class="anim wide" id="sl-anim" aria-labelledby="sl-anim-h">
@@ -679,6 +690,7 @@ void updateLight(uint32_t now) {
         </div>
         <p class="small" id="ovf-msg" aria-live="polite"></p>
       </div>
+      <div class="missions" id="ovf-ms"></div>
     </div>
   </section>
 
@@ -745,6 +757,8 @@ void updateLight(uint32_t now) {
       <p class="test">Надрукуйте <code>millis()</code> і <code>micros()</code> двічі поспіль: різниця в мілісекундах майже завжди 0.</p>
     </div>
     </details>
+    <!-- «Знайди несправність»: the lab's bench + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-sl"></div>
   </section>
 
   <!-- ============================================================ 08 dual figure -->
@@ -1082,13 +1096,15 @@ document.addEventListener('study:ready', () => {
     kmk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g).textContent = txt;
     return g;
   }
-  function bench(svg, { nets = false, s1 = null } = {}) {
+  // pin: { A|B|C: 'GPIOn' } moves a branch's signal wire to another board pin (only the fault cases of «Знайди несправність» use it)
+  function bench(svg, { nets = false, s1 = null, pin = {} } = {}) {
     const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
     const H = (c, r) => bb.hole(c, r);
     const strips = kmk('g', { class: 'kb-strips' }, svg);
     const p0 = H(BC.c0, 'i');
     const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
-    const out = { bb, esp, led: {}, res: {}, row: {} };
+    const out = { bb, esp, led: {}, res: {}, row: {}, wire: {} };
+    const pinOf = (b) => pin[b.k] || b.pin;
     const pinCol = (name) => BC.c0 + Math.round((esp.pins[name].x - p0.x) / KP);   // the board column of a pin
     // net overlays on the breadboard strips (breadboard view only): hovering a column highlights its net
     const strip = (net, cls, c, half) => {
@@ -1109,7 +1125,7 @@ document.addEventListener('study:ready', () => {
       out.res[b.k] = K.part('resistor', { parent: g, ohms: 220, x: r.x, y: r.y, title: `Резистор 220 Ом (червоний-червоний-коричневий): ${b.row}${b.an} і ${b.row}${b.sig}` });
       out.led[b.k] = K.part('led', { parent: g, color: b.led, x: l.x, y: l.y, leg: 40, mirror: true, title: `Світлодіод ${b.k}: анод f${b.an}, катод f${b.an - 1}` });
       pill(g, l.x - KP / 2, yL, b.k, 40);
-      strip(b.net, b.cls, b.sig, 'bottom'); strip(b.net, b.cls, pinCol(b.pin), 'bottom');
+      strip(b.net, b.cls, b.sig, 'bottom'); strip(b.net, b.cls, pinCol(pinOf(b)), 'bottom');
       strip('gnd', 'net-gnd', b.an - 1, 'bottom');
     }
     // S1: a real 6×6 tactile switch across the trench; in the lab the group is the keyboard/pointer target
@@ -1134,14 +1150,14 @@ document.addEventListener('study:ready', () => {
     const J = (c) => bb.at('j' + c);
     const Y = { lane: J(1).y + KP * 1.15, edge: J(1).y + KP * 4.67 };   // under row j / along the bottom edge
     for (const b of BENCH) {
-      const a = J(pinCol(b.pin)), z = J(b.sig);
-      w(b.via === 'row' ? [a, z] : [a, { x: a.x, y: Y[b.via] }, { x: z.x, y: Y[b.via] }, z], b.wire, b.net, b.cls);
-      w([J(b.an - 1), bb.at('bottom-' + (b.an - 1))], 'black', 'gnd', 'net-gnd');
+      const a = J(pinCol(pinOf(b))), z = J(b.sig);
+      out.wire[b.k] = w(b.via === 'row' ? [a, z] : [a, { x: a.x, y: Y[b.via] }, { x: z.x, y: Y[b.via] }, z], b.wire, b.net, b.cls);
+      out.wire['k' + b.k] = w([J(b.an - 1), bb.at('bottom-' + (b.an - 1))], 'black', 'gnd', 'net-gnd');
     }
     const a21 = bb.at('a' + pinCol('GPIO21')), aS = bb.at('a' + (BC.sw + 2)), topY = a21.y - KP * 1.25;   // lane above row a
-    w([a21, { x: a21.x, y: topY }, { x: aS.x, y: topY }, aS], 'purple', 'gpio21', 'net-in');
-    w([J(BC.sw), bb.at('bottom-' + BC.sw)], 'black', 'gnd', 'net-gnd');
-    w([J(BC.gnd), bb.at('bottom-' + BC.gnd)], 'black', 'gnd', 'net-gnd');
+    out.wire.s1 = w([a21, { x: a21.x, y: topY }, { x: aS.x, y: topY }, aS], 'purple', 'gpio21', 'net-in');
+    out.wire.s1g = w([J(BC.sw), bb.at('bottom-' + BC.sw)], 'black', 'gnd', 'net-gnd');
+    out.wire.gnd = w([J(BC.gnd), bb.at('bottom-' + BC.gnd)], 'black', 'gnd', 'net-gnd');
     out.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');   // over the split of the «−» rail
     // crop: the 63-column breadboard up to S1
     const x1 = H(BC.sw + 5, 'a').x;
@@ -1495,6 +1511,25 @@ document.addEventListener('study:ready', () => {
     new ResizeObserver(() => { sizeCanvas(); sim.draw(); }).observe(stage);
     redraws.push(() => sim.draw());
     reset(); modeNote(); syncPlay();
+
+    /* ---- missions: each check reads this model (cfg, m) ---- */
+    Study.missions($('#sl-ms'), { key: 'sl', items: [
+      { id: 'slow', text: 'У режимі delay() потримайте S1, доки плата її помітить: реакція має бути довша за 50&nbsp;мс.',
+        hint: 'Натисніть «Тримати S1» або саму кнопку на макетці й не відпускайте, поки біля S1 не з’явиться ✓. Якщо вийшло швидко, ви влучили в перевірку: спробуйте ще раз.',
+        check: () => cfg.mode === 'delay' && m.lat != null && m.lat > 50 },
+      { id: 'miss', text: 'Там само, у delay(), зробіть натискання, яке плата пропустить.',
+        hint: 'Клацніть S1 коротко, поки кільце ядра показує «спить». Кнопку відпустять раніше, ніж loop() дійде до pollButton().',
+        check: () => cfg.mode === 'delay' && m.missed > 0 },
+      { id: 'fast', text: 'Перейдіть на millis() і отримайте реакцію на S1 менше за 5&nbsp;мс.',
+        hint: 'Кнопка «millis()» під таймлайном, потім знову натисніть S1. Тепер кожен прохід loop() читає кнопку.',
+        check: () => cfg.mode === 'millis' && m.lat != null && m.lat < 5 },
+      { id: 'three', text: 'Додайте третю задачу (LED C) так, щоб LED A і B лишилися точно у своєму ритмі.',
+        hint: 'У delay() кожна задача подовжує прохід, і «LED A: задано → є» червоніє. З millis() третя задача — лише ще один короткий if. Дочекайтеся, поки LED C блимне.',
+        check: () => cfg.mode === 'millis' && cfg.c && m.ev.C.length >= 3 },
+      { id: 'all', text: 'Увімкніть «Випадкові натискання» і зловіть 5 натискань без жодного пропуску.',
+        hint: 'Лише з millis(): у delay() частина коротких натискань проскакує між перевірками. Якщо пропуск уже є, перемкніть стиль прошивки — лічильники почнуться з нуля.',
+        check: () => cfg.mode === 'millis' && cfg.auto && m.caught >= 5 && m.missed === 0 },
+    ] });
   })();
 
   /* =====================================================================
@@ -2130,6 +2165,20 @@ document.addEventListener('study:ready', () => {
   }));
   $('#ovf-e').addEventListener('input', (e) => { ovf.e = +e.target.value; ovfDraw(); });
   ovfDraw();
+  {
+    const ovfR = () => { const { last, e } = ovf; const now = u32(last + e); return { old: now >= u32(last + 1000), truth: e >= 1000 }; };
+    Study.missions($('#ovf-ms'), { key: 'ovf', items: [
+      { id: 'even', text: 'Поставте <code>last = 5 000</code> і знайдіть мить, коли обидві форми вперше кажуть «так».',
+        hint: 'Далеко від нуля переповнення немає: обидві форми спрацьовують рівно на 1000&nbsp;мс.',
+        check: () => ovf.last === 5000 && ovf.e === 1000 },
+      { id: 'early', text: 'Для «за 500 мс до нуля» знайдіть найпізнішу мить, коли стара форма <code>now &gt;= last + 1000</code> ще спрацьовує зарано.',
+        hint: 'Тут last + 1000 уже «загорнулося» в 500, а now ще величезний. Посувайте повзунок угору, поки «✗ помилка» не зміниться на «✓», і поверніться на крок назад.',
+        check: () => { const r = ovfR(); return ovf.last === 4294966796 && ovf.e === 490 && r.old && !r.truth; } },
+      { id: 'stuck', text: 'Тепер змусьте стару форму «застрягнути»: інтервал минув, а вона каже «ні».',
+        hint: 'Пресет «за 1200 мс до нуля» і повзунок понад 1200&nbsp;мс: now перейшов через нуль і став меншим за last + 1000.',
+        check: () => { const r = ovfR(); return !r.old && r.truth; } },
+    ] });
+  }
 
   /* =====================================================================
      State machine: traffic light, one variable + the moment we entered it
@@ -2163,6 +2212,92 @@ document.addEventListener('study:ready', () => {
      ===================================================================== */
   // the same Kit bench as the lab; wires and strips carry data-net, so Schem.link highlights them with the schematic
   bench($('#bb-loop'), { nets: true });
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-sl): the lab's bench (same layout as 08) + the firmware; exactly one fault per case.
+     Lines of code and Kit parts/wires with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  const hkCode = (stage, rows) => {
+    const box = document.createElement('div');
+    box.className = 'hk-code';
+    box.innerHTML = '<div class="hk-h">src/main.cpp</div><pre>' + rows.map((r) => {
+      const [txt, k] = Array.isArray(r) ? r : [r, null];
+      return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+    }).join('') + '</pre>';
+    stage.appendChild(box);
+  };
+  const hkBench = (stage, label, opts = {}) => {
+    const s = K.svg(stage, '0 0 10 10', label);
+    s.classList.add('kit-bench');
+    return bench(s, opts);
+  };
+  const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+  const rem = (t) => `<span class="rem">${esc(t)}</span>`;
+  const BENCH_OK = 'Макетка як у розділі 08: плата в макетці; LED A (GPIO4, синій дріт), B (GPIO5, зелений) і C (GPIO15, жовтий) через 220 Ом, катоди на шині мінус; кнопка S1 між GPIO21 (фіолетовий дріт) і шиною мінус.';
+  Study.hunt($('#hunt-sl'), { key: '2-3', cases: [
+    { title: 'Кнопка через раз',
+      symptom: 'Довге натискання S1 плата помічає, а коротке приблизно через раз губиться. LED A і B блимають справно.',
+      build(st) {
+        const kb = hkBench(st, BENCH_OK);
+        hkTag(kb.wire.s1, 2);
+        hkCode(st, ['void loop() {', ['  pollButton();   ' + rem('// S1'), 1],
+          '  toggle(LED_A);', ['  delay(500);', 0], '  toggle(LED_B);', ['  delay(200);', 0], '}']);
+      },
+      options: ['<code>delay()</code> у <code>loop()</code>: поки програма спить, S1 ніхто не читає',
+        '<code>pollButton()</code> має стояти в кінці <code>loop()</code>, а не на початку',
+        'Фіолетовий дріт S1 іде не на GPIO21'],
+      answer: 0,
+      explain: 'Прохід триває 500 + 200 = 700&nbsp;мс, і майже весь цей час <code>loop()</code> спить. S1 читають раз за прохід, тож коротке натискання проскакує між двома перевірками. Переставлення <code>pollButton()</code> нічого не змінить. Допоможе неблокуючий <code>loop()</code> з <code>millis()</code>: тоді кнопку читає кожен прохід, як у лабораторії.' },
+    { title: 'Збій на 50-й день',
+      symptom: 'Плата працює тижнями. Приблизно раз на 49,7 доби LED A на мить шалено мерехтить, а потім годинами не блимає зовсім.',
+      build(st) {
+        hkBench(st, BENCH_OK);
+        hkCode(st, ['uint32_t lastA = 0;', 'void loop() {', ['  uint32_t now = millis();', 2], ['  if (now &gt;= lastA + 500) {', 0],
+          ['    lastA += 500;', 1], '    toggle(LED_A);', '  }', '}']);
+      },
+      options: ['<code>now &gt;= lastA + 500</code>: сума переповнюється біля 2³²',
+        '<code>lastA += 500</code>: треба писати <code>lastA = now</code>',
+        '<code>uint32_t now</code>: треба брати <code>int</code>'],
+      answer: 0,
+      explain: 'Коли <code>lastA</code> близько до 2³², сума <code>lastA + 500</code> «загортається» в мале число, і умова стає істинною в кожному проході: LED мерехтить. Потім уже <code>lastA</code> переходить через нуль і забігає далеко вперед, а <code>now</code> ще довго до нього не доросте. Віднімання <code>now - lastA &gt;= 500</code> рахує відстань по колу і правильне навіть через нуль. <code>int</code> зробив би лише гірше: він знаковий і переповнюється вдвічі раніше.' },
+    { title: 'Ритм повзе',
+      symptom: 'LED A має перемикатися рівно кожні 500&nbsp;мс. У <code>loop()</code> є повільна <code>readSensor()</code> (≈&nbsp;40&nbsp;мс). За годину LED A помітно відстає від секундоміра.',
+      build(st) {
+        const kb = hkBench(st, BENCH_OK);
+        hkTag(kb.wire.A, 2);
+        hkCode(st, ['void loop() {', '  uint32_t now = millis();', '  readSensor();   ' + rem('// ≈ 40 мс'),
+          ['  if (now - lastA &gt;= 500) {', 1], ['    lastA = now;', 0], '    toggle(LED_A);', '  }', '}']);
+      },
+      options: ['<code>lastA = now</code>: запізнення кожного проходу додається до наступного періоду',
+        '<code>now - lastA &gt;= 500</code>: треба порівнювати <code>now &gt;= lastA + 500</code>',
+        'Синій дріт LED A стоїть не на GPIO4'],
+      answer: 0,
+      explain: 'Перевірка спрацьовує на першому проході після межі, тобто на 0–40&nbsp;мс пізніше. <code>lastA = now</code> запам’ятовує цей пізній момент, і запізнення накопичується з кожним періодом. <code>lastA += 500</code> запам’ятовує момент, коли подія <i>мала</i> статися, тому сітка 0, 500, 1000… не зсувається. Віднімання тут правильне, а форма з сумою ще й ламається біля переповнення.' },
+    { title: 'LED C мовчить',
+      symptom: 'Увімкнули третю задачу: LED A і B блимають, а жовтий LED C не світиться жодного разу. Сам світлодіод справний.',
+      build(st) {
+        const kb = hkBench(st, 'Макетка: плата в макетці; LED A (GPIO4, синій дріт) і B (GPIO5, зелений) через 220 Ом; жовтий дріт LED C іде зі стовпчика 30 (GPIO16) уздовж нижнього краю до резистора і жовтого світлодіода; катоди на шині мінус; кнопка S1 між GPIO21 і шиною мінус.', { pin: { C: 'GPIO16' } });
+        hkTag(kb.wire.C, 0); hkTag(kb.led.C, 1); hkTag(kb.wire.kC, 2);
+        hkCode(st, ['constexpr uint8_t LED_A = 4;', 'constexpr uint8_t LED_B = 5;', 'constexpr uint8_t LED_C = 15;', 'void setup() {', '  pinMode(LED_C, OUTPUT);', '}']);
+      },
+      options: ['Жовтий дріт стоїть у стовпчику GPIO16, а код керує GPIO15',
+        'LED C вставлено навпаки', 'Катод LED C не з’єднаний із шиною мінус'],
+      answer: 0,
+      explain: 'Жовтий дріт виходить зі стовпчика 30, а це GPIO16. Код перемикає GPIO15 (стовпчик 29), де нічого не під’єднано. LED C стоїть правильно: анод (довга ніжка) у стовпчику резистора, катод чорним дротом на шині мінус. Перед тим як шукати баг у коді, звірте номер стовпчика з підписом піна на платі.' },
+    { title: 'Лічильник летить угору',
+      symptom: 'Одне коротке натискання S1, а лічильник <code>presses</code> стрибає на кілька тисяч.',
+      build(st) {
+        const kb = hkBench(st, BENCH_OK);
+        hkTag(kb.btn, 1);
+        hkCode(st, ['void setup() {', ['  pinMode(S1, INPUT_PULLUP);', 2], '}', 'void loop() {',
+          '  bool down = digitalRead(S1) == LOW;', ['  if (down) presses++;', 0], '  ' + rem('// інші задачі: millis()'), '}']);
+      },
+      options: ['<code>if (down)</code> рахує рівень, а не натискання',
+        'Кнопці S1 бракує зовнішнього резистора підтяжки',
+        '<code>INPUT_PULLUP</code> треба замінити на <code>INPUT</code>'],
+      answer: 0,
+      explain: 'Поки палець на кнопці, кожен прохід бачить LOW і додає 1, а неблокуючий <code>loop()</code> робить тисячі проходів за секунду. Натискання — це <b>зміна</b>: <code>if (down &amp;&amp; !wasDown) presses++; wasDown = down;</code>. Внутрішньої підтяжки <code>INPUT_PULLUP</code> (≈&nbsp;45&nbsp;кОм) кнопці досить, а з <code>INPUT</code> вхід «висів» би в повітрі.' },
+  ] });
 });
 </script>
 </body>

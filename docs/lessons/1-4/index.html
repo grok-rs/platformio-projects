@@ -179,6 +179,9 @@ ol.fixes > li { margin-bottom: 8px; }
 .kit-scene .kit-strip.net-on { fill: currentColor; fill-opacity: .35; }
 .kit-scene g[data-net].net-on { filter: drop-shadow(0 0 calc(var(--k, 2) * 3px) currentColor) drop-shadow(0 0 calc(var(--k, 2) * 3px) currentColor); }
 #bb-btn .kit-button { cursor: pointer; }
+/* «Знайди несправність»: the sketch line under each faulty bench */
+.hn-code { margin: 8px 0 0; padding: 6px 12px; font: 600 15px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.hn-code [data-hunt] { border-radius: 4px; padding: 0 2px; box-shadow: inset 0 -2px 0 var(--line-strong); }
 #pa-svg { max-width: 640px; }
 #pa-svg .pb-t { font-size: 17.5px; }
 .pb-chip { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
@@ -315,6 +318,7 @@ ol.fixes > li { margin-bottom: 8px; }
     <p class="pb-code"><code id="pb-code">pinMode(7, INPUT);</code></p>
     <p class="lab-note" id="pb-note" aria-live="polite">INPUT без підтяжки: пін ні до чого не притягнутий і «плаває» — digitalRead віддає то 0, то 1.</p>
     <a class="lab-more" href="../../pull-resistors/">Повна лабораторія: підтяжка входу →</a>
+    <div class="missions" id="pb-ms"></div>
   </section>
 
   <figure class="anim wide" id="pu-anim" aria-labelledby="pu-anim-h">
@@ -824,6 +828,7 @@ ol.fixes > li { margin-bottom: 8px; }
         <p class="test">Клацніть TX у розпіновці вище й прочитайте картку.</p>
       </div>
     </details>
+    <div class="hunt" id="hunt-btn"></div>
   </section>
 
   <!-- ============================================================ 08 circuit -->
@@ -1252,7 +1257,9 @@ document.addEventListener('study:ready', () => {
         + `<span class="verdict vd-${p.verdict}">${escH(vtxt)}</span>${cls ? `<ul class="cls">${cls}</ul>` : ''}`
         + `${fn ? `<p class="small"><b>Аналогові:</b> ${escH(fn)}</p>` : ''}<p>${escH(p.note || '')}</p>${srcLine(p.fact)}${use}`;
     }
+    const seen = new Set(); // GPIOs the student clicked (missions)
     function pick(g, user) {
+      if (user && g._pin.gpio != null) seen.add(g._pin.gpio);
       if (sel) sel.classList.remove('sel');
       sel = g; g.classList.add('sel');
       pinEls.forEach((x) => x.setAttribute('tabindex', x === g ? '0' : '-1'));
@@ -1282,12 +1289,12 @@ document.addEventListener('study:ready', () => {
       const g7 = pinEls.get('P1-7'); if (g7) pick(g7, false);
     }).catch(() => { card.innerHTML = '<p>Не вдалося завантажити розпіновку. Оновіть сторінку.</p>'; });
     window.addEventListener('resize', layout);
-    return { get pins() { return PINS; } };
+    return { get pins() { return PINS; }, seen, active };
   })();
 
   /* the button demo on the chosen pin: voltage, digitalRead, current, floating input */
   const demo = (() => {
-    const st = { mode: 'in', pressed: false, hand: false, gpio: 7 };
+    const st = { mode: 'in', pressed: false, hand: false, gpio: 7, handOne: false }; // handOne: a 1 caught by the hand (missions)
     const hist = [], N = 300, DT = 0.01;
     let vFloat = 1.6, tS = 0, acc = 0, lastNote = '';
     const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
@@ -1310,6 +1317,7 @@ document.addEventListener('study:ready', () => {
       v = Math.max(0, Math.min(3.4, v));
       const d = v >= VIH ? 1 : v <= VIL ? 0 : (v > 1.6 + (Math.random() - 0.5) * 0.3 ? 1 : 0);
       hist.push({ v, d }); if (hist.length > N) hist.shift();
+      if (d && st.hand && st.mode === 'in' && !st.pressed) st.handOne = true;
     }
     for (let k = 0; k < N; k++) sample();
     function scope() {
@@ -1399,6 +1407,8 @@ document.addEventListener('study:ready', () => {
     window.addEventListener('resize', () => scope());
     render();
     return {
+      st,
+      get read() { return hist[hist.length - 1].d; },
       setPin(p, ok) {
         if (!ok) {
           lastNote = `${p.gpio == null ? p.label : 'GPIO' + p.gpio} для кнопки не годиться: ${p.note || ''} Кнопка лишається на GPIO${st.gpio}.`;
@@ -1410,6 +1420,27 @@ document.addEventListener('study:ready', () => {
     };
   })();
   void bench;
+  // missions: each check reads the lab's own state (bench.seen / bench.active, demo.st / demo.read)
+  {
+    const pinOf = (g) => (bench.pins ? bench.pins.pins.find((p) => p.gpio === g) : null);
+    Study.missions($('#pb-ms'), { key: 'pins', items: [
+      { id: 'strap', text: 'Увімкніть фільтр «Strapping» і клацніть на платі кожен з чотирьох strapping-пінів.',
+        hint: 'Це GPIO0, 3, 45 і 46: їхній рівень у момент скидання вибирає режим запуску. GPIO3 і 46 — на гребінці P1, GPIO0 і 45 — на P2.',
+        check: () => bench.active.has('strapping') && [0, 3, 45, 46].every((g) => bench.seen.has(g)) },
+      { id: 'free', text: 'Під\'єднайте кнопку SW1 до іншого вільного (зеленого) піна — не GPIO7.',
+        hint: 'Увімкніть «Вільні» і клацніть будь-який зелений пін, наприклад GPIO4 чи GPIO21. Підпис GPIO біля кнопки зміниться.',
+        check: () => { const p = pinOf(demo.st.gpio); return !!p && p.verdict === 'ok' && demo.st.gpio !== 7; } },
+      { id: 'float', text: 'У режимі INPUT, не натискаючи кнопку, піднесіть руку до дроту й зловіть <code>digitalRead</code> = 1.',
+        hint: 'Режим INPUT, перемикач «Рука біля дроту». Пін без підтяжки ловить заваду, і рівень стрибає між 0 і 1.',
+        check: () => demo.st.handOne },
+      { id: 'pullup', text: 'Увімкніть INPUT_PULLUP і натисніть кнопку: <code>digitalRead</code> має віддати 0.',
+        hint: 'З підтяжкою вгору кнопка до GND тягне пін донизу: натиснуто → 0, відпущено → 1.',
+        check: () => demo.st.mode === 'pu' && demo.st.pressed && demo.read === 0 },
+      { id: 'same', text: 'Знайдіть режим, у якому натиснута кнопка дає те саме, що й відпущена.',
+        hint: 'Кнопка з\'єднує пін із GND. Яка вбудована підтяжка тягне пін туди ж?',
+        check: () => demo.st.mode === 'pd' && demo.st.pressed },
+    ] });
+  }
 
   /* ==== animation: how a pull-up works ==== */
   {
@@ -1888,6 +1919,88 @@ document.addEventListener('study:ready', () => {
   btnPart.addEventListener('click', (e) => { e.stopPropagation(); $('#sw-press').click(); });
   updateSw();
   setTimeout(updateSw, 0); // again after Schem.link has generated the net legend
+  /* ==== 07 «Знайди несправність»: the lesson's bench (as #bb-btn) with exactly one fault per case ==== */
+  {
+    // Correct: GPIO7 j24 → yellow along row j → j12 · SW1 e12/f12 | e14/f14 · black a14 → a18 (GND R1) · GPIO15 j25 → blue
+    // → j10 · R1 h10–h6 · LED f6/f5 · black j5 → − rail · GND j39 → − rail · bridge 31→33. f = one fault:
+    //   sigTop: the button signal comes from that column of row a (GPIO35 = R13 → 30, GPIO0 = R14 → 31) along the lane
+    //   above row a; gndCol: column of the button's black jumper in row a (12 = the same leg pair as the signal);
+    //   btnRow: the row of SW1's pin 1a ('b' = the whole button in the top half, not across the trench).
+    let hn = 0;
+    const scene = (stage, f, label) => {
+      const s = K.svg(stage, '0 -80 1150 700', label);
+      s.classList.add('kit-scene');
+      const id = `hn-cut-${++hn}`;
+      const defs = S.svg('defs', {}, s);
+      const lg = S.svg('linearGradient', { id: id + 'g', gradientUnits: 'userSpaceOnUse', x1: 1050, x2: 1148, y1: 0, y2: 0 }, defs);
+      S.svg('stop', { offset: 0, 'stop-color': '#fff' }, lg); S.svg('stop', { offset: 1, 'stop-color': '#000' }, lg);
+      const mask = S.svg('mask', { id, maskUnits: 'userSpaceOnUse', x: -100, y: -100, width: 2000, height: 900 }, defs);
+      S.svg('rect', { x: -100, y: -100, width: 2000, height: 900, fill: `url(#${id}g)` }, mask);
+      const bb = K.part('breadboard', { parent: s });
+      bb.setAttribute('mask', `url(#${id})`);
+      const p0 = bb.hole(C0, 'i');
+      K.part('esp32s3', { parent: s, x: p0.x, y: p0.y, rot: -90 });
+      const b1 = bb.hole(12, f.btnRow || 'e');
+      const btn = K.part('button', { parent: s, x: b1.x, y: b1.y });
+      const r = K.part('resistor', { parent: s, ohms: 220, span: 4, x: bb.hole(6, 'h').x, y: bb.hole(6, 'h').y });
+      const l6 = bb.hole(6, 'f');
+      const led = K.part('led', { parent: s, color: 'red', x: l6.x, y: l6.y, leg: 40, mirror: true });
+      const lane = bb.hole(1, 'j').y + K.P * 1.15, top = bb.hole(1, 'a').y - K.P * 1.15;
+      let sig;
+      if (f.sigTop) { const a = bb.at('a' + f.sigTop), e = bb.at('a12'); sig = K.route(s, [a, { x: a.x, y: top }, { x: e.x, y: top }, e], 'yellow'); }
+      else sig = K.route(s, [bb.at('j' + c7), bb.at('j12')], 'yellow');
+      const gnd = K.route(s, [bb.at('a' + (f.gndCol || 14)), bb.at('a' + C0)], 'black');
+      const h15 = bb.at('j' + c15), h10 = bb.at('j10');
+      K.route(s, [h15, { x: h15.x, y: lane }, { x: h10.x, y: lane }, h10], 'blue');
+      K.route(s, [bb.at('j5'), bb.at('bottom-5')], 'black');
+      K.route(s, [bb.at('j' + cG), bb.at('bottom-' + cG)], 'black');
+      K.route(s, [bb.at('bottom-31'), bb.at('bottom-33')], 'black');
+      const swX = btn.pins['1a'].x + K.P, lc = (led.pins.A.x + led.pins.K.x) / 2, rc = (r.pins[1].x + r.pins[2].x) / 2;
+      callout(s, swX, -24, 'SW1', { x: swX, y: Math.min(btn.pins['1a'].y, top) - 20 });
+      callout(s, rc, 548, 'R1', { x: rc, y: r.pins[1].y + 18 }, true);
+      callout(s, lc, -24, 'LED1', { x: lc, y: led.pins.A.y - 140 });
+      keepText(s);
+      // the sketch line that goes with this bench
+      const pre = document.createElement('pre');
+      pre.className = 'hn-code';
+      pre.innerHTML = `pinMode(<span class="hn-pin">${f.gpio ?? 7}</span>, <span class="hn-mode">${f.mode || 'INPUT_PULLUP'}</span>);  <span class="c">// SW1 до GND</span>`;
+      stage.append(pre);
+      return { btn, sig, gnd, code: pre.querySelector('.hn-mode'), pin: pre.querySelector('.hn-pin') };
+    };
+    const tag = (el, i) => { if (el) el.setAttribute('data-hunt', String(i)); };
+    Study.hunt($('#hunt-btn'), { key: '1-4', cases: [
+      { title: 'Плата зависає',
+        symptom: 'Після прошивки плата зависає або перезавантажується по колу, щойно програма налаштовує пін кнопки. Без кнопки в коді все працює.',
+        build: (st) => { const B = scene(st, { sigTop: C0 + 12, gpio: 35 }, 'Макетка з платою YD-ESP32-S3: жовтий дріт від виводу 35 (стовпчик 30, ряд a) іде вздовж смуги над рядом a до кнопки SW1; чорна перемичка a14 → a18 (GND); світлодіод на GPIO15 через R1.');
+          tag(B.sig, 0); tag(B.btn, 1); tag(B.gnd, 2); },
+        options: ['Кнопку під\'єднано до GPIO35 — його зайняла Octal PSRAM', 'Кнопка стоїть не через канал', 'Чорний дріт не на GND'], answer: 0,
+        explain: 'На модулі N16R8 виводи GPIO35–37 зайняті Octal PSRAM. <code>pinMode(35, …)</code> перемикає лінію пам\'яті — і чип втрачає PSRAM прямо під час роботи. Беріть зелений пін із розпіновки, наприклад GPIO7.' },
+      { title: 'Програма не стартує',
+        symptom: 'Кнопка працює: натиснуто → 0. Але якщо тримати її під час увімкнення чи RST, програма не запускається — плата чекає нову прошивку.',
+        build: (st) => { const B = scene(st, { sigTop: C0 + 13, gpio: 0 }, 'Макетка з платою: жовтий дріт від виводу 0 (стовпчик 31, ряд a) іде вздовж смуги над рядом a до кнопки SW1; чорна перемичка a14 → a18 (GND); світлодіод на GPIO15 через R1.');
+          tag(B.sig, 0); tag(B.code, 1); tag(B.btn, 2); },
+        options: ['Кнопка на GPIO0 — strapping-піні, що вибирає режим запуску', 'INPUT_PULLUP тут зайвий', 'Кнопку вставлено навпаки'], answer: 0,
+        explain: 'GPIO0 — strapping-пін: його рівень читається в момент скидання. 0 на GPIO0 (і 0 на GPIO46, як за замовчуванням) — режим завантаження прошивки. Це та сама лінія, що й кнопка BOOT. Для своєї кнопки беріть вільний пін.' },
+      { title: 'LED живе своїм життям',
+        symptom: 'Поки кнопку не чіпають, світлодіод спалахує як попало, а коли піднести руку — ще частіше. Натиснута кнопка — LED світить рівно.',
+        build: (st) => { const B = scene(st, { mode: 'INPUT' }, 'Макетка з платою: кнопка SW1 через канал, жовтий дріт від GPIO7 до кнопки, чорна перемичка до GND, світлодіод на GPIO15 через R1. Під макеткою рядок коду pinMode(7, INPUT).');
+          tag(B.code, 0); tag(B.sig, 1); tag(B.btn, 2); },
+        options: ['<code>INPUT</code> без підтяжки: відпущена кнопка лишає пін «плавати»', 'Жовтий дріт не на GPIO7', 'Кнопка стоїть не через канал'], answer: 0,
+        explain: 'Відпущена кнопка ні до чого пін не під\'єднує, а <code>INPUT</code> не має підтяжки — пін ловить завади, і <code>digitalRead</code> віддає то 0, то 1. <code>INPUT_PULLUP</code> тримає його на 3,3&nbsp;В, поки кнопку не натиснуто.' },
+      { title: 'Завжди натиснуто',
+        symptom: 'Світлодіод світить постійно, <code>digitalRead(7)</code> завжди 0 — натискай кнопку чи ні.',
+        build: (st) => { const B = scene(st, { gndCol: 12 }, 'Макетка з платою: жовтий дріт від GPIO7 приходить у стовпчик 12, і чорна перемичка до GND теж іде з a12 — у той самий стовпчик; кнопка SW1 через канал у стовпчиках 12 і 14.');
+          tag(B.gnd, 0); tag(B.btn, 1); tag(B.code, 2); },
+        options: ['Чорний дріт у стовпчику 12 — на тій самій парі ніжок, що й сигнал', 'Кнопку треба повернути', 'Потрібен INPUT_PULLDOWN'], answer: 0,
+        explain: 'Ніжки кнопки, що стоять через канал навпроти (стовпчик 12: e12 і f12), з\'єднані всередині завжди. Тут і GPIO7, і GND прийшли в стовпчик 12 — пін назавжди з\'єднаний із землею, кнопка в обході. GND має йти на другу пару ніжок: a14.' },
+      { title: 'Кнопка мертва',
+        symptom: 'Світлодіод не світить ніколи, <code>digitalRead(7)</code> завжди 1. Кнопка ціла, мультиметр показує, що вона замикається.',
+        build: (st) => { const B = scene(st, { btnRow: 'b' }, 'Макетка з платою: кнопка SW1 стоїть повністю у верхній половині (ряди b–e), а жовтий дріт від GPIO7 приходить у j12 — у нижню половину стовпчика 12; чорна перемичка a14 → a18.');
+          tag(B.btn, 0); tag(B.sig, 1); tag(B.code, 2); },
+        options: ['Кнопка не стоїть через канал: її ніжки не дістають до смуги з жовтим дротом', 'Жовтий дріт не на GPIO7', 'INPUT_PULLUP тримає пін на 1 навіть при натисканні'], answer: 0,
+        explain: 'Смуги a–e і f–j одного стовпчика розділені каналом. Кнопка вся у верхній половині, а GPIO7 приходить у j12 — у нижню, тож кнопка до піна не під\'єднана. Ставте кнопку через канал: ніжки в e і f.' },
+    ] });
+  }
 });
 </script>
 </body>

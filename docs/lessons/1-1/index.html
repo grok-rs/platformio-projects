@@ -152,6 +152,12 @@
 .bbx-part:focus { outline: none; }
 .bbx-part:focus-visible .bbx-hl, .bbx-part.picked .bbx-hl { stroke: var(--accent); stroke-width: 6; stroke-dasharray: 12 8; }
 .bbx-hl { fill: transparent; stroke: transparent; }
+/* «Знайди несправність»: the split-rail gap is an invisible target until it is found */
+#hunt-11 .hn-stage > svg { max-height: 600px; }
+.hn-stage .hn-gap { fill: transparent; stroke: transparent; stroke-width: 6; stroke-dasharray: 12 8; }
+.hn-stage .hn-gap:hover, .hn-stage .hn-gap:focus-visible { stroke: var(--focus); }
+.hn-stage .hn-gap.hn-found { stroke: var(--ok); }
+.hn-stage .hn-gap.hn-hit { stroke: var(--bad); }
 .probe-lead { fill: none; stroke-width: 3; stroke-linecap: round; }
 .pl-red { stroke: #d0312d; }
 .pl-blk { stroke: var(--ink); }
@@ -338,6 +344,7 @@
     <details class="more bx-more"><summary>Як влаштована модель</summary>
       <p>Вольтметр — 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>; запобіжник F1 гнізда VΩmA — 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>, межа mA — 400&nbsp;мА<sup class="cite" data-fact="ut136-ma-range"></sup>. Шунт амперметра 2&nbsp;Ом — <b>припущення</b>: інструкція його не наводить<sup class="cite" data-fact="ut136-ammeter-burden"></sup>. Червоний LED: 1,9&nbsp;В при 10&nbsp;мА<sup class="cite" data-fact="led-red-3mm-vf"></sup>, абсолютний максимум 30&nbsp;мА<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>; у моделі він «згорає», коли струм у кілька разів більший (понад 100&nbsp;мА). Резистор розрахований на 0,25&nbsp;Вт<sup class="cite" data-fact="res-axial-quarter-watt"></sup>. Дисплей показує крапку, як справжній прилад; у тексті ми пишемо кому.</p>
     </details>
+    <div class="missions" id="bx-ms"></div>
     <a class="lab-more" href="#w-meter">Повна лабораторія: мультиметр із місіями й перетягуванням щупів →</a>
   </section>
 
@@ -846,6 +853,8 @@
         <p class="test">Продзвонка між двома отворами одного стовпчика пищить. Задача «Знайди коротке» нижче.</p>
       </div>
     </div>
+    <!-- «Знайди несправність»: six faulty benches (Kit parts, tidy layout), drawn by the page script (huntL11) -->
+    <div class="hunt" id="hunt-11"></div>
   </section>
 
   <!-- ============================================================ 08 dual figure + breadboard internals -->
@@ -1890,6 +1899,106 @@ document.addEventListener('study:ready', () => {
       e.currentTarget.textContent = on ? 'Показати помилку' : 'Показати виправлення';
       $('#bbx-out').textContent = on ? `Виправлено: дріт з «+» у стовпчик ${C.r1}, R1 — зі стовпчика ${C.r1} у ${C.r2} (різні смужки), LED1 — у ${C.la} і ${C.lk}. Петля: +5 В → ${C.r1} → R1 → ${C.r2} → LED1 → ${C.lk} → GND.` : 'Знайдіть деталь, що стоїть неправильно.';
     });
+  })();
+
+  /* =================================================================== «Знайди несправність»: six faulty benches
+     Every scene is the S1 bench of section 08 (MB-102 → bottom rails 5 В → red jumper → R1 220 Ом → LED1 → black jumper →
+     «−»), drawn tidily with Kit parts, with exactly one fault. Test leads: red probe in VΩmA (or 10A), black in COM; the
+     probes stand on the board, the meter lies above it. data-hunt = index of the option the clicked part stands for. */
+  (function huntL11() {
+    const host = $('#hunt-11'); if (!host) return;
+    const MS = 0.2, PS = 0.36; // meter and probe scale
+    const RED = '#d42a2a', BLK = '#26272a';
+    // the board, the module and the S1 parts; c = { p: «+» jumper column, r1, r2: R1 ends, la, lk: LED anode / cathode }
+    function bench(stage, o) {
+      const to = o.to || 29, top = o.top ?? -40, right = (to + 2.4) * P;
+      const svg = K.svg(stage, `-115 ${top} ${Math.round(right + 115)} ${600 - top}`, o.label);
+      svg.id = 'hn11-svg';
+      const { bb, pm } = L11Kit.board(svg, { to, pmTitle: 'Модуль живлення MB-102, перемичка нижніх шин на 5 В' });
+      pm.set({ on: true, top: 'OFF', bottom: '5V' });
+      tagAt(svg, pm.pins['B+'].x + P / 2, 'MB-102 · 5 В');
+      const c = o.c, H = (col, r) => bb.hole(col, r);
+      const part = { svg, bb, pm, H };
+      part.red = K.route(svg, [bb.at('bottom+' + c.p), bb.at('j' + c.p)], 'red');
+      const r0 = H(Math.min(c.r1, c.r2), 'h');
+      part.res = K.part('resistor', { parent: svg, ohms: 220, span: Math.abs(c.r2 - c.r1), x: r0.x, y: r0.y, title: 'R1 220 Ом' });
+      const l0 = H(c.la, 'f');
+      part.led = K.part('led', { parent: svg, color: 'red', x: l0.x, y: l0.y, leg: 40, mirror: c.lk < c.la, title: 'LED1 червоний' });
+      part.led.set({ on: o.lit || 0 });
+      part.blk = K.route(svg, [bb.at('j' + c.lk), bb.at('bottom-' + c.lk)], 'black');
+      return part;
+    }
+    // a test probe: tip on p, handle leaning by `lean` degrees (+ right, − left)
+    const probe = (svg, p, colour, lean) => K.part('probe', { parent: svg, color: colour, x: p.x, y: p.y, rot: 180 + lean, scale: PS });
+    // the UT136C+ above the board (x = its left edge, jy = height of its jacks) and the two leads to the probe ends
+    function meter(b, x, jy, st, leads) {
+      const y = jy - MS * 1585;
+      const M = L11Kit.meter(b.svg, { x, y, scale: MS, fuseView: true });
+      M.set({ v: st.dial, dial: st.dial, display: st.display, unit: st.unit, dc: true, fuse: st.fuse || 'ok' });
+      const jack = (k) => ({ x: x + MS * M.mm.pins[k].x, y: y + MS * M.mm.pins[k].y });
+      const g = el('g', {}, b.svg);
+      const w = leads.map(([pr, k, hex, lift]) => K.wire(g, pr.pins.end, jack(k), hex, { width: 10, ends: ['none', 'banana'], lift: lift ?? 30 }));
+      b.svg.insertBefore(g, leads[0][0]); // leads under the probes
+      return { M, w };
+    }
+    const tag = (n, i, label) => { n.setAttribute('data-hunt', String(i)); if (label) n.setAttribute('aria-label', label); return n; };
+    const group = (svg, nodes) => { const g = el('g', {}, svg); nodes.forEach((n) => g.appendChild(n)); return g; };
+    const S1 = { p: 19, r1: 19, r2: 23, la: 23, lk: 24 };
+
+    Study.hunt(host, { key: '1-1', cases: [
+      { title: 'Клац — і нуль', symptom: 'Перемикач на mA, червоний щуп у VΩmA. Щупи торкнулися макетки — тихе клацання, і тепер прилад показує 0.00 mA, хоч би куди їх прикладали. LED1 світить як світив.',
+        build(st) {
+          const b = bench(st, { c: S1, lit: 0.6, top: -400, label: 'Коло S1 на макетці: MB-102, червоний дріт у стовпчик 19, R1 19–23, LED1 23–24, чорний дріт на мінус; мультиметр на mA, червоний щуп на шині плюс, чорний на шині мінус.' });
+          const pk = probe(b.svg, b.bb.at('bottom-13'), 'black', 25), pr = probe(b.svg, b.bb.at('bottom+16'), 'red', 25);
+          const m = meter(b, 420, -70, { dial: 'mA', display: '0.00', unit: 'mA', fuse: 'blown' }, [[pk, 'COM', BLK], [pr, 'V', RED]]);
+          tag(group(b.svg, [pk, pr]), 0, 'Щупи на шинах плюс і мінус');
+          tag(b.led, 1, 'Світлодіод LED1'); tag(m.M.g, 2, 'Мультиметр');
+        },
+        options: ['У режимі mA щупи прикладено до шин «+» і «−»: прилад закоротив джерело', 'Світлодіод LED1 вставлено навпаки', 'Сіла батарейка мультиметра'], answer: 0,
+        explain: 'Амперметр — це майже 0 Ом. Між шинами «+» і «−» він став коротким замиканням: струм обмежує лише джерело, у рази більший за 0,5 А, і запобіжник F1 згорів (рентген-вікно). Тепер у режимі mA прилад — розрив і завжди показує 0. Струм міряють тільки в розриві кола, послідовно. Замініть F1 на такий самий 0,5 А.' },
+      { title: 'Амперметр мовчить', symptom: 'Коло розірване між червоним дротом (стовпчик 17) і R1 (стовпчик 19), амперметр замикає розрив. LED1 світить, а дисплей показує 0.00 mA.',
+        build(st) {
+          const b = bench(st, { c: { ...S1, p: 17 }, lit: 0.6, top: -420, label: 'Коло на макетці: червоний дріт у стовпчик 17, розрив до стовпчика 19, R1 19–23, LED1 23–24, чорний дріт на мінус; червоний щуп у стовпчику 17, чорний у 19; червоний провід у гнізді 10A, перемикач на mA.' });
+          const pr = probe(b.svg, b.H(17, 'g'), 'red', -22), pk = probe(b.svg, b.H(19, 'g'), 'black', 22);
+          const m = meter(b, 400, -90, { dial: 'mA', display: '0.00', unit: 'mA' }, [[pr, 'A', RED], [pk, 'COM', BLK]]);
+          tag(m.w[0], 0, 'Червоний провід у гнізді 10A'); tag(pk, 1, 'Чорний щуп у стовпчику 19'); tag(m.M.g, 2, 'Мультиметр');
+        },
+        options: ['Червоний провід у гнізді 10A, а перемикач на mA', 'Амперметр стоїть паралельно, а не в розриві', 'Згорів запобіжник F1 0,5 А'], answer: 0,
+        explain: 'LED світить — отже, коло замкнене крізь прилад, і він справний. Але червоний провід у гнізді <b>10A</b>: струм іде крізь шунт 10A, а положення mA читає вхід VΩmA, де струму немає, — звідси 0.00. Для струмів до 400 мА червоний провід — у VΩmA; гніздо 10A — лише з перемикачем на A і для великих струмів.' },
+      { title: 'LED згас від амперметра', symptom: 'Хотіли виміряти струм світлодіода. Щойно щупи торкнулися — LED1 згас, а прилад показує 22.7 mA.',
+        build(st) {
+          const F = { p: 27, r1: 23, r2: 27, la: 23, lk: 22 };
+          const b = bench(st, { c: F, top: -395, label: 'Коло на макетці: червоний дріт у стовпчик 27, R1 27–23, LED1 анодом у 23, катодом у 22, чорний дріт на мінус; мультиметр на mA, червоний щуп у стовпчику 23, чорний у 22.' });
+          const pr = probe(b.svg, b.H(23, 'g'), 'red', -40), pk = probe(b.svg, b.H(22, 'i'), 'black', -40);
+          const m = meter(b, 236, -64, { dial: 'mA', display: '22.7', unit: 'mA' }, [[pk, 'COM', BLK, 20], [pr, 'V', RED, 20]]);
+          tag(group(b.svg, [pk, pr]), 0, 'Щупи на обох виводах LED1'); tag(m.w[1], 1, 'Червоний провід у гнізді VΩmA'); tag(b.res, 2, 'Резистор R1 220 Ом');
+        },
+        options: ['Амперметр приклали паралельно LED1, а не в розрив', 'Червоний провід не в тому гнізді', 'R1 замалий: 220 Ом мало для LED'], answer: 0,
+        explain: 'Щупи стоять на обох виводах LED1, тобто паралельно йому. Амперметр має майже 0 Ом і став «дротом» в обхід світлодіода: LED гасне, а струм тепер обмежує лише R1 — 5 / 220 ≈ 23 мА. Щоб виміряти струм, коло розривають і ставлять прилад у розрив, послідовно.' },
+      { title: 'Темно, хоча все на місці', symptom: 'Модуль світиться, перемичка на 5 В, деталі ті самі, що на схемі S1. LED1 не світить. Вольтметр: на шині «+» 5 В, а на лівій ніжці R1 — 0 В.',
+        build(st) {
+          const b = bench(st, { c: { ...S1, p: 18 }, label: 'Коло на макетці: червоний дріт з шини плюс у стовпчик 18, R1 19–23, LED1 23–24, чорний дріт зі стовпчика 24 на мінус.' });
+          tag(b.red, 0, 'Червоний дріт у стовпчику 18'); tag(b.led, 1, 'Світлодіод LED1'); tag(b.blk, 2, 'Чорний дріт');
+        },
+        options: ['Червоний дріт у стовпчику 18, а R1 починається в 19', 'LED1 вставлено навпаки', 'Чорний дріт не на шині «−»'], answer: 0,
+        explain: 'Червоний дріт приносить +5 В у смужку 18, а ліва ніжка R1 — у смужці 19. Це різні смужки, тож до R1 нічого не доходить: петля розірвана. Один стовпчик убік — це вже інше коло. Переставте дріт у 19.' },
+      { title: 'Світлодіод мовчить', symptom: 'Коло зібране, струму немає, LED1 темний. Вольтметр на виводах LED1 показує майже всі 5 В.',
+        build(st) {
+          const b = bench(st, { c: { ...S1, la: 24, lk: 23 }, label: 'Коло на макетці: червоний дріт у стовпчик 19, R1 19–23, LED1 катодом у 23, анодом у 24, чорний дріт зі стовпчика 24 на мінус.' });
+          tag(b.led, 0, 'Світлодіод LED1'); tag(b.res, 1, 'Резистор R1'); tag(b.blk, 2, 'Чорний дріт');
+        },
+        options: ['LED1 вставлено навпаки: катод до R1, анод до «−»', 'R1 завеликий, струм замалий', 'Чорний дріт не в тому стовпчику'], answer: 0,
+        explain: 'Довга ніжка (анод) має стояти в смужці R1 (23), коротка (катод, плаский зріз) — у смужці дроту на «−» (24). Тут навпаки: LED закритий, струму немає, тож на R1 падіння 0, і вся напруга джерела стоїть на LED. Розверніть його.' },
+      { title: 'Права половина мертва', symptom: 'Коло перенесли на праву половину макетки. LED1 не світить. Вольтметр: на шинах біля модуля 5 В, а на шинах біля кола 0 В.',
+        build(st) {
+          const b = bench(st, { to: 44, c: { p: 35, r1: 35, r2: 39, la: 39, lk: 40 }, label: 'Коло на правій половині макетки: червоний дріт з шини плюс у стовпчик 35, R1 35–39, LED1 39–40, чорний дріт на мінус. Шини розірвані посередині, перемичок через розрив немає.' });
+          const a = b.bb.rail('bottom', '+', 31), z = b.bb.rail('bottom', '-', 33);
+          const gap = el('rect', { class: 'hn-gap', x: a.x + 6, y: a.y - 22, width: z.x - a.x - 12, height: z.y - a.y + 44, rx: 10 }, b.svg);
+          tag(gap, 0, 'Розрив шин посередині макетки'); tag(b.res, 1, 'Резистор R1'); tag(b.led, 2, 'Світлодіод LED1');
+        },
+        options: ['Шини розірвані посередині, а перемичок через розрив немає', 'R1 стоїть в одній смужці з LED1', 'LED1 вставлено навпаки'], answer: 0,
+        explain: 'На нашій макетці WB-102 шини розділені посередині: подивіться на перерву в червоній і синій лініях між стовпчиками 31 і 33. Модуль живить лише ліву половину. Поставте дві короткі перемички через розрив: «+» до «+», «−» до «−» — і права половина оживе.' },
+    ] });
   })();
 
   /* =================================================================== sources live in a <details>: open it for [n] links */

@@ -190,6 +190,22 @@
 .mini .mini-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; }
 .mini .mini-out { margin: 6px 0 0; font-size: 15px; color: var(--ink); }
 .dim-row { opacity: .3; transition: opacity .3s; }
+/* «Знайди несправність» with code: numbered lines; lines with data-hunt are clickable (Study.hunt) */
+.hc-file { margin: 0 0 4px; font: 600 13px var(--f-mono); color: var(--muted); }
+.hc-lines { list-style: none; margin: 0; padding: 8px 0; counter-reset: ln; font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; color: var(--ink); background: var(--sunk);
+  border: 1px solid var(--line); border-left: 3px solid var(--copper-hi); border-radius: 8px; }
+.hc-lines li { counter-increment: ln; display: grid; grid-template-columns: 2.4em minmax(0, 1fr); max-width: none; margin: 0 4px 0 0; border-radius: 0 5px 5px 0; }
+.hc-lines li::before { content: counter(ln); padding-right: .8em; text-align: right; color: var(--muted); opacity: .75; user-select: none; }
+.hc-lines .t { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.55em; }
+.hc .kw { color: var(--copper); font-weight: 600; } .hc .cm { color: var(--muted); } .hc .st { color: var(--ok); }
+.hn-stage .hc-lines li[data-hunt] { filter: none; box-shadow: inset 2px 0 0 color-mix(in srgb, var(--focus) 45%, transparent); }
+.hn-stage .hc-lines li[data-hunt]:hover, .hn-stage .hc-lines li[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus) 14%, transparent); }
+.hn-stage .hc-lines li.hn-hit { filter: none; background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.hn-stage .hc-lines li.hn-found { filter: none; background: color-mix(in srgb, var(--ok) 20%, transparent); box-shadow: inset 3px 0 0 var(--ok); }
+.hc-out-h { margin: 10px 0 4px; font: 600 13px var(--f-mono); color: var(--muted); }
+.hc-out { margin: 0; padding: 8px 12px; border-radius: 8px; background: #0e1613; color: #cfe8dc; border: 1px solid #23322b; box-shadow: none;
+  font: 13px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.hc-out .err { color: #ff8a7a; }
 </style>
 </head>
 <body data-lesson="2-1">
@@ -340,6 +356,8 @@
       <p class="lab-note" id="vr-note" aria-live="polite">Цикл чекає на прапорець. Натисніть «Переривання».</p>
       <p class="small muted" style="margin:0 18px 10px">Інструкції — як у GCC 8.4 з <code>-Os</code> для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-volatile-loop"></sup>; наше ядро збирає саме з <code>-Os</code><sup class="cite" data-fact="core-optimization-os"></sup>. Детальний покроковий асемблер — у розділі 05.</p>
     </div>
+    <!-- missions for all three panes (Study.missions, script below: each check reads the pane's own readouts) -->
+    <div class="missions" id="bench-ms"></div>
     <p class="small muted" style="margin:0 18px 8px">Розміщення — за компіляцією для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-placement"></sup><sup class="cite" data-fact="xtensa-gcc-constexpr-immediate"></sup>; стек <code>loop()</code> — 8192&nbsp;Б<sup class="cite" data-fact="core-loop-task"></sup>; <code>malloc</code> понад 4096&nbsp;Б іде спершу в PSRAM<sup class="cite" data-fact="core-spiram-malloc-alwaysinternal"></sup><sup class="cite" data-fact="idf-malloc-psram-first"></sup>. Купа на вкладці «Купа і String» — схема, не вимір.</p>
     <a class="lab-more" href="#circuit">Повна карта пам'яті ESP32-S3 — розділ 08 →</a>
   </section>
@@ -844,6 +862,8 @@ void waitFlag() {
         <p class="test">Лічіть натискання в ISR, а в <code>loop()</code> поставте <code>delay(2000)</code>: лічильник росте, хоча друкується рідко.</p>
       </div>
     </div>
+    <!-- «Знайди несправність»: short sketches with exactly one bug each; click the faulty line (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-cpp"></div>
   </section>
 
   <!-- ============================================================ 08 memory map instead of a schematic -->
@@ -1387,7 +1407,7 @@ document.addEventListener('study:ready', () => {
         if (dt && ang < prev) { // one lap done → the loop checks
           laps++;
           if (reads() || laps === 1) { reg = ram; lastRead = 0; }
-          if (reg === 1) { exited = true; $('#vr-note').textContent = vol ? 'З volatile цикл перечитав RAM, побачив flag = 1 і вийшов.' : 'Без оптимізації кожне читання лишається в коді: цикл побачив прапорець. Але наше ядро збирає з -Os…'; }
+          if (reg === 1) { exited = true; $('#vr-note').textContent = vol ? 'З volatile цикл перечитав RAM, побачив flag = 1 і вийшов.' : !opt ? 'Без оптимізації кожне читання лишається в коді: цикл побачив прапорець. Але наше ядро збирає з -Os…' : 'Прапорець встиг до першого читання, тож цикл одразу прочитав 1. Натисніть «Скинути», дайте циклу зробити оберт — і тоді «Переривання».'; }
           else if (ram === 1) {
             lapsAfter++;
             if (lapsAfter >= 2) $('#vr-note').textContent = `У RAM уже flag = 1, а цикл дивиться в стару копію a8 = 0: ${lapsAfter} обертів «не помічає». Він крутитиметься вічно. Увімкніть volatile.`;
@@ -1403,6 +1423,128 @@ document.addEventListener('study:ready', () => {
     asm(); reset();
   })();
 
+
+  /* ---- missions: one goal list for the three panes; each check reads the pane's own buttons and readouts */
+  const ariaOn = (sel) => $(sel)?.getAttribute('aria-pressed') === 'true' || $(sel)?.getAttribute('aria-checked') === 'true';
+  // Study.missions re-checks on its own only while the list is on screen; the goals here also finish while the student
+  // watches the stage above it, so re-check twice a second whenever any part of the lab is visible.
+  const watchLab = (api) => {
+    if (!api || !('IntersectionObserver' in window)) return;
+    let vis = false;
+    new IntersectionObserver((es) => { vis = es[0].isIntersecting; }).observe($('#bench'));
+    setInterval(() => { if (vis && !document.hidden) api.check(); }, 500);
+  };
+  watchLab(Study.missions($('#bench-ms'), { key: 'mem', items: [
+    { id: 'zero', text: '«Карта пам\'яті»: додайте рядок, який не займає жодного байта ні в RAM, ні в даних Flash.',
+      hint: 'Шукайте <code>constexpr</code>-число: компілятор вшиває його прямо в інструкцію.', check: () => ariaOn('.decl[data-d="pin"]') },
+    { id: 'stack', text: '«Карта пам\'яті»: переповніть стек <code>loop()</code>.',
+      hint: 'Стек <code>loopTask</code> — 8192&nbsp;Б. Який локальний масив у <code>loop()</code> більший за нього?', check: () => $('#mr-stk').classList.contains('bad') },
+    { id: 'null', text: '«Купа і String»: посічіть купу склейками так, щоб <code>malloc(3 КБ)</code> повернув <code>NULL</code>.',
+      hint: 'Увімкніть склейки, дочекайтеся, поки червона пунктирна лінія опуститься нижче 3&nbsp;КБ, і тоді натисніть <code>malloc(3 КБ)</code>.', check: () => $('#hr-ask').textContent === 'NULL' },
+    { id: 'stuck', text: '«ISR і volatile»: покажіть баг — у RAM уже <code>flag = 1</code>, а цикл далі крутиться.',
+      hint: 'Без <code>volatile</code> і з <code>-Os</code> дайте циклу зробити хоча б один оберт, тоді натисніть «Переривання» й почекайте ще два.', check: () => /вічно/.test($('#vr-note').textContent) && !ariaOn('#vr-vol') },
+    { id: 'fix', text: '«ISR і volatile»: виправте баг, не вимикаючи оптимізацію <code>-Os</code>: цикл має вийти після переривання.',
+      hint: 'Увімкніть <code>volatile bool flag</code>, лишіть <code>-Os</code> і знову натисніть «Переривання».', check: () => /вийшли/.test($('#vr-exit').textContent) && ariaOn('#vr-vol') && ariaOn('#vr-opt') },
+  ] }));
+
+  /* ---- «Знайди несправність»: short sketches, one bug each; the lines marked k are the clickable answers (option k) */
+  const KW = (t) => `<span class="kw">${t}</span>`, CM = (t) => `<span class="cm">${t}</span>`, ST = (t) => `<span class="st">${t}</span>`;
+  // lines: [html] or [html, k]; out: serial monitor lines ([text, 'err'] for errors)
+  const listing = (file, lines, out) => (stage) => {
+    const box = el('div', { class: 'hc' });
+    box.innerHTML = `<p class="hc-file">${file}</p><ol class="hc-lines">${lines.map(([t, k]) => `<li${k == null ? '' : ` data-hunt="${k}"`}><span class="t">${t || ' '}</span></li>`).join('')}</ol>`
+      + (out ? `<p class="hc-out-h">Монітор порту</p><pre class="hc-out">${out.map((o) => (Array.isArray(o) ? `<span class="${o[1]}">${o[0]}</span>` : o)).join('\n')}</pre>` : '');
+    $$('li[data-hunt]', box).forEach((li) => li.setAttribute('aria-label', 'Рядок ' + ([...li.parentNode.children].indexOf(li) + 1) + ': ' + li.textContent.trim()));
+    stage.appendChild(box);
+  };
+  Study.hunt($('#hunt-cpp'), { key: 'cpp', cases: [
+    { title: 'Плата падає на першому ж проході loop()',
+      symptom: 'Скетч зібрався без попереджень. Після прошивки в моніторі — паніка і перезапуск, знову і знову; рядок «got» не з\'являється жодного разу.',
+      build: listing('frame.ino', [
+        ['int readFrame(uint8_t* buf, size_t len);   ' + CM('// з іншого файлу')],
+        [''],
+        [KW('void') + ' setup() {'],
+        ['  Serial.begin(115200);', 1],
+        ['}'],
+        [''],
+        [KW('void') + ' loop() {'],
+        ['  uint8_t frame[10240];', 0],
+        ['  ' + KW('int') + ' n = readFrame(frame, ' + KW('sizeof') + ' frame);'],
+        ['  Serial.printf(' + ST('"got %d\\n"') + ', n);'],
+        ['  delay(100);', 2],
+        ['}'],
+      ], ['ESP-ROM:esp32s3-20210327', ['Guru Meditation Error: Core  1 panic\'ed', 'err'], 'Rebooting...', 'ESP-ROM:esp32s3-20210327', ['Guru Meditation Error: Core  1 panic\'ed', 'err']]),
+      options: ['Локальний масив на 10 КБ у <code>loop()</code> не влазить у стек', '<code>Serial.begin()</code> треба викликати в <code>loop()</code>', '<code>delay(100)</code> у <code>loop()</code> вішає плату'], answer: 0,
+      explain: 'Локальні змінні <code>loop()</code> живуть на стеку задачі <code>loopTask</code>, а він лише 8192&nbsp;Б. Масив на 10&nbsp;240&nbsp;Б виходить за його межі й топче чужу пам\'ять — паніка. Великий буфер робіть глобальним (<code>.bss</code>) або виділіть один раз у <code>setup()</code>. Перевірте на вкладці «Карта пам\'яті»: рядок <code>big</code>.' },
+    { title: 'Метеостанція замовкла на третю добу',
+      symptom: 'Перші дні все друкується. Число <code>max</code> (найбільший вільний шматок купи) поволі тане, хоча <code>free</code> майже не змінюється. На третю добу рядки стають порожніми, а потім плата зависає.',
+      build: listing('meteo.ino', [
+        ['String lastMsg;   ' + CM('// для веб-сторінки')],
+        [''],
+        [KW('void') + ' loop() {'],
+        ['  ' + KW('float') + ' t = readTemp();', 2],
+        ['  String msg = ' + ST('"t="') + ' + String(t, 1) + ' + ST('" h="') + ' + String(readHum(), 0);', 1],
+        ['  lastMsg = msg;'],
+        ['  Serial.printf(' + ST('"%s  max=%u\\n"') + ', msg.c_str(), ESP.getMaxAllocHeap());'],
+        ['  delay(5000);', 0],
+        ['}'],
+      ], ['t=21.4 h=48  max=110580', 't=21.5 h=48  max=27140', CM('… третя доба …'), ['t=19.8 h=51  max=1844', 'err'], ['  max=1652', 'err']]),
+      options: ['<code>delay(5000)</code> блокує купу', 'Склейка <code>String</code> на кожному проході <code>loop()</code>', '<code>float</code> не можна читати в <code>loop()</code>'], answer: 1,
+      explain: 'Кожне <code>+</code> між <code>String</code> — нове виділення в купі, і так кожні 5&nbsp;с. Тимчасові рядки звільняються, а <code>lastMsg</code> лишається жити між ними й розсікає купу на дрібні дірки: вільного багато, суцільного шматка немає. Ліки — один буфер без купи: <code>char buf[48]; snprintf(buf, sizeof buf, "t=%.1f h=%.0f", t, h);</code>' },
+    { title: 'Кнопку натискають, а «Є!» не друкується',
+      symptom: 'ISR ставить прапорець, <code>loop()</code> чекає на нього. З <code>-O0</code> працює, у звичайній збірці з <code>-Os</code> «Є!» не друкується ніколи, хоча обробник викликається.',
+      build: listing('wait.ino', [
+        [KW('bool') + ' pressed = ' + KW('false') + ';', 2],
+        [''],
+        [KW('void') + ' IRAM_ATTR onPress() { pressed = ' + KW('true') + '; }', 0],
+        [''],
+        [KW('void') + ' setup() {'],
+        ['  Serial.begin(115200);'],
+        ['  pinMode(4, INPUT_PULLUP);'],
+        ['  attachInterrupt(4, onPress, FALLING);'],
+        ['}'],
+        [KW('void') + ' loop() {'],
+        ['  ' + KW('while') + ' (!pressed) { }   ' + CM('// чекаємо'), 1],
+        ['  pressed = ' + KW('false') + ';'],
+        ['  Serial.println(' + ST('"Є!"') + ');'],
+        ['}'],
+      ]),
+      options: ['Обробник має бути довшим', 'Цикл <code>while</code> треба замінити на <code>delay()</code>', 'Прапорцю бракує <code>volatile</code>'], answer: 2,
+      explain: 'Без <code>volatile</code> компілятор бачить, що всередині <code>while</code> ніхто не змінює <code>pressed</code>, читає її один раз у регістр і далі крутиться на місці. <code>volatile bool pressed</code> змушує перечитувати пам\'ять на кожному оберті — саме це показує вкладка «ISR і volatile». Цикл тут лише симптом.' },
+    { title: 'Лічильник губить імпульси',
+      symptom: 'Датчик витрати дає імпульс на кожні 10&nbsp;мл. За годину генератор подав рівно 3600 імпульсів, а оброблено 3597. Що частіше імпульси, то більше втрат.',
+      build: listing('flow.ino', [
+        [KW('volatile') + ' uint32_t events = 0;', 1],
+        [''],
+        [KW('void') + ' IRAM_ATTR onPulse() { events++; }'],
+        [''],
+        [KW('void') + ' setup() {'],
+        ['  pinMode(4, INPUT_PULLUP);'],
+        ['  attachInterrupt(4, onPulse, FALLING);', 2],
+        ['}'],
+        [KW('void') + ' loop() {'],
+        ['  ' + KW('if') + ' (events > 0) {'],
+        ['    events--;', 0],
+        ['    handleOne();   ' + CM('// +10 мл')],
+        ['  }'],
+        ['}'],
+      ]),
+      options: ['<code>events--</code> у <code>loop()</code> без критичної секції', '<code>volatile</code> тут зайвий', '<code>FALLING</code> — не той фронт'], answer: 0,
+      explain: '<code>events--</code> — це три інструкції: прочитати, відняти, записати. Якщо ISR вклиниться між читанням і записом, <code>loop()</code> запише стару величину мінус один, і інкремент з ISR зникне. <code>volatile</code> потрібен, але атомарності не дає. Захистіть рядок: <code>portENTER_CRITICAL(&amp;mux); events--; portEXIT_CRITICAL(&amp;mux);</code> або візьміть <code>std::atomic</code>.' },
+    { title: 'Купа тане, через кілька годин — перезапуск',
+      symptom: '<code>ESP.getFreeHeap()</code> після кожного порожнього пакета падає на 0,5&nbsp;КБ. Коли пакетів немає довго, плата перезапускається з <code>abort()</code>.',
+      build: listing('packet.ino', [
+        [KW('void') + ' loop() {'],
+        ['  uint8_t* buf = ' + KW('new') + ' uint8_t[512];', 2],
+        ['  ' + KW('int') + ' n = readPacket(buf, 512);'],
+        ['  ' + KW('if') + ' (n &lt;= 0) ' + KW('return') + ';', 1],
+        ['  send(buf, n);'],
+        ['  ' + KW('delete') + '[] buf;', 0],
+        ['}'],
+      ], ['free=231044', 'free=230512', 'free=229980', CM('…'), ['abort() was called at PC 0x42003a1b on core 1', 'err']]),
+      options: ['<code>delete[]</code> треба замінити на <code>delete</code>', 'Вихід без <code>delete[]</code>, коли пакета немає', '<code>new</code> на мікроконтролері заборонений'], answer: 1,
+      explain: 'Коли пакета немає, <code>return</code> виходить з <code>loop()</code> раніше за <code>delete[]</code>: 512&nbsp;Б губляться на кожному такому проході — витік пам\'яті. Коли купа скінчилась, <code>new</code> кидає <code>std::bad_alloc</code>, ніхто його не ловить — <code>abort()</code>. Самі <code>new</code> і <code>delete[]</code> не заборонені, але буфер, потрібний щоразу, кращий статичний: <code>static uint8_t buf[512];</code> або один <code>new</code> у <code>setup()</code>.' },
+  ] });
 
   /* ================================================================ 04 idea cards: small live demos */
   const tween = (dur, fn) => {

@@ -301,7 +301,7 @@ document.addEventListener('study:ready', () => {
     const knobHit = L11Kit.mk('circle', { cx: 451, cy: 1094, r: 230, fill: 'transparent', style: 'cursor:pointer' }, M.g.querySelector('.l11-ov'));
     const fuseMsg = L11Kit.mk('text', { x: 230, y: 1912, 'text-anchor': 'middle', fill: 'var(--bad)', style: 'font:700 64px var(--f-body)' }, meter);
     fuseMsg.textContent = 'F1 згорів';
-    let race = 0, racePath = '';
+    let race = 0, racePath = '', blewOnce = false;
 
     // Where the probe tips touch (red, black), the meter symbol, its leads, and the path of the current through it.
     const PROBE = {
@@ -368,7 +368,7 @@ document.addEventListener('study:ready', () => {
       if (s.blow || s.burn) {
         race = reduced() ? 0 : 0.55; racePath = PATH[s.path] || PATH.loop;
         if (s.burn) { st.led = false; events.push('burn'); }
-        if (s.blow) { st.fuse = false; events.push('blow'); }
+        if (s.blow) { st.fuse = false; events.push('blow'); blewOnce = true; }
         s = solve();
         if (events.includes('blow')) setTimeout(() => { M.blow(); M.flash(); }, reduced() ? 0 : 550);
         if (events.includes('burn')) setTimeout(() => { fx.burst(320, 130, 'flash'); fx.burst(320, 130, 'sparks'); fx.burst(322, 116, 'smoke'); kickFx(); }, reduced() ? 0 : 550);
@@ -487,6 +487,21 @@ document.addEventListener('study:ready', () => {
     $('#bx-fuse-fix').addEventListener('click', () => { st.fuse = true; render(); $('#bx-note').textContent = 'Новий запобіжник F1 на місці. Тепер амперметр — тільки в розрив.'; });
     $('#bx-led-fix').addEventListener('click', () => { st.led = true; fx.clear(); render(); $('#bx-note').textContent = 'Новий світлодіод на місці.'; });
     render();
+    // missions: each check reads the bench state (st) and the last solved circuit (cur)
+    const withLed = () => st.on && st.load === 'led' && st.led;
+    Study.missions($('#bx-ms'), { key: 'bench', items: [
+      { id: 'ohm', text: 'Виміряйте опір R1 так, щоб показ був чесним.', hint: 'Режим Ω, щупи «на R1», а вимикач S1 розімкнений: омметр міряє лише коло без живлення.',
+        check: () => st.mode === 'ohm' && st.probe === 'r' && !st.on },
+      { id: 'vr', text: 'Виміряйте напругу на R1, коли LED1 світить.', hint: 'Замкніть S1, режим V⎓, щупи «на R1»: вольтметр — паралельно деталі, коло не розривають.',
+        check: () => withLed() && st.mode === 'v' && st.probe === 'r' },
+      { id: 'amp', text: 'Виміряйте струм у колі й не спаліть запобіжник.', hint: 'Режим mA⎓ і щупи «у розрив»: амперметр стоїть послідовно, весь струм іде крізь нього, а LED1 світить далі.',
+        check: () => withLed() && st.mode === 'a' && st.probe === 'gap' && st.fuse && cur && cur.I > 0 },
+      { id: 'fuse', text: 'Спаліть запобіжник F1 навмисно, а потім замініть його.', hint: 'Режим mA⎓ і щупи «на джерело»: амперметр замкне G1 накоротко. Потім приберіть щупи з джерела (інакше новий F1 теж згорить) і натисніть «Замінити запобіжник».',
+        check: () => blewOnce && st.fuse },
+      { id: 'half', text: 'Підберіть G1 і R1 так, щоб U на R1 дорівнювала напрузі на LED1 (±0,05 В). Перевірте вольтметром.',
+        hint: 'Тоді кожному дістається половина G1, а на LED1 ≈ 1,75 В. Отже, G1 ≈ 3,5 В; R1 підберіть кількома спробами. Щупи «на R1» або «на LED1», режим V⎓.',
+        check: () => withLed() && st.mode === 'v' && (st.probe === 'r' || st.probe === 'led') && cur && cur.I > 0 && Math.abs(cur.I * st.R - vOf(cur.I)) <= 0.05 },
+    ] });
   })();
 
   /* =================================================================== ANIM: how the meter goes in for V and for A */

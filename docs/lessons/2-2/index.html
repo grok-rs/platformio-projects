@@ -369,6 +369,8 @@ pre.log { margin: 10px 0; padding: 10px 12px; border-radius: 8px; background: va
       <div><b>Лінія 3V3</b><output id="pl-v33o" aria-live="off">3,30 В</output></div>
     </div>
     <p class="lab-note" id="pl-note" aria-live="polite">GPIO5 = LOW: струму бази немає, транзистор закритий. Натисніть великий перемикач.</p>
+    <!-- missions (Study.missions, script below: each check reads the lab's own state) -->
+    <div class="missions" id="bench-ms"></div>
     <p class="small muted" style="margin:0 18px 8px">Модель: BC547B (h<sub>FE</sub> ≥ 200<sup class="cite" data-fact="bc547b-hfe"></sup>) і котушка 70&nbsp;Ом<sup class="cite" data-fact="relay-srd05-coil-sl"></sup>, що клацає від 3,75&nbsp;В і відпускає нижче 0,5&nbsp;В<sup class="cite" data-fact="relay-srd05-pullin"></sup>; для мотора — 2N2222 (h<sub>FE</sub> ≥ 50 при U<sub>КЕ</sub> = 1&nbsp;В<sup class="cite" data-fact="p2n2222a-hfe"></sup>) і мотор розміру 130 на ходу ≈150&nbsp;мА (дані FA-130<sup class="cite" data-fact="motor-fa130-current"></sup>; мотор такого розміру стоїть і в TT-редукторі). Час на осцилографі сильно уповільнено, глибина провалів — ілюстрація.</p>
     <a class="lab-more" href="../../power-loads/#w3">Повна лабораторія: живий ключ, осцилограф і brownout на power-loads →</a>
   </section>
@@ -859,6 +861,8 @@ ESP-ROM:esp32s3-20210327 … rst:0xf (BROWNOUT_RST)</pre>
         <p class="test">Відкрийте даташит і знайдіть рядок R<sub>DS(on)</sub>: при яких V<sub>GS</sub> він вказаний?</p>
       </div>
     </div>
+    <!-- «Знайди несправність»: the bench from the parts of our kit, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-key"></div>
   </section>
 
   <!-- ============================================================ 08 circuit -->
@@ -1590,6 +1594,38 @@ document.addEventListener('study:ready', () => {
     $('#pl-gnd-sw').addEventListener('switch', (e) => { st.gnd = e.detail.on; ui(); labSim.draw(); });
     $('#pl-rb').addEventListener('input', (e) => { st.rb = RBS[+e.target.value]; ui(); labSim.draw(); });
     buildReal(); ui(); labSim.draw();
+
+    /* ---------- missions: goals that read the lab's own state (st, dy, steady) */
+    let spikeSeen = false;
+    const keyed = () => st.wiring === 'key';
+    // Study.missions re-checks on its own only while the list is on screen; the goals here also finish while the student
+    // watches the stage above it, so re-check twice a second whenever any part of the lab is visible.
+    const watchLab = (api) => {
+      if (!api || !('IntersectionObserver' in window)) return;
+      let vis = false;
+      new IntersectionObserver((es) => { vis = es[0].isIntersecting; }).observe($('#bench'));
+      setInterval(() => { if (vis && !document.hidden) api.check(); }, 500);
+    };
+    watchLab(Study.missions($('#bench-ms'), { key: 'key', items: [
+      { id: 'click', text: 'Клацніть реле SRD-05 через ключ: GPIO5 = HIGH.',
+        hint: 'Навантаження «Реле», схема «Через ключ», великий перемикач GPIO5.', check: () => st.load === 'relay' && keyed() && dy.closed },
+      { id: 'gnd', text: 'Розірвіть спільну GND: пін у HIGH, а струму бази немає. Поясніть собі чому.',
+        hint: 'Вимкніть «Спільна GND» і ввімкніть GPIO5. Струм бази виходить з піна й мусить повернутися до плати — а дороги немає.',
+        check: () => keyed() && !st.gnd && st.gpio && steady().ib === 0 },
+      { id: 'motor', text: 'Розкрутіть мотор TT на повні оберти без brownout.',
+        hint: 'Мотор — тільки через ключ, з окремим живленням 4×AA. Для порівняння спробуйте «Мотор прямо від піна» і подивіться на лінію 3V3.',
+        check: () => st.load === 'motor' && keyed() && st.gpio && dy.reset <= 0 && dy.w >= 0.95 * 900 },
+      { id: 'spike', text: 'Побачте викид понад 45 В на колекторі, а потім приберіть його діодом D1.',
+        hint: 'Вимкніть D1, клацніть реле і переведіть GPIO5 у LOW: осцилограф (CH2 — колектор) зашкалить. Потім увімкніть D1 і повторіть.',
+        check: () => {
+          const off = keyed() && dy.edge === 'off' && dy.kick;
+          if (off && !st.diode) spikeSeen = true;
+          return spikeSeen && off && st.diode;
+        } },
+      { id: 'rb', text: 'Знайдіть найбільший R<sub>Б</sub>, з яким реле ще клацає.',
+        hint: 'Для кожного R<sub>Б</sub> переведіть GPIO5 у LOW і знову в HIGH: клацне чи ні? Надійний запас за правилом I<sub>К</sub>/20 — лише до 680 Ом; більші працюють завдяки h<sub>FE</sub> саме цього екземпляра.',
+        check: () => st.load === 'relay' && keyed() && st.gpio && dy.closed && st.rb === 4700 },
+    ] }));
   })();
 
   /* ================================================================ ANIM: two loops and the switch-off kick */
@@ -2076,6 +2112,168 @@ document.addEventListener('study:ready', () => {
   }
   $$('#dk-lvl button').forEach((b) => b.addEventListener('click', () => { dkHi = b.dataset.l === 'hi'; pressSeg($('#dk-lvl'), b); drawDual(); }));
   drawDual();
+
+  /* ================================================================ 07 «Знайди несправність»: faulty benches from our kit */
+  // Every scene copies a correct layout of this page (section 08 for the LED, the bench for the relay and the motor) and
+  // changes exactly one thing. Parts/wires listed in `mark` get data-hunt = the option index they stand for.
+  // Labels follow the drawing width like kvScale, but never grow past `cap` units (the stage is narrow on phones).
+  function huntFit(svg, px = 13, cap = 34) {
+    const fit = () => {
+      const w = svg.getBoundingClientRect().width, vb = svg.viewBox.baseVal;
+      if (w > 0 && vb && vb.width) svg.style.setProperty('--kv-fs', Math.min(cap, px * vb.width / w).toFixed(1) + 'px');
+    };
+    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(svg);
+    svg.style.setProperty('--kv-fs', cap + 'px');
+    return fit;
+  }
+  function huntScene(stage, kind, fault, mark, aria) {
+    const s = K.svg(stage, '0 0 10 10', aria);
+    const fit = huntFit(s);
+    const r = {};
+    if (kind === 'led') {
+      // section 08 (ТЗ-A): 2N2222 E d45 · B d46 · C d47, R1 f46–e46, R2 e47–e51, LED1 K d51 / A d52, MB-102 bottom 5 В
+      const bb = K.part('breadboard', { parent: s, cols: 57, split: true, title: 'Макетна плата WB-102 (57 стовпчиків), шини розірвані між 31 і 33' });
+      const P = (c, rw) => bb.hole(c, rw), BA = (n) => bb.at(n);
+      r.mb = K.part('power-module', { parent: s, ...bb.rail('top', '+', 1), title: 'Модуль живлення MB-102' })
+        .set(fault === 'mb' ? { top: '5V', bottom: 'OFF' } : { top: 'OFF', bottom: '5V' });
+      const e0 = P(14, 'i');
+      r.esp = K.part('esp32s3', { parent: s, x: e0.x, y: e0.y, rot: -90, title: 'Плата YD-ESP32-S3: GPIO5 у стовпчику 18, GND у стовпчику 35' });
+      r.q = K.part('npn', { parent: s, model: '2N2222', leg: 12, ...P(45, 'd'), title: 'Транзистор Q1 2N2222: E d45, B d46, C d47' });
+      if (fault !== 'rb') r.r1 = K.part('resistor', { parent: s, ohms: 1000, span: 3, ...P(46, 'f'), rot: -90, title: 'R1 1 кОм: f46 → e46' });
+      r.r2 = K.part('resistor', { parent: s, ohms: 220, ...P(47, 'e'), title: 'R2 220 Ом: e47 → e51' });
+      r.led = K.part('led', { parent: s, color: 'red', leg: 24, mirror: true, ...P(52, 'd'), title: 'LED1: катод d51, анод d52' });
+      const laneY = P(1, 'j').y + KP * 1.15, j18 = BA('j18'), j46 = BA('j46');
+      r.yel = K.route(s, [j18, { x: j18.x, y: laneY }, { x: j46.x, y: laneY }, j46], 'yellow');
+      if (fault === 'rb') r.jump = K.route(s, [BA('f46'), BA('e46')], 'yellow');
+      r.vled = K.route(s, [BA('e52'), BA('bottom+52')], 'red');
+      r.em = K.route(s, [BA('a45'), BA('top-45')], 'black');
+      if (fault !== 'gnd') r.gnd = K.route(s, [BA('a35'), BA('top-35')], 'black');
+      r.brV = K.route(s, [BA('bottom+31'), BA('bottom+33')], 'red');
+      r.brG = K.route(s, [BA('top-31'), BA('top-33')], 'black');
+      const below = bb.size.h + 46;
+      kvText(s, P(26, 'j').x, below, 'ESP32-S3', '', 'middle');
+      kvText(s, 60, below, fault === 'mb' ? 'MB-102' : 'MB-102 · 5 В', '', 'middle');
+      if (fault !== 'rb') kvText(s, P(44, 'g').x, P(1, 'g').y + 12, 'R1', '', 'middle');
+      kvText(s, P(49, 'g').x, P(1, 'g').y + 12, 'R2', '', 'middle');
+      kvText(s, P(44, 'b').x - 10, P(1, 'b').y + 14, 'Q1', '', 'end');
+      kvText(s, P(55, 'b').x + 20, P(1, 'b').y + 14, 'LED1', '', 'start');
+    } else {
+      // the bench «як на столі» (buildReal): full WB-102, board in c14…35, key right of the board
+      const relay = kind === 'relay', direct = kind === 'direct', motor = !relay;
+      const bb = K.part('breadboard', { parent: s, title: 'Макетна плата WB-102' });
+      const H = (c, rw) => bb.hole(c, rw), A = (n) => bb.at(n), X = (c) => H(c, 'a').x;
+      const laneB = H(1, 'j').y + KP * 1.15;
+      const p0 = H(14, 'i');
+      if (relay) r.mb = K.part('power-module', { parent: s, ...bb.rail('top', '+', 1), title: 'Модуль живлення MB-102: 5 В на обидві пари шин' }).set({ top: '5V', bottom: '5V' });
+      r.esp = K.part('esp32s3', { parent: s, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3: GPIO5 у стовпчику 18, GND у стовпчику 35' });
+      // relay: holes laid out for BC547B (C d44 · B d45 · E d46); motor: for 2N2222 (E d48 · B d49 · C d50)
+      const cB = relay ? 45 : 49, cC = relay ? cB - 1 : cB + 1, cE = relay ? cB + 1 : cB - 1;
+      const model = relay ? (fault === 'ce' ? '2N2222' : 'BC547B') : '2N2222';
+      if (!direct) {
+        r.rb = K.part('resistor', { parent: s, ohms: relay ? 680 : 150, span: 3, ...H(cB, 'f'), rot: -90, title: `Резистор бази: f${cB} → e${cB}` });
+        r.q = K.part('npn', { parent: s, model, leg: 12, ...H(cB - 1, 'd'), title: `Транзистор Q1 ${model} у d${cB - 1}, d${cB}, d${cB + 1}` });
+        if (fault !== 'fly') r.d1 = relay ? K.part('diode', { parent: s, ...H(cC, 'e'), rot: 180, title: `Діод D1 1N4007: анод e${cC}, катод e${cC - 4}` })
+          : K.part('diode', { parent: s, ...H(cC, 'e'), title: `Діод D1 1N4007: анод e${cC}, катод e${cC + 4}` });
+        r.c1 = K.part('cap-electrolytic', { parent: s, ...bb.rail('top', '+', 12), rot: 90, title: 'Конденсатор C1 на верхніх шинах' });
+      }
+      if (motor && !direct) {
+        r.motor = K.part('tt-motor', { parent: s, x: X(cC) - 534, y: -190, mirror: true, title: 'Мотор-редуктор TT над макеткою' });
+        r.pack = aaPack(s, -60, -400, [X(7), X(8)]);
+      } else if (direct) {
+        r.motor = K.part('tt-motor', { parent: s, x: X(8) + 534, y: 23 * KP + 104, title: 'Мотор-редуктор TT під макеткою' });
+      } else {
+        r.relay = K.part('relay-module', { parent: s, x: X(47), y: -7 * KP, xray: true, title: 'Модуль реле над макеткою' }).set({ power: false });
+      }
+      const j18 = A('j18');
+      if (direct) {
+        const pp = r.motor.pin('+'), pm = r.motor.pin('-'), yLow = pm.y + KP;
+        r.yel = K.route(s, [j18, { x: j18.x, y: laneB }, { x: pp.x, y: laneB }, pp], 'yellow');
+        r.mneg = K.route(s, [pm, { x: pm.x, y: yLow }, { x: X(3), y: yLow }, A('bottom-3')], 'black');
+        r.gnd = K.route(s, [A('j35'), A('bottom-35')], 'black');
+        K.route(s, [A('bottom-31'), A('bottom-33')], 'black');
+      } else {
+        const jB = A('j' + cB);
+        r.yel = K.route(s, [j18, { x: j18.x, y: laneB }, { x: jB.x, y: laneB }, jB], 'yellow');
+        r.gnd = K.route(s, [A('a35'), A('top-35')], 'black');
+        K.route(s, [A('top+31'), A('top+33')], 'red');
+        K.route(s, [A('top-31'), A('top-33')], 'black');
+        r.em = K.route(s, [A('a' + cE), A('top-' + cE)], 'black');
+        if (relay) {
+          r.dW = K.route(s, [A('a' + (cC - 4)), A('top+' + (cC - 4))], 'red');
+          const rl = r.relay, vcc = rl.pin('VCC'), gp = rl.pin('GND'), a = A('a' + cC), v = A('top+' + (cC - 1));
+          K.route(s, [v, { x: v.x, y: vcc.y }, vcc], 'red');
+          r.coll = K.route(s, [a, { x: a.x, y: gp.y }, gp], 'orange');
+          K.route(s, [rl.pin('IN'), gp], 'yellow', { width: 5 });
+        } else {
+          if (fault !== 'fly') r.dW = K.route(s, [A('a' + (cC + 4)), A('top+' + (cC + 4))], 'red');
+          const pp = r.motor.pin('+'), pm = r.motor.pin('-'), v = A('top+' + (cC + 5)), yTop = pp.y - KP;
+          K.route(s, [v, { x: v.x, y: yTop }, { x: pp.x, y: yTop }, pp], 'red');
+          r.coll = K.route(s, [A('a' + cC), pm], 'orange');
+          const pk = r.pack.pins;
+          K.route(s, [pk['+'], A('top+7')], 'red');
+          K.route(s, [pk['-'], { x: pk['-'].x, y: A('top-9').y }, A('top-9')], 'black');
+        }
+      }
+      const below = bb.size.h + 44, above = -22;
+      if (direct) {
+        kvText(s, X(19.5), above, 'GPIO5', 'mut', 'end');
+        kvText(s, X(23), above, 'ESP32-S3 · від USB', 'mut', 'start');
+        kvText(s, X(37), below, 'спільна GND', 'mut', 'start');
+        kvText(s, X(8) + 744, 23 * KP + 104, 'M1 · мотор-редуктор TT', '', 'start');
+      } else {
+        kvText(s, X(19.5), below, 'GPIO5', 'mut', 'end');
+        kvText(s, X(23), below, 'ESP32-S3 · від USB', 'mut', 'start');
+        kvText(s, X(36.5), above, 'спільна GND', 'mut', 'end');
+        kvText(s, X(cB + 2) - 10, H(1, 'g').y + 10, `R${SUB('Б')} ${relay ? '680' : '150'} Ом`, '', 'start');
+        if (relay) kvText(s, X(cE) + 34, H(1, 'b').y + 14, 'Q1', '', 'start');
+        else kvText(s, X(cE) - 34, H(1, 'b').y + 14, 'Q1', '', 'end');
+        if (fault !== 'fly') kvText(s, X(relay ? cC - 2 : cC + 2), H(1, 'b').y + 14, 'D1', '');
+        kvText(s, X(15.5), above, 'C1', '');
+        if (motor) {
+          kvText(s, X(cC) - 534 + 210, r.motor.pin('+').y - KP - 40, 'M1 · мотор-редуктор TT', '');
+          kvText(s, 240, -430, '4×AA · 6 В', '');
+        } else {
+          kvText(s, X(42), -7 * KP + 30, 'K1 · модуль реле', '', 'end');
+          kvText(s, 40, above - 22, 'MB-102 · 5 В', '');
+        }
+      }
+    }
+    Object.entries(mark).forEach(([k, i]) => { const n = r[k]; if (n) { (n.g || n).setAttribute('data-hunt', String(i)); } });
+    K.fit(s, 30);
+    fit();
+  }
+  Study.hunt($('#hunt-key'), { key: 'key', cases: [
+    { title: 'Пін у HIGH, а LED1 темний',
+      symptom: 'Схема ТЗ-A з розділу 08. MB-102 живиться від окремого адаптера 9&nbsp;В, плата — від USB ноутбука. Вольтметр між GPIO5 і GND плати показує 3,3&nbsp;В, а LED1 не світиться.',
+      build: (st) => huntScene(st, 'led', 'gnd', { esp: 0, r1: 1, led: 2 }, 'Макетка ТЗ-A: плата ESP32-S3 у макетці, MB-102 на лівому краї, ключ 2N2222 з R1, R2 і LED1. Шукайте, якого з\'єднання бракує.'),
+      options: ['GND плати ні з чим не з\'єднаний: немає спільної землі з MB-102', 'R1 1&nbsp;кОм завеликий для бази', 'LED1 вставлено навпаки'], answer: 0,
+      explain: 'Від GND плати (a35) немає дроту на шину мінус. Струм бази виходить з GPIO5 і мусить повернутися до плати через емітер і спільну землю, а дороги немає: I<sub>Б</sub> = 0, ключ закритий. «3,3 В на піні» — це відносно GND <i>плати</i>; для транзистора, чий емітер на мінусі MB-102, ця напруга нічого не значить. Окреме живлення — добре, окрема земля — ні.' },
+    { title: 'LED1 світить, а пін «просів»',
+      symptom: 'LED1 вмикається й вимикається як треба. Але вольтметр на GPIO5 у HIGH показує близько 1&nbsp;В замість 3,3&nbsp;В, а міліамперметр у колі бази — десятки міліампер.',
+      build: (st) => huntScene(st, 'led', 'rb', { mb: 0, jump: 1, r2: 2 }, 'Макетка ТЗ-A: плата ESP32-S3 у макетці, MB-102, транзистор 2N2222, R2 і LED1. Через канавку біля бази стоїть перемичка.'),
+      options: ['MB-102 дає забагато напруги', 'Замість резистора бази R1 — жовта перемичка через канавку', 'R2 220&nbsp;Ом замалий для LED1'], answer: 1,
+      explain: 'Між GPIO5 і базою має стояти R1 1&nbsp;кОм, а тут перемичка. База–емітер — це діод: він тримає на піні ≈0,7–0,9&nbsp;В, а струм бази обмежує лише сам вивід, далеко за його ≈20&nbsp;мА. LED світить, але пін працює на межі перевантаження. З R1 струм бази (3,3 − 0,7) / 1000 ≈ 2,6&nbsp;мА — і цього досить для насичення.' },
+    { title: 'Ключ працює, а LED1 мовчить',
+      symptom: 'GPIO5 = HIGH, на базі Q1 ≈0,7&nbsp;В, червоний вогник живлення на MB-102 горить. LED1 не світиться, а вольтметр між нижніми шинами + і − показує 0&nbsp;В.',
+      build: (st) => huntScene(st, 'led', 'mb', { led: 0, em: 1, mb: 2 }, 'Макетка ТЗ-A: плата ESP32-S3 у макетці, MB-102 на лівому краї, ключ 2N2222, R2 і LED1, анод LED червоним дротом на нижню шину плюс.'),
+      options: ['LED1 вставлено навпаки', 'Емітер Q1 не на шині мінус', 'Перемичка MB-102 дає 5&nbsp;В на верхню пару шин, а LED1 живиться від нижньої'], answer: 2,
+      explain: 'Кожна перемичка MB-102 вмикає свою пару шин: тут 5&nbsp;В подано на верхню, а нижня, від якої живиться анод LED1, вимкнена (OFF). Ключ відкривається, але по великій петлі нема чого вести. Перед увімкненням перевіряйте вольтметром саме ту шину, від якої живиться навантаження.' },
+    { title: 'Інший транзистор — і реле замовкло',
+      symptom: 'Реле на BC547B клацало справно. BC547B замінили на 2N2222 з набору, вставивши в ті самі отвори. Тепер GPIO5 = HIGH, на базі ≈0,7&nbsp;В, а реле не клацає.',
+      build: (st) => huntScene(st, 'relay', 'ce', { rb: 0, d1: 1, q: 2 }, 'Макетка, як у лабораторії: модуль реле над макеткою, ключ на 2N2222 в отворах d44, d45, d46, розрахованих на BC547B, діод D1 і резистор бази 680 Ом.'),
+      options: ['R<sub>Б</sub> 680&nbsp;Ом завеликий', 'Діод D1 стоїть навпаки', '2N2222 стоїть в отворах BC547B: колектор і емітер помінялися'], answer: 2,
+      explain: 'Плоским боком до себе BC547B має виводи C-B-E, а 2N2222 з нашого набору — E-B-C. У тих самих отворах колектор опинився на мінусі, а емітер — на котушці: транзистор працює «задом наперед», з підсиленням у кілька разів замість сотень, і котушці не вистачає струму. Перед заміною дивіться розкладку в даташиті або перевірте виводи режимом hFE мультиметра.' },
+    { title: 'Транзистор помер через тиждень',
+      symptom: 'Мотор через ключ спершу вмикався й вимикався справно. Через тиждень Q1 пробило. Осцилограф на колекторі в момент вимкнення показує викид, що виходить далеко за екран.',
+      build: (st) => huntScene(st, 'motor', 'fly', { rb: 0, motor: 1, c1: 2 }, 'Макетка, як у лабораторії: мотор-редуктор TT над макеткою, батареї 4×AA, ключ 2N2222, резистор бази 150 Ом, конденсатор C1. Паралельно мотору нічого немає.'),
+      options: ['R<sub>Б</sub> 150&nbsp;Ом замалий', 'Паралельно мотору немає захисного діода', 'C1 стоїть не на тих шинах'], answer: 1,
+      explain: 'Обмотка мотора — котушка. Коли ключ закривається, вона штовхає струм далі, а дороги немає: напруга на колекторі злітає, поки щось не проб\'ється. Діод 1N4007 паралельно мотору, смужкою (катодом) до «+», дає цьому струму коло: мотор → діод → мотор. У лабораторії вимкніть «Діод D1» і подивіться на CH2.' },
+    { title: 'Мотор сіпнувся, плата перезапустилась',
+      symptom: '<code>digitalWrite(5, HIGH)</code> — мотор ледь сіпнувся, а в моніторі порту: <code>Brownout detector was triggered</code>, і плата стартувала знову.',
+      build: (st) => huntScene(st, 'direct', '', { yel: 0, gnd: 1, motor: 2 }, 'Макетка: плата ESP32-S3 у макетці, жовтий дріт з GPIO5 прямо на плюс мотора-редуктора TT під макеткою, мінус мотора і GND плати на нижню шину мінус.'),
+      options: ['Мотор живиться прямо від GPIO5, без ключа й окремого живлення', 'GND плати на шині мінус: так не можна', 'Мотор увімкнено полярністю навпаки'], answer: 0,
+      explain: 'Вивід GPIO розрахований на ≈20&nbsp;мА, а мотору на старті треба до 2,1&nbsp;А. Пін і лінія 3,3&nbsp;В просідають нижче ≈2,44&nbsp;В — детектор brownout перезапускає чип. Полярність мотора лише змінює напрям обертання. Правильно: пін → R<sub>Б</sub> → транзистор, мотор від окремих 4×AA, спільна GND і діод.' },
+  ] });
 });
 </script>
 </body>

@@ -121,6 +121,7 @@
 .kitv { display: block; width: 100%; height: auto; overflow: hidden; }
 .kit-lbl { font: 600 34px var(--f-mono); fill: var(--ink); }
 .kit-val { font-weight: 500; fill: var(--muted); }
+.hn-stage .kit-lbl { font-size: 38px; }
 text.kit-lbl[class*="net-"] { fill: currentColor; }
 text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig { fill: var(--nsig-ink, var(--nsig)); } text.kit-lbl.net-gnd { fill: var(--ngnd-ink, var(--ngnd)); }
 .kitv .schem-flow { stroke-width: 12; stroke-dasharray: 10 38; animation-name: kit-flow; }
@@ -261,6 +262,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
     <p class="lab-note" id="b6-note" aria-live="polite"></p>
     <p class="lab-note b6-model"><span class="model-chip">модель</span> Фоторезистор GL5528: 10–20&nbsp;кОм при 10&nbsp;лк<sup class="cite" data-fact="ldr-gl5528-light"></sup>, γ&nbsp;≈&nbsp;0,65<sup class="cite" data-fact="ldr-gl5528-gamma"></sup>, у темряві до 1&nbsp;МОм<sup class="cite" data-fact="ldr-gl5528-dark"></sup>. Шкали ослаблень — межі входу 0,95 / 1,25 / 1,75 / 3,1&nbsp;В<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>. Шум — модельний, σ&nbsp;≈&nbsp;10 одиниць.</p>
     <a class="lab-more" href="../../ldr-lab/">Повна лабораторія: люксметр →</a>
+    <div class="missions" id="b6-ms"></div>
   </section>
 
   <figure class="anim wide" id="b6-anim" aria-labelledby="b6-anim-h">
@@ -555,6 +557,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
         </div>
         <p class="small">Виклик: підберіть R1, за якого різниця між «долонею» і «кімнатою» найбільша. Потім порівняйте з формулою з розділу 06.</p>
       </div>
+      <div class="missions" id="div-ms"></div>
     </div>
 
     <div class="predict" data-ok="1" data-gate="w-noise" style="margin-top:28px"
@@ -663,6 +666,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
       <p class="test">Код з <code>WiFi.begin()</code> і датчиком на GPIO15 повертає помилки або сміття; на GPIO4 — нормальні числа.</p>
     </div>
     </details>
+    <div class="hunt" id="hunt-ldr"></div>
   </section>
 
   <!-- ============================================================ 08 circuit -->
@@ -914,7 +918,12 @@ document.addEventListener('study:ready', () => {
   // ldrLayer = { parent, map(p) → {x, y} }: draw the LDR into another group (the lab scene squashes the board for
   // a bench seen at an angle, while the LDR stands upright).
   const LDR_COLS = { c0: 13, v33: 13, gpio: 16, gnd: 34, node: 7, top: 8, rgnd: 3 };
-  function ldrBench(parent, { nets = false, ldrLayer = null } = {}) {
+  // fault (the «Знайди несправність» scenes; null = the correct bench, exactly one fault otherwise):
+  //   'adc2'  yellow from GPIO15 (j20, ADC2) instead of GPIO4 · 'swap' LDR between node and GND (g6–g7, black j6), R1 between
+  //   3V3 and node (i7–i11, orange j13 → j11) · 'float' R1's black jumper in the «+» rail (unpowered here) instead of «−» ·
+  //   'r100k' R1 is 100 кОм · 'v5' the divider top (LDR g6–g7) fed from the «+» rail that carries 5V (red j33 → rail,
+  //   red bridge over the split, red rail → j6). highlight: ring around GPIO4 on the board.
+  function ldrBench(parent, { nets = false, ldrLayer = null, fault = null, highlight = true } = {}) {
     const K = window.Kit, C = LDR_COLS;
     const bb = K.part('breadboard', { parent, title: 'Макетка WB-102' });
     bb.classList.add('bb-board');            // Schem: a breadboard view keeps its level tags in the legend only
@@ -926,23 +935,33 @@ document.addEventListener('study:ready', () => {
     };
     const p0 = bb.hole(C.c0, 'i');
     const esp = K.part('esp32s3', { parent, x: p0.x, y: p0.y, rot: -90, title: `Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, 3V3 у стовпчику ${C.v33}, GPIO4 у стовпчику ${C.gpio}, GND у стовпчику ${C.gnd}` });
-    esp.set({ highlight: ['GPIO4'] });
-    const lp = bb.hole(C.node, 'g'), LEG = 60;
+    if (highlight) esp.set({ highlight: ['GPIO4'] });
+    const ldrL = fault === 'swap' || fault === 'v5' ? C.node - 1 : C.node;   // the LDR's left leg
+    const lp = bb.hole(ldrL, 'g'), LEG = 60;
     const at = ldrLayer ? ldrLayer.map(lp) : lp;
-    const ldr = K.part('ldr', { parent: ldrLayer ? ldrLayer.parent : parent, x: at.x, y: at.y, leg: LEG, title: `Фоторезистор LDR1 (GL55xx): отвори g${C.node} і g${C.top}, полярності немає` });
+    const ldr = K.part('ldr', { parent: ldrLayer ? ldrLayer.parent : parent, x: at.x, y: at.y, leg: LEG, title: `Фоторезистор LDR1 (GL55xx): отвори g${ldrL} і g${ldrL + 1}, полярності немає` });
     ldr.face = { x: at.x + K.P / 2, y: at.y - LEG - 30 };
-    const rp = bb.hole(C.rgnd, 'h');
-    const res = K.part('resistor', { parent, ohms: 10000, x: rp.x, y: rp.y, title: `R1 10 кОм (коричневий-чорний-помаранчевий): отвори h${C.rgnd} і h${C.node}` });
+    const r1a = fault === 'swap' ? C.node : C.rgnd, ohms = fault === 'r100k' ? 100000 : 10000;
+    const rp = bb.hole(r1a, fault === 'swap' ? 'i' : 'h');   // swapped: R1 in row i, clear of the board's module
+    const res = K.part('resistor', { parent, ohms, x: rp.x, y: rp.y, title: ohms === 10000 ? `R1 10 кОм (коричневий-чорний-помаранчевий): отвори ${fault === 'swap' ? 'i' : 'h'}${r1a} і ${fault === 'swap' ? 'i' : 'h'}${r1a + 4}` : `R1 100 кОм (коричневий-чорний-жовтий): отвори h${r1a} і h${r1a + 4}` });
     const laneY = bb.hole(1, 'j').y + K.P * 1.15;   // the divider strip between row j and the bottom rails
-    const jG = bb.at('j' + C.gpio), jN = bb.at('j' + C.node);
+    const cG = fault === 'adc2' ? 20 : C.gpio;
+    const jG = bb.at('j' + cG), jN = bb.at('j' + C.node);
+    const rk = fault === 'swap' ? C.node - 1 : C.rgnd, rkTo = fault === 'float' ? '+' : '-';
+    const top = fault === 'swap' ? C.node + 4 : C.top;
     const wires = {
-      j33: kRoute([bb.at('j' + C.v33), bb.at('j' + C.top)], 'orange', 'v33', 'net-3v3', `3V3 плати (j${C.v33}) → j${C.top}: верхня ніжка LDR1`),
-      j4: kRoute([jG, { x: jG.x, y: laneY }, { x: jN.x, y: laneY }, jN], 'yellow', 'gpio4', 'net-sig', `GPIO4 (j${C.gpio}) → j${C.node}: середня точка подільника`),
-      jK: kRoute([bb.at('j' + C.rgnd), bb.at('bottom-' + C.rgnd)], 'black', 'gnd', 'net-gnd', `R1 (j${C.rgnd}) → шина «−»`),
+      j33: fault === 'v5' ? null : kRoute([bb.at('j' + C.v33), bb.at('j' + top)], 'orange', 'v33', 'net-3v3', `3V3 плати (j${C.v33}) → j${top}: ${fault === 'swap' ? 'R1' : 'верхня ніжка LDR1'}`),
+      j4: kRoute([jG, { x: jG.x, y: laneY }, { x: jN.x, y: laneY }, jN], 'yellow', 'gpio4', 'net-sig', `${cG === C.gpio ? 'GPIO4' : 'GPIO15'} (j${cG}) → j${C.node}: середня точка подільника`),
+      jK: kRoute([bb.at('j' + rk), bb.at('bottom' + rkTo + rk)], 'black', 'gnd', 'net-gnd', `${fault === 'swap' ? 'LDR1' : 'R1'} (j${rk}) → шина «${rkTo === '+' ? '+' : '−'}»`),
       jB: kRoute([bb.at('j' + C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd', `GND плати (j${C.gnd}) → шина «−»`),
       // the WB-102 rails are split between columns 31 and 33: R1 (column 3) and the board's GND (34) sit on different halves
       jBr: kRoute([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd', 'Перемичка через розрив шини «−»: стовпчик 31 → 33'),
     };
+    if (fault === 'v5') {
+      wires.j5 = kRoute([bb.at('j33'), bb.at('bottom+33')], 'red', 'v5', 'net-5v', '5V плати (j33) → шина «+»');
+      wires.j5b = kRoute([bb.at('bottom+31'), bb.at('bottom+33')], 'red', 'v5', 'net-5v', 'Перемичка через розрив шини «+»: стовпчик 31 → 33');
+      wires.j33 = kRoute([bb.at('bottom+' + ldrL), bb.at('j' + ldrL)], 'red', 'v5', 'net-5v', `Шина «+» → j${ldrL}: верхня ніжка LDR1`);
+    }
     return { bb, esp, ldr, res, wires };
   }
 
@@ -1116,6 +1135,24 @@ document.addEventListener('study:ready', () => {
     Study.onTheme(plot);
     for (let k = 0; k < 30; k++) push();
     update();
+
+    /* ---------- missions: goals checked from the lab's own state (lab, model(), hist) ---------- */
+    const room = () => !lab.palm && Math.abs(lab.lg - Math.log10(300)) < 0.15;
+    let attCeil = false;   // the attenuation mission: first the ceiling in room light, then back below it
+    Study.missions($('#b6-ms'), { key: 'bench', items: [
+      { id: 'palm', text: 'Накрийте фоторезистор долонею і подивіться, куди поїхало число.',
+        hint: 'Перемикач «Долоня на LDR». LDR стоїть зверху, тож у темряві його опір росте, а число падає.',
+        check: () => lab.palm },
+      { id: 'sun', text: 'Доведіть АЦП до стелі 4095 самим світлом, з ослабленням 11 дБ.',
+        hint: 'Тягніть «Світло» вправо або виберіть «сонце». Стеля настає, щойно напруга на GPIO4 перевищує 3,1 В.',
+        check: () => !lab.palm && lab.att === 3 && model().ideal >= RAWMAX },
+      { id: 'att', text: 'За кімнатного світла (300 лк) виберіть ослаблення, з яким число впирається в 4095, а потім таке, з яким воно знову нижче стелі.',
+        hint: 'У кімнаті на GPIO4 ≈ 2,8 В. Шкала 6 дБ закінчується на 1,75 В — число впреться в 4095; 11 дБ (до 3,1 В) поверне його вниз.',
+        check: () => { if (!room()) return false; const raw = model().ideal; if (raw >= RAWMAX) attCeil = true; return attCeil && raw < RAWMAX; } },
+      { id: 'calm', text: 'Увімкніть «Шум» і приборкайте його: за останні 2 с число має гуляти не більше ніж на ±8 і не стояти в стелі.',
+        hint: 'Без усереднення розкид одного виміру ≈ 10 одиниць. «Середнє з 16» зменшує його приблизно в √16 = 4 рази.',
+        check: () => { if (!lab.noise || hist.length < 20) return false; const v = hist.slice(-20).map((p) => p.shown); return Math.max(...v) - Math.min(...v) <= 16 && Math.max(...v) < RAWMAX && Math.min(...v) > 0; } },
+    ] });
   })();
 
   /* ==================== explainer: quantisation ==================== */
@@ -1434,6 +1471,22 @@ document.addEventListener('study:ready', () => {
   $('#rfix').value = RLIST.indexOf(10000);
   $('#w-div').addEventListener('predict', () => { st.on = true; drawDiv(); });
   drawDiv();
+  { // missions of the divider constructor: checked from st and the same model as the drawing
+    let moved = false;
+    $('#rfix').addEventListener('input', () => { moved = true; });
+    const swing = (r) => Math.abs(toRaw(vOf(300, r)) - toRaw(vOf(1, r)));
+    Study.missions($('#div-ms'), { key: 'divider', items: [
+      { id: 'flip', text: 'Перемкніть «LDR знизу» і переконайтеся: тепер на світлі число менше, ніж у темряві.',
+        hint: 'Кнопка над схемою. Крива на графіку перевернеться: що більше світла, то нижче точка.',
+        check: () => !st.top },
+      { id: 'ceil', text: 'Поверніть LDR зверху і виберіть R1 таким великим, що вже в кімнаті (300 лк) АЦП упирається в 4095.',
+        hint: 'V = 3,3 · R1 / (R<sub>LDR</sub> + R1). У кімнаті R<sub>LDR</sub> ≈ 1,6 кОм, тож стеля 3,1 В настає вже з R1 ≈ 27 кОм.',
+        check: () => st.top && toRaw(vOf(300)) >= RAWMAX },
+      { id: 'swing', text: 'Підберіть R1 з найбільшим розмахом між «долонею» і «кімнатою».',
+        hint: 'Стежте за рядком «Розмах» під графіком. Формула з розділу 06: R ≈ √(R<sub>світло</sub> · R<sub>темно</sub>).',
+        check: () => { if (!moved) return false; const best = Math.max(...RLIST.map(swing)); return swing(st.r) >= best - 20; } },
+    ] });
+  }
 
   /* ==== 05 noise + averaging (gated canvas) ==== */
   (() => {
@@ -1515,6 +1568,56 @@ document.addEventListener('study:ready', () => {
   txt(rl, 'R1 ');
   txt(sv('tspan', { class: 'kit-val' }, rl), '10 кОм');
   { const x0 = bb.hole(1, 'j').x - Kit.P * 1.5, x1 = bb.hole(38, 'j').x; bbSvg.setAttribute('viewBox', `${x0.toFixed(0)} -10 ${(x1 - x0).toFixed(0)} ${(yL + 74).toFixed(0)}`); }
+
+  /* ==== 07 «Знайди несправність»: the section 08 bench with exactly one fault per case ==== */
+  {
+    const scene = (stage, fault, aria, mark, pins) => {
+      const K = window.Kit, P = K.P;
+      const svg = K.svg(stage, '0 0 10 10', aria);
+      svg.classList.add('kitv');
+      const B = ldrBench(svg, { fault, highlight: false });
+      const b = B.bb, yL = b.size.h + 46, colX = (c) => b.hole(c, 'j').x;
+      const L = (x, y, t, cls = '', anc = 'middle') => txt(sv('text', { class: ('kit-lbl ' + cls).trim(), x, y, 'text-anchor': anc }, svg), t);
+      pins.forEach(([t, c, anc, cls, dx, dy = 0]) => L(colX(c) + dx, yL + dy, t, cls, anc));
+      const l1 = fault === 'swap' || fault === 'v5' ? LDR_COLS.node - 1 : LDR_COLS.node, r1 = fault === 'swap' ? LDR_COLS.node : LDR_COLS.rgnd;
+      L((colX(l1) + colX(l1 + 1)) / 2, yL, 'LDR1');
+      L((colX(r1) + colX(r1 + 4)) / 2, yL + 56, 'R1');
+      const x0 = b.hole(1, 'j').x - P * 1.5, x1 = b.hole(38, 'j').x;
+      svg.setAttribute('viewBox', `${x0.toFixed(0)} -10 ${(x1 - x0).toFixed(0)} ${(yL + 74).toFixed(0)}`);
+      const nodes = { ldr: B.ldr, res: B.res, ...B.wires };
+      Object.entries(mark).forEach(([k, i]) => nodes[k]?.setAttribute('data-hunt', String(i)));
+    };
+    const PINS = [['3V3', 13, 'end', 'net-3v3', 10], ['GPIO4', 16, 'start', 'net-sig', -10], ['GND', 34, 'middle', 'net-gnd', 0]];
+    Study.hunt($('#hunt-ldr'), { key: '1-6', cases: [
+      { title: 'Завжди 4095',
+        symptom: '<code>analogRead(4)</code> показує 4095 за будь-якого світла: і під лампою, і під долонею.',
+        build: (st) => scene(st, 'float', 'Подільник біля плати: LDR1 у стовпчиках 7 і 8, R1 з 3 у 7; чорний дріт від стовпчика 3 встромлений у червону шину плюс, на яку нічого не подано.', { res: 0, ldr: 1, jK: 2 }, PINS),
+        options: ['R1 не того номіналу', 'LDR1 стоїть не в тих отворах', 'Чорний дріт від R1 у шині «+», а не «−»'], answer: 2,
+        explain: 'Чорний дріт від R1 встромлений у червону шину «+», а не в синю «−». На «+» тут нічого не подано, тож нижній кінець R1 висить у повітрі. Вхід АЦП майже не бере струму, струм через LDR не тече й напруга на ньому не падає: пін бачить повні 3,3&nbsp;В, вище за стелю 3,1&nbsp;В, — отже 4095. Подільник ділить напругу, лише коли нижній резистор іде на GND.' },
+      { title: 'Бачить лише темряву',
+        symptom: 'У кімнаті й на сонці <code>analogRead</code> стоїть на 4095. Лише під долонею число падає, приблизно до 2600.',
+        build: (st) => scene(st, 'r100k', 'Подільник біля плати, як за схемою уроку; резистор R1 зі смужками коричневий, чорний, жовтий.', { res: 0, j4: 1, jBr: 2 }, PINS),
+        options: ['R1 — 100 кОм (коричневий-чорний-жовтий), а не 10 кОм', 'Жовтий дріт не на GPIO4', 'Перемичка на шині «−» зайва'], answer: 0,
+        explain: 'Смужки R1 — коричневий, чорний, жовтий: 10 · 10⁴ = 100&nbsp;кОм, а потрібен 10&nbsp;кОм (коричневий, чорний, помаранчевий). З таким великим нижнім резистором майже вся напруга лишається на ньому: у кімнаті LDR ≈ 1,6&nbsp;кОм, і пін бачить ≈ 3,25&nbsp;В — вище за стелю 3,1&nbsp;В. Найбільший розмах між долонею і кімнатою дає R ≈ √(R<sub>світло</sub> · R<sub>темно</sub>) ≈ 10&nbsp;кОм.' },
+      { title: 'Усе навпаки',
+        symptom: 'Числа змінюються, але навпаки: під долонею ≈ 3800, а в кімнаті ≈ 600. Скетч люксметра показує «темно», коли світло ввімкнене.',
+        build: (st) => scene(st, 'swap', 'Подільник біля плати: LDR1 у стовпчиках 6 і 7, чорний дріт зі стовпчика 6 на шину мінус; R1 зі стовпчика 7 в 11, помаранчевий дріт від 3V3 у стовпчик 11.', { jB: 0, ldr: 1, res: 1, j4: 2 }, PINS),
+        options: ['GND плати не на шині «−»', 'LDR1 і R1 помінялися місцями: LDR унизу, до GND', 'Жовтий дріт не на GPIO4'], answer: 1,
+        explain: 'LDR1 стоїть між середньою точкою (стовпчик 7) і GND (чорний дріт зі стовпчика 6), а R1 — між 3V3 і середньою точкою. Подільник перевернутий: що більше світла, то менший опір LDR унизу й то менша напруга на GPIO4. Так теж можна, але тоді «більше світла — менше число», і скетч треба переписати. За схемою уроку LDR — зверху, до 3V3.' },
+      { title: 'Wi-Fi ламає датчик',
+        symptom: 'Скетч читає той пін, куди йде жовтий дріт. Без Wi-Fi числа нормальні, але щойно викликається <code>WiFi.begin()</code>, <code>analogRead</code> повертає помилки або сміття.',
+        build: (st) => scene(st, 'adc2', 'Подільник біля плати, як за схемою уроку, але жовтий дріт іде від стовпчика 20 (пін 15 плати) у середню точку.', { ldr: 0, res: 1, j4: 2 },
+          [['3V3', 13, 'end', 'net-3v3', 10], ['GPIO15', 20, 'start', 'net-sig', -10], ['GND', 34, 'middle', 'net-gnd', 0]]),
+        options: ['LDR1 вставлено не тією стороною', 'R1 не того номіналу', 'Жовтий дріт іде від GPIO15 — це ADC2, його забирає Wi-Fi'], answer: 2,
+        explain: 'Жовтий дріт іде від стовпчика 20 — це GPIO15, канал ADC2. Коли працює Wi-Fi, ADC2 зайнятий радіо, тож читати його не вийде. З Wi-Fi працюють лише GPIO1…10 (ADC1), тому в уроці — GPIO4, стовпчик 16. А фоторезистор полярності не має: його можна вставляти будь-якою стороною.' },
+      { title: 'Небезпечна середня точка',
+        symptom: '<code>analogRead</code> стоїть на 4095 уже в кімнаті. Мультиметр між верхньою ніжкою LDR1 і GND показує 5&nbsp;В, а не 3,3&nbsp;В.',
+        build: (st) => scene(st, 'v5', 'Подільник біля плати: LDR1 у стовпчиках 6 і 7, R1 з 3 у 7; червоний дріт від стовпчика 33 (5V плати) на шину плюс, червона перемичка через розрив шини і червоний дріт з шини в стовпчик 6.', { ldr: 0, j5: 1, j5b: 1, j33: 1, res: 2 },
+          [['GPIO4', 16, 'start', 'net-sig', -10], ['GND', 34, 'start', '', -10], ['5V', 33, 'end', '', 10, 56]]),
+        options: ['LDR1 вставлено навпаки', 'Червоні дроти несуть 5V на верх подільника', 'R1 замалий'], answer: 1,
+        explain: 'Червоний дріт іде від піна 5V (стовпчик 33) на шину «+», а з неї — на верхню ніжку LDR1. На світлі середня точка підходить майже до 5&nbsp;В, а виводи ESP32-S3 витримують не більше ≈&nbsp;3,6&nbsp;В: це може пошкодити чип. Верх подільника — тільки на 3V3 (стовпчик 13).' },
+    ] });
+  }
 
   // Schem.flow on a Kit wire: the dots are styled by .kitv .schem-flow; the reduced-motion arrow is scaled up here.
   const kitFlow = (path, o) => {

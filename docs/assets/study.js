@@ -302,6 +302,120 @@
     return { ...ctl, go, get step() { return i; } };
   }
 
+  /* ================================================================ missions: small goals inside a lab */
+  // <div class="missions" id="m-bench"></div>
+  // Study.missions(el, { key: 'bench', items: [{ id, text, hint, check: () => bool }] }) — each check() reads the lab's own
+  // state. Checks run after any input / click / switch inside the surrounding section and twice a second while the list is
+  // on screen (for things that happen over time: an LED heating up). Done ids are saved per page in 'study.missions.v1'.
+  const MISSIONS = 'study.missions.v1';
+  const missionSets = new Set();
+  let missionTimer = 0;
+  function missions(el, { key, items, scope }) {
+    if (!el || el._missions) return el && el._missions;
+    const saved = new Set(((store.get(MISSIONS, {})[pageKey()] || {})[key]) || []);
+    el.innerHTML = `<div class="ms-head"><b>Місії</b><span class="ms-n" aria-live="polite"></span>
+        <span class="ms-bar" aria-hidden="true"><span></span></span>
+        <button type="button" class="ms-reset" title="Почати місії спочатку">↺</button></div>
+      <ol class="ms-list">${items.map((m) => `<li data-id="${esc(m.id)}"><span class="ms-dot" aria-hidden="true"></span>
+        <span class="ms-t">${m.text}</span>${m.hint ? `<details class="ms-hint"><summary>Підказка</summary><p>${m.hint}</p></details>` : ''}</li>`).join('')}</ol>`;
+    const n = $('.ms-n', el), bar = $('.ms-bar > span', el);
+    const save = () => patch(MISSIONS, pageKey(), { ...(store.get(MISSIONS, {})[pageKey()] || {}), [key]: [...saved] });
+    const paint = () => {
+      items.forEach((m) => {
+        const li = $(`li[data-id="${CSS.escape(m.id)}"]`, el);
+        li.classList.toggle('done', saved.has(m.id));
+        li.setAttribute('aria-label', (saved.has(m.id) ? 'Виконано: ' : 'Не виконано: ') + li.querySelector('.ms-t').textContent);
+      });
+      n.textContent = `${saved.size} / ${items.length}`;
+      bar.style.width = (saved.size / items.length * 100) + '%';
+      el.classList.toggle('all-done', saved.size === items.length);
+    };
+    const api = {
+      check() {
+        let fresh = null;
+        for (const m of items) {
+          if (saved.has(m.id)) continue;
+          let ok = false; try { ok = !!m.check(); } catch { ok = false; }
+          if (ok) { saved.add(m.id); fresh = m; const li = $(`li[data-id="${CSS.escape(m.id)}"]`, el); li.classList.add('just'); setTimeout(() => li.classList.remove('just'), 1400); }
+        }
+        if (fresh) {
+          save(); paint();
+          toast(saved.size === items.length ? 'Усі місії цієї лабораторії виконано!' : 'Місію виконано: ' + fresh.text.replace(/<[^>]*>/g, ''), 'ok');
+        }
+      },
+      reset() { saved.clear(); save(); paint(); },
+      get done() { return [...saved]; },
+    };
+    $('.ms-reset', el).addEventListener('click', () => api.reset());
+    const area = scope || el.closest('section') || doc;
+    let q = 0;
+    const soon = () => { if (!q) q = requestAnimationFrame(() => { q = 0; api.check(); }); };
+    ['input', 'change', 'click', 'switch', 'pointerup', 'keyup'].forEach((t) => area.addEventListener(t, soon));
+    const vis = 'IntersectionObserver' in window ? new IntersectionObserver((es) => { api.visible = es[0].isIntersecting; }) : null;
+    api.visible = !vis; if (vis) vis.observe(el);
+    missionSets.add(api);
+    if (!missionTimer) missionTimer = setInterval(() => { for (const s of missionSets) if (s.visible && !doc.hidden) s.check(); }, 500);
+    paint();
+    el._missions = api;
+    return api;
+  }
+
+  /* ================================================================ «Знайди несправність»: fault-finding cases */
+  // <div class="hunt" id="hunt-1"></div>
+  // Study.hunt(el, { key: '1-2', cases: [{ title, symptom, build(stage), options: ['…', …], answer: i, explain }] })
+  // build(stage) draws the faulty scene into the stage element (rebuilt every time the case is opened). Elements inside it
+  // with data-hunt="i" are clickable answers (click the faulty part = choose option i). Solved cases persist ('study.hunt.v1').
+  const HUNT = 'study.hunt.v1';
+  function hunt(el, { key, cases }) {
+    if (!el || el._hunt) return el && el._hunt;
+    const solved = new Set(((store.get(HUNT, {})[pageKey()] || {})[key]) || []);
+    el.innerHTML = `<div class="hn-head"><b>Знайди несправність</b><span class="hn-n"></span></div>
+      <div class="hn-tabs" role="tablist" aria-label="Справи">${cases.map((c, i) => `<button type="button" role="tab" data-i="${i}" aria-selected="false" title="${esc(c.title)}">${i + 1}</button>`).join('')}</div>
+      <div class="hn-case"><h4 class="hn-title"></h4><p class="hn-sym"></p><div class="hn-stage"></div>
+      <p class="hn-ask">Що зламано? Клацніть деталь на малюнку або виберіть відповідь:</p><div class="hn-opts"></div>
+      <div class="hn-fb" aria-live="polite"></div><div class="hn-nav"><button type="button" class="btn hn-next">Наступна справа →</button></div></div>`;
+    const tabs = $$('.hn-tabs button', el), stage = $('.hn-stage', el), opts = $('.hn-opts', el), fb = $('.hn-fb', el);
+    let cur = 0, answered = false;
+    const save = () => patch(HUNT, pageKey(), { ...(store.get(HUNT, {})[pageKey()] || {}), [key]: [...solved] });
+    const head = () => {
+      $('.hn-n', el).textContent = `розкрито ${solved.size} з ${cases.length}`;
+      tabs.forEach((b, i) => { b.classList.toggle('ok', solved.has(i)); b.setAttribute('aria-selected', String(i === cur)); });
+    };
+    const choose = (i) => {
+      if (answered) return;
+      const c = cases[cur], ok = i === c.answer;
+      $$('.hn-opts button', el).forEach((b, k) => { b.classList.toggle('right', ok && k === i); b.classList.toggle('wrong', !ok && k === i); });
+      $$('[data-hunt]', stage).forEach((n) => n.classList.toggle('hn-hit', +n.dataset.hunt === i));
+      if (ok) {
+        answered = true;
+        $$('[data-hunt]', stage).forEach((n) => n.classList.toggle('hn-found', +n.dataset.hunt === c.answer));
+        fb.className = 'hn-fb ok'; fb.innerHTML = `<b>Так!</b> ${c.explain}`;
+        if (!solved.has(cur)) { solved.add(cur); save(); toast(solved.size === cases.length ? 'Усі справи розкрито!' : 'Справу розкрито', 'ok'); }
+        head();
+      } else { fb.className = 'hn-fb no'; fb.innerHTML = 'Ні, це не воно. Подивіться ще раз на симптом і на те, куди йде кожен дріт.'; }
+    };
+    const open = (i) => {
+      cur = (i + cases.length) % cases.length; answered = false;
+      const c = cases[cur];
+      $('.hn-title', el).textContent = `Справа ${cur + 1}. ${c.title}`;
+      $('.hn-sym', el).innerHTML = `<b>Симптом:</b> ${c.symptom}`;
+      stage.replaceChildren();
+      try { c.build(stage); } catch (e) { console.error('Study.hunt build:', e); }
+      opts.innerHTML = c.options.map((o, k) => `<button type="button" class="opt" data-k="${k}">${o}</button>`).join('');
+      $$('.hn-opts button', el).forEach((b) => b.addEventListener('click', () => choose(+b.dataset.k)));
+      $$('[data-hunt]', stage).forEach((n) => { n.setAttribute('tabindex', '0'); n.setAttribute('role', 'button'); });
+      fb.className = 'hn-fb'; fb.textContent = '';
+      head();
+    };
+    stage.addEventListener('click', (e) => { const t = e.target.closest('[data-hunt]'); if (t) choose(+t.dataset.hunt); });
+    stage.addEventListener('keydown', (e) => { const t = e.target.closest('[data-hunt]'); if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); choose(+t.dataset.hunt); } });
+    tabs.forEach((b) => b.addEventListener('click', () => open(+b.dataset.i)));
+    $('.hn-next', el).addEventListener('click', () => open(cur + 1));
+    open(Math.max(0, cases.findIndex((_, i) => !solved.has(i))));
+    el._hunt = { open, get solved() { return [...solved]; } };
+    return el._hunt;
+  }
+
   /* ================================================================ on/off switches */
   // <button type="button" class="sw" aria-checked="false">Діод</button> — a click flips aria-checked and fires a
   // bubbling `switch` event with detail.on. Pages: el.addEventListener('switch', (e) => …(e.detail.on)).
@@ -1191,7 +1305,7 @@
 
   /* ================================================================ boot */
   const Study = {
-    base, $, $$, store, parseNum, tokens, onTheme, isDark, fitCanvas, sim, anim, switches, predict, tryInit, measure, exit, teacher,
+    base, $, $$, store, parseNum, tokens, onTheme, isDark, fitCanvas, sim, anim, switches, missions, hunt, predict, tryInit, measure, exit, teacher,
     toc, cites, comments, copy, toast, fetchJSON, lessonInfo, dual: { init: dualInit },
     fmt: { num, si, date: fmtDate },
     reducedMotion: () => mqReduce.matches,

@@ -172,6 +172,16 @@ pre.ir-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding:
   .hub .idea:has(.idea-ctl) figure :is(.svg-t, .svg-m) { font-size: 14px; }
   .hub .idea:has(.idea-ctl) figure .svg-b { font-size: 15px; }
 }
+/* «Знайди несправність»: the firmware next to the faulty bench; lines with data-hunt are clickable answers */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
 </style>
 </head>
 <body data-lesson="2-4">
@@ -259,6 +269,7 @@ pre.ir-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding:
     <p class="lab-note ir-src">Брязкіт у моделі — за записом нашого стенду 17.10: брязкотіли ≈&nbsp;38&nbsp;% відпускань, медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>. На такому масштабі пачка фронтів виглядає як одна риска.</p>
     <a class="lab-more" href="../../bounce-lab/#mcu">Повна лабораторія: що бачить ISR під час брязкоту →</a>
     <a class="lab-more" href="../../bounce-bench/#isr">Справжні дані стенду: 190 подій →</a>
+    <div class="missions" id="ir-ms"></div>
   </section>
 
   <figure class="anim wide" id="ir-anim" aria-labelledby="ir-anim-h">
@@ -696,6 +707,8 @@ void setup() {
         <ul class="rv-why" id="rv-why"></ul>
       </div>
     </div>
+    <!-- «Знайди несправність»: the lab's bench + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-ir"></div>
   </section>
 
   <!-- ============================================================ 08 circuit -->
@@ -1047,14 +1060,16 @@ document.addEventListener('study:ready', () => {
     return g;
   }
   const BC = { c0: 20, v33: 20, g7: 26, g15: 27, gnd: 41, sw: 10, node: 12, pu: 16, r2: 8, an: 4, ca: 3 };
-  function bench(svg, { nets = false, s1 = null } = {}) {
+  // fault cases of «Знайди несправність» only: g7 = the board column the yellow wire starts from (GPIO7 = 26),
+  // pull = false leaves R1 and its orange wire out, label = the switch's pill text
+  function bench(svg, { nets = false, s1 = null, g7 = BC.g7, pull = true, label = '' } = {}) {
     const C = BC;
     const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
     const H = (c, r) => bb.hole(c, r);
     const strips = mk('g', { class: 'kb-strips' }, svg);
     const p0 = H(C.c0, 'i');
     const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
-    const out = { bb, esp };
+    const out = { bb, esp, wire: {} };
     const strip = (net, cls, c, half) => {
       if (!nets) return;
       const a = H(c, half === 'top' ? 'a' : 'f');
@@ -1067,7 +1082,7 @@ document.addEventListener('study:ready', () => {
     };
     // R1 10 кОм (pull-up) in row h from the 3V3 column to the GPIO7 node; R2 220 Ом in row h; the LED stands in row f, mirrored
     const r1 = H(C.node, 'h');
-    out.r1 = K.part('resistor', { parent: svg, ohms: 10000, x: r1.x, y: r1.y, title: `R1 10 кОм (коричневий-чорний-помаранчевий): h${C.node} і h${C.pu}` });
+    if (pull) out.r1 = K.part('resistor', { parent: svg, ohms: 10000, x: r1.x, y: r1.y, title: `R1 10 кОм (коричневий-чорний-помаранчевий): h${C.node} і h${C.pu}` });
     const r2 = H(C.an, 'h');
     out.r2 = K.part('resistor', { parent: svg, ohms: 220, x: r2.x, y: r2.y, title: `R2 220 Ом (червоний-червоний-коричневий): h${C.an} і h${C.r2}` });
     const la = H(C.an, 'f');
@@ -1083,7 +1098,8 @@ document.addEventListener('study:ready', () => {
       mk('rect', { class: 'kb-ring', x: e.x - 30, y: e.y - 30, width: 2 * KP + 60, height: 3 * KP + 60, rx: 16 }, sg);
     }
     out.btn = K.part('button', { parent: sg, x: e.x, y: e.y, title: `Тактова кнопка S1: ніжки в стовпчиках ${C.sw} і ${C.node}` });
-    pill(svg, H(C.sw, 'c').x + KP, yL, s1 ? 'S1' : 'SW1', s1 ? 48 : 64);
+    const swName = label || (s1 ? 'S1' : 'SW1');
+    pill(svg, H(C.sw, 'c').x + KP, yL, swName, swName === 'S1' ? 48 : 64);
     rail('gnd', 'net-gnd', 'bottom', '-');
     strip('v33', 'net-3v3', C.v33, 'bottom'); strip('v33', 'net-3v3', C.pu, 'bottom');
     strip('gpio7', 'net-sig', C.node, 'top'); strip('gpio7', 'net-sig', C.node, 'bottom'); strip('gpio7', 'net-sig', C.g7, 'bottom');
@@ -1100,13 +1116,13 @@ document.addEventListener('study:ready', () => {
     const lane = J(1).y + KP * 1.15;        // the divider strip between row j and the bottom rails
     const edge = J(1).y + KP * 4.67;        // the free strip along the bottom edge, below the «−» rail
     const U = (from, to, y) => { const a = J(from), b = J(to); return [a, { x: a.x, y }, { x: b.x, y }, b]; };
-    w([J(C.v33), J(C.pu)], 'orange', 'v33', 'net-3v3');
-    w(U(C.g7, C.node, lane), 'yellow', 'gpio7', 'net-sig');
-    w(U(C.g15, C.r2, edge), 'green', 'gpio15', 'net-sig2');
-    w([J(C.sw), bb.at('bottom-' + C.sw)], 'black', 'gnd', 'net-gnd');
-    w([J(C.ca), bb.at('bottom-' + C.ca)], 'black', 'gnd', 'net-gnd');
-    w([J(C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd');
-    w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');   // over the split of the «−» rail
+    if (pull) out.wire.v33 = w([J(C.v33), J(C.pu)], 'orange', 'v33', 'net-3v3');
+    out.wire.g7 = w(U(g7, C.node, lane), 'yellow', 'gpio7', 'net-sig');
+    out.wire.g15 = w(U(C.g15, C.r2, edge), 'green', 'gpio15', 'net-sig2');
+    out.wire.sw = w([J(C.sw), bb.at('bottom-' + C.sw)], 'black', 'gnd', 'net-gnd');
+    out.wire.ca = w([J(C.ca), bb.at('bottom-' + C.ca)], 'black', 'gnd', 'net-gnd');
+    out.wire.gnd = w([J(C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd');
+    out.wire.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');   // over the split of the «−» rail
     // crop: the left part of the breadboard up to the board's USB end
     const x0 = 0, x1 = H(C.gnd + 3, 'a').x;
     svg.setAttribute('viewBox', `${x0 - 20} -20 ${x1 - x0 + 20} ${bb.size.h + 70}`);
@@ -1461,6 +1477,25 @@ document.addEventListener('study:ready', () => {
     new ResizeObserver(() => { sizeCanvas(); sim.draw(); }).observe(stage);
     Study.onTheme(() => sim.draw());
     reset(); modeNote(); syncPlay();
+
+    /* ---- missions: each check reads this model (cfg, m) ---- */
+    Study.missions($('#ir-ms'), { key: 'ir', items: [
+      { id: 'pmiss', text: 'В опитуванні зробіть коротке натискання, яке loop() пропустить.',
+        hint: 'Клацніть S1 швидко, поки йде «робота». Кнопку відпустять раніше, ніж loop() дійде до перевірки. Більша «Робота loop()» — легше.',
+        check: () => cfg.mode === 'poll' && m.miss > 0 },
+      { id: 'catch', text: 'Перемкніться на «Переривання» і так само коротко натисніть S1: тепер натискання не загубиться.',
+        hint: 'ISR спрацьовує на самому фронті й ставить прапорець; loop() обробить його, щойно закінчить роботу. «Оброблено» має стати 1, «Пропущено» — 0.',
+        check: () => cfg.mode === 'isr' && cfg.vol && m.done >= 1 && m.miss === 0 },
+      { id: 'bounce', text: 'Увімкніть «Брязкіт кнопки» і натискайте S1, доки викликів ISR не стане щонайменше на 2 більше, ніж натискань.',
+        hint: 'Брязкотить приблизно кожне третє відпускання, і кожен зайвий спадаючий фронт — ще один виклик ISR. Допоможуть «Випадкові натискання».',
+        check: () => cfg.mode === 'isr' && cfg.bounce && m.calls >= m.real + 2 },
+      { id: 'vol', text: 'Вимкніть <code>volatile</code> і натисніть S1: ISR спрацює, а натискання так і не обробиться.',
+        hint: 'Режим «Переривання», перемикач volatile вимкнений. Зачекайте, поки «Пропущено» стане 1: loop() читає свою копію pressed з регістра.',
+        check: () => cfg.mode === 'isr' && !cfg.vol && m.calls >= 1 && m.miss >= 1 },
+      { id: 'long', text: 'Увімкніть «Довгий код в ISR», натисніть S1 і прочитайте попередження під лабораторією.',
+        hint: 'Режим «Переривання». Поки ISR триває 120&nbsp;мс, смуга «робота loop()» на таймлайні стоїть.',
+        check: () => cfg.mode === 'isr' && cfg.long && m.isrs.some((i) => i.d > 0) && !$('#ir-warn').hidden },
+    ] });
   })();
 
   /* =====================================================================
@@ -2016,6 +2051,95 @@ document.addEventListener('study:ready', () => {
     if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
   });
   openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-ir): the lab's bench (same layout as 08) + the firmware; exactly one fault per case.
+     Lines of code and Kit parts/wires with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  {
+    const hkEsc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rem = (t) => `<span class="rem">${hkEsc(t)}</span>`;
+    const hkCode = (stage, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = '<div class="hk-h">src/main.cpp</div><pre>' + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, { label: 'S1', ...opts });
+    };
+    const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+    const OK = 'Макетка як у розділі 08: плата в макетці; кнопка S1 через канавку між вузлом GPIO7 (жовтий дріт) і шиною мінус; R1 10 кОм підтягує вузол до 3V3 (помаранчевий дріт); LED на GPIO15 (зелений дріт) через 220 Ом, катод на шині мінус.';
+    const ATTACH = (mode, k) => [['  attachInterrupt(', k], ['    digitalPinToInterrupt(BTN),', k], [`    onPress, ${mode});`, k]];
+    Study.hunt($('#hunt-ir'), { key: '2-4', cases: [
+      { title: 'Друк в обробнику',
+        symptom: 'Інколи саме в момент натискання S1 плата падає й перезавантажується. Якщо прибрати один рядок, усе працює.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, ['volatile bool pressed = false;', 'void IRAM_ATTR onPress() {', ['  pressed = true;', 1],
+            ['  Serial.println("тиць");', 0], '}', 'void setup() {', '  pinMode(BTN, INPUT_PULLUP);', ...ATTACH('FALLING', 2), '}']);
+        },
+        options: ['<code>Serial.println()</code> в ISR: друк бере м’ютекс і може чекати',
+          '<code>pressed = true</code> треба ставити в <code>loop()</code>, а не в ISR',
+          '<code>FALLING</code> треба замінити на <code>CHANGE</code>'],
+        answer: 0,
+        explain: '<code>Serial</code> у наших проєктах (USB CDC) у <code>write()</code> бере м’ютекс з тайм-аутом, а блокувальні виклики FreeRTOS з ISR робити не можна. ISR має лише поставити прапорець, тож <code>pressed = true</code> — якраз правильно. Друкуйте в <code>loop()</code>, коли побачили прапорець. Так само не можна <code>delay()</code>: він викликає <code>vTaskDelay()</code>.' },
+      { title: 'Прапорець не доходить',
+        symptom: 'Збірка з <code>-Os</code>. ISR викликається (лічильник у ньому росте), а <code>loop()</code> застряг у <code>while</code>, і LED жодного разу не перемкнувся.',
+        build(st) {
+          const kb = hkBench(st, OK);
+          hkTag(kb.wire.g7, 2);
+          hkCode(st, [['bool pressed = false;', 0], ['void IRAM_ATTR onPress() {', 1], '  pressed = true;', '}', 'void loop() {',
+            '  ' + rem('// чекаємо на ISR'), '  while (!pressed) { }', '  pressed = false;', '  toggle(LED);', '}']);
+        },
+        options: ['<code>pressed</code> без <code>volatile</code>: компілятор читає його лише раз',
+          '<code>IRAM_ATTR</code> забороняє ISR змінювати глобальні змінні',
+          'Жовтий дріт іде не на GPIO7'],
+        answer: 0,
+        explain: 'Для звичайного <code>bool</code> компілятор має право прочитати <code>pressed</code> один раз і крутити порожній цикл без нового читання: з <code>-Os</code> так і виходить. <code>volatile bool pressed</code> змушує читати пам’ять на кожному оберті. <code>IRAM_ATTR</code> лише кладе обробник у внутрішню RAM. А провід справний: інакше ISR не викликався б.' },
+      { title: 'ISR мовчить',
+        symptom: 'Обробник не викликається жодного разу. Мультиметр каже: кнопка замикає, R1 на місці, на вузлі кнопки 3,3&nbsp;В.',
+        build(st) {
+          const kb = hkBench(st, 'Макетка: плата в макетці; кнопка S1 через канавку, R1 10 кОм підтягує її вузол до 3V3 (помаранчевий дріт); жовтий дріт іде до вузла кнопки зі стовпчика 25 (GPIO6); LED на GPIO15 через 220 Ом; друга ніжка кнопки і катод LED на шині мінус.', { g7: 25 });
+          hkTag(kb.wire.g7, 0); hkTag(kb.r1, 1);
+          hkCode(st, ['constexpr uint8_t BTN = 7;', 'void setup() {', '  pinMode(BTN, INPUT_PULLUP);', ...ATTACH('FALLING', 2), '}']);
+        },
+        options: ['Жовтий дріт стоїть у стовпчику GPIO6, а переривання на GPIO7',
+          'R1 10 кОм завеликий: кнопка не може притягти вхід до нуля',
+          'Треба <code>attachInterrupt(0, …)</code>, як в Arduino Uno'],
+        answer: 0,
+        explain: 'Жовтий дріт виходить зі стовпчика 25, а це GPIO6. GPIO7 (стовпчик 26) ні до чого не під’єднаний, тож фронтів на ньому немає. Кнопка через 10&nbsp;кОм спокійно тягне вузол до 0. А <code>digitalPinToInterrupt(p)</code> на ESP32-S3 повертає сам номер GPIO, тож <code>attachInterrupt(0, …)</code> повісив би обробник на GPIO0, кнопку BOOT.' },
+      { title: 'Фантомні натискання',
+        symptom: 'Кнопки ніхто не торкається, а ISR сам спрацьовує десятки разів, особливо коли підносите руку до макетки.',
+        build(st) {
+          const kb = hkBench(st, 'Макетка: плата в макетці; кнопка S1 через канавку між вузлом GPIO7 (жовтий дріт) і шиною мінус; резистора R1 і помаранчевого дроту до 3V3 немає; LED на GPIO15 (зелений дріт) через 220 Ом, катод на шині мінус.', { pull: false });
+          hkTag(kb.btn, 1); hkTag(kb.wire.sw, 2);
+          hkCode(st, ['constexpr uint8_t BTN = 7;', 'void setup() {', ['  pinMode(BTN, INPUT);', 0], ...ATTACH('FALLING'), '}']);
+        },
+        options: ['Немає підтяжки: R1 не стоїть, а в коді <code>INPUT</code>, тож вхід «висить»',
+          'Кнопку S1 повернуто на 90°: вона замкнена весь час',
+          'Друга ніжка S1 має йти на 3V3, а не на мінус'],
+        answer: 0,
+        explain: 'Поки кнопка відпущена, GPIO7 ні до чого не під’єднаний: вхід ловить наводки, рівень стрибає між 0 і 1, і кожен спадаючий фронт запускає ISR. Поверніть R1 10&nbsp;кОм до 3V3 або хоча б <code>INPUT_PULLUP</code> (≈&nbsp;45&nbsp;кОм усередині). Кнопка на мінус — правильно: натискання дає LOW.' },
+      { title: 'Реагує на відпускання',
+        symptom: 'LED перемикається не тоді, коли натискаєте S1, а коли відпускаєте її.',
+        build(st) {
+          const kb = hkBench(st, OK);
+          hkTag(kb.r1, 1);
+          hkCode(st, ['constexpr uint8_t BTN = 7;', 'void setup() {', ['  pinMode(BTN, INPUT_PULLUP);', 2], ...ATTACH('RISING', 0), '}']);
+        },
+        options: ['<code>RISING</code>: з підтяжкою натискання — це спад HIGH → LOW',
+          'R1 має підтягувати вхід до GND, а не до 3V3',
+          '<code>INPUT_PULLUP</code> разом із R1 — конфлікт двох підтяжок'],
+        answer: 0,
+        explain: 'Підтяжка до 3V3 тримає HIGH, кнопка на мінус дає LOW. Натискання — спадаючий фронт (<code>FALLING</code>), а <code>RISING</code> ловить відпускання. Внутрішня підтяжка паралельно з R1 нічому не шкодить: разом просто трохи менший опір.' },
+    ] });
+  }
 
   Study.onTheme((t) => { T = t; drawPoll(); drawBounce(); });
   window.addEventListener('resize', () => { drawPoll(); drawBounce(); });

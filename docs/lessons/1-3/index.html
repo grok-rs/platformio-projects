@@ -313,6 +313,7 @@ pre.snip .c { color: var(--muted); }
     </div>
     <p class="lab-note" id="bl-note" aria-live="polite">Плату щойно увімкнули: ядро викличе setup() один раз, а потім loop() — знову і знову.</p>
     <a class="lab-more" href="../../lab/#led-blink">Повна лабораторія: Стенд ESP32-S3, «Миготіння LED» →</a>
+    <div class="missions" id="bl-ms"></div>
   </section>
 
   <figure class="anim wide" id="bl-anim" aria-labelledby="bl-anim-h">
@@ -842,6 +843,7 @@ pre.snip .c { color: var(--muted); }
         <p class="test">Розверніть LED при працюючому Blink: темно. Поверніть — блимає.</p>
       </div>
     </div>
+    <div class="hunt" id="hunt-blink"></div>
   </section>
 
   <!-- ============================================================ 08 circuit -->
@@ -1148,7 +1150,9 @@ document.addEventListener('study:ready', () => {
   // black bridge (bottom-31 → bottom-33) joins its halves. The breadboard fades out at `cut` (x of the fade start).
   let fadeN = 0;
   const C0 = 14; // first header column (L1 = 3V3)
-  function bench(parent, cut = 1030) {
+  // f = one deliberate fault for «Знайди несправність» (defaults = the correct bench): sigCol (column of the GPIO end of
+  // the yellow jumper), toCol (where it lands), ledReversed, gndPlus (board GND on the + rail), noBridge.
+  function bench(parent, cut = 1030, f = {}) {
     const id = `kit-cut-${++fadeN}`;
     const defs = sv('defs', {}, parent);
     const lg = sv('linearGradient', { id: id + 'g', gradientUnits: 'userSpaceOnUse', x1: cut, x2: cut + 98, y1: 0, y2: 0 }, defs);
@@ -1162,15 +1166,16 @@ document.addEventListener('study:ready', () => {
     const col15 = C0 + 7, colG = C0 + 21; // GPIO15 = L8, GND = L22
     const ra = bb.hole(4, 'h');
     const R = K.part('resistor', { parent, ohms: 220, span: 4, x: ra.x, y: ra.y });
-    const la = bb.hole(4, 'f');
-    const led = K.part('led', { parent, color: 'red', x: la.x, y: la.y, leg: 40, mirror: true });
+    // reversed: put in unmirrored at f3 — anode in the cathode wire's strip, cathode in R1's strip
+    const la = bb.hole(f.ledReversed ? 3 : 4, 'f');
+    const led = K.part('led', { parent, color: 'red', x: la.x, y: la.y, leg: 40, mirror: !f.ledReversed });
     const laneY = bb.hole(1, 'j').y + K.P * 1.15; // the strip between row j and the bottom rails
-    const j15 = bb.at('j' + col15), j8 = bb.at('j8');
+    const j15 = bb.at('j' + (f.sigCol ?? col15)), j8 = bb.at('j' + (f.toCol ?? 8));
     const w15 = K.route(parent, [j15, { x: j15.x, y: laneY }, { x: j8.x, y: laneY }, j8], 'yellow');
     const wK = K.route(parent, [bb.at('j3'), bb.at('bottom-3')], 'black');
-    const wG = K.route(parent, [bb.at('j' + colG), bb.at('bottom-' + colG)], 'black');
+    const wG = K.route(parent, [bb.at('j' + colG), bb.at((f.gndPlus ? 'bottom+' : 'bottom-') + colG)], 'black');
     // the WB-102 rails are split between columns 31 and 33: a short black bridge joins the two halves of the − rail
-    const wBr = K.route(parent, [bb.at('bottom-31'), bb.at('bottom-33')], 'black');
+    const wBr = f.noBridge ? null : K.route(parent, [bb.at('bottom-31'), bb.at('bottom-33')], 'black');
     return { bb, esp, R, led, w15, wK, wG, wBr, col15, colG };
   }
   // A USB-C plug in a mouth of the board (Kit has no cable part): black overmold; `tail(x, y)` continues the cable path.
@@ -1237,7 +1242,8 @@ document.addEventListener('study:ready', () => {
     ];
     const BOOT_MS = 300; // schematic start-up time of the model, not a datasheet value
     const st = { power: true, port: 'usb', pin: '15', dly: 1000, slow: false, pc: 0, T: 0, boot: 0, wait: 0, level: 'z',
-      segs: [{ t: 0, v: 'z' }], ns: 0, nl: 0, clock: 0, hit: new Array(lines.length).fill(-1e9), cur: -1, pk: [], rstDown: false };
+      segs: [{ t: 0, v: 'z' }], ns: 0, nl: 0, clock: 0, hit: new Array(lines.length).fill(-1e9), cur: -1, pk: [], rstDown: false,
+      rsts: 0, sawCom: false, sawRgb: false }; // rsts / sawCom / sawRgb: only for the missions below
     const out = [];
     const serial = (txt, cls = '') => {
       out.push({ txt, cls, at: st.clock });
@@ -1279,6 +1285,7 @@ document.addEventListener('study:ready', () => {
       const on = st.power && st.level === 'hi';
       const avg = st.power && st.level !== 'z' && fastBlink() && st.nl > 1; // the eye sees the average
       const ext = st.pin === '15', glow = avg ? 0.5 : on ? 1 : 0;
+      if (!ext && glow) st.sawRgb = true;
       setLed({ on: ext ? glow : 0 });
       // LED_BUILTIN on our board = the WS2812 on GPIO48, lit white by the core
       setEsp({ power: st.power, rgb: !ext && glow ? (avg ? '#9c9c9c' : '#ffffff') : null, rst: st.rstDown, highlight: ext ? ['GPIO15', 'GND'] : null });
@@ -1336,6 +1343,7 @@ document.addEventListener('study:ready', () => {
     const rst = () => {
       st.rstDown = true; setTimeout(() => { st.rstDown = false; paint(); }, 180);
       if (!st.power) { note('Без живлення RST нічого не робить.'); paint(); return; }
+      st.rsts++;
       reset('RST: чип перезапустився. millis() знову з нуля, програма почнеться з setup().');
     };
     $('#bl-rst').addEventListener('click', rst);
@@ -1367,12 +1375,31 @@ document.addEventListener('study:ready', () => {
     }));
     $$('#bl-port button').forEach((b) => b.addEventListener('click', () => {
       press($('#bl-port'), b); st.port = b.dataset.p;
+      if (st.port === 'com') st.sawCom = true;
       if (st.power) reset(st.port === 'usb' ? 'Кабель у роз\'ємі «USB»: живлення і Serial програми.'
         : 'Кабель у «COM»: плата живиться і прошивається, але Serial наших проєктів сюди не пише — він іде через «USB».');
     }));
     powerUp(); paint();
     Study.onTheme(paint);
     window.addEventListener('resize', paint);
+    // missions: each check reads the lab's own state (st)
+    Study.missions($('#bl-ms'), { key: 'blink', items: [
+      { id: '1hz', text: 'Зробіть так, щоб зовнішній LED блимав рівно один раз на секунду (1&nbsp;Гц).',
+        hint: 'Період = HIGH + LOW = 2 × delay. Для 1&nbsp;Гц період має бути 1000&nbsp;мс.',
+        check: () => st.power && st.pin === '15' && st.dly === 500 },
+      { id: 'builtin', text: 'Перемкніть програму на <code>LED_BUILTIN</code> і дочекайтеся, поки засвітиться RGB-світлодіод на платі.',
+        hint: 'Кнопка «LED_BUILTIN» під малюнком. На нашій платі це не GPIO, а RGB на GPIO48: ядро вмикає його білим.',
+        check: () => st.sawRgb },
+      { id: 'rst', text: 'Натисніть RST і подивіться, як <code>setup()</code> виконується вдруге.',
+        hint: 'Кнопка «↻ RST» або сама кнопка RST на малюнку. Лічильник «setup() / loop()» покаже 2 у першому числі. Якщо стоїть пауза — натисніть ▶.',
+        check: () => st.rsts > 0 && st.ns >= 2 },
+      { id: 'com', text: 'Перемкніть кабель у роз\'єм COM: чому монітор замовк? Потім поверніть кабель туди, де Serial знову друкує.',
+        hint: 'Serial наших проєктів іде через вбудований USB (роз\'єм «USB»), а COM — це міст CH343 на UART0.',
+        check: () => st.sawCom && st.port === 'usb' && st.power },
+      { id: 'fuse', text: 'Зробіть миготіння таким швидким, щоб око бачило рівне, але тьмяніше світло зовнішнього LED.',
+        hint: 'Крутіть delay вниз. Коли період менший за ≈&nbsp;80&nbsp;мс, око вже не бачить окремих спалахів.',
+        check: () => st.power && st.pin === '15' && fastBlink() && st.nl > 1 },
+    ] });
   }
 
   /* ==== 01 why: the same 220 Ом and red LED, with and without the board (Kit parts in a block diagram) ==== */
@@ -1834,6 +1861,70 @@ document.addEventListener('study:ready', () => {
       upd();
     });
     upd();
+  }
+
+  /* ==== 07 «Знайди несправність»: the lesson's bench with exactly one fault per case ==== */
+  {
+    // The same bench as the lab (board in rows i/b, GPIO15 j21 → yellow → j8 · R1 h8–h4 · LED f4/f3 · black j3 → − rail ·
+    // GND j35 → − rail · bridge 31→33) with one fault from bench(…, f); the USB-C plug sits in «USB» or, faulty, in «COM».
+    const scene = (stage, f, label) => {
+      const s = K.svg(stage, '0 -110 1200 740', label);
+      s.classList.add('kit-scene');
+      const B = bench(s, 1100, f), esp = B.esp;
+      const plug = usbPlug(s, f.com ? esp.pins.USB_COM : esp.pins.USB_OTG);
+      const BOT = 556, TOP = -24, uc = esp.pins.USB_COM, uo = esp.pins.USB_OTG;
+      const lc = (B.led.pins.A.x + B.led.pins.K.x) / 2, rc = (B.R.pins[1].x + B.R.pins[2].x) / 2;
+      callout(s, uc.x + 34, BOT, 'COM', { x: uc.x, y: uc.y + 44 }, true);
+      sv('path', { class: 'kit-lead', d: `M${uo.x + 14} ${uo.y - 40}V${TOP - 6}H${uo.x - 200}` }, s);
+      callout(s, uo.x - 212, TOP, 'USB').setAttribute('text-anchor', 'end');
+      callout(s, rc, BOT, 'R1 220 Ом', { x: rc, y: B.R.pins[1].y + 18 }, true);
+      callout(s, lc, TOP, 'LED1', { x: lc, y: B.led.pins.A.y - 140 });
+      keepText(s);
+      // the split of the − rail as a clickable spot (bridged or not)
+      const g0 = B.bb.at('bottom-31'), g1 = B.bb.at('bottom-33');
+      const gap = sv('rect', { class: 'hn-gap', x: g0.x - 16, y: g0.y - 18, width: g1.x - g0.x + 32, height: 36, rx: 10, fill: 'transparent' }, s);
+      B.plug = plug; B.gap = gap;
+      return B;
+    };
+    const tag = (el, i) => { if (el) el.setAttribute('data-hunt', String(i)); };
+    Study.hunt($('#hunt-blink'), { key: '1-3', cases: [
+      { title: 'Програма працює, LED — ні',
+        symptom: 'У коді <code>#define LED_PIN 15</code>, монітор щосекунди друкує «LED: HIGH» і «LED: LOW», а зовнішній світлодіод не спалахує жодного разу.',
+        build: (st) => { const B = scene(st, { sigCol: 22 }, 'Макетка з платою YD-ESP32-S3: жовтий дріт іде від стовпчика 22 (вивід 16) до j8, резистор R1 220 ом, світлодіод LED1, чорні дроти на шину мінус і перемичка через розрив шини.');
+          tag(B.led, 0); tag(B.w15, 1); tag(B.R, 2); },
+        options: ['Світлодіод вставлено навпаки', 'Жовтий дріт стоїть у стовпчику GPIO16, а не GPIO15', 'Резистор 220&nbsp;Ом завеликий для 3,3&nbsp;В'], answer: 1,
+        explain: 'Рахуйте виводи від 3V3: 3V3, 3V3, RST, 4, 5, 6, 7, <b>15</b>, 16. GPIO15 — у стовпчику 21, а дріт стоїть у 22-му, на GPIO16, яким програма не керує. Звіряйте стовпчик дроту з підписом на платі, а не «на око».' },
+      { title: 'Монітор порту мовчить',
+        symptom: 'Upload — [SUCCESS], світлодіод блимає, монітор відкрито на 115200, але в ньому порожньо: жодного «LED: HIGH».',
+        build: (st) => { const B = scene(st, { com: true }, 'Та сама макетка з платою, резистором і світлодіодом; кабель USB-C вставлено в роз\'єм COM плати.');
+          tag(B.plug, 0); tag(B.led, 1); tag(B.wG, 2); },
+        options: ['Кабель у роз\'ємі COM, а Serial наших проєктів іде через «USB»', 'Світлодіод вставлено навпаки', 'GND плати не з\'єднаний з шиною'], answer: 0,
+        explain: 'Через COM (міст CH343 на UART0) плата живиться і навіть прошивається, тому LED блимає. Але в наших проєктах <code>Serial</code> — це вбудований USB CDC на GPIO19/20, тобто роз\'єм «USB». Переставте кабель у «USB» і відкрийте монітор на новому порту.' },
+      { title: 'Темний світлодіод',
+        symptom: 'Мультиметр між виводами 15 і G показує то 3,3&nbsp;В, то 0&nbsp;В — програма працює. Але світлодіод не світить навіть трохи. Роздивіться ніжки світлодіода (⤢ збільшує малюнок).',
+        build: (st) => { const B = scene(st, { ledReversed: true }, 'Та сама макетка: світлодіод LED1 стоїть у стовпчиках 3 і 4, анод у стовпчику 3, катод у стовпчику 4 разом з резистором.');
+          tag(B.led, 0); tag(B.w15, 1); tag(B.wK, 2); },
+        options: ['Світлодіод вставлено навпаки: до резистора йде катод', 'Жовтий дріт не на GPIO15', 'Чорний дріт від світлодіода не на шині мінус'], answer: 0,
+        explain: 'Довга ніжка з вигином — анод — має стояти в одному стовпчику з резистором (4), а катод — у стовпчику з чорним дротом (3). Тут навпаки: LED закритий, струму немає. Зворотні 3,3&nbsp;В йому не шкодять — просто розверніть.' },
+      { title: 'Земля не там',
+        symptom: 'Код правильний, монітор друкує, напруга на виводі 15 змінюється, але світлодіод темний. Деталі цілі.',
+        build: (st) => { const B = scene(st, { gndPlus: true }, 'Та сама макетка: чорний дріт від виводу GND плати (стовпчик 35) іде на шину плюс, а не на шину мінус.');
+          tag(B.wK, 0); tag(B.wG, 1); tag(B.wBr, 2); },
+        options: ['Катод світлодіода не з\'єднаний з шиною мінус', 'GND плати вставлено в шину плюс, а не мінус', 'Перемичку через розрив шини треба прибрати'], answer: 1,
+        explain: 'Струм має повернутися до плати: GPIO15 → R1 → LED → шина мінус → GND плати. Тут GND плати сидить у шині «+» (червона лінія), а катод — у шині «−» (синя). Шина мінус ні з чим не з\'єднана, кола немає. Чорний дріт — завжди на синю шину.' },
+      { title: 'Половина шини',
+        symptom: 'Усе зібрано за схемою, проводи на своїх шинах, але світлодіод не світить. Перевірка «прозвонкою» між катодом і виводом G — розрив.',
+        build: (st) => { const B = scene(st, { noBridge: true }, 'Та сама макетка: катод світлодіода на лівій половині шини мінус, GND плати — на правій; перемички через розрив шини між стовпчиками 31 і 33 немає.');
+          tag(B.gap, 0); tag(B.wK, 1); tag(B.wG, 2); },
+        options: ['Шина мінус розірвана між стовпчиками 31 і 33, а перемички немає', 'Катод іде не на ту шину', 'GND плати не на шині мінус'], answer: 0,
+        explain: 'На нашій WB-102 шини розділені посередині — дивіться на розрив синьої лінії. Світлодіод сидить на лівій половині, GND плати — на правій, і між ними немає зв\'язку. Коротка чорна перемичка через розрив (31 → 33) замикає коло.' },
+      { title: 'Надто яскраво',
+        symptom: 'Світлодіод блимає помітно яскравіше, ніж у сусіда з тим самим кодом і тими самими деталями.',
+        build: (st) => { const B = scene(st, { toCol: 4 }, 'Та сама макетка: жовтий дріт від виводу 15 іде прямо в стовпчик 4, де анод світлодіода, а резистор R1 стоїть у стовпчиках 8 і 4.');
+          tag(B.R, 0); tag(B.w15, 1); tag(B.led, 2); },
+        options: ['Резистор замалий', 'Жовтий дріт іде в стовпчик анода, в обхід резистора', 'Світлодіод іншого кольору'], answer: 1,
+        explain: 'Дріт від GPIO15 стоїть у стовпчику 4 разом з анодом, а резистор «висить» між 4 і порожнім стовпчиком 8 і нічого не обмежує. Струм задають лише вихід і LED — він може перевищити безпечний для обох. Дріт — у стовпчик 8, тоді струм ≈&nbsp;6&nbsp;мА.' },
+    ] });
   }
 });
 </script>

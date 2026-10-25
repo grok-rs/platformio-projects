@@ -97,6 +97,8 @@
       <div><b>Яскравість</b><output id="bench-br">0 %</output></div>
     </div>
     <p class="lab-note" id="bench-note" aria-live="polite">Вимикач розімкнений: кола немає, струм 0.</p>
+    <!-- Missions pattern: 3–5 goals under every lab; Study.missions ticks each one from the lab's own state. -->
+    <div class="missions" id="bench-ms"></div>
   </section>
 
   <figure class="anim wide" id="bench-anim" aria-labelledby="bench-anim-h">
@@ -259,6 +261,9 @@
       <p class="truth">Струм однаковий до і після світлодіода. LED забирає частину напруги, а не струму.</p>
       <p class="test">Увімкніть мультиметр як амперметр спершу перед LED, потім після нього: покази збігаються.</p>
     </div>
+    <!-- «Знайди несправність» pattern: 4–6 faulty breadboard scenes (Kit parts, tidy-breadboard rules) at the end of #mistakes;
+         mark the faulty part with data-hunt="<index of the right option>" so students can click it on the picture. -->
+    <div class="hunt" id="hunt-led"></div>
   </section>
 
   <!-- ============================================================ 08 dual figure
@@ -408,6 +413,7 @@
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 /* Page widgets. Inline scripts ignore `defer`, so everything waits for study:ready: by then Study, StudyQuiz,
    StudyCards and Schem exist. Schem.link and the sprite run right after these handlers. */
@@ -454,6 +460,41 @@ document.addEventListener('study:ready', () => {
   $('#bench-sw').addEventListener('switch', (e) => { lab.on = e.detail.on; labUpdate(); });
   $('#bench-r').addEventListener('input', (e) => { lab.r = E12[+e.target.value]; labUpdate(); });
   labUpdate();
+  Study.missions($('#bench-ms'), { key: 'bench', items: [
+    { id: 'on', text: 'Замкніть коло: світлодіод має засвітитися.', check: () => lab.on },
+    { id: 'safe', text: 'Підберіть резистор так, щоб струм був 6–10 мА.', hint: 'I = (5 − 1,9) / R. Для 6–10 мА R має бути 310–520 Ом.',
+      check: () => lab.on && mA(5, lab.r) >= 6 && mA(5, lab.r) <= 10 },
+    { id: 'hot', text: 'Знайдіть найбільший резистор, з яким струм уже більший за 20 мА.', hint: 'Крутіть R вниз, поки не з’явиться попередження.',
+      check: () => lab.on && lab.r === 150 },
+  ] });
+
+  /* ---------- «Знайди несправність»: two cases drawn with kit parts on a short breadboard ---------- */
+  // correct circuit: + rail → red j4 · R1 h4–h8 · LED anode f8 / cathode f9 · black j9 → − rail (one fault per case)
+  const huntScene = (stage, { ledReversed = false, redCol = 4 }) => {
+    const K = window.Kit;
+    const s = K.svg(stage, '0 0 10 10', 'Макетка: шина плюс 5 В, резистор 220 Ом, червоний світлодіод і дріт на мінусову шину.');
+    const bb = K.part('breadboard', { parent: s, cols: 20 });
+    const r = K.part('resistor', { parent: s, ohms: 220, span: 4 });
+    const ra = bb.hole(4, 'h'); r.place(ra.x, ra.y);
+    // reversed: the LED is mirrored into f9, so its cathode lands in R1's strip (column 8)
+    const la = bb.hole(ledReversed ? 9 : 8, 'f');
+    const led = K.part('led', { parent: s, color: 'red', x: la.x, y: la.y, leg: 40, mirror: ledReversed });
+    led.setAttribute('data-hunt', '0');
+    const red = K.route(s, [bb.at('j' + redCol), bb.at('bottom+' + redCol)], 'red');
+    red.setAttribute('data-hunt', '1');
+    K.route(s, [bb.at('j9'), bb.at('bottom-9')], 'black').setAttribute('data-hunt', '2');
+    K.fit(s, 30);
+  };
+  Study.hunt($('#hunt-led'), { key: 'test', cases: [
+    { title: 'Темний світлодіод', symptom: 'Коло зібрано, живлення 5 В є, але світлодіод не світиться навіть трохи.',
+      build: (st) => huntScene(st, { ledReversed: true }),
+      options: ['Світлодіод вставлено навпаки: до резистора йде катод', 'Червоний дріт не в тому стовпчику', 'Чорний дріт не на мінусовій шині'], answer: 0,
+      explain: 'Довга ніжка (анод) має бути в стовпчику резистора, ближче до «+». Тут у стовпчику 8 стоїть катод, тож світлодіод закритий і струму немає.' },
+    { title: 'Світлодіод згорів одразу', symptom: 'Спалах — і світлодіод більше не світиться. Резистор на місці, номінал правильний.',
+      build: (st) => huntScene(st, { redCol: 8 }),
+      options: ['Світлодіод вставлено навпаки', 'Червоний дріт іде в стовпчик світлодіода, в обхід резистора', 'Чорний дріт не на мінусовій шині'], answer: 1,
+      explain: 'Червоний дріт веде +5 В прямо в стовпчик 8, де анод світлодіода. Резистор у стовпчику 4 «висить» збоку і нічого не обмежує — струм у сотні міліампер.' },
+  ] });
 
   /* ---------- explainer: where the 5 V go, in four steps ---------- */
   const bar = (id, tid, v, p) => {

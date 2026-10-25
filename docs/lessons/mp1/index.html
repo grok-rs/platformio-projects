@@ -142,6 +142,7 @@ canvas.hy { display: block; width: 100%; height: clamp(270px, 46vw, 340px); bord
     </div>
     <p class="lab-note" id="b-note" aria-live="polite">День: опір LDR малий, на GPIO4 понад 1 В, реле вимкнене. Натисніть «Захід сонця».</p>
     <a class="lab-more" href="../../twilight-relay/">Повна лабораторія: макетка, схема, код і Serial →</a>
+    <div class="missions" id="bench-ms"></div>
   </section>
 
   <figure class="anim wide" id="chain-anim" aria-labelledby="chain-anim-h">
@@ -559,6 +560,7 @@ digitalWrite(kRelayPin, relayOn ? HIGH : LOW);  // 3. HIGH → реле ON</code
         </div>
         <p class="small muted" id="hy-hint">Спробуйте: увімкніть 2 пороги, а потім звузьте мертву зону, поки вона не стане вужчою за шум (±20 = 40 одиниць). Що повертається?</p>
       </div>
+      <div class="missions" id="hy-ms"></div>
     </div>
 
     <div class="predict" data-ok="2" data-gate="w-chain"
@@ -702,6 +704,8 @@ digitalWrite(kRelayPin, relayOn ? HIGH : LOW);  // 3. HIGH → реле ON</code
         <p class="test">Режим прозвонки між GND плати та «−» шини 5&nbsp;В: має пищати.</p>
       </div>
     </div>
+    <!-- «Знайди несправність»: the section 08 bench (TwKit.real) with exactly one real mini-project mistake per case -->
+    <div class="hunt" id="hunt-mp1"></div>
   </section>
 
   <!-- ============================================================ 08 circuit -->
@@ -957,7 +961,7 @@ document.addEventListener('study:ready', () => {
     if (!T) return;
     const K = T.K;
     const st = { t: 0.15, hyst: true, center: 550, width: 100, noise: 20, on: false, arm: false, raw: null, clicks: 0,
-      ramp: 0, simT: 0, acc: 0, sound: false, lastNote: 0, hist: [] };
+      ramp: 0, simT: 0, acc: 0, sound: false, lastNote: 0, hist: [], onR: null, last: null };
     const view = T.views($('#bench-kit'), $('#bench-svg'), $('#bench-view'), { id: 'bn' });
     const cv = $('#bench-plot');
     const rand = (() => { let a = 20260921; return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; }; })();
@@ -973,6 +977,7 @@ document.addEventListener('study:ready', () => {
       if (st.hist.length > 400) st.hist.splice(0, 80);
       if (!click) return;
       st.clicks++;
+      if (st.on) st.onR = rl;                                   // LDR resistance at the moment the lamp went on
       if (st.sound) T.click(st.on);
       const chat = st.hist.filter((h) => h.click && h.t > st.simT - 10).length;
       if (chat >= 3 && (!st.hyst || st.width < 2 * st.noise)) {
@@ -1006,6 +1011,8 @@ document.addEventListener('study:ready', () => {
         $('#b-time').value = Math.round(st.t * 1000);
         if (st.t <= 0 || st.t >= 1) {
           const dir = st.ramp; st.ramp = 0; syncBtns();
+          st.last = { dir, clicks: st.clicks, hyst: st.hyst, width: st.width, noise: st.noise, onR: st.onR };
+          if (st.ms) st.ms.check();   // the list may be below the screen: tick it now, before the next run
           note(`${dir > 0 ? 'Ніч' : 'Ранок'}: за цей ${dir > 0 ? 'захід' : 'світанок'} реле клацнуло ${st.clicks} раз${st.clicks === 1 ? '' : st.clicks < 5 && st.clicks > 1 ? 'и' : 'ів'}.${st.clicks > 1 ? ' Це брязкіт: кожне зайве клацання зношує контакти.' : ' Одне чисте перемикання — так і має бути.'}`, true);
         }
       }
@@ -1018,9 +1025,10 @@ document.addEventListener('study:ready', () => {
       pauseBtn.textContent = sim.running ? '⏸ Пауза' : '▶ Пуск';
     };
     const run = (dir) => {
-      st.ramp = dir; st.clicks = 0;
-      if (dir > 0 && st.t > 0.9) st.t = 0.15;
-      if (dir < 0 && st.t < 0.1) st.t = 0.85;
+      st.ramp = dir; st.clicks = 0; st.onR = null;
+      // a jump back to the start of the run puts the relay where it stands at that hour (no phantom click)
+      if (dir > 0 && st.t > 0.9) { st.t = 0.15; st.on = false; }
+      if (dir < 0 && st.t < 0.1) { st.t = 0.85; st.on = true; }
       if (!sim.running) sim.play();
       note(dir > 0 ? 'Сонце сідає: дивіться, як росте опір LDR і падає число АЦП.' : 'Світає: число АЦП росте до порога LIGHT.', true);
       syncBtns();
@@ -1051,6 +1059,25 @@ document.addEventListener('study:ready', () => {
     Study.onTheme(() => paint(0));
     addEventListener('resize', () => paint(0));
     paint(0); syncBtns();
+    // missions: each one reads the run that just finished (st.last) or the live state
+    const L = () => st.last && st.last.dir > 0 ? st.last : null;
+    st.ms = Study.missions($('#bench-ms'), { key: 'bench', items: [
+      { id: 'one', text: 'Запустіть «Захід сонця» і отримайте рівно одне клацання реле.',
+        hint: 'Гістерезис увімкнений, пороги як у проєкті. Дочекайтеся ночі: лічильник «Клацань» має показати 1.',
+        check: () => L() && L().clicks === 1 },
+      { id: 'inv', text: 'Покажіть інверсію модуля: зупиніть паузою момент, коли GPIO2 = HIGH, а IN ≈ 0,1&nbsp;В — і реле ON.',
+        hint: 'Після клацання натисніть «⏸ Пауза». HIGH на піні відкриває VT1, він притискає IN до землі, а модуль active-LOW вмикається саме низьким рівнем.',
+        check: () => !sim.running && st.on && st.arm },
+      { id: 'chat', text: 'Вимкніть «Гістерезис» і доведіть реле до брязкоту: щонайменше 5 клацань за один захід.',
+        hint: 'З одним порогом шум ±20 перетинає його знову і знову, поки число АЦП повзе повз поріг.',
+        check: () => L() && !L().hyst && L().clicks >= 5 },
+      { id: 'narrow', text: 'Гістерезис увімкнено, а реле все одно брязкотить: зробіть мертву зону вужчою за розмах шуму й отримайте ≥ 3 клацання за захід.',
+        hint: 'Розмах шуму — 2 × «Шум ±». Шум ±20 → мертва зона менша за 40, наприклад 20.',
+        check: () => L() && L().hyst && L().width < 2 * L().noise && L().clicks >= 3 },
+      { id: 'early', text: 'Налаштуйте пороги так, щоб лампа вмикалася раніше, коли опір LDR ще 40–60&nbsp;кОм, і одним клацанням.',
+        hint: '40–60 кОм у дільнику з 10 кОм — це ≈0,47–0,66 В, тобто АЦП ≈ 650–900. DARK = Поріг − Мертва зона / 2 має потрапити сюди, а мертва зона — лишитися ширшою за шум.',
+        check: () => L() && L().clicks === 1 && L().onR >= 40e3 && L().onR <= 60e3 },
+    ] });
   })();
 
   /* ================================================================ ANIM: the signal chain, one stage per step */
@@ -1275,7 +1302,7 @@ document.addEventListener('study:ready', () => {
   (() => {
     const cv = $('#hy-cv');
     const N = 100, TICK = 0.1;
-    const st = { mode: 1, base: 550, noise: 20, t1: 550, dark: 500, light: 600, on: false, dusk: null, acc: 0 };
+    const st = { mode: 1, base: 550, noise: 20, t1: 550, dark: 500, light: 600, on: false, dusk: null, acc: 0, calm: 0, lastDusk: null };
     const samples = [];
     let started = false;
     const rand = (() => { let a = 12345; return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; }; })();
@@ -1285,15 +1312,23 @@ document.addEventListener('study:ready', () => {
         const k = Math.min(1, st.dusk.t / 14);
         st.base = Math.round(800 - 500 * k);
         $('#hy-base').value = st.base; $('#hy-base-o').textContent = st.base;
-        if (k >= 1) st.dusk = null;
+        if (k >= 1) { st.lastDusk = { mode: st.dusk.mode, clicks: st.dusk.clicks }; st.dusk = null; }
       }
       const adc = Math.round(st.base + st.noise * (rand() + rand() - 1));
       const prev = st.on;
       if (st.mode === 1) st.on = adc < st.t1;
       else if (adc < st.dark) st.on = true;
       else if (adc > st.light) st.on = false;
-      samples.push({ adc, on: st.on, click: samples.length > 0 && prev !== st.on });
+      const click = samples.length > 0 && prev !== st.on;
+      samples.push({ adc, on: st.on, click });
       if (samples.length > N) samples.shift();
+      if (st.dusk) {   // clicks of this dusk, from the first switch-on (the relay may first drop out in the bright start)
+        if (click && (st.on || st.dusk.seenOn)) st.dusk.clicks++;
+        if (st.on) st.dusk.seenOn = true;
+        if (st.mode !== st.dusk.mode) st.dusk.mode = 0;
+      }
+      // «quiet»: 2 thresholds around the light, strong noise, no click
+      st.calm = st.mode === 2 && st.noise >= 50 && st.base >= st.dark && st.base <= st.light && !click ? st.calm + 1 : 0;
     }
     function draw() {
       const ctx = Study.fitCanvas(cv), t = Study.tokens();
@@ -1364,7 +1399,7 @@ document.addEventListener('study:ready', () => {
       $('#hy-t-wrap').hidden = st.mode !== 1; $('#hy-d-wrap').hidden = st.mode !== 2; $('#hy-l-wrap').hidden = st.mode !== 2;
       draw();
     }));
-    $('#hy-dusk').addEventListener('click', () => { st.dusk = { t: 0 }; if (!sim.running && !reduce()) { sim.play(); syncPlay(); } else if (!sim.running) { for (let i = 0; i < 140; i++) tick(); draw(); } });
+    $('#hy-dusk').addEventListener('click', () => { st.dusk = { t: 0, mode: st.mode, clicks: 0 }; if (!sim.running && !reduce()) { sim.play(); syncPlay(); } else if (!sim.running) { for (let i = 0; i < 140; i++) tick(); draw(); } });
     $('#w-hyst').addEventListener('predict', () => {
       started = true;
       if (!samples.length) for (let i = 0; i < 30; i++) tick();
@@ -1374,6 +1409,21 @@ document.addEventListener('study:ready', () => {
     Study.onTheme(draw);
     addEventListener('resize', draw);
     syncPlay(); draw();
+    const clicks10 = () => samples.filter((s) => s.click).length;
+    Study.missions($('#hy-ms'), { key: 'hyst', items: [
+      { id: 'many', text: '1 поріг: поставте світло просто на поріг і побачте щонайменше 10 клацань за 10&nbsp;с.',
+        hint: 'Повзунки «Світло» і «Поріг» на одне число, шум ±20 — і чекайте 10 с.',
+        check: () => started && st.mode === 1 && clicks10() >= 10 },
+      { id: 'dusk', text: '2 пороги: натисніть «Сутінки» і отримайте рівно одне клацання за весь захід.',
+        hint: 'Перемкніть «2 пороги» до кнопки «Сутінки» і не міняйте режим, доки світло не опуститься до 300.',
+        check: () => st.lastDusk && st.lastDusk.mode === 2 && st.lastDusk.clicks === 1 },
+      { id: 'chat2', text: 'Доведіть, що й 2 пороги можуть брязкотіти: мертва зона вужча за розмах шуму, ≥ 5 клацань за 10&nbsp;с.',
+        hint: 'Розмах шуму ±20 — це 40 одиниць. Зсуньте DARK і LIGHT ближче, ніж на 40, а світло — між ними.',
+        check: () => st.mode === 2 && st.light - st.dark < 2 * st.noise && clicks10() >= 5 },
+      { id: 'quiet', text: 'Шум ±50 або більше, світло між порогами: підберіть DARK і LIGHT так, щоб 10&nbsp;с не було жодного клацання.',
+        hint: 'Мертва зона має бути ширшою за розмах шуму (2 × 50 = 100), а світло — посередині. Наприклад, DARK 480, LIGHT 620 при світлі 550.',
+        check: () => st.calm >= 100 },
+    ] });
   })();
 
   /* ================================================================ 05b Ланцюжок причин */
@@ -1480,6 +1530,89 @@ document.addEventListener('study:ready', () => {
       upd();
     });
     upd();
+  })();
+
+  /* ================================================================ 07 «Знайди несправність»
+     Each case = the section 08 bench (TwKit.real, the kit's parts, tidy routes) with exactly ONE real mistake from this
+     mini-project; the rest is the correct circuit. A missing jumper is an invisible hit area on its tidy route; the dashed
+     outline appears only after the right answer. */
+  (() => {
+    const T = window.TwKit;
+    if (!T || !window.Kit) return;
+    const NSV = 'http://www.w3.org/2000/svg';
+    const scene = (stage, f, label, mark) => {
+      const svg = document.createElementNS(NSV, 'svg');
+      svg.setAttribute('class', 'tw-kit tw-hunt');
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', label);
+      stage.appendChild(svg);
+      const kb = T.real(svg, { lamp: false, sky: false, tags: false, labels: true, layout: 'wide', vb: [-170, -110, 1860, 1000], id: 'hn' });
+      const R = kb.build(f);
+      $$('.tw-kbad, .tw-ring', svg).forEach((n) => n.remove());          // no red hints in a riddle
+      const hunt = (node, i) => { if (node) node.setAttribute('data-hunt', String(i)); };
+      const gap = (k, i) => {                                            // a missing jumper → clickable gap on its route
+        const g0 = R['ghost_' + k];
+        if (!g0) return;
+        const g = document.createElementNS(NSV, 'g');
+        g.setAttribute('class', 'tw-hgap');
+        g0.replaceWith(g); g.appendChild(g0);
+        const hit = g0.querySelector('path').cloneNode(false);
+        hit.setAttribute('class', 'tw-hhit');
+        g.appendChild(hit);
+        hunt(g, i);
+      };
+      mark(R, hunt, gap);
+      return R;
+    };
+    const night = (R) => { R.ldr.set({ light: 0.1 }); };
+    const day = (R) => { R.ldr.set({ light: 0.8 }); };
+    Study.hunt($('#hunt-mp1'), { key: 'mp1', cases: [
+      { title: 'Код вмикає, реле мовчить',
+        symptom: 'Уночі Serial пише <code>relay=ON</code>, на GPIO2 3,3&nbsp;В, на VCC модуля 5&nbsp;В. А реле не клацає, світлодіод модуля не світиться.',
+        build: (st) => scene(st, { noGnd: true }, 'Збірка з розділу 08: ключ BC547B ліворуч від плати, дільник праворуч, модуль реле під макеткою. Знайдіть, що не так.', (R, hunt, gap) => {
+          night(R); R.esp.set({ highlight: ['GPIO2'] });
+          hunt(R.w.in, 0); gap('gnd', 1); hunt(R.r3, 2);
+        }),
+        options: ['Зелений дріт IN іде з колектора VT1, а мав би з бази', 'Немає дроту GND–GND: земля плати не з’єднана з «−» шини 5&nbsp;В', 'R3 стоїть через канавку макетки — так він нічого не з’єднує'],
+        answer: 1,
+        explain: 'Струм бази виходить з GPIO2, іде через R3 і перехід B–E на нижню шину «−» і має <b>повернутися в GND плати</b>. Без чорного дроту з a43 на верхню шину «−» петля розірвана: I<sub>B</sub> = 0, V<sub>BE</sub> = 0, VT1 закритий, R4 тримає IN на 5&nbsp;В — модуль active-LOW вимкнений. Дільник при цьому працює, бо має свій місток до GND плати. Правило: усі GND — один провід; прозвонка GND плати ↔ «−» шини має пищати.' },
+      { title: 'Лампа навпаки',
+        symptom: 'Удень, при яскравому світлі, лампа світить, а в сутінках гасне. Serial: удень <code>adc≈300</code>, уночі понад 3000.',
+        build: (st) => scene(st, { swap: true }, 'Збірка з розділу 08: дільник з фоторезистором і R2 праворуч від плати, ключ ліворуч, модуль реле під макеткою. Знайдіть, що не так.', (R, hunt) => {
+          day(R); R.esp.set({ highlight: ['GPIO2'] }); R.relay.set({ on: true, power: true });
+          hunt(R.ldr, 0); hunt(R.r2, 0); hunt(R.w.adc, 1); hunt(R.w.r4, 2);
+        }),
+        options: ['LDR і R2 переставлені: фоторезистор стоїть біля GND, а R2 — біля 3,3&nbsp;В', 'Жовтий дріт GPIO4 приходить не в середню точку дільника', 'R4 підтягнуто не до тієї шини'],
+        answer: 0,
+        explain: 'Тут фоторезистор у стовпчиках 48–49, а стовпчик 48 — це земля плати; R2 стоїть між 49 і 53 (3,3&nbsp;В). Що темніше, то більший опір LDR і то <b>вища</b> напруга на GPIO4: уночі майже 3,3&nbsp;В. Умова <code>adc &lt; DARK</code> спрацьовує вдень. Правило: LDR — угорі дільника, до 3,3&nbsp;В; R2 = 10&nbsp;кОм — до GND. Жовтий дріт тут якраз у середній точці (стовпчик 49).' },
+      { title: 'Реле не відпускає',
+        symptom: 'Serial чесно пише <code>relay=OFF</code>, на GPIO2 0&nbsp;В, а реле ввімкнене і вдень: світлодіод модуля світить. Мультиметр на IN показує ≈3,3&nbsp;В.',
+        build: (st) => scene(st, { r433: true }, 'Збірка з розділу 08: ключ BC547B з R3 і R4 ліворуч від плати, дільник праворуч, модуль реле під макеткою. Знайдіть, що не так.', (R, hunt) => {
+          day(R); R.relay.set({ on: true, power: true });
+          hunt(R.q, 0); hunt(R.w.g2, 1); hunt(R.w.r4, 2);
+        }),
+        options: ['VT1 вставлено не тим боком', 'Синій дріт GPIO2 має йти прямо на IN, без R3', 'R4 підтягнуто до шини 3,3&nbsp;В, а не до 5&nbsp;В'],
+        answer: 2,
+        explain: 'Помаранчевий дріт від R4 іде на верхню шину «+», а її живить <b>3V3 плати</b> (верхня перемичка MB102 — OFF). Коли VT1 закритий, IN піднімається лише до 3,3&nbsp;В. Багатьом 5-вольтовим модулям active-LOW, щоб вимкнутися, потрібен майже 5-вольтовий HIGH, тож реле лишається ввімкненим або деренчить. Правило: R4 — до +5&nbsp;В, тієї самої напруги, що й VCC модуля. VT1 тут стоїть правильно: плоский бік до вас, C-B-E.' },
+      { title: 'Додали Wi-Fi — і все зламалося',
+        symptom: 'Без Wi-Fi перемикач працював. Після <code>WiFi.begin()</code> Serial пише <code>adc=65535</code>, і реле не вмикається навіть уночі.',
+        build: (st) => scene(st, { adc2: true }, 'Збірка з розділу 08: жовтий дріт від лівого ряду виводів плати до дільника праворуч, ключ ліворуч, модуль реле під макеткою. Знайдіть, що не так.', (R, hunt) => {
+          night(R);
+          hunt(R.w.v33, 0); hunt(R.w.adc, 1); hunt(R.r2, 2);
+        }),
+        options: ['Помаранчевий дріт 3V3 веде дільник не до тієї напруги', 'Жовтий дріт сидить на GPIO14 — це канал АЦП2, його забирає Wi-Fi', 'R2 має бути 1&nbsp;кОм, а не 10&nbsp;кОм'],
+        answer: 1,
+        explain: 'Жовтий дріт виходить з j42 — це <b>GPIO14</b>, канал АЦП2. Коли працює Wi-Fi, АЦП2 зайнятий, і <code>analogRead()</code> повертає 65535 замість числа. 65535 більше за LIGHT, тож код вважає, що світло. Правило: аналоговий датчик — на АЦП1, GPIO1–10; у проєкті це GPIO4 (j26).' },
+      { title: 'АЦП завжди 4095',
+        symptom: 'Serial пише <code>adc=4095</code>, хоч накривай LDR долонею, хоч світи ліхтариком. Реле не вмикається ніколи.',
+        build: (st) => scene(st, { r2open: true }, 'Збірка з розділу 08: дільник з фоторезистором і R2 праворуч від плати, ключ ліворуч, модуль реле під макеткою. Знайдіть, що не так.', (R, hunt, gap) => {
+          night(R);
+          hunt(R.w.adc, 0); hunt(R.ldr, 1); gap('r2', 2);
+        }),
+        options: ['Жовтий дріт GPIO4 не в тому стовпчику', 'Фоторезистор вставлено не тим боком', 'Нижній кінець R2 ні з чим не з’єднаний: немає чорного містка до GND плати'],
+        answer: 2,
+        explain: 'R2 стоїть у стовпчиках 48–52, але стовпчик 48 порожній: чорного містка з a44 (GND плати) немає. Струм через дільник не тече, на LDR нічого не падає, і GPIO4 через LDR підтягнутий до 3,3&nbsp;В — це вже за межею шкали, 4095. Правило: дільник працює, лише коли обидва кінці на місці: LDR до 3,3&nbsp;В, R2 до GND. У фоторезистора полярності немає — його можна вставляти будь-яким боком.' },
+    ] });
   })();
 });
 </script>
