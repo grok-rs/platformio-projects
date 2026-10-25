@@ -217,7 +217,7 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4p
 /* ---------- code ---------- */
 .code { font: 13px/1.6 var(--f-mono); overflow: auto; max-height: 560px; padding: 6px 0; }
 .ln { display: grid; grid-template-columns: 5ch 1.4ch minmax(0, 1fr); gap: 0 6px; padding: 0 12px 0 6px; white-space: pre; background: color-mix(in oklab, var(--hi) calc(var(--heat, 0) * 14%), var(--panel)); }
-.ln .hits { color: color-mix(in oklab, var(--ink) 70%, var(--panel)); text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ln .no { color: var(--muted); text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none; }
 .ln .cur { color: var(--hi-ink, var(--hi)); visibility: hidden; }
 .ln.is-cur .cur { visibility: visible; }
 .ln.is-cur { box-shadow: inset 3px 0 0 var(--hi); }
@@ -1280,7 +1280,7 @@ class LabView {
           <p class="explain" aria-live="polite"></p>
         </div>
         <div class="panel">
-          <div class="ph"><h3>Код · що виконується</h3><span class="note">▶ поточний рядок · підсвітка = щойно виконано · число = скільки разів</span></div>
+          <div class="ph"><h3>Код · що виконується</h3><span class="note">▶ поточний рядок · підсвітка = щойно виконано · наведіть на рядок — скільки разів він виконався</span></div>
           <div class="code"></div>
         </div>
         <div class="panel la span2">
@@ -1409,15 +1409,17 @@ class LabView {
     const src = this.def.code(this.sim.options).split('\n');
     const seen = new Set();
     this.codeRows = [];
+    let no = 0; // line numbers restart in every file; the «// src/main.cpp» header line itself has none
     this.codeBox.innerHTML = src.map(line => {
       const m = line.match(/⟦([\w-]+)⟧\s*$/);
       const id = m ? m[1] : '';
       const text = m ? line.slice(0, m.index) : line;
       const first = id && !seen.has(id); if (id) seen.add(id);
       const file = /^\/\/ (src|include|README)/.test(text);
-      return `<div class="ln${file ? ' file' : ''}"${id ? ` data-id="${id}"${first ? ' data-first="1"' : ''}` : ''}><span class="hits"></span><span class="cur">▶</span><code>${highlight(text) || ' '}</code></div>`;
+      if (file) no = 0; else no++;
+      return `<div class="ln${file ? ' file' : ''}"${id ? ` data-id="${id}"${first ? ' data-first="1"' : ''}` : ''}><span class="no">${file ? '' : no}</span><span class="cur">▶</span><code>${highlight(text) || ' '}</code></div>`;
     }).join('');
-    this.codeRows = $$('.ln[data-id]', this.codeBox).map(el => ({ el, id: el.dataset.id, first: !!el.dataset.first, hits: $('.hits', el), last: -1, heat: -1 }));
+    this.codeRows = $$('.ln[data-id]', this.codeBox).map(el => ({ el, id: el.dataset.id, first: !!el.dataset.first, last: -1, heat: -1 }));
   }
   bind() {
     // any interaction with this lab lets the current dots run for 5 s
@@ -1518,7 +1520,7 @@ class LabView {
     const s = this.sim;
     for (const r of this.codeRows) {
       const n = s.hits[r.id] || 0;
-      if (n !== r.last) { r.hits.textContent = n ? compact(n) : ''; r.last = n; }
+      if (n !== r.last) { r.el.title = n ? `Виконано ${compact(n)} раз(ів)` : 'Ще не виконувався'; r.last = n; }
       const lh = s.lastHitReal[r.id];
       const heat = lh ? Math.max(0, 1 - (NOW - lh) / 700) : 0;
       const hq = Math.round(heat * 20) / 20;
