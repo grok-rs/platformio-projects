@@ -10,6 +10,7 @@
     { "path": "esp32-s3-twilight-relay/cpp", "name": "twilight-relay (C++)" },
     { "path": "esp32-s3-embedded-cpp/cpp", "name": "embedded-cpp (C++)" },
     { "path": "esp32-s3-bright-module/cpp", "name": "bright-module (C++)" },
+    { "path": "esp32-s3-site-bridge/cpp", "name": "site-bridge (C++)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {

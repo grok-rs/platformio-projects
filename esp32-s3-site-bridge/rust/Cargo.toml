@@ -1,0 +1,34 @@
+[package]
+name        = "site-bridge"
+description = "«Мій стенд»: рядки JSON для сайту — АЦП фоторезистора на GPIO4 і фронти кнопки на GPIO21"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+publish.workspace      = true
+
+[[bin]]
+name  = "site-bridge"
+path  = "src/main.rs"
+test  = false
+bench = false
+
+[lib]
+bench = false
+
+# Логіка (src/lib.rs) — без заліза, тому збирається й тестується на ПК.
+[dependencies]
+heapless.workspace = true
+
+# Прошивка (src/main.rs) — лише для ESP32-S3.
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+esp-hal.workspace                = true
+esp-rtos.workspace               = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace          = true
+esp-println.workspace            = true
+embassy-executor.workspace       = true
+embassy-time.workspace           = true
+critical-section.workspace       = true
+
+[lints]
+workspace = true
