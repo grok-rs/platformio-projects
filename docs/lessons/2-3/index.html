@@ -82,7 +82,7 @@ summary code { white-space: nowrap; }
 #fsm .node { fill: var(--panel); stroke: var(--line); stroke-width: 2.5; transition: fill .2s, stroke .2s; }
 #fsm .ring { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
 #fsm .arr { fill: none; stroke: var(--muted); stroke-width: 2; marker-end: url(#fsm-arrow); }
-#fsm .lbl { fill: var(--ink); font: 600 14px var(--f-body); }
+#fsm .lbl { fill: var(--ink); font: 600 13px var(--f-body); }
 #fsm .sub { fill: var(--muted); font: 500 14.5px var(--f-mono); }
 
 .mini-code { font-size: 13.5px; }
@@ -317,7 +317,7 @@ pre.ce-out.bad { border-left-color: var(--bad); }
   <figure class="anim wide" id="sl-anim" aria-labelledby="sl-anim-h">
     <header class="anim-head"><h3 id="sl-anim-h">Анімація: один прохід суперциклу</h3></header>
     <div class="anim-stage">
-      <svg class="sla-svg" viewBox="0 0 330 214" role="img" aria-label="Коло loop() з чотирма зупинками: now дорівнює millis, LED A пора?, LED B пора?, кнопка S1? Праворуч годинник millis, стани світлодіодів і обчислення now мінус last.">
+      <svg class="sla-svg" viewBox="0 0 362 214" role="img" aria-label="Коло loop() з чотирма зупинками: now дорівнює millis, LED A пора?, LED B пора?, кнопка S1? Праворуч годинник millis, стани світлодіодів і обчислення now мінус last.">
         <defs><marker id="sla-arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
         <circle class="sla-track" cx="104" cy="112" r="40"/>
         <path class="sla-dir" d="M124 77a40 40 0 0 1 16 18" marker-end="url(#sla-arr)"/>
@@ -328,17 +328,19 @@ pre.ce-out.bad { border-left-color: var(--bad); }
         <circle id="sla-tok" class="sla-tok" cx="104" cy="72" r="7"/>
         <text class="sla-mid" x="104" y="110" text-anchor="middle">loop()</text>
         <text class="sla-lapt" id="sla-laps" x="104" y="128" text-anchor="middle"></text>
-        <rect class="sla-panel" x="226" y="4" width="100" height="206" rx="10"/>
-        <text class="sla-sm" x="276" y="22" text-anchor="middle">millis()</text>
-        <text class="sla-clock" id="sla-clock" x="276" y="46" text-anchor="middle">1000</text>
-        <text class="sla-sm" x="236" y="68">last:</text>
-        <g class="sla-kit" id="sla-la"></g><text class="sla-val" id="sla-lat" x="256" y="88">A 500</text>
-        <g class="sla-kit" id="sla-lb"></g><text class="sla-val" id="sla-lbt" x="256" y="110">B 900</text>
-        <g class="sla-kit" id="sla-btn"></g><text class="sla-val" id="sla-btt" x="256" y="132">HIGH</text>
-        <path d="M232 144H320" stroke="var(--line)"/>
-        <text class="sla-calc" id="sla-c1" x="276" y="162" text-anchor="middle"></text>
-        <text class="sla-calc" id="sla-c2" x="276" y="182" text-anchor="middle"></text>
-        <text class="sla-calc" id="sla-c3" x="276" y="202" text-anchor="middle"></text>
+        <g transform="translate(28 0)">
+          <rect class="sla-panel" x="222" y="4" width="110" height="206" rx="10"/>
+          <text class="sla-sm" x="276" y="22" text-anchor="middle">millis()</text>
+          <text class="sla-clock" id="sla-clock" x="276" y="46" text-anchor="middle">1000</text>
+          <text class="sla-sm" x="236" y="68">last:</text>
+          <g class="sla-kit" id="sla-la"></g><text class="sla-val" id="sla-lat" x="256" y="88">A 500</text>
+          <g class="sla-kit" id="sla-lb"></g><text class="sla-val" id="sla-lbt" x="256" y="110">B 900</text>
+          <g class="sla-kit" id="sla-btn"></g><text class="sla-val" id="sla-btt" x="256" y="132">HIGH</text>
+          <path d="M232 144H320" stroke="var(--line)"/>
+          <text class="sla-calc" id="sla-c1" x="276" y="162" text-anchor="middle"></text>
+          <text class="sla-calc" id="sla-c2" x="276" y="182" text-anchor="middle"></text>
+          <text class="sla-calc" id="sla-c3" x="276" y="202" text-anchor="middle"></text>
+        </g>
       </svg>
     </div>
   </figure>
@@ -450,11 +452,11 @@ pre.ce-out.bad { border-left-color: var(--bad); }
           <circle cx="120" cy="104" r="68" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="22 8"/>
           <path d="M180 72a68 68 0 0 1 4 50" fill="none" stroke="var(--accent)" stroke-width="3" marker-end="url(#arr-loop)"/>
           <text class="t mono" x="120" y="100" text-anchor="middle">loop()</text>
-          <text class="m" x="120" y="118" text-anchor="middle">коло за колом</text>
+          <text class="m" x="120" y="118" text-anchor="middle">без кінця</text>
           <g id="sp-s0"><rect x="78" y="22" width="84" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="120" y="40" text-anchor="middle">кнопка?</text></g>
           <g id="sp-s2"><rect x="2" y="150" width="104" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="54" y="168" text-anchor="middle">LED: пора?</text></g>
           <g id="sp-s1"><rect x="120" y="150" width="128" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="184" y="168" text-anchor="middle">Serial: пора?</text></g>
-          <g id="sp-stone" transform="translate(262 62)"><path d="M-30 18q-4-22 14-30q18-10 34 2q16 12 8 30z" fill="var(--muted)" opacity=".55" stroke="var(--ink)"/><text class="t mono" x="0" y="12" text-anchor="middle">delay()</text></g>
+          <g id="sp-stone" transform="translate(262 62)"><path d="M-44 20q-6-26 20-34q26-10 46 2q22 12 12 32z" fill="var(--muted)" opacity=".55" stroke="var(--ink)"/><text class="t mono" x="0" y="12" text-anchor="middle">delay()</text></g>
           <text class="m badc" id="sp-w1" x="262" y="104" text-anchor="middle">✗ зупиняє</text>
           <text class="m badc" id="sp-w2" x="262" y="120" text-anchor="middle">усе коло</text>
           <path id="sp-stop" d="M155 85L173 76" stroke="var(--bad)" stroke-width="5" stroke-linecap="round" opacity="0"/>
@@ -565,17 +567,17 @@ void updateLedA(uint32_t now) {
       <h3>Довгу дію розбивайте на стани</h3>
       <p>Світлофор «червоний 3&nbsp;с → зелений 3&nbsp;с → жовтий 1&nbsp;с», написаний через <code>delay()</code>, — це три паузи, під час яких плата нічого не чує. Автомат станів робить інакше: змінна <code>state</code> пам’ятає, де ми, а <code>stateStart</code> — коли сюди потрапили. Кожен прохід перевіряє лише одне: «чи вже час переходити?» Програма завжди знає, де вона, і ніколи не стоїть на місці. Торкніться схеми, щоб зупинити або запустити.</p>
       <figure>
-        <svg id="fsm" class="fig-svg" viewBox="18 0 284 214" role="img" aria-label="Автомат станів світлофора: червоний 3 секунди, потім зелений 3 секунди, потім жовтий 1 секунда, потім знову червоний. Активний стан підсвічено, кільце показує, скільки часу минуло в стані.">
+        <svg id="fsm" class="fig-svg" viewBox="14 -2 292 220" role="img" aria-label="Автомат станів світлофора: червоний 3 секунди, потім зелений 3 секунди, потім жовтий 1 секунда, потім знову червоний. Активний стан підсвічено, кільце показує, скільки часу минуло в стані.">
           <defs><marker id="fsm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
-          <path class="arr" d="M112 54H206"/>
-          <text class="sub" x="160" y="44" text-anchor="middle">минуло 3 с</text>
-          <path class="arr" d="M234 92L196 134"/>
+          <path class="arr" d="M118 54H202"/>
+          <text class="sub" x="160" y="44" text-anchor="middle">3 с</text>
+          <path class="arr" d="M231 100L198 132"/>
           <text class="sub" x="232" y="128">3 с</text>
-          <path class="arr" d="M124 134L86 92"/>
+          <path class="arr" d="M122 132L89 100"/>
           <text class="sub" x="62" y="128">1 с</text>
-          <g id="fsm-g0"><circle class="node" cx="70" cy="54" r="40"/><circle class="ring" id="fsm-r0" cx="70" cy="54" r="44" transform="rotate(-90 70 54)"/><text class="lbl" x="70" y="52" text-anchor="middle">Червоний</text><text class="sub" x="70" y="70" text-anchor="middle">3000</text></g>
-          <g id="fsm-g1"><circle class="node" cx="250" cy="54" r="40"/><circle class="ring" id="fsm-r1" cx="250" cy="54" r="44" transform="rotate(-90 250 54)"/><text class="lbl" x="250" y="52" text-anchor="middle">Зелений</text><text class="sub" x="250" y="70" text-anchor="middle">3000</text></g>
-          <g id="fsm-g2"><circle class="node" cx="160" cy="164" r="40"/><circle class="ring" id="fsm-r2" cx="160" cy="164" r="44" transform="rotate(-90 160 164)"/><text class="lbl" x="160" y="162" text-anchor="middle">Жовтий</text><text class="sub" x="160" y="180" text-anchor="middle">1000</text></g>
+          <g id="fsm-g0"><circle class="node" cx="70" cy="54" r="46"/><circle class="ring" id="fsm-r0" cx="70" cy="54" r="50" transform="rotate(-90 70 54)"/><text class="lbl" x="70" y="52" text-anchor="middle">Червоний</text><text class="sub" x="70" y="70" text-anchor="middle">3000</text></g>
+          <g id="fsm-g1"><circle class="node" cx="250" cy="54" r="46"/><circle class="ring" id="fsm-r1" cx="250" cy="54" r="50" transform="rotate(-90 250 54)"/><text class="lbl" x="250" y="52" text-anchor="middle">Зелений</text><text class="sub" x="250" y="70" text-anchor="middle">3000</text></g>
+          <g id="fsm-g2"><circle class="node" cx="160" cy="164" r="46"/><circle class="ring" id="fsm-r2" cx="160" cy="164" r="50" transform="rotate(-90 160 164)"/><text class="lbl" x="160" y="162" text-anchor="middle">Жовтий</text><text class="sub" x="160" y="180" text-anchor="middle">1000</text></g>
         </svg>
         <figcaption><span class="out" id="fsm-out">state = RED · у стані 0 мс</span></figcaption>
       </figure>
@@ -1098,6 +1100,26 @@ document.addEventListener('study:ready', () => {
   Study.onTheme((t) => { T = t; redraws.forEach((f) => f()); });
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const pressSeg = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  // Sizes a label's frame from its measured text, so no font or step can push the text out: the side named by `keep`
+  // stays put (start = left edge, end = right edge, middle = centre), the frame never gets narrower than drawn and
+  // keeps 0.6·rx + 6 units clear at each end; a centred text is re-centred in it. A hidden figure measures 0 and keeps
+  // the drawn size until it is laid out (ResizeObserver) or the web fonts arrive; then the frame is fitted again.
+  const FIT = new Map();
+  const fitRO = 'ResizeObserver' in window ? new ResizeObserver((es) => es.forEach((e) => FIT.forEach(([t, keep], r) => { if (e.target.contains(r)) fitFrame(r, t, keep); }))) : null;
+  function fitFrame(r, t, keep = 'middle') {
+    if (!r || !t) return;
+    if (!r.dataset.w0) { r.dataset.w0 = r.getAttribute('width'); r.dataset.x0 = r.getAttribute('x'); }
+    FIT.set(r, [t, keep]);
+    let tw = 0;
+    try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+    if (!tw) { if (fitRO && t.ownerSVGElement) fitRO.observe(t.ownerSVGElement); return; }
+    const x0 = +r.dataset.x0, w0 = +r.dataset.w0, rx = Math.min(+r.getAttribute('rx') || 0, (+r.getAttribute('height') || 0) / 2);
+    const w = Math.max(w0, Math.ceil(tw + 2 * (0.6 * rx + 6)));
+    const x = keep === 'start' ? x0 : keep === 'end' ? x0 + w0 - w : x0 + (w0 - w) / 2;
+    r.setAttribute('x', +x.toFixed(1)); r.setAttribute('width', w);
+    if (t.getAttribute('text-anchor') === 'middle') t.setAttribute('x', +(x + w / 2).toFixed(1));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => FIT.forEach(([t, keep], r) => fitFrame(r, t, keep)));
 
   /* =====================================================================
      The real bench, drawn with the kit library (assets/kit.js), tidy layout: the YD-ESP32-S3 lies IN a WB-102
@@ -1130,6 +1152,7 @@ document.addEventListener('study:ready', () => {
     const W = w || 22 + 17 * txt.length;
     kmk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
     kmk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g).textContent = txt;
+    fitFrame(g.firstChild, g.lastChild);
     return g;
   }
   // pin: { A|B|C: 'GPIOn' } moves a branch's signal wire to another board pin (only the fault cases of «Знайди несправність» use it)
@@ -2431,6 +2454,8 @@ document.addEventListener('study:ready', () => {
       S1: K.part('button', { parent: $('#sla-btn'), scale: 0.19, x: 243 - KP * 0.19, y: 127 - 1.5 * KP * 0.19, shadow: false }),
     };
     const tok = $('#sla-tok'), st = [0, 1, 2, 3].map((i) => $('#sla-s' + i));
+    // stops on the loop: the side that faces the circle stays put, the pill grows away from it
+    st.forEach((g, i) => fitFrame(g.querySelector('rect'), g.querySelector('text'), ['middle', 'start', 'middle', 'end'][i]));
     const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
     const put = (deg) => { const a = deg * Math.PI / 180; tok.setAttribute('cx', (CX + R * Math.cos(a)).toFixed(1)); tok.setAttribute('cy', (CY + R * Math.sin(a)).toFixed(1)); };
     const move = (a0, a1, p, span = 0.35) => put(a0 + (a1 - a0) * ease(Math.min(1, p / span)));
@@ -2443,7 +2468,8 @@ document.addEventListener('study:ready', () => {
       setTxt($('#sla-lat'), `A ${o.lastA}`); setTxt($('#sla-lbt'), `B ${o.lastB}`);
       slaKit.S1.set({ pressed: !!o.btn }); setTxt($('#sla-btt'), o.btn ? 'LOW' : 'HIGH');
       st.forEach((g, i) => g.setAttribute('class', 'sla-st' + (o.st && o.st[i] ? ' ' + o.st[i] : '')));
-      setTxt($('#sla-s1 text'), o.stone ? 'delay' : 'A: пора?');
+      const s1t = $('#sla-s1 text'), s1s = o.stone ? 'delay' : 'A: пора?';
+      if (s1t.textContent !== s1s) { s1t.textContent = s1s; fitFrame(s1t.previousElementSibling, s1t, 'start'); }
       setTxt($('#sla-laps'), o.laps || '');
     };
     Study.anim($('#sl-anim'), {
@@ -2546,6 +2572,7 @@ document.addEventListener('study:ready', () => {
     const tok = $('#sp-tok'); if (!tok) return;
     const CX = 120, CY = 104, R = 50, STOP = -28;
     const STN = [{ a: -90, el: $('#sp-s0 rect') }, { a: 43, el: $('#sp-s1 rect') }, { a: 138, el: $('#sp-s2 rect') }];
+    ['#sp-s0', '#sp-s1', '#sp-s2'].forEach((id) => fitFrame($(id + ' rect'), $(id + ' text')));
     let on = false, ang = -90, wait = 0, lastStop = false;
     const out = $('#sp-out');
     const say = () => { out.textContent = on ? 'Кожне коло стоїть 1 с у delay(1000): кнопку перевіряють лише раз за коло, тобто раз на секунду.' : 'Без пауз мітка біжить коло за колом: кнопку перевіряють щоразу, як мітка проходить «кнопка?». Анімацію уповільнено.'; };
@@ -3074,7 +3101,7 @@ document.addEventListener('study:ready', () => {
     { name: 'RED', ms: 3000, col: 'n5' }, { name: 'GREEN', ms: 3000, col: 'nsig3' }, { name: 'YELLOW', ms: 1000, col: 'hi' },
   ];
   const fs = { i: 0, start: 0, now: 0 };
-  const RING = 2 * Math.PI * 44;
+  const RING = 2 * Math.PI * 50;
   function fsmDraw() {
     FSM.forEach((s, i) => {
       const node = $(`#fsm-g${i} .node`), ring = $(`#fsm-r${i}`);

@@ -1083,8 +1083,22 @@ function chip(parent, x, y, s, anchor = 'middle', cls = '') {
   t.textContent = s;
   const w = s.length * 13.6 + 20, x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w + 10 : x - 10;
   g.insertBefore(svgEl('rect', { x: +x0.toFixed(1), y: y - 17, width: +w.toFixed(1), height: 34, rx: 8 }), t);
+  g.dataset.anchor = anchor;
+  fitChip(g);
   return g;
 }
+// Sizes a label chip from its measured text: 0.6·rx + 6 units clear at both ends, the text's anchor stays where it was
+// drawn. Before the web fonts arrive (or while the bench is hidden) the length estimate above stands.
+function fitChip(g) {
+  const r = g.firstChild, t = g.lastChild;
+  let tw = 0;
+  try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+  if (!tw) return;
+  const pad = 0.6 * (+r.getAttribute('rx') || 0) + 6, x = +t.getAttribute('x'), a = g.dataset.anchor, w = Math.ceil(tw + 2 * pad);
+  const x0 = a === 'end' ? x - tw - pad : a === 'start' ? x - pad : x - w / 2;
+  r.setAttribute('x', +x0.toFixed(1)); r.setAttribute('width', w);
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => document.querySelectorAll('.kchip').forEach(fitChip));
 const f1 = v => +(+v).toFixed(1);
 // a routed wire as a path from a to b through its corner points, forward or reversed
 function wireD(w, rev) {
@@ -1331,8 +1345,8 @@ function schemSVG() {
     <text class="tm" x="200" y="116" text-anchor="middle">5V</text><text class="tm" x="270" y="116" text-anchor="middle">3V3</text><text class="tm" x="235" y="168" text-anchor="middle">LDO 5 → 3,3 В</text><text class="tm" x="235" y="292" text-anchor="middle">GND</text>
     <text class="ts" x="178" y="184">GPIO4</text><text class="tm" x="178" y="197">ADC1_CH3</text>
     <text class="ts" x="292" y="244" text-anchor="end">GPIO2</text><text class="tm" x="292" y="257" text-anchor="end">OUT</text>
-    <rect class="hit" data-part="P:GPIO4" x="172" y="171" width="64" height="31" rx="3"/><rect class="hit" data-part="P:GPIO2" x="238" y="231" width="60" height="31" rx="3"/>
-    <rect class="hit" data-part="P:5V" x="188" y="104" width="24" height="17" rx="3"/><rect class="hit" data-part="P:3V3" x="256" y="104" width="28" height="17" rx="3"/>
+    <rect class="hit" data-part="P:GPIO4" x="172" y="171" width="72" height="31" rx="3"/><rect class="hit" data-part="P:GPIO2" x="238" y="231" width="60" height="31" rx="3"/>
+    <rect class="hit" data-part="P:5V" x="183" y="102" width="34" height="20" rx="3"/><rect class="hit" data-part="P:3V3" x="250" y="102" width="40" height="20" rx="3"/>
     <text class="t" x="300" y="94" text-anchor="end">DD1</text>
   </g>
   ${W('M270 100 V64', 'p3')}${port(270, 64, '+3,3 В', 'p3')}
@@ -1361,7 +1375,7 @@ function schemSVG() {
   <rect class="mod" x="552" y="80" width="348" height="300" rx="10"/>
   <g data-part="U1"><text class="t" x="554" y="72">U1 · модуль реле 5 В</text><text class="tm" x="898" y="72" text-anchor="end">вхід IN — активний LOW</text>
     <text class="tm" x="557" y="99">VCC</text><text class="tm" x="557" y="169">IN</text><text class="tm" x="557" y="344">GND</text>
-    <rect class="hit" data-part="P:IN" x="553" y="158" width="22" height="16" rx="3"/></g>
+    <rect class="hit" data-part="P:IN" x="549" y="155" width="32" height="20" rx="3"/></g>
   ${port(540, 62, '+5 В', 'p5')}${W('M540 62 V105 H580', 'p5')}${W('M580 105 H726', 'p5')}
   ${W('M580 350 H540 V362', 'g')}${gnd(540, 362)}
   <g data-part="R1.2">${W('M580 175 H606', 'in')}${rh(606, 662, 175)}<text class="ts" x="634" y="158" text-anchor="middle">R1.2 · 1 кОм</text></g>
@@ -2087,12 +2101,12 @@ const CARDS = [
       <p>Зелений LED стоїть паралельно котушці, тож світиться, коли струм іде в котушку. Якщо зелений світиться, а лампа ні, шукайте проблему на боці контактів.</p>` },
   { from: 'Урок 8 · макетна плата', title: 'Живлення і спільна земля', show: ['U2', 'DD1'],
     svg: `<svg viewBox="0 0 300 150" role="img" aria-label="Два джерела живлення і спільна земля">
-      <rect class="m-r" x="4" y="12" width="62" height="30" rx="4"/><text class="m-t" x="35" y="31" text-anchor="middle">ПК · USB</text><path class="m-w" d="M66 27 H92"/>
-      <rect class="m-r" x="92" y="6" width="98" height="42" rx="4"/><text class="m-t" x="141" y="23" text-anchor="middle">DD1 ESP32-S3</text><text class="m-s" x="141" y="38" text-anchor="middle">стабілізатор 3V3</text>
+      <rect class="m-r" x="2" y="12" width="68" height="30" rx="4"/><text class="m-t" x="36" y="31" text-anchor="middle">ПК · USB</text><path class="m-w" d="M70 27 H92"/>
+      <rect class="m-r" x="92" y="6" width="98" height="42" rx="4"/><text class="m-t" x="141" y="23" text-anchor="middle">DD1 ESP32-S3</text><text class="m-s" x="141" y="38" text-anchor="middle">LDO → 3,3 В</text>
       <path class="m-w p3" d="M190 27 H208"/><rect class="m-r" x="208" y="12" width="88" height="30" rx="4"/><text class="m-s" x="252" y="25" text-anchor="middle" style="fill:var(--n33)">шина 3,3 В</text><text class="m-s" x="252" y="37" text-anchor="middle">LDR, R2</text>
-      <rect class="m-r" x="4" y="102" width="62" height="30" rx="4"/><text class="m-t" x="35" y="121" text-anchor="middle">USB 5 В</text><path class="m-w" d="M66 117 H92"/>
-      <rect class="m-r" x="92" y="96" width="98" height="42" rx="4"/><text class="m-t" x="141" y="113" text-anchor="middle">U2</text><text class="m-s" x="141" y="128" text-anchor="middle">верх OFF · низ 5V</text>
-      <path class="m-w p5" d="M190 117 H208"/><rect class="m-r" x="208" y="102" width="88" height="30" rx="4"/><text class="m-s" x="252" y="115" text-anchor="middle" style="fill:var(--n5)">шина 5 В</text><text class="m-s" x="252" y="127" text-anchor="middle">VT1, U1, LED1</text>
+      <rect class="m-r" x="2" y="102" width="68" height="30" rx="4"/><text class="m-t" x="36" y="121" text-anchor="middle">USB 5 В</text><path class="m-w" d="M70 117 H92"/>
+      <rect class="m-r" x="92" y="96" width="98" height="50" rx="4"/><text class="m-t" x="141" y="111" text-anchor="middle">U2</text><text class="m-s" x="141" y="125" text-anchor="middle">верх: OFF</text><text class="m-s" x="141" y="138" text-anchor="middle">низ: 5V</text>
+      <path class="m-w p5" d="M190 117 H208"/><rect class="m-r" x="208" y="102" width="88" height="30" rx="4"/><text class="m-s" x="252" y="115" text-anchor="middle" style="fill:var(--n5)">шина 5 В</text><text class="m-s" x="252" y="127" text-anchor="middle">VT1·U1·LED1</text>
       <path class="m-w g" d="M100 72 H290 M141 48 V72 M141 96 V72 M252 42 V72 M252 102 V72" style="stroke-width:2.4"/>
       <text class="m-s" x="96" y="76" text-anchor="end" style="fill:var(--ink);font-weight:600">спільна GND</text></svg>`,
     body: `<p>Джерел живлення два. ESP32 живиться від ПК через USB і віддає 3,3 В на верхню шину. Модуль U2 бере 5 В з USB (або з блока 6,5–12 В у круглому гнізді) і живить нижню шину: VT1, R4, реле, лампу.</p>

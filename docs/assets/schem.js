@@ -369,7 +369,37 @@ text.net-sig3:is(.sch-pin, .sch-ref) { fill: var(--nsig3-ink, var(--nsig3)); }
     }
     b.dataset.level = level;
     t.textContent = LEVEL_TEXT[level] || level;
+    fitBadge(b);
   }
+  // Sizes the tag's frame from the measured text (the widest of HIGH / LOW / Hi-Z and the current word, so the frame
+  // never jumps between levels): 7 units clear at each end of the rx 3 corners. Grows around its centre and only
+  // ever grows; a hidden view measures 0 and keeps the estimate until it is shown or the web fonts arrive.
+  function fitBadge(b) {
+    const [r, t] = b.children;
+    if (!r || !t || !t.getComputedTextLength) return;
+    const cur = t.textContent;
+    let tw = 0;
+    try {
+      for (const s of new Set([...Object.values(LEVEL_TEXT), cur])) { t.textContent = s; tw = Math.max(tw, t.getComputedTextLength()); }
+    } catch { tw = 0; }
+    t.textContent = cur;
+    if (!tw) return;
+    const w = +r.getAttribute('width') || 0, need = Math.ceil(tw + 14);
+    if (need > w) {
+      const cx = (+r.getAttribute('x') || 0) + w / 2;
+      r.setAttribute('x', cx - need / 2);
+      r.setAttribute('width', need);
+    }
+    // Height: the glyph box (ascent + descent of the mono font) plus 2 units above and below; its middle is the
+    // middle of the capitals, so the word stays centred.
+    let bb; try { bb = t.getBBox(); } catch { return; }
+    const y = +r.getAttribute('y') || 0, h = +r.getAttribute('height') || 0;
+    if (bb.height && (bb.y - 2 < y || bb.y + bb.height + 2 > y + h)) {
+      r.setAttribute('y', +(bb.y - 2).toFixed(1));
+      r.setAttribute('height', Math.ceil(bb.height + 4));
+    }
+  }
+  if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(() => $$('.schem-lvl').forEach(fitBadge));
   function legendLevel(btn, level) {
     let tag = btn.querySelector('.nl-lvl');
     if (!level) { if (tag) tag.remove(); return; }

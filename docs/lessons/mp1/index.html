@@ -1459,6 +1459,20 @@ document.addEventListener('study:ready', () => {
             : ['GPIO2 = LOW, 0 В.', 'I_B = 0: VT1 закритий.', 'R4 тягне IN до 5 В — це HIGH.', 'Модуль active-LOW: вимкнено. Контакт розімкнений.', 'Лампа не світить.']) };
     };
     const svg = $('#chain-svg');
+    // Node badges are sized from their measured text (the values change with the level and the fault), with 9 units
+    // clear at each end of the rx 6 corners; the drawn width is the minimum, the badge grows around the text's centre.
+    function fitBadges() {
+      $$('g[id^="ch-n"]', svg).forEach((g) => {
+        const r = g.querySelector('.node-badge'), t = g.querySelector('.val');
+        if (!r || !t) return;
+        if (!r.dataset.w0) r.dataset.w0 = r.getAttribute('width');
+        let tw = 0; try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+        if (!tw) return;
+        const w = Math.max(+r.dataset.w0, Math.ceil(tw + 18)), cx = +t.getAttribute('x');
+        r.setAttribute('x', cx - w / 2); r.setAttribute('width', w);
+      });
+    }
+    if (document.fonts) document.fonts.ready.then(fitBadges);
     function apply(animate) {
       timers.forEach(clearTimeout); timers = [];
       const m = model();
@@ -1485,7 +1499,9 @@ document.addEventListener('study:ready', () => {
       const ol = $('#ch-steps');
       // Before the prediction nothing may give the answer away (the blur is not enough for screen readers).
       $('#ch-out').textContent = open ? `Підсумок: реле ${m.mod === 'off' ? 'OFF · лампа не світить' : m.mod === 'maybe' ? 'ON? · залежить від модуля' : 'ON · лампа світить'}` : '';
-      if (!open) { $('#ch-v3').textContent = 'IN ?'; ol.innerHTML = ''; nodes.forEach((n) => n.classList.remove('lit')); return; }
+      if (!open) $('#ch-v3').textContent = 'IN ?';
+      fitBadges();
+      if (!open) { ol.innerHTML = ''; nodes.forEach((n) => n.classList.remove('lit')); return; }
       ol.innerHTML = m.steps.map((s) => `<li class="${s.startsWith('✗') ? 'bad' : ''}">${s}</li>`).join('');
       const lis = $$('li', ol);
       nodes.forEach((n) => n.classList.remove('lit'));

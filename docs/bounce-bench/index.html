@@ -740,6 +740,17 @@ function el(tag, attrs = {}, parent) {
   return e;
 }
 function txt(parent, x, y, s, attrs = {}) { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; }
+// A LABEL bubble sized from its measured text: the right edge stays put and the text keeps 0.6·rx + 6 units clear at
+// both ends, whatever the font. A hidden chart measures 0 and keeps the estimated width until the fonts are in.
+function fitBubble(g) {
+  const r = g.querySelector('rect'), t = g.querySelector('text');
+  let tw = 0;
+  try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+  if (!tw) return;
+  const pad = 0.6 * (+r.getAttribute('rx') || 0) + 6, right = +r.getAttribute('x') + +r.getAttribute('width'), w = Math.ceil(tw + 2 * pad);
+  r.setAttribute('x', right - w); r.setAttribute('width', w); t.setAttribute('x', +(right - w + pad).toFixed(1));
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => document.querySelectorAll('.la .bubble').forEach(fitBubble));
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bounce-bench:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('bounce-bench:' + k, JSON.stringify(v)); } catch {} },
@@ -1017,7 +1028,12 @@ const viewer = (function () {
       const pat = el('pattern', { id: 'vLost', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, el('defs', {}, g));
       el('rect', { width: 2.5, height: 6, fill: 'var(--tr-bad)' }, pat);
       el('rect', { x: x - 9, y: B.y - 8, width: 18, height: B.h + 4, fill: 'url(#vLost)', stroke: 'var(--tr-bad)', 'stroke-width': 1 }, g);
-      txt(g, Math.max(X0, Math.min(x + 8, X1 - (PH ? 168 : 150))), PH ? B.y + B.h + 30 : B.y - 10, 'тут ISR загубила фронт', { fill: 'var(--tr-bad)', 'font-size': 12 });
+      const lost = txt(g, x + 13, PH ? B.y + B.h + 30 : B.y - 10, 'тут ISR загубила фронт', { fill: 'var(--tr-bad)', 'font-size': 12 });
+      // beside the hatch, never across it: to its right if the label fits there, else ending left of it
+      let lw = 0;
+      try { lw = lost.getComputedTextLength(); } catch { lw = 0; }
+      if (!lw) lw = PH ? 168 : 150;
+      if (x + 13 + lw > X1) { lost.setAttribute('x', Math.max(X0 + lw, x - 13)); lost.setAttribute('text-anchor', 'end'); }
     }
     // BOUNCE marker: HIGH from the 2nd edge until the event ends (+50 ms, off-screen)
     const M = LANES[1], mH = M.y + 4, mL = M.y + M.h - 4;
@@ -1037,6 +1053,7 @@ const viewer = (function () {
     const bwid = (label.length + 12) * (PH ? 7.4 : 6.7) + 18;
     el('rect', { x: X1 - bwid, y: Lb.y + 10, width: bwid, height: 22, rx: 4 }, bub);
     txt(bub, X1 - bwid + 8, Lb.y + 25, `+50 мс → «${label}»`);
+    fitBubble(bub);
     // cursors
     for (const [c, col, nm] of [[curA, '#7fd4ff', 'A'], [curB, '#ffd27f', 'B']]) {
       if (c == null || c < t0 || c > t1) continue;
@@ -1309,7 +1326,7 @@ const viewer = (function () {
   txt(svg, 130, 82, 'тригер ↑', { fill: '#ffffffcc', 'font-size': 11 });
   el('line', { x1: X0, y1: 146, x2: X1, y2: 146, stroke: 'var(--tr-lbl)', 'stroke-width': 2 }, svg);
   const g = el('g', { class: 'bubble' }, svg);
-  el('rect', { x: 380, y: 154, width: 128, height: 20, rx: 4 }, g); txt(g, 388, 168, 'PRESS#3 e=5 41us');
+  el('rect', { x: 380, y: 154, width: 128, height: 20, rx: 4 }, g); txt(g, 388, 168, 'PRESS#3 e=5 41us'); fitBubble(g);
   el('line', { x1: 126, y1: 190, x2: 380, y2: 190, stroke: '#ffffff66' }, svg);
   txt(svg, 253, 186, '50 мс тиші', { fill: '#ffffffaa', 'font-size': 10.5, 'text-anchor': 'middle' });
 })();

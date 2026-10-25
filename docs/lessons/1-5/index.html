@@ -1640,7 +1640,7 @@ document.addEventListener('study:ready', () => {
     const y = (v) => 140 - v / VDD * 110, x = (t) => L + t / TW * (R - L);
     arrowDefs(svg, 'i4-ar', 'var(--accent)');
     sv(svg, 'rect', { x: L, y: y(0.75 * VDD), width: R - L, height: y(0.25 * VDD) - y(0.75 * VDD), fill: 'var(--hi)', opacity: 0.12 });
-    sv(svg, 'text', { x: R, y: y(0.5 * VDD) + 5, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--hi-ink)' }, 'невизначено');
+    sv(svg, 'text', { x: R - 8, y: y(0.5 * VDD) + 5, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--hi-ink)' }, 'невизначено'); // inside the band, not on its edge
     sv(svg, 'text', { x: R, y: y(0.75 * VDD) - 4, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' }, '0,75·VDD');
     sv(svg, 'text', { x: R, y: y(0.25 * VDD) + 15, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' }, '0,25·VDD');
     sv(svg, 'path', { d: `M${L} ${y(0.1 * VDD)}H${R}M${L} ${y(0.9 * VDD)}H${R}`, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' });

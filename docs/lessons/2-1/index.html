@@ -389,7 +389,7 @@
         <text x="300" y="30" text-anchor="end" fill="var(--ok)" font-size="14">вільно всього</text>
         <path d="M44 34 C110 44 160 70 210 86 S280 104 300 110" fill="none" stroke="var(--bad)" stroke-width="3" stroke-dasharray="7 4"/>
         <text x="50" y="104" fill="var(--bad)" font-size="14">найбільший шматок</text>
-        <text x="300" y="104" text-anchor="end" fill="var(--bad)" font-size="14" font-weight="600">✕ malloc</text>
+        <text x="300" y="84" text-anchor="end" fill="var(--bad)" font-size="14" font-weight="600">✕ malloc</text>
       </svg>
       <figcaption>Ілюстрація, не вимір: «вільно» стоїть майже рівно, а найбільший суцільний шматок тане.</figcaption>
     </figure>
@@ -473,7 +473,7 @@
       </details>
       <figure class="mini" id="m-heap">
         <svg class="fig-svg" viewBox="0 0 300 176" role="img" aria-label="Парковка вздовж бордюру: між машинами три проміжки по 4, 5 і 3 метри, разом 12 метрів вільно, але автобус завдовжки 12 метрів не стає в жоден проміжок.">
-          <g id="ih-bus"><rect id="ih-busr" x="70" y="8" width="120" height="26" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 3"/>
+          <g id="ih-bus"><rect id="ih-busr" x="63" y="8" width="134" height="26" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 3"/>
           <text id="ih-bust" x="130" y="26" text-anchor="middle" fill="var(--bad)" font-size="15" font-weight="600">автобус 12 м ✕</text></g>
           <rect x="4" y="46" width="292" height="44" rx="5" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
           <g fill="color-mix(in srgb, var(--accent) 26%, var(--panel))" stroke="var(--accent)" stroke-width="1.5">
@@ -520,9 +520,9 @@ if (now - lastMs &gt;= kBlinkMs) {
           <rect x="4" y="112" width="96" height="28" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
           <text x="52" y="131" text-anchor="middle" fill="var(--ink)" font-size="14">3 виходи</text>
           <text x="110" y="92" text-anchor="middle" fill="var(--muted)" font-size="14.5">мкс на прохід</text>
-          <g id="il-delay"><rect x="220" y="40" width="82" height="52" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2"/>
-          <text x="261" y="62" text-anchor="middle" fill="var(--bad)" font-size="14" font-weight="600">delay</text>
-          <text x="261" y="80" text-anchor="middle" fill="var(--bad)" font-size="14.5">zzz 500 мс</text></g>
+          <g id="il-delay"><rect x="212" y="40" width="92" height="52" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2"/>
+          <text x="258" y="62" text-anchor="middle" fill="var(--bad)" font-size="14" font-weight="600">delay</text>
+          <text x="258" y="80" text-anchor="middle" fill="var(--bad)" font-size="14.5">zzz 500 мс</text></g>
           <text x="300" y="112" text-anchor="end" fill="var(--muted)" font-size="14.5">кнопку ніхто</text>
           <text x="300" y="128" text-anchor="end" fill="var(--muted)" font-size="14.5">не перевіряє</text>
           <circle id="il-dot" cx="110" cy="30" r="9" fill="var(--hi)" stroke="var(--panel)" stroke-width="2"/>
@@ -584,15 +584,15 @@ if (now - lastMs &gt;= kBlinkMs) {
           <g id="ic-r0"><rect x="4" y="28" width="332" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
           <text x="12" y="47" fill="var(--ink)" font-size="15" class="mono">constexpr kBlinkMs = 500</text>
           <text x="12" y="65" fill="var(--muted)" font-size="14.5">відоме компілятору, одне число</text>
-          <text x="328" y="56" text-anchor="end" fill="var(--accent)" font-size="14.5" font-weight="600">в інструкції</text></g>
+          <text x="326" y="56" text-anchor="end" fill="var(--accent)" font-size="14.5" font-weight="600">в інструкції</text></g>
           <g id="ic-r1"><rect x="4" y="80" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--nsig2) 10%, var(--panel))" stroke="var(--nsig2)" stroke-width="1.5"/>
           <text x="12" y="99" fill="var(--ink)" font-size="15" class="mono">constexpr kGamma[4]</text>
           <text x="12" y="117" fill="var(--muted)" font-size="14.5">відома таблиця</text>
-          <text x="328" y="108" text-anchor="end" fill="var(--nsig2)" font-size="14.5" font-weight="600">Flash .rodata</text></g>
+          <text x="326" y="108" text-anchor="end" fill="var(--nsig2)" font-size="14.5" font-weight="600">Flash .rodata</text></g>
           <g id="ic-r2"><rect x="4" y="132" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--n5) 10%, var(--panel))" stroke="var(--n5)" stroke-width="1.5"/>
           <text x="12" y="151" fill="var(--ink)" font-size="15" class="mono">const kCalib = readCalib()</text>
           <text x="12" y="169" fill="var(--muted)" font-size="14.5">значення — після старту</text>
-          <text x="328" y="160" text-anchor="end" fill="var(--n5)" font-size="14.5" font-weight="600">RAM .bss</text></g>
+          <text x="326" y="160" text-anchor="end" fill="var(--n5)" font-size="14.5" font-weight="600">RAM .bss</text></g>
         </svg>
         <div class="mini-ctl"><div class="seg" role="group" aria-label="Оголошення" id="ic-pick">
           <button type="button" data-v="0" aria-pressed="false">kBlinkMs</button>
@@ -791,7 +791,7 @@ void waitFlag() {
       <svg class="fig-svg" viewBox="0 0 330 132" role="img" aria-label="Байтова сітка: struct з полями uint8_t, uint32_t, uint8_t займає 12 байт, з них 6 порожніх; після перестановки полів (uint32_t, uint8_t, uint8_t) — 8 байт, з них 2 порожні.">
         <text x="4" y="16" fill="var(--ink)" font-size="14">ch, t_ms, raw → 12 Б</text>
         <g id="pad-a"></g>
-        <text x="4" y="84" fill="var(--ink)" font-size="14">t_ms, ch, raw → 8 Б</text>
+        <text x="170" y="16" fill="var(--ink)" font-size="14">t_ms, ch, raw → 8 Б</text>
         <g id="pad-b"></g>
       </svg>
       <figcaption>Сірі клітинки з рискою — байти вирівнювання: пам'ять зайнята, але даних там немає.</figcaption>
@@ -1600,7 +1600,7 @@ document.addEventListener('study:ready', () => {
     const ilBtn = kitButton($('#il-kit'), 262, 134, 38, 'Тактова кнопка з набору');
     const sim = Study.sim($('#m-loop svg'), (dt) => {
       t += dt;
-      if (sleep > 0) { sleep -= dt; dot.setAttribute('cx', 230); dot.setAttribute('cy', 52); }
+      if (sleep > 0) { sleep -= dt; dot.setAttribute('cx', 223); dot.setAttribute('cy', 52); }
       else {
         const prev = ang; ang = (ang + dt / LAP * 360) % 360;
         if (ang < prev) { // reached «1 входи»: the button is read here
@@ -2051,19 +2051,20 @@ document.addEventListener('study:ready', () => {
   });
 
   /* ================= 06 padding figure ================= */
-  function padRow(g, y, cells) {
-    const cw = 25;
+  // one row = one 4-byte word, so the padding shows where alignment pushes the next field
+  function padRow(g, x0, y0, cells) {
+    const cw = 39, rh = 34;
     cells.forEach((c, i) => {
-      const r = svgEl('rect', { x: 4 + i * cw, y, width: cw - 2, height: 30, rx: 3,
+      const x = x0 + (i % 4) * cw, y = y0 + Math.floor(i / 4) * rh;
+      svgEl('rect', { x, y, width: cw - 3, height: 30, rx: 3,
         fill: c ? 'color-mix(in srgb, var(--accent) 22%, var(--panel))' : 'var(--panel-2)',
         stroke: c ? 'var(--accent)' : 'var(--line)', 'stroke-width': 1.5 }, g);
-      if (c) { const tx = svgEl('text', { x: 4 + i * cw + (cw - 2) / 2, y: y + 20, 'text-anchor': 'middle', fill: 'var(--ink)', 'font-size': 13 }, g); tx.textContent = c; }
-      else svgEl('path', { d: `M${8 + i * cw} ${y + 25} L${cw - 2 + i * cw} ${y + 5}`, stroke: 'var(--muted)', 'stroke-width': 1.2 }, g);
-      void r;
+      if (c) { const tx = svgEl('text', { x: x + (cw - 3) / 2, y: y + 20, 'text-anchor': 'middle', fill: 'var(--ink)', 'font-size': 13 }, g); tx.textContent = c; }
+      else svgEl('path', { d: `M${x + 9} ${y + 24} L${x + cw - 12} ${y + 6}`, stroke: 'var(--muted)', 'stroke-width': 1.2 }, g);
     });
   }
-  padRow($('#pad-a'), 24, ['ch', '', '', '', 't', 't', 't', 't', 'raw', '', '', '']);
-  padRow($('#pad-b'), 92, ['t', 't', 't', 't', 'ch', 'raw', '', '']);
+  padRow($('#pad-a'), 4, 26, ['ch', '', '', '', 't', 't', 't', 't', 'raw', '', '', '']);
+  padRow($('#pad-b'), 170, 26, ['t', 't', 't', 't', 'ch', 'raw', '', '']);
 
   /* ================= 08 memory map ================= */
   function mmSelect(k) {

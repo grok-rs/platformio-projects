@@ -274,7 +274,7 @@ svg.pins { max-width: 470px; margin: 4px auto 0; }
 .pins .pin:focus-visible circle.pf { display: inline; }
 .pins .pin .pf.h { stroke: var(--panel); stroke-width: 7; }
 .pins .pin .pf.f { stroke: var(--focus, #1d5fa8); stroke-width: 3; stroke-dasharray: 4 3; }
-.pins .pin .hit { fill: transparent; }
+.pins .pin .hit { fill: none; pointer-events: all; }
 .pins .pin.dim { opacity: .22; }
 .pins .adc1 { fill: var(--ok); } .pins .adc2 { fill: var(--hi); } .pins .strap { fill: var(--bad); } .pins .usbp { fill: var(--z); }
 .pins .pwr { fill: var(--pwr); } .pins .gnd { fill: #6b7c88; } .pins .other { fill: var(--lo); }

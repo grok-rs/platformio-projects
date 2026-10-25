@@ -381,10 +381,10 @@ pre.log { margin: 10px 0; padding: 10px 12px; border-radius: 8px; background: va
     <header class="anim-head"><h3 id="pa-anim-h">Анімація: дві петлі і викид котушки</h3></header>
     <div class="anim-stage">
       <svg id="pa-svg" viewBox="0 0 520 236" role="img" aria-label="Покрокова анімація: плата через резистор керує транзистором; котушка між плюс 5 вольт і колектором. Праворуч маленький осцилограф напруги на колекторі.">
-        <rect x="8" y="118" width="50" height="104" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
-        <text x="33" y="112" text-anchor="middle" fill="var(--muted)" class="pl-opt">плата</text>
-        <text id="pa-lvl" x="33" y="160" text-anchor="middle" font-weight="700" fill="var(--ok)">HIGH</text>
-        <path class="sch-w net-sig" d="M58 150H80"/>
+        <rect x="2" y="118" width="68" height="104" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="36" y="112" text-anchor="middle" fill="var(--muted)" class="pl-opt">плата</text>
+        <text id="pa-lvl" x="36" y="160" text-anchor="middle" font-weight="700" fill="var(--ok)">HIGH</text>
+        <path class="sch-w net-sig" d="M70 150H80"/>
         <use class="sch-sym" href="#res" x="80" y="150"/>
         <path class="sch-w net-sig2" d="M140 150H170"/>
         <use class="sch-sym" href="#npn" x="170" y="150"/>
@@ -393,7 +393,7 @@ pre.log { margin: 10px 0; padding: 10px 12px; border-radius: 8px; background: va
         <use class="sch-sym" href="#relay-coil" x="200" y="40" transform="rotate(90 200 40)"/>
         <text class="sch-ref pl-opt" x="166" y="76" text-anchor="end">K1</text>
         <path class="sch-w net-sig3" d="M200 100V120"/>
-        <path class="sch-w net-gnd" d="M200 180V210H58"/>
+        <path class="sch-w net-gnd" d="M200 180V210H70"/>
         <use class="sch-sym net-gnd" href="#gnd" x="200" y="210"/>
         <ellipse id="pa-f1" cx="200" cy="70" rx="22" ry="38" fill="none" stroke="var(--hl)" stroke-width="1.6" stroke-dasharray="4 4" opacity="0"/>
         <ellipse id="pa-f2" cx="200" cy="70" rx="34" ry="48" fill="none" stroke="var(--hl)" stroke-width="1.6" stroke-dasharray="4 4" opacity="0"/>
@@ -408,7 +408,7 @@ pre.log { margin: 10px 0; padding: 10px 12px; border-radius: 8px; background: va
         <g id="pa-spark" opacity="0">
           <path d="M200 112l7 9 10-4-5 10 11 5-12 3 3 11-10-6-6 10-2-12-11 1 7-9-8-8 11-1z" fill="var(--bad)"/>
         </g>
-        <path id="pa-pS" d="M58 150H184V155L200 166V210H58" fill="none" stroke="none"/>
+        <path id="pa-pS" d="M70 150H184V155L200 166V210H70" fill="none" stroke="none"/>
         <path id="pa-pB" d="M200 28V134L184 145V155L200 166V210" fill="none" stroke="none"/>
         <path id="pa-pF" d="M200 28V110H270V28Z" fill="none" stroke="none"/>
         <g id="pa-dB" fill="var(--flow)"></g><g id="pa-dS" fill="var(--nsig2)"></g><g id="pa-dF" fill="var(--nsig3)"></g>
@@ -544,11 +544,11 @@ ESP-ROM:esp32s3-20210327 … rst:0xf (BROWNOUT_RST)</pre>
         <figure>
         <svg viewBox="0 0 316 176" role="img" aria-label="Стовпчики в логарифмічному масштабі: вивід GPIO 20 мА, найсильніший режим 40 мА, котушка реле 71 мА, мотор FA-130 на холостому ходу 150 мА, мотор на старті 2100 мА. Мотор на старті приблизно в 100 разів більший за вивід.">
           <g font-size="16">
-            <text x="4" y="22" class="t-ink">GPIO</text><rect x="116" y="10" width="73" height="16" rx="3" fill="var(--ok)"/><text x="195" y="23" class="t-ink">20 мА</text>
-            <text x="4" y="52" class="t-mut">макс.</text><rect x="116" y="40" width="90" height="16" rx="3" fill="var(--ok)" opacity=".55"/><text x="212" y="53" class="t-mut">40 мА</text>
-            <text x="4" y="82" class="t-ink">реле</text><rect x="116" y="70" width="104" height="16" rx="3" fill="var(--hi)"/><text x="226" y="83" class="t-ink">71 мА</text>
-            <text x="4" y="112" class="t-ink">мотор: хід</text><rect x="116" y="100" width="122" height="16" rx="3" fill="var(--hi)"/><text x="244" y="113" class="t-ink">150 мА</text>
-            <text x="4" y="142" class="t-ink">мотор: старт</text><rect x="116" y="130" width="186" height="16" rx="3" fill="var(--bad)"/><text x="208" y="143" fill="var(--paper)" font-weight="600">2100 мА</text>
+            <text x="4" y="22" class="t-ink">GPIO</text><rect x="116" y="6" width="73" height="23" rx="3" fill="var(--ok)"/><text x="195" y="23" class="t-ink">20 мА</text>
+            <text x="4" y="52" class="t-mut">макс.</text><rect x="116" y="36" width="90" height="23" rx="3" fill="var(--ok)" opacity=".55"/><text x="212" y="53" class="t-mut">40 мА</text>
+            <text x="4" y="82" class="t-ink">реле</text><rect x="116" y="66" width="104" height="23" rx="3" fill="var(--hi)"/><text x="226" y="83" class="t-ink">71 мА</text>
+            <text x="4" y="112" class="t-ink">мотор: хід</text><rect x="116" y="96" width="122" height="23" rx="3" fill="var(--hi)"/><text x="244" y="113" class="t-ink">150 мА</text>
+            <text x="4" y="142" class="t-ink">мотор: старт</text><rect x="116" y="126" width="186" height="23" rx="3" fill="var(--bad)"/><text x="214" y="142" fill="var(--paper)" font-weight="600">2100 мА</text>
             <line x1="189" y1="4" x2="189" y2="150" stroke="var(--ink)" stroke-dasharray="3 3"/>
             <path d="M116 152V158M172 152V158M228 152V158M284 152V158" stroke="var(--muted)"/>
             <text x="116" y="170" class="t-mut" text-anchor="middle">1</text><text x="172" y="170" class="t-mut" text-anchor="middle">10</text><text x="228" y="170" class="t-mut" text-anchor="middle">100</text><text x="284" y="170" class="t-mut" text-anchor="middle">1 А</text>
@@ -724,11 +724,11 @@ ESP-ROM:esp32s3-20210327 … rst:0xf (BROWNOUT_RST)</pre>
         </div>
         <div class="two">
           <svg class="fig-svg" id="key-svg" viewBox="0 0 320 230" role="img" aria-label="Схема ключа: вивід GPIO через резистор бази на базу NPN-транзистора Q1 BC547B; котушка реле K1 70 Ом з діодом D1 між +5 В і колектором; емітер на спільну GND. Анімовані точки показують струм бази і струм колектора.">
-            <rect x="2" y="114" width="46" height="104" rx="4" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="2" y="114" width="52" height="104" rx="4" fill="none" stroke="var(--ink)" stroke-width="2"/>
             <text x="4" y="108" class="sch-ref">плата</text>
-            <text x="6" y="140" class="sch-pin net-sig">GPIO</text>
-            <text x="6" y="210" class="sch-pin net-gnd">GND</text>
-            <path class="sch-w net-sig" id="kp-pin" d="M50 135H70"/>
+            <text x="9" y="140" class="sch-pin net-sig">GPIO</text>
+            <text x="9" y="210" class="sch-pin net-gnd">GND</text>
+            <path class="sch-w net-sig" id="kp-pin" d="M54 135H70"/>
             <use class="sch-sym" href="#res" x="70" y="135"/>
             <text x="100" y="122" text-anchor="middle" class="sch-ref">R<tspan font-size="13" dy="3">Б</tspan></text>
             <text x="100" y="158" text-anchor="middle" class="sch-val" id="key-rbtxt">680 Ом</text>
@@ -746,7 +746,7 @@ ESP-ROM:esp32s3-20210327 … rst:0xf (BROWNOUT_RST)</pre>
             <path class="sch-w net-sig3" id="kp-coll" d="M200 90V105"/>
             <path class="sch-w net-sig3" d="M200 98H270V90"/>
             <path class="sch-w net-gnd" id="kp-emit" d="M200 165V205"/>
-            <path class="sch-w net-gnd" id="kp-gnd" d="M200 205H48"/>
+            <path class="sch-w net-gnd" id="kp-gnd" d="M200 205H54"/>
             <use class="sch-sym" href="#gnd" x="200" y="205"/>
             <text x="120" y="224" class="sch-pin net-gnd" text-anchor="middle">спільна GND</text>
           </svg>
@@ -874,8 +874,8 @@ ESP-ROM:esp32s3-20210327 … rst:0xf (BROWNOUT_RST)</pre>
     <figure class="dual wide" id="dual-key" data-nets="gpio5=GPIO5; base=База Q1; coll=Колектор Q1; v5=+5 В MB-102; gnd=Спільна GND; ledk=LED → R2">
       <div class="view" data-view="sch">
         <svg viewBox="0 0 330 268" role="img" aria-label="Схема: вивід GPIO5 плати U1 через резистор R1 1 кОм на базу транзистора Q1 2N2222. Від +5 В модуля MB-102 світлодіод LED1, потім резистор R2 220 Ом до колектора Q1. Емітер на землю. GND плати з'єднано з GND MB-102 (символ землі внизу — мінус модуля). Пунктиром діод D1 1N4007 паралельно навантаженню, катодом до +5 В, потрібен лише для котушки або мотора.">
-          <rect class="sch-w" x="8" y="140" width="56" height="106" rx="3"/>
-          <text class="sch-ref" x="8" y="132">U1 · ESP32-S3</text>
+          <rect class="sch-w" x="4" y="140" width="60" height="106" rx="3"/>
+          <text class="sch-ref" x="4" y="132">U1 · ESP32-S3</text>
           <use class="sch-sym" href="#mcu-pin" x="84" y="174" transform="rotate(180 84 174)"/>
           <text class="sch-pin net-sig" data-net="gpio5" x="58" y="170" text-anchor="end">GPIO5</text>
           <use class="sch-sym" href="#mcu-pin" x="84" y="228" transform="rotate(180 84 228)"/>
