@@ -59,6 +59,62 @@
     </div>
   </header>
 
+  <!-- ============================================================ lab: the lesson's interactive bench (first thing after the header)
+       Pattern for every hub: <section class="lab wide"> (never section.hs, so the TOC ignores it; never id="lab", that is
+       section 09) with a stage, .sw switches / sliders, live .lab-read readouts and a one-line .lab-note; right after it
+       a <figure class="anim"> explainer driven by Study.anim. Motion runs through Study.sim / Study.anim only (pauses
+       off-screen, waits for ▶ under reduced motion); never an infinite CSS animation. -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія</h2><p>Замкніть вимикач і покрутіть резистор: що робиться зі струмом і яскравістю?</p></header>
+    <div class="lab-stage" id="bench-stage">
+      <svg viewBox="0 0 460 190" role="img" aria-label="Коло: джерело 5 вольт, вимикач S1, резистор R1 і червоний світлодіод LED1 послідовно.">
+        <defs><radialGradient id="bench-g"><stop offset="0" stop-color="#ff3b30" stop-opacity=".9"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient></defs>
+        <circle id="bench-glow" cx="320" cy="30" r="44" fill="url(#bench-g)" opacity="0"/>
+        <use class="sch-sym net-5v" href="#vsrc" x="60" y="60" transform="rotate(90 60 60)"/>
+        <text class="sch-ref" x="74" y="84">G1</text><text class="sch-val" x="74" y="102">5 В</text>
+        <path class="sch-w net-5v" d="M60 60V30H110"/>
+        <circle cx="110" cy="30" r="3.5" fill="currentColor"/><circle cx="165" cy="30" r="3.5" fill="currentColor"/>
+        <line id="bench-lever" class="sch-w" x1="110" y1="30" x2="160" y2="8"/>
+        <text class="sch-ref" x="137" y="58" text-anchor="middle">S1</text>
+        <path class="sch-w" d="M165 30H200"/>
+        <use class="sch-sym" href="#res" x="200" y="30"/>
+        <text class="sch-ref" x="230" y="16" text-anchor="middle">R1</text><text class="sch-val" id="bench-rlbl" x="230" y="56" text-anchor="middle">330 Ом</text>
+        <path class="sch-w" d="M260 30H290"/>
+        <use class="sch-sym" href="#led" x="290" y="30"/>
+        <text class="sch-ref" x="320" y="66" text-anchor="middle">LED1</text>
+        <path class="sch-w net-gnd" d="M350 30H400V160H60V120"/>
+        <path id="bench-loop" d="M60 120V30H400V160H60Z" fill="none" stroke="none"/>
+        <g id="bench-dots" fill="var(--electron, #3b82f6)"></g>
+      </svg>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="bench-sw" aria-checked="false">Вимикач S1</button>
+      <label class="lab-range">R1 <input type="range" id="bench-r" min="0" max="9" step="1" value="3"><output id="bench-rout">330 Ом</output></label>
+    </div>
+    <div class="lab-read">
+      <div><b>Струм</b><output id="bench-i">0 мА</output></div>
+      <div><b>На резисторі</b><output id="bench-ur">0 В</output></div>
+      <div><b>Яскравість</b><output id="bench-br">0 %</output></div>
+    </div>
+    <p class="lab-note" id="bench-note" aria-live="polite">Вимикач розімкнений: кола немає, струм 0.</p>
+  </section>
+
+  <figure class="anim wide" id="bench-anim" aria-labelledby="bench-anim-h">
+    <header class="anim-head"><h3 id="bench-anim-h">Анімація: куди діваються 5 вольт</h3></header>
+    <div class="anim-stage">
+      <svg viewBox="0 0 460 150" role="img" aria-label="Стовпчики напруги: джерело 5 вольт ділиться між резистором і світлодіодом.">
+        <rect x="40" y="20" width="60" height="100" rx="4" fill="var(--n5, #d33)" opacity=".85"/>
+        <text class="sch-val" x="70" y="140" text-anchor="middle">G1 · 5 В</text>
+        <rect id="ba-r" x="200" y="120" width="60" height="0" rx="4" fill="var(--hi, #b07800)"/>
+        <text class="sch-val" x="230" y="140" text-anchor="middle">R1</text>
+        <text class="sch-val" id="ba-rt" x="230" y="112" text-anchor="middle"></text>
+        <rect id="ba-l" x="330" y="120" width="60" height="0" rx="4" fill="#ff3b30"/>
+        <text class="sch-val" x="360" y="140" text-anchor="middle">LED1</text>
+        <text class="sch-val" id="ba-lt" x="360" y="112" text-anchor="middle"></text>
+      </svg>
+    </div>
+  </figure>
+
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
     <h2><span class="n">01</span> Навіщо це</h2>
@@ -361,6 +417,63 @@ document.addEventListener('study:ready', () => {
   const S = window.Schem;
   const VF = 1.9; // red LED typical Vf: facts.json led-red-3mm-vf
   const mA = (v, r) => Math.max(0, (v - VF) / r * 1000);
+
+  /* ---------- lab: switch + resistor, live current, electrons moving along the loop ---------- */
+  const E12 = [100, 150, 220, 330, 470, 680, 1000, 1500, 2200, 4700];
+  const lab = { on: false, r: 330 };
+  const loop = $('#bench-loop'), dotsG = $('#bench-dots'), LEN = loop.getTotalLength(), N = 14;
+  const dots = Array.from({ length: N }, () => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('r', '3.5'); dotsG.appendChild(c); return c;
+  });
+  let pos = 0;
+  const benchSim = Study.sim($('#bench-stage'), (dt) => {
+    const i = lab.on ? mA(5, lab.r) : 0;
+    pos = (pos + dt * i * 6) % LEN; // drift speed ∝ current (scaled so 10 мА ≈ one lap in 7 s)
+    dots.forEach((c, k) => {
+      const p = loop.getPointAtLength((pos + k * LEN / N) % LEN);
+      c.setAttribute('cx', p.x.toFixed(1)); c.setAttribute('cy', p.y.toFixed(1));
+      c.style.opacity = lab.on ? 1 : 0.35;
+    });
+  });
+  const labUpdate = () => {
+    const i = lab.on ? mA(5, lab.r) : 0;
+    const br = Math.min(100, Math.round(i / 20 * 100));
+    $('#bench-lever').setAttribute('y2', lab.on ? 30 : 8);
+    $('#bench-lever').setAttribute('x2', lab.on ? 165 : 160);
+    $('#bench-glow').setAttribute('opacity', (br / 100).toFixed(2));
+    $('#bench-rlbl').textContent = $('#bench-rout').textContent = fmt.si(lab.r, 'Ом');
+    $('#bench-i').textContent = fmt.num(i, 1) + ' мА';
+    $('#bench-ur').textContent = fmt.num(lab.on ? 5 - VF : 0, 1) + ' В';
+    $('#bench-br').textContent = br + ' %';
+    $('#bench-note').textContent = !lab.on ? 'Вимикач розімкнений: кола немає, струм 0.'
+      : `Коло замкнене: I = (5 − ${fmt.num(VF, 1)}) / ${fmt.si(lab.r, 'Ом')} ≈ ${fmt.num(i, 1)} мА.`
+        + (lab.r <= 150 ? ' Це вже понад 20 мА: світлодіод перегрівається.' : '');
+    benchSim.draw();
+  };
+  $('#bench-sw').addEventListener('switch', (e) => { lab.on = e.detail.on; labUpdate(); });
+  $('#bench-r').addEventListener('input', (e) => { lab.r = E12[+e.target.value]; labUpdate(); });
+  labUpdate();
+
+  /* ---------- explainer: where the 5 V go, in four steps ---------- */
+  const bar = (id, tid, v, p) => {
+    const hgt = 100 * v / 5 * p;
+    $(id).setAttribute('y', 120 - hgt); $(id).setAttribute('height', hgt);
+    $(tid).textContent = p > 0.95 ? fmt.num(v, 1) + ' В' : '';
+    $(tid).setAttribute('y', 112 - hgt);
+  };
+  Study.anim($('#bench-anim'), {
+    steps: [
+      { title: 'Розімкнено', cap: 'Вимикач розімкнений: <b>струму немає</b>, тож ні на резисторі, ні на LED напруги немає.', dur: 3 },
+      { title: 'LED бере своє', cap: 'Замкнули. Червоний LED світиться, лише коли на ньому ≈ <b>1,9 В</b>: це його пряма напруга.', dur: 3.5 },
+      { title: 'Решта — резистору', cap: 'Решту, 5 − 1,9 = <b>3,1 В</b>, забирає резистор. Разом знову 5 В: напруги в колі сумуються.', dur: 3.5 },
+      { title: 'Струм', cap: 'Струм задає резистор: I = 3,1 В / 330 Ом ≈ <b>9,4 мА</b>. Більший R → менший струм → тьмяніше.', dur: 4 },
+    ],
+    draw(i, p) {
+      bar('#ba-l', '#ba-lt', VF, i === 0 ? 0 : i === 1 ? p : 1);
+      bar('#ba-r', '#ba-rt', 5 - VF, i < 2 ? 0 : i === 2 ? p : 1);
+    },
+  });
 
   /* ==== 05 gated widget: R buttons change the dot speed (∝ current) ==== */
   const loopWires = ['#loop-a', '#loop-b', '#loop-c'].map((s) => $(s));

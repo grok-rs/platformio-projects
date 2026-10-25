@@ -87,6 +87,102 @@ summary code { white-space: nowrap; }
 #why figure { margin: 12px 0; }
 .lab-steps li { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .cpubar span { transition: none; } }
+
+/* ---------- lab «суперцикл» (#sl) ---------- */
+.sl-top { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+/* the bench is a wide breadboard: it gets the full row, status and code sit side by side under it */
+@media (min-width: 820px) { .sl-side { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }
+.lab-stage > .sl-top > .sl-board { display: block; width: 100%; max-width: 880px; height: auto; margin-inline: auto; touch-action: manipulation; }
+/* Kit bench (assets/kit.js): hardware keeps its real colours; only the pills around it use theme tokens */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.kit-bench .kb-off { opacity: .4; transition: opacity var(--t2, .2s); }
+.sl-s1 { cursor: pointer; outline: none; }
+.sl-s1 .kb-hit { fill: transparent; }
+.sl-s1 .kb-ring { fill: none; stroke: transparent; stroke-width: 8; }
+.sl-s1:focus-visible .kb-ring { stroke: var(--focus, var(--accent)); }
+.sl-s1.hit .kb-ring { stroke: var(--ok); }
+.sl-side { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.sl-status { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 8px 10px; }
+@media (min-width: 480px) { .sl-status { grid-template-columns: auto minmax(0, 1fr); align-items: center; } }
+.sl-corebox { display: flex; gap: 10px; align-items: center; }
+.sl-ringsvg { width: 58px; height: 58px; flex: none; }
+.sl-corebox > div { display: grid; line-height: 1.25; }
+.sl-k { font: 600 13px var(--f-mono); color: var(--muted); }
+.sl-stat { font: 650 17px var(--f-body); color: var(--ink); }
+.sl-sub { font: 500 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.sl-ring-bg { fill: var(--sheet); stroke: var(--line-2); stroke-width: 7; }
+.sl-sleep { fill: color-mix(in srgb, var(--muted) 22%, var(--sheet)); opacity: 0; }
+.sl-ring { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; }
+.sl-chips { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sl-chips li { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 7px; align-items: center; font: 650 14px var(--f-body); color: var(--ink); }
+.sl-chips li > .sl-sub { grid-column: 2; }
+.sl-chips small { font: 500 13px var(--f-mono); color: var(--muted); }
+.sl-chips i { grid-row: span 2; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+.sl-chips i.btn-i { border-radius: 3px; background: #26272a; }
+.sl-row.off { opacity: .4; }
+.sl-chips i.btn-i { box-shadow: 0 0 0 1px var(--line-strong); }
+/* breadboard view of 08: Kit bench with net overlays on the strips */
+#bb-loop { max-width: 520px; max-height: 560px; }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+.sl-codebox { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); min-width: 0; }
+.sl-code-h { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel-2); font: 600 13px var(--f-mono); color: var(--muted); }
+.sl-pass { color: var(--ink); font-variant-numeric: tabular-nums; }
+pre.sl-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 6px 0; font-size: 13.5px; line-height: 1.55; overflow-x: auto; background: var(--panel); }
+.sl-code .ln { display: block; padding: 0 10px 0 8px; border-left: 4px solid transparent; white-space: pre; }
+.sl-code .ln.soft { background: color-mix(in srgb, var(--accent) 10%, transparent); border-left-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.sl-code .ln.on { background: color-mix(in srgb, var(--hi) 24%, transparent); border-left-color: var(--hi); }
+.sl-code .ln.hit { background: color-mix(in srgb, var(--ok) 20%, transparent); border-left-color: var(--ok); }
+.sl-code .ln .rem { color: var(--muted); }
+.sl-code .ln b { font-weight: 700; color: var(--hi-ink); }
+.lab-stage > canvas.sl-tl { display: block; width: 100%; height: 214px; margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.sl-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+.sl-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.sl-legend .k-sleep { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 4px); border: 1px solid var(--muted); }
+.sl-legend .k-run { background: color-mix(in srgb, var(--accent) 45%, var(--panel)); border: 1px solid var(--accent); }
+.sl-press { user-select: none; -webkit-user-select: none; touch-action: none; min-width: 9.5em; }
+.sl-press[aria-pressed="true"] { background: var(--teach); border-color: var(--teach); color: #fff; }
+#sl .lab-read output.big { font-size: clamp(22px, 3vw, 28px); }
+@media (max-width: 560px) { #sl .lab-range input[type="range"] { width: 150px; } }
+
+/* ---------- explainer (#sl-anim) ---------- */
+.anim-stage > .sla-svg { max-width: 560px; margin-inline: auto; }
+.sla-svg text { font-family: var(--f-body); }
+.sla-track { fill: none; stroke: var(--line-2); stroke-width: 6; stroke-dasharray: 3 7; }
+.sla-dir { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.sla-st rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1.5; transition: fill .2s, stroke .2s; }
+.sla-st text { fill: var(--ink); font: 600 14px var(--f-mono); }
+.sla-st.on rect { fill: color-mix(in srgb, var(--accent) 18%, var(--panel)); stroke: var(--accent); stroke-width: 2.5; }
+.sla-st.yes rect { fill: color-mix(in srgb, var(--ok) 20%, var(--panel)); stroke: var(--ok); stroke-width: 2.5; }
+.sla-st.no rect { fill: var(--panel-2); stroke: var(--muted); stroke-width: 2.5; }
+.sla-st.bad rect { fill: color-mix(in srgb, var(--bad) 16%, var(--panel)); stroke: var(--bad); stroke-width: 2.5; }
+.sla-tok { fill: var(--hi); stroke: var(--ink); stroke-width: 2; }
+.sla-mid { fill: var(--ink); font: 650 16px var(--f-mono) !important; }
+.sla-sm { fill: var(--muted); font: 500 13px var(--f-mono) !important; }
+.sla-lapt { fill: var(--muted); font: 600 13px var(--f-body); }
+.sla-val { fill: var(--ink); font: 600 14px var(--f-mono) !important; }
+.sla-panel { fill: var(--panel-2); stroke: var(--line); }
+.sla-clock { fill: var(--ink); font: 700 22px var(--f-mono) !important; font-variant-numeric: tabular-nums; }
+.sla-calc { fill: var(--ink); font: 600 13px var(--f-mono) !important; }
+.sla-calc.ok { fill: var(--ok); } .sla-calc.bad { fill: var(--bad); }
+
+/* ---------- idea-card interactives ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.idea-ctl .out { font: 600 14px var(--f-mono); }
+.idea figure .idea-ctl label.lab-range { font-size: 14px; }
+.idea figure .idea-ctl input[type="range"] { width: 100%; }
+.idea figure .idea-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: 100%; }
+.idea-out { margin: 8px 0 0; font-size: 15px; min-height: 1.6em; }
+.idea-out b.ok { color: var(--ok); } .idea-out b.bad { color: var(--bad); }
+.idea:has(.idea-ctl) > figure { max-width: 460px; margin-inline: auto; }
+@media (min-width: 820px) {
+  .hub .idea:has(.idea-ctl) { display: block; }
+  .hub .idea:has(.idea-ctl) > figure { position: static; margin: 8px auto 14px; }
+  .hub .idea:has(.idea-ctl) > :not(h3, figure, pre, .key) { max-width: 68ch; }
+  .hub .idea:has(.idea-ctl) .fig-svg :is(.t, .m) { font-size: 14px; }
+}
+.fig-svg .dyn { transition: none; }
 </style>
 </head>
 <body data-lesson="2-3">
@@ -110,6 +206,95 @@ summary code { white-space: nowrap; }
       <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
     </div>
   </header>
+
+  <!-- ============================================================ lab: the superloop bench (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="sl" aria-labelledby="sl-h">
+    <header class="lab-head"><h2 id="sl-h">Лабораторія · суперцикл</h2><p>Перемкніть стиль прошивки, потримайте кнопку S1 і подивіться, скільки мілісекунд плата вас «не чує».</p></header>
+    <div class="lab-stage sl-stage" id="sl-stage">
+      <div class="sl-top">
+        <svg class="sl-board kit-bench" id="sl-board" viewBox="-58 -412 902 962" role="img" aria-label="Справжня збірка: плата YD-ESP32-S3 вставлена прямо в макетку, ліворуч від неї три гілки «резистор 220 Ом — світлодіод»: червоний A на GPIO4 (синій дріт уздовж ряду j), зелений B на GPIO5 (зелений дріт під рядом j) і жовтий C на GPIO15 (жовтий дріт уздовж нижнього краю, третя задача). Катоди короткими чорними дротами на шину мінус. Праворуч від плати тактова кнопка S1: фіолетовий дріт від GPIO21 над рядом a, друга її ніжка на шині мінус, яку GND плати з'єднує з землею; половинки розірваної шини мінус з'єднує коротка чорна перемичка. Світлодіоди світяться так, як їх перемикає прошивка; кнопку S1 можна утримувати.">
+          <g id="sl-s1" class="sl-s1" role="button" tabindex="0" aria-label="Кнопка S1: утримуйте мишею, пальцем або пробілом" aria-pressed="false"></g>
+        </svg>
+        <div class="sl-side">
+          <div class="sl-status" aria-live="off">
+            <div class="sl-corebox">
+              <svg class="sl-ringsvg" viewBox="26 56 72 72" aria-hidden="true">
+                <circle class="sl-ring-bg" cx="62" cy="92" r="30"/>
+                <circle class="sl-sleep" id="sl-sleep" cx="62" cy="92" r="30"/>
+                <circle class="sl-ring" id="sl-ring" cx="62" cy="92" r="30" transform="rotate(-90 62 92)"/>
+              </svg>
+              <div><span class="sl-k">ядро 1 · loop()</span><b class="sl-stat" id="sl-stat1">крутиться</b><span class="sl-sub" id="sl-stat2">без пауз</span></div>
+            </div>
+            <ul class="sl-chips">
+              <li class="sl-row" data-k="A"><i style="--c:#e8262a"></i><span>LED A <small>GPIO4</small></span><span class="sl-sub" id="sl-tA">500 мс</span></li>
+              <li class="sl-row" data-k="B"><i style="--c:#22a04a"></i><span>LED B <small>GPIO5</small></span><span class="sl-sub" id="sl-tB">200 мс</span></li>
+              <li class="sl-row" data-k="C" id="sl-rowC"><i style="--c:#f1c40f"></i><span>LED C <small>GPIO15</small></span><span class="sl-sub" id="sl-tC">вимкнено</span></li>
+              <li class="sl-row" data-k="S1"><i class="btn-i"></i><span>S1 <small>GPIO21</small></span><span class="sl-sub" id="sl-s1t">тримайте</span></li>
+            </ul>
+          </div>
+          <div class="sl-codebox">
+            <div class="sl-code-h"><span>src/main.cpp</span><span id="sl-pass" class="sl-pass"></span></div>
+            <pre class="sl-code" id="sl-code" aria-label="Код прошивки; підсвічено рядок, який зараз виконується"></pre>
+          </div>
+        </div>
+      </div>
+      <canvas id="sl-tl" class="sl-tl" width="900" height="100" role="img" aria-label="Живий таймлайн: що робить loop() кожну мілісекунду (спить у delay або робить короткі проходи), коли натиснута S1 і коли її помітили, як перемикаються світлодіоди. Новіше праворуч."></canvas>
+      <div class="sl-legend" aria-hidden="true"><span><i class="k-sleep"></i>спить у delay()</span><span><i class="k-run"></i>короткі проходи loop()</span><span>▲ перевірка S1</span><span>▼ коли LED мав перемкнутися</span></div>
+    </div>
+    <div class="lab-ctl">
+      <div class="seg" role="group" aria-label="Стиль прошивки" id="sl-mode">
+        <button type="button" data-m="delay" aria-pressed="true">delay()</button>
+        <button type="button" data-m="millis" aria-pressed="false">millis()</button>
+      </div>
+      <button type="button" class="btn primary sl-press" id="sl-press" aria-pressed="false">Тримати S1</button>
+      <label class="lab-range">LED A <input type="range" id="sl-a" min="100" max="1000" step="50" value="500" aria-label="Інтервал перемикання LED A, мс"><output id="sl-aout">500 мс</output></label>
+      <label class="lab-range">LED B <input type="range" id="sl-b" min="100" max="1000" step="50" value="200" aria-label="Інтервал перемикання LED B, мс"><output id="sl-bout">200 мс</output></label>
+      <button type="button" class="sw" id="sl-c" aria-checked="false">Додати третю задачу: LED C</button>
+      <button type="button" class="sw" id="sl-auto" aria-checked="false">Випадкові натискання</button>
+      <div class="seg" role="group" aria-label="Швидкість часу" id="sl-speed">
+        <button type="button" data-s="1" aria-pressed="true">×1</button>
+        <button type="button" data-s="0.25" aria-pressed="false">×¼</button>
+      </div>
+      <button type="button" class="btn ghost sm" id="sl-play">❚❚ Пауза</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Реакція на S1</b><output id="sl-lat">—</output></div>
+      <div><b>Перевірок S1 за 1 с</b><output id="sl-rate">1</output></div>
+      <div><b>LED A: задано → є</b><output id="sl-ra">500 → 700 мс</output></div>
+      <div><b>Пропущено натискань</b><output id="sl-miss">0</output></div>
+    </div>
+    <p class="lab-note" id="sl-note" aria-live="polite">Прошивка з delay(): кнопку S1 читають лише раз за прохід. Потримайте S1 і подивіться на «Реакцію».</p>
+    <a class="lab-more" href="../../lab/#two-buttons">Повна лабораторія: стенд «Дві кнопки» з блокуючим delay() →</a>
+  </section>
+
+  <figure class="anim wide" id="sl-anim" aria-labelledby="sl-anim-h">
+    <header class="anim-head"><h3 id="sl-anim-h">Анімація: один прохід суперциклу</h3></header>
+    <div class="anim-stage">
+      <svg class="sla-svg" viewBox="0 0 330 214" role="img" aria-label="Коло loop() з чотирма зупинками: now дорівнює millis, LED A пора?, LED B пора?, кнопка S1? Праворуч годинник millis, стани світлодіодів і обчислення now мінус last.">
+        <defs><marker id="sla-arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+        <circle class="sla-track" cx="104" cy="112" r="40"/>
+        <path class="sla-dir" d="M124 77a40 40 0 0 1 16 18" marker-end="url(#sla-arr)"/>
+        <g class="sla-st" id="sla-s0"><rect x="58" y="28" width="92" height="28" rx="14"/><text x="104" y="47" text-anchor="middle">now=millis()</text></g>
+        <g class="sla-st" id="sla-s1"><rect x="150" y="98" width="74" height="28" rx="14"/><text x="187" y="117" text-anchor="middle">A: пора?</text></g>
+        <g class="sla-st" id="sla-s2"><rect x="64" y="168" width="80" height="28" rx="14"/><text x="104" y="187" text-anchor="middle">B: пора?</text></g>
+        <g class="sla-st" id="sla-s3"><rect x="2" y="98" width="54" height="28" rx="14"/><text x="29" y="117" text-anchor="middle">S1?</text></g>
+        <circle id="sla-tok" class="sla-tok" cx="104" cy="72" r="7"/>
+        <text class="sla-mid" x="104" y="110" text-anchor="middle">loop()</text>
+        <text class="sla-lapt" id="sla-laps" x="104" y="128" text-anchor="middle"></text>
+        <rect class="sla-panel" x="226" y="4" width="100" height="206" rx="10"/>
+        <text class="sla-sm" x="276" y="22" text-anchor="middle">millis()</text>
+        <text class="sla-clock" id="sla-clock" x="276" y="46" text-anchor="middle">1000</text>
+        <text class="sla-sm" x="236" y="68">last:</text>
+        <g class="sla-kit" id="sla-la"></g><text class="sla-val" id="sla-lat" x="256" y="88">A 500</text>
+        <g class="sla-kit" id="sla-lb"></g><text class="sla-val" id="sla-lbt" x="256" y="110">B 900</text>
+        <g class="sla-kit" id="sla-btn"></g><text class="sla-val" id="sla-btt" x="256" y="132">HIGH</text>
+        <path d="M232 144H320" stroke="var(--line)"/>
+        <text class="sla-calc" id="sla-c1" x="276" y="162" text-anchor="middle"></text>
+        <text class="sla-calc" id="sla-c2" x="276" y="182" text-anchor="middle"></text>
+        <text class="sla-calc" id="sla-c3" x="276" y="202" text-anchor="middle"></text>
+      </svg>
+    </div>
+  </figure>
 
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
@@ -178,24 +363,33 @@ summary code { white-space: nowrap; }
       <h3>delay() зупиняє вашу програму, а не чип</h3>
       <p>На ESP32 ваші <code>setup()</code> і <code>loop()</code> працюють у задачі FreeRTOS <code>loopTask</code> на ядрі&nbsp;1<sup class="cite" data-fact="core-loop-task"></sup>. <code>delay()</code> — це <code>vTaskDelay()</code>: задача засинає, а ядро тим часом виконує інші задачі<sup class="cite" data-fact="core-delay"></sup>. Таймер далі рахує мілісекунди, переривання спрацьовують. Але весь ваш код у <code>loop()</code> стоїть на одному рядку: кнопку ніхто не читає, LED ніхто не перемикає.</p>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 320 236" role="img" aria-label="Що відбувається під час delay(1000). Ядро 0 і системні задачі працюють. Ядро 1, задача loopTask з вашим loop, спить. Апаратний таймер далі рахує, millis росте від 0 до 1000. Переривання спрацює одразу. Кнопку, яку читають опитуванням, ніхто не перевіряє, натискання пропущено.">
+        <svg class="fig-svg" id="d1" viewBox="0 0 320 254" role="img" aria-label="Що відбувається під час delay(1000). Ядро 0 і системні задачі працюють. Ядро 1, задача loopTask з вашим loop, спить, якщо ввімкнено delay. Апаратний таймер далі рахує, millis росте. Переривання спрацює одразу. Кнопку, яку читають опитуванням, перевіряють лише тоді, коли loop не спить.">
           <text class="t" x="6" y="15">Ядро 0 · системні задачі, Wi-Fi</text>
-          <g fill="var(--ok)" opacity=".55"><rect x="6" y="22" width="40" height="14" rx="3"/><rect x="58" y="22" width="22" height="14" rx="3"/><rect x="92" y="22" width="56" height="14" rx="3"/><rect x="160" y="22" width="30" height="14" rx="3"/><rect x="202" y="22" width="46" height="14" rx="3"/><rect x="260" y="22" width="54" height="14" rx="3"/></g>
+          <g id="d1-c0" fill="var(--ok)" opacity=".55"></g>
           <text class="t" x="6" y="57">Ядро 1 · loopTask (ваш loop)</text>
-          <defs><pattern id="hatch-d" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="8" fill="var(--muted)" opacity=".5"/></pattern></defs>
-          <rect x="6" y="64" width="308" height="22" rx="4" fill="url(#hatch-d)" stroke="var(--muted)"/>
-          <text class="t" x="160" y="80" text-anchor="middle">спить у delay(1000)</text>
+          <defs><pattern id="hatch-d" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="8" fill="var(--muted)" opacity=".5"/></pattern>
+            <pattern id="run-d" width="5" height="8" patternUnits="userSpaceOnUse"><rect width="1.6" height="8" fill="var(--accent)" opacity=".7"/></pattern></defs>
+          <rect id="d1-bar" x="6" y="64" width="308" height="22" rx="4" fill="url(#hatch-d)" stroke="var(--muted)"/>
+          <rect id="d1-prog" x="6" y="64" width="0" height="22" rx="4" fill="var(--muted)" opacity=".28"/>
+          <text class="t" id="d1-c1t" x="160" y="80" text-anchor="middle">спить у delay(1000)</text>
           <text class="t" x="6" y="107">Таймер · millis()</text>
+          <text class="m mono" id="d1-ms" x="314" y="107" text-anchor="end">0</text>
           <path d="M6 128H314" stroke="var(--line)" stroke-width="2"/>
           <g stroke="var(--accent)" stroke-width="2"><path d="M6 122v12M68 122v12M130 122v12M192 122v12M254 122v12M314 122v12"/></g>
-          <text class="m mono" x="10" y="148">0</text><text class="m mono" x="314" y="148" text-anchor="end">1000 — рахує</text>
-          <text class="t" x="6" y="170">Переривання</text>
-          <path d="M150 158l-8 14h8l-6 12 14-18h-8l6-8z" fill="var(--hi)"/>
-          <text class="m okc" x="168" y="176">✓ спрацює одразу</text>
+          <circle id="d1-cur" cx="6" cy="128" r="6" fill="var(--accent)"/>
+          <text class="m" x="10" y="150">рахує завжди, навіть коли loop() спить</text>
+          <text class="t" x="6" y="174">Переривання</text>
+          <path d="M134 162l-8 14h8l-6 12 14-18h-8l6-8z" fill="var(--hi)"/>
+          <text class="m okc" x="152" y="180">✓ одразу</text>
           <text class="t" x="6" y="204">Кнопка (опитування)</text>
-          <rect x="150" y="214" width="22" height="14" rx="3" fill="var(--bad)" opacity=".7"/>
-          <text class="m badc" x="316" y="226" text-anchor="end">✗ ніхто не дивиться</text>
+          <path d="M6 228H314" stroke="var(--line)" stroke-width="1.5"/>
+          <rect id="d1-press" x="150" y="214" width="46" height="14" rx="3" fill="var(--teach)" opacity="0"/>
+          <text class="m" id="d1-btn" x="6" y="250">натисніть S1</text>
         </svg>
+        <div class="idea-ctl">
+          <button type="button" class="sw" id="d1-sw" aria-checked="true">delay(1000) у loop()</button>
+          <button type="button" class="btn sm" id="d1-pb">Натиснути S1 на 150 мс</button>
+        </div>
       </figure>
       <p class="key"><b>Головне</b>Під час <code>delay()</code> ваш <code>loop()</code> сліпий і глухий, хоча чип не спить.</p>
     </article>
@@ -210,13 +404,19 @@ summary code { white-space: nowrap; }
           <path d="M180 72a68 68 0 0 1 4 50" fill="none" stroke="var(--accent)" stroke-width="3" marker-end="url(#arr-loop)"/>
           <text class="t mono" x="120" y="100" text-anchor="middle">loop()</text>
           <text class="m" x="120" y="118" text-anchor="middle">коло за колом</text>
-          <g><rect x="78" y="22" width="84" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="120" y="40" text-anchor="middle">кнопка?</text></g>
-          <g><rect x="2" y="150" width="104" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="54" y="168" text-anchor="middle">LED: пора?</text></g>
-          <g><rect x="120" y="150" width="128" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="184" y="168" text-anchor="middle">Serial: пора?</text></g>
-          <g transform="translate(262 62)"><path d="M-30 18q-4-22 14-30q18-10 34 2q16 12 8 30z" fill="var(--muted)" opacity=".55" stroke="var(--ink)"/><text class="t mono" x="0" y="12" text-anchor="middle">delay()</text></g>
-          <text class="m badc" x="262" y="104" text-anchor="middle">✗ зупиняє</text>
-          <text class="m badc" x="262" y="120" text-anchor="middle">усе коло</text>
+          <g id="sp-s0"><rect x="78" y="22" width="84" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="120" y="40" text-anchor="middle">кнопка?</text></g>
+          <g id="sp-s2"><rect x="2" y="150" width="104" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="54" y="168" text-anchor="middle">LED: пора?</text></g>
+          <g id="sp-s1"><rect x="120" y="150" width="128" height="26" rx="13" fill="var(--panel)" stroke="var(--ink)"/><text class="t" x="184" y="168" text-anchor="middle">Serial: пора?</text></g>
+          <g id="sp-stone" transform="translate(262 62)"><path d="M-30 18q-4-22 14-30q18-10 34 2q16 12 8 30z" fill="var(--muted)" opacity=".55" stroke="var(--ink)"/><text class="t mono" x="0" y="12" text-anchor="middle">delay()</text></g>
+          <text class="m badc" id="sp-w1" x="262" y="104" text-anchor="middle">✗ зупиняє</text>
+          <text class="m badc" id="sp-w2" x="262" y="120" text-anchor="middle">усе коло</text>
+          <path id="sp-stop" d="M155 85L173 76" stroke="var(--bad)" stroke-width="5" stroke-linecap="round" opacity="0"/>
+          <circle id="sp-tok" cx="120" cy="36" r="8" fill="var(--hi)" stroke="var(--ink)" stroke-width="2"/>
         </svg>
+        <div class="idea-ctl">
+          <button type="button" class="sw" id="sp-sw" aria-checked="false">Вставити delay(1000)</button>
+        </div>
+        <p class="idea-out" id="sp-out" aria-live="polite"></p>
       </figure>
       <p class="key"><b>Головне</b>Як часто перевіряється кнопка, залежить від найповільнішої функції в циклі.</p>
     </article>
@@ -230,19 +430,23 @@ summary code { white-space: nowrap; }
 if (down &amp;&amp; !wasDown) onPress();
 wasDown = down;</code></pre>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 320 172" role="img" aria-label="Натискання кнопки триває коротко: GPIO21 з INPUT_PULLUP на цей час падає з HIGH до LOW. Верхній ряд: перевірки раз на довгий проміжок, жодна не потрапила в натискання — пропущено. Нижній ряд: часті перевірки, кілька потрапили в натискання — помічено.">
+        <svg class="fig-svg" id="pl" viewBox="0 0 320 150" role="img" aria-label="Натискання кнопки триває 150 мілісекунд: GPIO21 з INPUT_PULLUP на цей час падає з HIGH до LOW. Нижче — моменти перевірки з вибраним проміжком; якщо жодна перевірка не потрапила в натискання, воно пропущене.">
           <text class="t" x="6" y="14">GPIO21: натиснута = LOW</text>
-          <path d="M6 24H150V44H186V24H314" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
-          <rect x="150" y="24" width="36" height="20" fill="var(--hi)" opacity=".35"/>
-          <text class="m" x="168" y="60" text-anchor="middle">натиснута</text>
-          <text class="t" x="6" y="88">Перевірки рідко (delay)</text>
-          <g fill="var(--accent)"><circle cx="40" cy="102" r="5"/><circle cx="130" cy="102" r="5"/><circle cx="220" cy="102" r="5"/><circle cx="310" cy="102" r="5"/></g>
-          <text class="m badc" x="176" y="106" text-anchor="middle">✗</text>
-          <text class="t" x="6" y="132">Перевірки часто (суперцикл)</text>
-          <g fill="var(--accent)"><circle cx="10" cy="146" r="3"/><circle cx="30" cy="146" r="3"/><circle cx="50" cy="146" r="3"/><circle cx="70" cy="146" r="3"/><circle cx="90" cy="146" r="3"/><circle cx="110" cy="146" r="3"/><circle cx="130" cy="146" r="3"/><circle cx="150" cy="146" r="3"/><circle cx="210" cy="146" r="3"/><circle cx="230" cy="146" r="3"/><circle cx="250" cy="146" r="3"/><circle cx="270" cy="146" r="3"/><circle cx="290" cy="146" r="3"/><circle cx="310" cy="146" r="3"/></g>
-          <g fill="var(--ok)"><circle cx="170" cy="146" r="4"/><circle cx="190" cy="146" r="3"/></g>
-          <text class="m okc" x="180" y="168" text-anchor="middle">✓</text>
+          <path d="M6 24H150V44H196V24H314" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
+          <rect id="pl-win" x="150" y="24" width="46" height="20" fill="var(--hi)" opacity=".35"/>
+          <text class="m" x="173" y="62" text-anchor="middle">150 мс</text>
+          <text class="t" id="pl-t" x="6" y="90">Перевірки кожні 300 мс</text>
+          <path d="M6 108H314" stroke="var(--line)" stroke-width="1.5"/>
+          <path d="M150 100V116M196 100V116" stroke="var(--hi)" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <g id="pl-dots"></g>
+          <text class="m" x="6" y="140">0</text><text class="m" x="314" y="140" text-anchor="end">1000 мс</text>
+          <text class="t" id="pl-res" x="173" y="140" text-anchor="middle"></text>
         </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Кожні <input type="range" id="pl-i" min="10" max="1000" step="10" value="300" aria-label="Проміжок між перевірками кнопки, мс"><output id="pl-iout">300 мс</output></label>
+          <button type="button" class="btn sm" id="pl-new">Інший момент</button>
+        </div>
+        <p class="idea-out" id="pl-out" aria-live="polite"></p>
       </figure>
       <p class="key"><b>Головне</b>Опитування бачить лише те, що триває довше за проміжок між двома перевірками.</p>
     </article>
@@ -259,16 +463,32 @@ void updateLedA(uint32_t now) {
   }  // інакше одразу назад у loop()
 }</code></pre>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 320 104" role="img" aria-label="Числова вісь часу: last, потім now через 320 мілісекунд, а межа — last плюс 500. Різниця now мінус last дорівнює 320, це менше за 500, тому ще не час, функція повертається.">
-          <path d="M8 54H312" stroke="var(--line)" stroke-width="3"/>
-          <circle cx="30" cy="54" r="6" fill="var(--accent)"/><text class="t mono" x="30" y="80" text-anchor="middle">last</text>
-          <path d="M190 40v28" stroke="var(--hi)" stroke-width="3"/><text class="t mono" x="190" y="84" text-anchor="middle">now</text>
-          <path d="M280 36v36" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/><text class="m mono" x="280" y="88" text-anchor="middle">last+500</text>
-          <path d="M30 30H190" stroke="var(--hi)" stroke-width="2.5"/><path d="M30 24v12M190 24v12" stroke="var(--hi)" stroke-width="2"/>
-          <text class="t mono" x="110" y="20" text-anchor="middle">now − last = 320</text>
-          <text class="m" x="160" y="102" text-anchor="middle">320 &lt; 500 → ще ні, повертаємось</text>
+        <svg class="fig-svg" id="ml" viewBox="0 0 320 132" role="img" aria-label="Числова вісь часу: last, рухома мітка now і межа last плюс 500. Коли now мінус last досягає 500, LED A перемикається, а last зсувається.">
+          <path d="M8 46H312" stroke="var(--line)" stroke-width="3"/>
+          <path id="ml-span" d="M30 46H30" stroke="var(--hi)" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+          <circle cx="30" cy="46" r="6" fill="var(--accent)"/><text class="t mono" x="30" y="74" text-anchor="middle">last</text>
+          <path d="M280 28v36" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/><text class="m mono" x="280" y="80" text-anchor="middle">last+500</text>
+          <g id="ml-now"><path d="M0 30v32" stroke="var(--hi)" stroke-width="3"/><text class="t mono" x="0" y="22" text-anchor="middle">now</text></g>
+          <circle id="ml-led" cx="302" cy="100" r="8" fill="var(--panel)" stroke="var(--n5)" stroke-width="2.5"/>
+          <text class="m" x="288" y="105" text-anchor="end">A</text>
+          <text class="t mono" id="ml-diff" x="160" y="104" text-anchor="middle">now − last = 0</text>
+          <text class="m" id="ml-verd" x="160" y="124" text-anchor="middle">0 &lt; 500 → ще ні, повертаємось</text>
         </svg>
-        <svg class="fig-svg" style="margin-top:14px" viewBox="0 0 320 178" role="img" aria-label="Лічильник millis як циферблат: нуль угорі. last = 2 у 32-й мінус 10 стоїть трохи до нуля, now = 5 трохи після нуля. Дуга між ними — відстань по колу, now мінус last дорівнює 15. Одне повне коло — 2 у 32-й мілісекунд, приблизно 49,7 доби.">
+        <div class="idea-ctl">
+          <button type="button" class="sw" id="ml-slow" aria-checked="false">Повільна функція: прохід 40 мс</button>
+          <div class="seg" role="group" aria-label="Новий відлік" id="ml-mode">
+            <button type="button" data-m="add" aria-pressed="true">last += 500</button>
+            <button type="button" data-m="now" aria-pressed="false">last = now</button>
+          </div>
+        </div>
+        <p class="idea-out" id="ml-out" aria-live="off"></p>
+      </figure>
+      <p class="key"><b>Головне</b>Пишіть тільки <code>now - last &gt;= interval</code>, а час зберігайте в <code>uint32_t</code>.</p>
+    </article>
+    <details class="more">
+      <summary>Детальніше: що буде через 49,7 доби (переповнення millis())</summary>
+      <figure>
+        <svg class="fig-svg" viewBox="0 0 320 178" role="img" aria-label="Лічильник millis як циферблат: нуль угорі. last = 2 у 32-й мінус 10 стоїть трохи до нуля, now = 5 трохи після нуля. Дуга між ними — відстань по колу, now мінус last дорівнює 15. Одне повне коло — 2 у 32-й мілісекунд, приблизно 49,7 доби.">
           <circle cx="160" cy="94" r="58" fill="none" stroke="var(--line)" stroke-width="3"/>
           <path d="M160 28v16" stroke="var(--bad)" stroke-width="2.5"/>
           <text class="m badc mono" x="160" y="22" text-anchor="middle">↻ 0</text>
@@ -286,8 +506,7 @@ void updateLedA(uint32_t now) {
         </svg>
       </figure>
       <p><b>А що буде через 49,7 доби?</b> <code>millis()</code> повертає 32-бітне беззнакове число. Після 4&nbsp;294&nbsp;967&nbsp;295&nbsp;мс (2³²&nbsp;−&nbsp;1) воно знову стає 0, як механічний одометр після 999&nbsp;999&nbsp;км. Одне таке коло — 2³²&nbsp;мс ≈ 49,7 доби<sup class="cite" data-fact="core-millis"></sup>. Беззнакове віднімання теж рахує «по колу». Тому <code>now - last</code> завжди дає відстань від <code>last</code> уперед до <code>now</code>, навіть коли між ними нуль. А от <code>last + interval</code> може сам перескочити через нуль і стати малим числом, і тоді порівняння <code>now &gt;= last + interval</code> помиляється. Перевірите в розділі 05.</p>
-      <p class="key"><b>Головне</b>Пишіть тільки <code>now - last &gt;= interval</code>, а час зберігайте в <code>uint32_t</code>.</p>
-    </article>
+    </details>
     <details class="more">
       <summary>Детальніше: last += interval чи last = now?</summary>
       <p><code>millis()</code> рахує цілими мілісекундами. Якщо прохід циклу коротший за 1&nbsp;мс, перша перевірка, яка бачить «минуло ≥&nbsp;500», трапляється саме тоді, коли <code>now</code> дорівнює <code>last + 500</code>. Тоді <code>last = now</code> і <code>last += 500</code> дають те саме число, і дрейфу немає.</p>
@@ -405,7 +624,10 @@ void updateLight(uint32_t now) {
         </div>
       </div>
     </div>
-    <div class="note tip">Що порівняти: у <b>delay()</b> LED&nbsp;B мав перемикатися кожні 200&nbsp;мс (▼), а перемикається раз на секунду, бо його чекають усі паузи. У <b>millis() + 40&nbsp;мс</b> натискання, довші за 40&nbsp;мс, не губляться, але реакція стає повільнішою: тепер ритм задає найповільніша функція. Коротше натискання може проскочити між двома перевірками (питання&nbsp;9 самоперевірки).</div>
+    <details class="more">
+      <summary>Що порівняти в таймлайні</summary>
+      <div class="note tip">Що порівняти: у <b>delay()</b> LED&nbsp;B мав перемикатися кожні 200&nbsp;мс (▼), а перемикається раз на секунду, бо його чекають усі паузи. У <b>millis() + 40&nbsp;мс</b> натискання, довші за 40&nbsp;мс, не губляться, але реакція стає повільнішою: тепер ритм задає найповільніша функція. Коротше натискання може проскочити між двома перевірками (питання&nbsp;9 самоперевірки).</div>
+    </details>
 
     <div class="predict" data-ok="1" data-gate="w-ovf"
          data-why="last + 1000 не вміщається у 32 біти і «загортається» в 500. now = 4 294 966 896, а це більше за 500, тому стара форма каже «true» на 900 мс раніше. Віднімання now − last = 100 дає правильну відповідь: ще рано.">
@@ -582,7 +804,7 @@ void updateLight(uint32_t now) {
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-loop" viewBox="0 0 340 222" role="img" aria-label="Макетка: дроти від GPIO4, GPIO5 і GPIO15 у стовпчики 16, 9 і 2; від кожного резистор 220 ом на 4 стовпчики вправо, там анод світлодіода, катод у сусідньому стовпчику, з нього дріт на верхню шину мінус. Кнопка в нижній половині на стовпчиках 3 і 6: стовпчик 3 з'єднаний з GPIO21, стовпчик 6 — з нижньою шиною мінус. Обидві шини мінус з'єднані з GND плати."></svg>
+        <svg id="bb-loop" class="kit-bench" viewBox="-58 -412 902 962" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (GPIO4 у стовпчику 25, GPIO5 у 26, GPIO15 у 29, GND у 43), права гребінка в ряду b, вільний ряд a над нею (GPIO21 у стовпчику 39). Синій дріт від GPIO4 уздовж ряду j у стовпчик 18, резистор 220 Ом у ряду g з 18 у 14, червоний світлодіод A анодом у 14, катодом у 13. Зелений дріт від GPIO5 під рядом j у стовпчик 15, резистор у ряду h з 15 в 11, зелений світлодіод B анодом в 11, катодом у 10. Жовтий дріт від GPIO15 уздовж нижнього краю макетки у стовпчик 8, резистор з 8 у 4, жовтий світлодіод C анодом у 4, катодом у 3. Стовпчики катодів 3, 10 і 13 короткими чорними дротами на нижню шину мінус. Кнопка S1 через канавку на стовпчиках 48 і 50: фіолетовий дріт від GPIO21 над рядом a у стовпчик 50, стовпчик 48 чорним дротом на шину мінус. GND плати (стовпчик 43) коротким чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
       </div>
       <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах. Жоден із цих пінів не є strapping-піном.</figcaption>
     </figure>
@@ -704,12 +926,12 @@ void loop() {
           <li><b>Доповідач</b> пише обробник кнопки (реакція на зміну, а не на рівень); на демо розповідає 3&nbsp;хв;</li>
           <li><b>Скептик</b> перевіряє код за списком: немає <code>delay()</code> і <code>while</code>-очікувань, лише <code>now - last</code>, час в <code>uint32_t</code>, кнопка за зміною.</li>
         </ul></dd>
-        <dt>Критерії</dt><dd><ul>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><ul>
           <li><b>Без блокувань:</b> 2 — жодного <code>delay()</code> чи <code>while</code>-очікування; 1 — одне коротке (≤&nbsp;10&nbsp;мс); 0 — більше.</li>
           <li><b>Мінімальний зелений:</b> 2 — за логом зелений ніколи не коротший за 5&nbsp;с, а натискання після 5-ї секунди гасить його не пізніше ніж за 0,1&nbsp;с; 1 — одне порушення; 0 — правило не працює.</li>
           <li><b>Кнопка:</b> 2 — помічено 20 з 20 натискань; 1 — 17–19; 0 — менше 17.</li>
           <li><b>Таблиця і пояснення:</b> 2 — план/факт для всіх станів і речення про блокування; 1 — чогось бракує; 0 — немає.</li>
-        </ul></dd>
+        </ul></details></dd>
         <dt>Ускладнення</dt><dd>Нічний режим: коли фоторезистор (міні-проєкт 1) показує темряву, жовтий блимає раз на секунду.</dd>
         <dt>Термін</dt><dd>до сб 10.10, 10:00 (демо на занятті того дня)</dd>
         <dt>Як здати</dt><dd><a href="https://github.com/grok-rs/platformio-projects/discussions">GitHub Discussions → «Командні виклики»</a></dd>
@@ -791,7 +1013,8 @@ void loop() {
     </details>
     <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
 
-    <h3>Що виправлено порівняно з LMS</h3>
+    <details class="more">
+      <summary>Що виправлено порівняно з LMS (5 пунктів)</summary>
     <ul>
       <li><b>Уточнення: «блокується лише те ядро або той потік виконання, де викликано delay()».</b> LMS дає два варіанти, і правильний — другий: блокується лише задача <code>loopTask</code>. <code>delay()</code> = <code>vTaskDelay()</code>, і поки <code>loopTask</code> спить, те саме ядро 1 виконує інші задачі<sup class="cite" data-fact="core-delay"></sup><sup class="cite" data-fact="core-loop-task"></sup>.</li>
       <li><b>Опитування кнопки <code>if (BUTTON_PIN == PRESSED)</code>.</b> Так порівнюється номер піна з константою, а не стан піна. В Arduino: <code>digitalRead(BUTTON_PIN) == LOW</code>, бо з <code>INPUT_PULLUP</code> натиснута кнопка дає LOW<sup class="cite" data-fact="lms-err-1-5-press-edge"></sup>.</li>
@@ -799,6 +1022,7 @@ void loop() {
       <li><b>Уточнення: <code>int main() { while (true) … }</code>.</b> В Arduino-ESP32 <code>main()</code> не пишуть: ядро саме створює задачу <code>loopTask</code>, яка один раз викликає <code>setup()</code>, а потім нескінченно <code>loop()</code><sup class="cite" data-fact="core-loop-task"></sup>. Сенс суперциклу той самий.</li>
       <li><b>Уточнення: <code>last_toggle = now</code>.</b> Працює, але накопичує дрейф, щойно прохід циклу буває довшим за 1&nbsp;мс. Для рівної сітки — <code>last_toggle += interval</code> (розділ 04, «Детальніше»).</li>
     </ul>
+    </details>
   </section>
 
   <!-- ============================================================ 16 discussion -->
@@ -812,6 +1036,7 @@ void loop() {
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -824,8 +1049,665 @@ document.addEventListener('study:ready', () => {
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const pressSeg = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
 
+  /* =====================================================================
+     The real bench, drawn with the kit library (assets/kit.js), tidy layout: the YD-ESP32-S3 lies IN a WB-102
+     breadboard (c0 = 22: left header in row i, right header in row b; rows j and a stay free), the LEDs and their
+     220 Ом resistors stand on the strips left of it, S1 right of it. Used by the lab (#sl) and by section 08.
+     Board pins: GPIO4 j25, GPIO5 j26, GPIO15 j29, GND j43 (left header); GPIO21 a39 (right header).
+       LED X: resistor from the signal column to the anode column, LED in row f put in mirrored (cathode left),
+              cathode column → bottom «−» rail with a short drop.
+         C (GPIO15): j29 → lane along the bottom edge → j8; R h8 → h4; LED f4/f3; j3 → «−».
+         B (GPIO5):  j26 → lane under row j → j15; R h15 → h11; LED f11/f10; j10 → «−».
+         A (GPIO4):  j25 → along free row j → j18; R g18 → g14; LED f14/f13; j13 → «−».
+       S1 across the trench, legs in columns 48 and 50: GPIO21 a39 → lane above row a → a50; j48 → «−».
+       GND of the board j43 → bottom «−» rail.
+       The WB-102 rails are split between columns 31 and 33: the LED cathodes (3, 10, 13) sit on the left half of the
+       «−» rail, S1 and the board's GND (48, 43) on the right half, so a short black bridge bottom-31 → bottom-33 joins
+       them. c0 = 22 keeps the GPIO15 drop (column 29) clear of the bridge.
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const kmk = (tag, a, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in a) e.setAttribute(k, a[k]); if (parent) parent.appendChild(e); return e; };
+  const BENCH = [
+    { k: 'A', an: 14, sig: 18, row: 'g', pin: 'GPIO4', led: 'red', wire: 'blue', net: 'gpio4', cls: 'net-sig2', via: 'row' },
+    { k: 'B', an: 11, sig: 15, row: 'h', pin: 'GPIO5', led: 'green', wire: 'green', net: 'gpio5', cls: 'net-sig3', via: 'lane' },
+    { k: 'C', an: 4, sig: 8, row: 'h', pin: 'GPIO15', led: 'yellow', wire: 'yellow', net: 'gpio15', cls: 'net-sig', via: 'edge' },
+  ];
+  const BC = { c0: 22, gnd: 43, sw: 48 };   // board column (3V3 pin), its GND pin column, S1 columns sw and sw + 2
+  // A theme-coloured label pill (sits on the hardware, so it carries its own background).
+  function pill(parent, x, y, txt, w = 0) {
+    const g = kmk('g', { class: 'kb-pill', 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 17 * txt.length;
+    kmk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
+    kmk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g).textContent = txt;
+    return g;
+  }
+  function bench(svg, { nets = false, s1 = null } = {}) {
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const H = (c, r) => bb.hole(c, r);
+    const strips = kmk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(BC.c0, 'i');
+    const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
+    const out = { bb, esp, led: {}, res: {}, row: {} };
+    const pinCol = (name) => BC.c0 + Math.round((esp.pins[name].x - p0.x) / KP);   // the board column of a pin
+    // net overlays on the breadboard strips (breadboard view only): hovering a column highlights its net
+    const strip = (net, cls, c, half) => {
+      if (!nets) return;
+      const a = H(c, half === 'top' ? 'a' : 'f');
+      kmk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls, side) => {
+      if (!nets) return;
+      const a = bb.rail(side, '-', 1), b = bb.rail(side, '-', 63);
+      kmk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    const yL = bb.size.h + 32;               // labels: a row under the breadboard, each under its part
+    for (const b of BENCH) {
+      const g = kmk('g', { class: 'kb-row', 'data-k': b.k }, svg);
+      out.row[b.k] = g;
+      const r = H(b.an, b.row), l = H(b.an, 'f');
+      out.res[b.k] = K.part('resistor', { parent: g, ohms: 220, x: r.x, y: r.y, title: `Резистор 220 Ом (червоний-червоний-коричневий): ${b.row}${b.an} і ${b.row}${b.sig}` });
+      out.led[b.k] = K.part('led', { parent: g, color: b.led, x: l.x, y: l.y, leg: 40, mirror: true, title: `Світлодіод ${b.k}: анод f${b.an}, катод f${b.an - 1}` });
+      pill(g, l.x - KP / 2, yL, b.k, 40);
+      strip(b.net, b.cls, b.sig, 'bottom'); strip(b.net, b.cls, pinCol(b.pin), 'bottom');
+      strip('gnd', 'net-gnd', b.an - 1, 'bottom');
+    }
+    // S1: a real 6×6 tactile switch across the trench; in the lab the group is the keyboard/pointer target
+    const sg = s1 || kmk('g', {}, svg);
+    if (s1) svg.appendChild(s1);
+    const e = H(BC.sw, 'e');
+    if (s1) {
+      kmk('rect', { class: 'kb-hit', x: e.x - 50, y: e.y - 70, width: 2 * KP + 100, height: 3 * KP + 140, rx: 20 }, sg);
+      kmk('rect', { class: 'kb-ring', x: e.x - 30, y: e.y - 30, width: 2 * KP + 60, height: 3 * KP + 60, rx: 16 }, sg);
+    }
+    out.btn = K.part('button', { parent: sg, x: e.x, y: e.y, title: `Тактова кнопка S1: ніжки в стовпчиках ${BC.sw} і ${BC.sw + 2}` });
+    pill(svg, e.x + KP, yL, 'S1', 48);
+    strip('gpio21', 'net-in', BC.sw + 2, 'top'); strip('gpio21', 'net-in', BC.sw + 2, 'bottom');
+    strip('gnd', 'net-gnd', BC.sw, 'top'); strip('gnd', 'net-gnd', BC.sw, 'bottom'); strip('gnd', 'net-gnd', BC.gnd, 'bottom');
+    rail('gnd', 'net-gnd', 'bottom');
+    // jumpers last: Kit.route lines on the hole grid, nothing crosses and nothing lies over a part
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${{ 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3', 'net-gnd': 'ngnd', 'net-in': 'teach' }[cls]})`; }
+      return g;
+    };
+    const J = (c) => bb.at('j' + c);
+    const Y = { lane: J(1).y + KP * 1.15, edge: J(1).y + KP * 4.67 };   // under row j / along the bottom edge
+    for (const b of BENCH) {
+      const a = J(pinCol(b.pin)), z = J(b.sig);
+      w(b.via === 'row' ? [a, z] : [a, { x: a.x, y: Y[b.via] }, { x: z.x, y: Y[b.via] }, z], b.wire, b.net, b.cls);
+      w([J(b.an - 1), bb.at('bottom-' + (b.an - 1))], 'black', 'gnd', 'net-gnd');
+    }
+    const a21 = bb.at('a' + pinCol('GPIO21')), aS = bb.at('a' + (BC.sw + 2)), topY = a21.y - KP * 1.25;   // lane above row a
+    w([a21, { x: a21.x, y: topY }, { x: aS.x, y: topY }, aS], 'purple', 'gpio21', 'net-in');
+    w([J(BC.sw), bb.at('bottom-' + BC.sw)], 'black', 'gnd', 'net-gnd');
+    w([J(BC.gnd), bb.at('bottom-' + BC.gnd)], 'black', 'gnd', 'net-gnd');
+    out.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');   // over the split of the «−» rail
+    // crop: the 63-column breadboard up to S1
+    const x1 = H(BC.sw + 5, 'a').x;
+    svg.setAttribute('viewBox', `-20 -20 ${x1 + 20} ${bb.size.h + 70}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
   // Small deterministic PRNG: the same press pattern on every visit (screenshots and the teacher demo stay stable).
   const prng = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const setCls = (el, c, on) => { if (el && el.classList.contains(c) !== !!on) el.classList.toggle(c, !!on); };
+  // a button that is held (pointer, Space or Enter) rather than clicked
+  function holdable(el, down, up) {
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } down(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, up));
+    el.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); down(); } });
+    el.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); up(); } });
+    el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+  }
+
+  /* =====================================================================
+     LAB «суперцикл» (#sl): a 1-ms model of the same three tasks in two firmware styles.
+       delay():  pollButton(); toggle A; delay(A); toggle B; delay(B); [toggle C; delay(C)]
+       millis(): every pass: now = millis(); pollButton(); if (now − lastX >= X) { lastX += X; toggle X; }
+     A millis() pass takes far less than 1 ms, so the model runs one pass per model millisecond:
+     a press is noticed within ≤ 1 ms (the model's resolution).
+     ===================================================================== */
+  (() => {
+    const cfg = { mode: 'delay', A: 500, B: 200, C: 300, c: false, speed: 1, auto: false };
+    const keys = () => (cfg.c ? ['A', 'B', 'C'] : ['A', 'B']);
+    const LEDT = { A: 'n5', B: 'nsig3', C: 'nsig' };
+    const sumDelay = () => keys().reduce((a, k) => a + cfg[k], 0);
+    let m, rnd = prng(23);
+    const fresh = () => {
+      m = { t: 0, tf: 0, pc: 0, wake: 0, line: 'poll', sleepLen: 1, last: { A: 0, B: 0, C: 0 }, led: { A: 0, B: 0, C: 0 },
+        ev: { A: [[0, 0]], B: [[0, 0]], C: [[0, 0]] }, cpu: [], checks: [], presses: [], prevDown: false,
+        lat: null, caught: 0, missed: 0, nextAuto: 900, manual: null, passes: 0, flash: {}, spin: 0 };
+    };
+    const isDown = (t) => m.presses.some((p) => p.s <= t && (p.e == null || t < p.e));
+    const quiet = (t) => !m.presses.some((p) => p.s <= t + 1 && (p.e == null || t < p.e + 120));
+    const addCpu = (s, e, k, ms) => {
+      const L = m.cpu[m.cpu.length - 1];
+      if (k === 'run' && L && L.k === 'run' && L.e >= s) L.e = e; else m.cpu.push({ s, e, k, ms });
+    };
+    const now = () => performance.now();
+    function toggle(k, t) { m.led[k] ^= 1; m.ev[k].push([t, m.led[k]]); m.flash['t' + k] = now(); }
+    function poll(t) {
+      const d = isDown(t);
+      if (d && !m.prevDown) {
+        const p = m.presses.find((q) => !q.caught && q.s <= t && (q.e == null || t < q.e));
+        if (p) { p.caught = true; p.at = t; m.caught++; m.lat = t - p.s; m.flash.poll = now(); caught(p); }
+      }
+      m.prevDown = d;
+    }
+    const ops = () => ['poll', ...keys().flatMap((k) => ['t' + k, 'd' + k])];
+    function tick(t) {
+      if (cfg.auto && t >= m.nextAuto && !m.manual && quiet(t)) {
+        const dur = 80 + Math.round(rnd() * 170);
+        m.presses.push({ s: t, e: t + dur, auto: true });
+        m.nextAuto = t + dur + 500 + Math.round(rnd() * 1300);
+      }
+      for (const p of m.presses) if (!p.done && p.e != null && t >= p.e) { p.done = true; if (!p.caught) { m.missed++; missed(p); } }
+      if (cfg.mode === 'delay') {
+        let guard = 0;
+        while (t >= m.wake && guard++ < 20) {
+          const list = ops();
+          if (m.pc >= list.length) { m.pc = 0; m.passes++; }
+          const op = list[m.pc++];
+          if (op === 'poll') { poll(t); m.checks.push(t); m.line = 'poll'; }
+          else if (op[0] === 't') toggle(op[1], t);
+          else { const ms = cfg[op[1]]; m.wake = t + ms; m.sleepLen = ms; m.line = op; addCpu(t, m.wake, 'sleep', ms); }
+        }
+      } else {
+        poll(t); m.passes++;
+        for (const k of keys()) if (t - m.last[k] >= cfg[k]) { m.last[k] += cfg[k]; toggle(k, t); }
+        addCpu(t, t + 1, 'run'); m.line = 'body';
+      }
+      if (t % 1000 === 0) {
+        const old = t - 9000;
+        m.cpu = m.cpu.filter((g) => g.e > old); m.checks = m.checks.filter((x) => x > old);
+        m.presses = m.presses.filter((p) => p.e == null || p.e > old);
+        for (const k of ['A', 'B', 'C']) { const ev = m.ev[k]; let i = 0; while (ev.length - i > 1 && ev[i + 1][0] < old) i++; if (i) ev.splice(0, i); }
+      }
+    }
+
+    /* ---- code panel ---- */
+    const codeEl = $('#sl-code');
+    let lines = [];
+    function renderCode() {
+      const L = [];
+      const rem = (s) => `<span class="rem">${s}</span>`;
+      if (cfg.mode === 'delay') {
+        L.push(['', 'void loop() {'], ['poll', `  pollButton();        ${rem('// S1')}`]);
+        for (const k of keys()) L.push(['t' + k, `  toggle(LED_${k});`], ['d' + k, `  delay(<b>${cfg[k]}</b>);${' '.repeat(Math.max(1, 13 - String(cfg[k]).length))}${rem('// спимо')}`]);
+        L.push(['', '}']);
+      } else {
+        L.push(['', 'void loop() {'], ['now', '  uint32_t now = millis();'], ['poll', `  pollButton();        ${rem('// S1')}`]);
+        for (const k of keys()) L.push(['i' + k, `  if (now - last${k} &gt;= <b>${cfg[k]}</b>) {`], ['t' + k, `    last${k} += ${cfg[k]}; toggle(LED_${k}); }`]);
+        L.push(['', '}']);
+      }
+      codeEl.innerHTML = L.map(([k, h]) => `<span class="ln" data-k="${k}">${h}</span>`).join('');
+      lines = $$('.ln', codeEl);
+    }
+    function markCode() {
+      const tn = now();
+      for (const el of lines) {
+        const k = el.dataset.k;
+        const recent = (key) => m.flash[key] && tn - m.flash[key] < 260;
+        if (cfg.mode === 'delay') {
+          setCls(el, 'on', k && k === m.line && k[0] === 'd');
+          setCls(el, 'hit', k === 'poll' ? recent('poll') : k[0] === 't' && recent(k));
+          setCls(el, 'soft', false);
+        } else {
+          const hit = k === 'poll' ? recent('poll') : k && k[0] === 't' && recent(k);
+          setCls(el, 'hit', hit);
+          setCls(el, 'on', k && k[0] === 'i' && recent('t' + k[1]));
+          setCls(el, 'soft', !!k && !hit);
+        }
+      }
+    }
+
+    /* ---- board: the Kit bench; LEDs and S1 animate through their .set() states ---- */
+    const RING = 2 * Math.PI * 30;
+    const ring = $('#sl-ring'), sleepEl = $('#sl-sleep'), s1 = $('#sl-s1'), pressBtn = $('#sl-press');
+    const kb = bench($('#sl-board'), { s1 });
+    const kbSeen = { A: null, B: null, C: null, s1: null, hl: null };
+    function drawBoard(dt) {
+      for (const k of ['A', 'B', 'C']) {
+        const on = !!m.led[k] && (k !== 'C' || cfg.c);
+        if (kbSeen[k] !== on) { kbSeen[k] = on; kb.led[k].set({ on: on ? 1 : 0 }); }
+      }
+      const sleeping = cfg.mode === 'delay' && m.t < m.wake && m.line[0] === 'd';
+      if (sleeping) {
+        const frac = Math.max(0, (m.wake - m.t) / m.sleepLen);
+        ring.setAttribute('stroke-dasharray', `${(frac * RING).toFixed(1)} ${RING.toFixed(1)}`);
+        ring.setAttribute('transform', 'rotate(-90 62 92)');
+        ring.style.stroke = 'var(--muted)';
+        sleepEl.style.opacity = '1';
+        setTxt($('#sl-stat1'), 'спить');
+        setTxt($('#sl-stat2'), `ще ${Math.max(0, m.wake - m.t)} мс`);
+      } else {
+        m.spin = (m.spin + (dt || 0) * 1000 * cfg.speed) % 360;
+        ring.setAttribute('stroke-dasharray', `${(RING * 0.28).toFixed(1)} ${(RING * 0.72).toFixed(1)}`);
+        ring.setAttribute('transform', `rotate(${(m.spin - 90).toFixed(1)} 62 92)`);
+        ring.style.stroke = '';
+        sleepEl.style.opacity = '0';
+        setTxt($('#sl-stat1'), 'крутиться');
+        setTxt($('#sl-stat2'), cfg.mode === 'delay' ? 'прохід' : 'без пауз');
+      }
+      const down = isDown(m.t) || !!m.manual;
+      if (kbSeen.s1 !== down) { kbSeen.s1 = down; kb.btn.set({ pressed: down }); }
+      // the board's GPIO21 pin glows for a moment whenever loop() reads S1
+      const hl = m.flash.poll && now() - m.flash.poll < 160 ? 'GPIO21' : null;
+      if (kbSeen.hl !== hl) { kbSeen.hl = hl; kb.esp.set({ highlight: hl }); }
+      s1.setAttribute('aria-pressed', String(down));
+      pressBtn.setAttribute('aria-pressed', String(!!m.manual));
+      setCls(s1, 'hit', m.flash.poll && now() - m.flash.poll < 600);
+      setTxt($('#sl-s1t'), down ? 'натиснута' : m.lat != null ? `✓ ${m.lat <= 1 ? '≤ 1' : m.lat} мс` : 'тримайте');
+      setTxt($('#sl-pass'), `now = ${fmt.num(m.t, 0)} мс`);
+    }
+    function labels() {
+      for (const k of ['A', 'B', 'C']) setTxt($('#sl-t' + k), k === 'C' && !cfg.c ? 'вимкнено' : `${cfg[k]} мс`);
+      setCls($('#sl-rowC'), 'off', !cfg.c);
+      setCls(kb.row.C, 'kb-off', !cfg.c);
+    }
+
+    /* ---- timeline canvas ---- */
+    const cv = $('#sl-tl');
+    let ctx = null;
+    function sizeCanvas() {
+      const h = 46 + 42 + 32 * keys().length + 26;
+      cv.style.height = h + 'px';
+      ctx = Study.fitCanvas(cv);
+    }
+    function drawTL() {
+      if (!ctx) return;
+      const c = ctx, W = c.w, H = c.h;
+      c.clearRect(0, 0, W, H);
+      const narrow = W < 520;
+      const x0 = narrow ? 60 : 82, pw = W - x0 - 10;
+      const win = (narrow ? 2000 : 3200) * (cfg.speed < 1 ? 0.4 : 1);
+      const tS = Math.max(0, m.t - win), tE = tS + win;
+      const X = (tm) => x0 + (tm - tS) / win * pw;
+      const cx = (tm) => Math.max(x0, Math.min(x0 + pw, X(tm)));
+      const fB = T['f-body'] || 'sans-serif', fM = T['f-mono'] || 'monospace';
+      const rows = [{ k: 'cpu', h: 46, n: 'loop()', s: 'ядро 1' }, { k: 's1', h: 42, n: 'S1', s: 'GPIO21' }, ...keys().map((k) => ({ k, h: 32, n: 'LED ' + k }))];
+      let y = 0;
+      rows.forEach((r, i) => { r.y = y; if (i % 2 === 0) { c.fillStyle = T['panel-2']; c.fillRect(0, y, W, r.h); } y += r.h; });
+      const yAx = y;
+      rows.forEach((r) => {
+        c.fillStyle = T.ink; c.font = `600 13px ${fB}`; c.fillText(r.n, 8, r.y + (r.s ? 18 : 21));
+        if (r.s) { c.fillStyle = T.muted; c.font = `500 13px ${fM}`; c.fillText(r.s, 8, r.y + 34); }
+      });
+      c.strokeStyle = T.line; c.lineWidth = 1; c.beginPath(); c.moveTo(x0 - 3, 0); c.lineTo(x0 - 3, yAx); c.stroke();
+      // loop() lane
+      const yc = rows[0].y + 8, hc = 30;
+      for (const g of m.cpu) {
+        if (g.e < tS || g.s > m.t) continue;
+        const a = cx(g.s), b = Math.max(cx(Math.min(g.e, m.t)), a + 1.5);
+        if (g.k === 'sleep') {
+          c.globalAlpha = 0.16; c.fillStyle = T.muted; c.fillRect(a, yc, b - a, hc); c.globalAlpha = 1;
+          c.save(); c.beginPath(); c.rect(a, yc, b - a, hc); c.clip();
+          c.strokeStyle = T.muted; c.globalAlpha = 0.5; c.lineWidth = 1.5; c.beginPath();
+          for (let x = a - hc; x < b; x += 7) { c.moveTo(x, yc + hc); c.lineTo(x + hc, yc); }
+          c.stroke(); c.restore(); c.globalAlpha = 1;
+          c.strokeStyle = T.muted; c.lineWidth = 1; c.strokeRect(a + 0.5, yc + 0.5, b - a - 1, hc - 1);
+          if (b - a > 84) { c.fillStyle = T.ink; c.font = `600 13px ${fM}`; c.fillText(`delay(${g.ms})`, a + 6, yc + 20); }
+        } else {
+          c.globalAlpha = 0.3; c.fillStyle = T.accent; c.fillRect(a, yc, b - a, hc); c.globalAlpha = 0.75;
+          c.strokeStyle = T.accent; c.lineWidth = 1; c.beginPath();
+          for (let x = Math.ceil(a / 3) * 3; x < b; x += 3) { c.moveTo(x + 0.5, yc + 4); c.lineTo(x + 0.5, yc + hc - 4); }
+          c.stroke(); c.globalAlpha = 1;
+          if (b - a > 210) { c.fillStyle = T.ink; c.font = `600 13px ${fB}`; c.fillText('короткі проходи, без пауз', a + 8, yc + 20); }
+        }
+      }
+      // S1 lane
+      const r1 = rows[1], yb = r1.y + 32;
+      c.strokeStyle = T.muted; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0, yb); c.lineTo(cx(m.t), yb); c.stroke();
+      for (const p of m.presses) {
+        const pe = p.e == null ? m.t : Math.min(p.e, m.t);
+        if (pe < tS || p.s > m.t) continue;
+        const a = cx(p.s), b = Math.max(cx(pe), a + 2);
+        const col = p.caught ? T.ok : p.done ? T.bad : T.teach;
+        c.fillStyle = col; c.globalAlpha = 0.8; c.fillRect(a, yb - 14, b - a, 14); c.globalAlpha = 1;
+        c.font = `700 13px ${fB}`;
+        if (p.caught) {
+          const xa = cx(p.at);
+          c.fillStyle = T.ok; c.fillRect(xa - 1, yb - 26, 2, 26);
+          const lat = p.at - p.s;
+          if (lat > 4 && xa - a > 46) {
+            c.strokeStyle = T.bad; c.lineWidth = 1.5; c.beginPath(); c.moveTo(a, yb - 20); c.lineTo(xa, yb - 20); c.stroke();
+            c.fillStyle = T.bad; c.font = `600 13px ${fM}`; const s = `${lat} мс`; const tw = c.measureText(s).width;
+            c.fillText(s, Math.max(a + 2, (a + xa) / 2 - tw / 2), yb - 24 > r1.y + 10 ? yb - 24 : r1.y + 12);
+          } else { c.fillStyle = T.ok; c.fillText('✓', xa + 3, yb - 16); }
+        } else if (p.done) { c.fillStyle = T.bad; c.fillText('✗', (a + b) / 2 - 4, yb - 18); }
+      }
+      c.fillStyle = T.accent;
+      if (cfg.mode === 'millis') {
+        c.strokeStyle = T.accent; c.lineWidth = 2; c.setLineDash([2, 3]);
+        c.beginPath(); c.moveTo(x0, yb + 5); c.lineTo(cx(m.t), yb + 5); c.stroke(); c.setLineDash([]);
+      }
+      for (const s of m.checks) {
+        if (s < tS || s > m.t) continue;
+        const x = X(s); c.beginPath(); c.moveTo(x, yb + 1); c.lineTo(x - 5, yb + 9); c.lineTo(x + 5, yb + 9); c.closePath(); c.fill();
+      }
+      // LED lanes
+      keys().forEach((k, j) => {
+        const r = rows[2 + j], hi = r.y + 7, lo = r.y + 25, col = T[LEDT[k]];
+        const ev = m.ev[k];
+        c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, lo);
+        for (let i = 0; i < ev.length; i++) {
+          const [t0, v] = ev[i], t1 = i + 1 < ev.length ? ev[i + 1][0] : m.t;
+          if (t1 < tS) continue;
+          const a = cx(t0), b = cx(t1), yy = v ? hi : lo;
+          c.lineTo(a, yy); c.lineTo(b, yy);
+          if (v && b > a) { c.globalAlpha = 0.25; c.fillStyle = col; c.fillRect(a, hi, b - a, lo - hi); c.globalAlpha = 1; }
+        }
+        c.stroke();
+        c.fillStyle = T.muted;
+        const per = cfg[k];
+        for (let q = Math.ceil(tS / per) * per; q <= m.t; q += per) {
+          if (!q) continue;
+          const x = X(q); c.beginPath(); c.moveTo(x - 4, r.y + 1); c.lineTo(x + 4, r.y + 1); c.lineTo(x, r.y + 6); c.closePath(); c.fill();
+        }
+      });
+      // axis + now
+      c.strokeStyle = T.line; c.lineWidth = 1; c.fillStyle = T.muted; c.font = `500 13px ${fM}`;
+      const step = win < 1500 ? 100 : 500;
+      for (let q = Math.ceil(tS / step) * step; q <= tE; q += step) {
+        const x = X(q); const major = q % (step * (win < 1500 ? 5 : 2)) === 0;
+        c.beginPath(); c.moveTo(x, yAx); c.lineTo(x, yAx + (major ? 7 : 4)); c.stroke();
+        if (major && x < W - 40) c.fillText(win < 1500 ? `${fmt.num(q / 1000, 1)} с` : `${fmt.num(q / 1000, 0)} с`, x + 3, yAx + 18);
+      }
+      const xn = cx(m.t);
+      c.strokeStyle = T.accent; c.setLineDash([4, 3]); c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(xn, 0); c.lineTo(xn, yAx); c.stroke(); c.setLineDash([]);
+    }
+
+    /* ---- readouts and the one-line note ---- */
+    const note = $('#sl-note');
+    const say = (s) => { note.textContent = s; };
+    function readouts() {
+      const lat = $('#sl-lat');
+      setTxt(lat, m.lat == null ? '—' : m.lat <= 1 ? '≤ 1 мс' : `${fmt.num(m.lat, 0)} мс`);
+      setCls(lat, 'bad', m.lat != null && m.lat > 50); setCls(lat, 'ok', m.lat != null && m.lat <= 50); lat.classList.add('big');
+      const pass = cfg.mode === 'delay' ? sumDelay() : 1;
+      setTxt($('#sl-rate'), cfg.mode === 'delay' ? fmt.num(1000 / pass, pass > 1000 ? 2 : 1) : '≥ 1000');
+      const ra = $('#sl-ra'), real = cfg.mode === 'delay' ? pass : cfg.A;
+      setTxt(ra, `${cfg.A} → ${real} мс`); setCls(ra, 'bad', real !== cfg.A); setCls(ra, 'ok', real === cfg.A);
+      const ms = $('#sl-miss'); setTxt(ms, String(m.missed)); setCls(ms, 'bad', m.missed > 0);
+    }
+    function caught(p) {
+      const l = p.at - p.s;
+      say(cfg.mode === 'delay'
+        ? `S1 помічено через ${l} мс: loop() спав у delay() і дійшов до pollButton() лише на початку наступного проходу.`
+        : `S1 помічено за ≤ 1 мс: loop() не спить, і кожен прохід перевіряє кнопку.`);
+    }
+    function missed() {
+      say('✗ Натискання пропущено: S1 відпустили раніше, ніж loop() дійшов до pollButton(). Чип при цьому не спав: спала лише задача з loop().');
+    }
+    function modeNote() {
+      say(cfg.mode === 'delay'
+        ? `delay(): прохід триває ${sumDelay()} мс, і майже весь цей час loop() спить. S1 читають раз за прохід. Потримайте S1.`
+        : 'millis(): loop() не спить; кожен прохід коротко питає «пора?» у кожної задачі й читає S1. Потримайте S1.');
+    }
+
+    /* ---- the sim ---- */
+    const stage = $('#sl-stage');
+    const sim = Study.sim(stage, (dt) => {
+      if (!m) return;
+      m.tf += dt * 1000 * cfg.speed;
+      const target = Math.floor(m.tf);
+      while (m.t < target) { m.t++; tick(m.t); }
+      drawTL(); drawBoard(dt); markCode(); readouts();
+    });
+    const playBtn = $('#sl-play');
+    const syncPlay = () => { setTxt(playBtn, sim.running ? '❚❚ Пауза' : '▶ Пуск'); };
+    new MutationObserver(syncPlay).observe(stage, { attributes: true, attributeFilter: ['data-sim'] });
+    playBtn.addEventListener('click', () => { sim.toggle(); syncPlay(); });
+
+    function reset() { fresh(); tick(0); renderCode(); labels(); sizeCanvas(); sim.draw(); }
+    const pressSegLocal = (grp, b) => $$('button', grp).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $$('#sl-mode button').forEach((b) => b.addEventListener('click', () => {
+      pressSegLocal($('#sl-mode'), b); cfg.mode = b.dataset.m; reset(); modeNote();
+    }));
+    $$('#sl-speed button').forEach((b) => b.addEventListener('click', () => { pressSegLocal($('#sl-speed'), b); cfg.speed = +b.dataset.s; sim.draw(); }));
+    const slider = (k) => $('#sl-' + k.toLowerCase()).addEventListener('input', (e) => {
+      cfg[k] = +e.target.value; setTxt($(`#sl-${k.toLowerCase()}out`), `${cfg[k]} мс`);
+      m.last[k] = m.t; renderCode(); labels(); sim.draw();
+    });
+    slider('A'); slider('B');
+    $('#sl-c').addEventListener('switch', (e) => {
+      cfg.c = e.detail.on; m.last.C = m.t; m.ev.C = [[m.t, 0]]; m.led.C = 0;
+      renderCode(); labels(); sizeCanvas(); sim.draw();
+      say(cfg.c
+        ? (cfg.mode === 'delay' ? `Третя задача додала ще один delay(${cfg.C}): прохід тепер ${sumDelay()} мс, і S1 читають ще рідше.`
+          : 'Третя задача — це ще один короткий if: прохід майже не подовжився, реакція на S1 та сама.')
+        : 'Третю задачу прибрано.');
+    });
+    $('#sl-auto').addEventListener('switch', (e) => { cfg.auto = e.detail.on; m.nextAuto = m.t + 300; if (cfg.auto && !sim.running) { sim.play(); syncPlay(); } });
+    const down = () => {
+      if (!m || m.manual) return;
+      m.manual = { s: m.t, e: null }; m.presses.push(m.manual);
+      if (!sim.running) { sim.play(); syncPlay(); }
+      sim.draw();
+    };
+    const up = () => { if (!m || !m.manual) return; m.manual.e = Math.max(m.t, m.manual.s + 30); m.manual = null; sim.draw(); };
+    holdable(pressBtn, down, up);
+    holdable(s1, down, up);
+    new ResizeObserver(() => { sizeCanvas(); sim.draw(); }).observe(stage);
+    redraws.push(() => sim.draw());
+    reset(); modeNote(); syncPlay();
+  })();
+
+  /* =====================================================================
+     Explainer «один прохід суперциклу» (#sl-anim)
+     ===================================================================== */
+  (() => {
+    const CX = 104, CY = 112, R = 40;
+    // the variables panel shows the same kit parts as the bench, drawn small (no drop shadow at this scale)
+    const slaKit = {
+      A: K.part('led', { parent: $('#sla-la'), color: 'red', leg: 10, scale: 0.17, x: 243 - 12.7 * 0.17, y: 90, shadow: false }),
+      B: K.part('led', { parent: $('#sla-lb'), color: 'green', leg: 10, scale: 0.17, x: 243 - 12.7 * 0.17, y: 112, shadow: false }),
+      S1: K.part('button', { parent: $('#sla-btn'), scale: 0.19, x: 243 - KP * 0.19, y: 127 - 1.5 * KP * 0.19, shadow: false }),
+    };
+    const tok = $('#sla-tok'), st = [0, 1, 2, 3].map((i) => $('#sla-s' + i));
+    const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+    const put = (deg) => { const a = deg * Math.PI / 180; tok.setAttribute('cx', (CX + R * Math.cos(a)).toFixed(1)); tok.setAttribute('cy', (CY + R * Math.sin(a)).toFixed(1)); };
+    const move = (a0, a1, p, span = 0.35) => put(a0 + (a1 - a0) * ease(Math.min(1, p / span)));
+    const calc = (a, b, c, cls = '') => {
+      [[a, '#sla-c1'], [b, '#sla-c2'], [c, '#sla-c3']].forEach(([s, id]) => { setTxt($(id), s); $(id).setAttribute('class', 'sla-calc' + (id === '#sla-c3' && cls ? ' ' + cls : '')); });
+    };
+    const state = (o) => {
+      setTxt($('#sla-clock'), String(o.clock));
+      slaKit.A.set({ on: o.A ? 1 : 0 }); slaKit.B.set({ on: o.B ? 1 : 0 });
+      setTxt($('#sla-lat'), `A ${o.lastA}`); setTxt($('#sla-lbt'), `B ${o.lastB}`);
+      slaKit.S1.set({ pressed: !!o.btn }); setTxt($('#sla-btt'), o.btn ? 'LOW' : 'HIGH');
+      st.forEach((g, i) => g.setAttribute('class', 'sla-st' + (o.st && o.st[i] ? ' ' + o.st[i] : '')));
+      setTxt($('#sla-s1 text'), o.stone ? 'delay' : 'A: пора?');
+      setTxt($('#sla-laps'), o.laps || '');
+    };
+    Study.anim($('#sl-anim'), {
+      steps: [
+        { title: 'now = millis()', cap: 'Прохід починається зі знімка часу: <b>now = millis()</b>. Зараз 1000 мс. Усі задачі цього проходу бачать той самий now.', dur: 4 },
+        { title: 'LED A: пора?', cap: 'A перемикається кожні 500 мс. <b>now − lastA = 1000 − 500 = 500</b> ≥ 500: так, пора. Перемикаємо LED A і зсуваємо lastA на 500.', dur: 4.5 },
+        { title: 'LED B: пора?', cap: 'B перемикається кожні 300 мс. <b>1000 − 900 = 100</b> &lt; 300: ще ні. Жодного очікування, одразу далі.', dur: 4 },
+        { title: 'Кнопка S1?', cap: 'digitalRead() повертає рівень саме зараз: <b>HIGH</b>, кнопку не натиснуто. Прохід закінчився.', dur: 3.5 },
+        { title: 'Знову і знову', cap: 'Прохід короткий, тож loop() одразу починає наступний і ставить ті самі питання. Коли now доходить до <b>1200</b>, настає черга B.', dur: 5 },
+        { title: 'А якби delay()', cap: 'Вставте <b>delay(500)</b> — і коло стоїть. Натискання S1 на 100 мс приходить і зникає, поки ніхто не питає: <b>пропущено</b>.', dur: 5 },
+      ],
+      draw(i, p) {
+        const base = { clock: 1000, A: false, B: true, lastA: 500, lastB: 900, btn: false, st: [], stone: false };
+        calc('', '', '');
+        if (i === 0) {
+          move(180, 270, p); base.clock = p < 0.3 ? 999 : 1000; base.st = ['on'];
+          if (p > 0.4) calc('now = 1000', '', '');
+        } else if (i === 1) {
+          move(-90, 0, p); base.st = [null, 'on'];
+          if (p > 0.35) calc('1000 − 500', '= 500 ≥ 500', '→ так', 'ok');
+          if (p > 0.6) { base.A = true; base.lastA = 1000; base.st = [null, 'yes']; }
+        } else if (i === 2) {
+          move(0, 90, p); base.A = true; base.lastA = 1000; base.st = [null, null, 'on'];
+          if (p > 0.35) { calc('1000 − 900', '= 100 < 300', '→ ні, далі', 'bad'); base.st = [null, null, 'no']; }
+        } else if (i === 3) {
+          move(90, 180, p); base.A = true; base.lastA = 1000; base.st = [null, null, null, 'on'];
+          if (p > 0.35) { calc('digitalRead', '= HIGH', '→ не натиснута'); base.st = [null, null, null, 'no']; }
+        } else if (i === 4) {
+          const laps = 6 * ease(p);
+          put(180 + laps * 360);
+          base.A = true; base.lastA = 1000;
+          base.clock = 1000 + Math.round(200 * Math.min(1, p / 0.85));
+          base.st = [Math.floor(laps * 4) % 4 === 0 ? 'on' : null, Math.floor(laps * 4) % 4 === 1 ? 'on' : null, Math.floor(laps * 4) % 4 === 2 ? 'on' : null, Math.floor(laps * 4) % 4 === 3 ? 'on' : null];
+          base.laps = 'знову';
+          if (base.clock >= 1200) { base.B = false; base.lastB = 1200; calc('1200 − 900', '= 300 ≥ 300', '→ так: B', 'ok'); base.st = [null, null, 'yes', null]; }
+          else calc(`${base.clock} − 900`, `= ${base.clock - 900} < 300`, '→ ні');
+        } else {
+          move(180, 360, p, 0.2);
+          base.A = true; base.lastA = 1000; base.B = false; base.lastB = 1200; base.stone = p > 0.12;
+          base.clock = 1200 + Math.round(500 * Math.min(1, Math.max(0, (p - 0.15) / 0.8)));
+          base.btn = p > 0.35 && p < 0.55;
+          base.st = [null, 'bad', null, p > 0.55 ? 'bad' : null];
+          base.laps = 'стоїть';
+          if (p > 0.35) calc('S1: 100 мс', 'ніхто не питав', p > 0.55 ? '✗ пропущено' : '…', p > 0.55 ? 'bad' : '');
+        }
+        state(base);
+      },
+    });
+  })();
+
+  /* =====================================================================
+     04 idea cards: every figure moves or responds
+     ===================================================================== */
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+  // idea 1: delay(1000) puts loopTask to sleep; core 0, the timer and interrupts keep going
+  (() => {
+    const svg = $('#d1'); if (!svg) return;
+    const c0 = $('#d1-c0'), blocks = [[0, 40], [52, 22], [86, 56], [154, 30], [196, 46], [254, 54], [320, 34]].map(([x, w]) => ({ x, w, el: mk('rect', { y: 22, height: 14, rx: 3, width: w }, c0) }));
+    let on = true, t = 0, press = null;
+    const X = (ms) => 6 + ms / 1000 * 308;
+    const draw = () => {
+      blocks.forEach((b) => { let x = ((b.x - t * 0.06) % 360 + 360) % 360 - 20; b.el.setAttribute('x', Math.max(6, x).toFixed(1)); b.el.setAttribute('width', Math.max(0, Math.min(b.w, b.w + x - 6, 314 - Math.max(6, x))).toFixed(1)); });
+      const ph = t % 1000;
+      $('#d1-cur').setAttribute('cx', X(ph).toFixed(1));
+      setTxt($('#d1-ms'), `= ${fmt.num(Math.floor(t), 0)}`);
+      $('#d1-bar').setAttribute('fill', on ? 'url(#hatch-d)' : 'url(#run-d)');
+      $('#d1-bar').setAttribute('stroke', on ? 'var(--muted)' : 'var(--accent)');
+      $('#d1-prog').setAttribute('width', on ? (ph / 1000 * 308).toFixed(1) : '0');
+      setTxt($('#d1-c1t'), on ? (ph < 40 ? 'прокинувся: перевірка S1' : 'спить у delay(1000)') : 'loop() крутиться, перевіряє S1');
+      const pr = $('#d1-press');
+      if (press) {
+        const a = press.s % 1000, len = Math.min(150, t - press.s);
+        pr.setAttribute('x', X(a).toFixed(1)); pr.setAttribute('width', Math.max(2, Math.min(len, 1000 - a) / 1000 * 308).toFixed(1));
+        pr.setAttribute('opacity', '.85');
+        pr.setAttribute('fill', press.res == null ? 'var(--teach)' : press.res ? 'var(--ok)' : 'var(--bad)');
+      } else pr.setAttribute('opacity', '0');
+      const bt = $('#d1-btn');
+      bt.setAttribute('class', 'm' + (press && press.res != null ? (press.res ? ' okc' : ' badc') : ''));
+      setTxt(bt, !press ? 'натисніть S1' : press.res == null ? 'натиснута…' : press.res ? '✓ помічено' : '✗ ніхто не дивився');
+    };
+    const sim = Study.sim(svg, (dt) => {
+      const t0 = t; t += dt * 1000;
+      if (press && press.res == null) {
+        // loop() checks the button while it is awake: always without delay, only at each wake-up with delay(1000)
+        if (!on) press.res = true;
+        else if (Math.floor(t0 / 1000) !== Math.floor(t / 1000) && t - press.s <= 150) press.res = true;
+        else if (t - press.s >= 150) press.res = false;
+      }
+      draw();
+    });
+    $('#d1-sw').addEventListener('switch', (e) => { on = e.detail.on; press = null; sim.draw(); });
+    $('#d1-pb').addEventListener('click', () => { press = { s: t, res: null }; if (!sim.running) sim.play(); });
+    draw();
+  })();
+
+  // idea 2: the superloop as a lap; delay() parks the token for a second every lap
+  (() => {
+    const tok = $('#sp-tok'); if (!tok) return;
+    const CX = 120, CY = 104, R = 50, STOP = -28;
+    const STN = [{ a: -90, el: $('#sp-s0 rect') }, { a: 43, el: $('#sp-s1 rect') }, { a: 138, el: $('#sp-s2 rect') }];
+    let on = false, ang = -90, wait = 0, lastStop = false;
+    const out = $('#sp-out');
+    const say = () => { out.textContent = on ? 'Кожне коло стоїть 1 с у delay(1000): кнопку перевіряють лише раз за коло, тобто раз на секунду.' : 'Без пауз мітка біжить коло за колом: кнопку перевіряють щоразу, як мітка проходить «кнопка?». Анімацію уповільнено.'; };
+    const draw = () => {
+      const a = ang * Math.PI / 180;
+      tok.setAttribute('cx', (CX + R * Math.cos(a)).toFixed(1)); tok.setAttribute('cy', (CY + R * Math.sin(a)).toFixed(1));
+      const n = ((ang % 360) + 360) % 360;
+      STN.forEach((s) => { const d = Math.abs(((n - ((s.a % 360) + 360) % 360) + 540) % 360 - 180); s.el.style.stroke = d < 14 ? 'var(--accent)' : ''; s.el.style.strokeWidth = d < 14 ? '3' : ''; });
+      $('#sp-stone').style.opacity = on ? (wait > 0 ? '1' : '.75') : '.3';
+      $('#sp-w1').style.opacity = $('#sp-w2').style.opacity = on ? '1' : '.3';
+      $('#sp-stop').setAttribute('opacity', on ? '1' : '0');
+    };
+    const sim = Study.sim($('#sp-tok').ownerSVGElement, (dt) => {
+      if (wait > 0) { wait -= dt; draw(); return; }
+      const prev = ang; ang += dt * 225; // one lap in 1.6 s (slowed down)
+      const crossed = (x) => { const k = Math.floor((prev - x) / 360), j = Math.floor((ang - x) / 360); return j > k; };
+      if (on && crossed(STOP)) { ang = prev + (((STOP - prev) % 360) + 360) % 360; wait = 1; }
+      if (ang > 270 + 360) ang -= 360;
+      draw();
+    });
+    $('#sp-sw').addEventListener('switch', (e) => { on = e.detail.on; wait = 0; say(); sim.draw(); });
+    say(); draw();
+  })();
+
+  // idea 3: polling sees a 150-ms press only when a check lands inside it
+  (() => {
+    const g = $('#pl-dots'); if (!g) return;
+    const PS = 470, PE = 620;              // the press, ms
+    let I = 300, phase = 0.37;
+    const X = (ms) => 6 + ms / 1000 * 308;
+    const draw = () => {
+      g.replaceChildren();
+      let hit = false;
+      const r = I < 40 ? 2.5 : 5;
+      for (let ms = phase * I; ms <= 1000; ms += I) {
+        const inside = ms >= PS && ms < PE; hit = hit || inside;
+        mk('circle', { cx: X(ms).toFixed(1), cy: 108, r: inside ? r + 1.5 : r, fill: inside ? 'var(--ok)' : 'var(--accent)' }, g);
+      }
+      setTxt($('#pl-t'), `Перевірки кожні ${I} мс`);
+      setTxt($('#pl-iout'), `${I} мс`);
+      const res = $('#pl-res');
+      res.setAttribute('class', 't ' + (hit ? 'okc' : 'badc'));
+      setTxt(res, hit ? '✓ помічено' : '✗ пропущено');
+      const pr = Math.min(100, Math.round(150 / I * 100));
+      $('#pl-out').innerHTML = `Шанс, що перевірка потрапить у натискання 150&nbsp;мс: ≈&nbsp;<b class="${pr >= 100 ? 'ok' : pr < 50 ? 'bad' : ''}">${pr}&nbsp;%</b>${pr >= 100 ? ' — коротший проміжок за натискання ловить його завжди.' : ` (150 / ${I}). Натисніть «Інший момент» кілька разів.`}`;
+    };
+    $('#pl-i').addEventListener('input', (e) => { I = +e.target.value; draw(); });
+    $('#pl-new').addEventListener('click', () => { phase = Math.random(); draw(); });
+    draw();
+  })();
+
+  // idea 4: now − last >= 500 on a moving number line; a slow pass shows why += keeps the grid
+  (() => {
+    const svg = $('#ml'); if (!svg) return;
+    let slow = false, mode = 'add', t = 0, passAt = 0, now = 0, last = 0, led = 0, n = 0, flash = 0;
+    const P = () => (slow ? 40 : 1);
+    const reset = () => { t = 0; passAt = 0; now = 0; last = 0; led = 0; n = 0; flash = 0; };
+    const draw = () => {
+      const d = now - last, x = 30 + Math.min(d, 560) * 0.5;
+      $('#ml-now').setAttribute('transform', `translate(${x.toFixed(1)} 0)`);
+      $('#ml-span').setAttribute('d', `M30 46H${x.toFixed(1)}`);
+      setTxt($('#ml-diff'), `now − last = ${d}`);
+      const v = $('#ml-verd');
+      v.setAttribute('class', 'm' + (flash > 0 ? ' okc' : ''));
+      setTxt(v, flash > 0 ? `≥ 500 → пора! ${mode === 'add' ? 'last += 500' : 'last = now'}` : `${d} < 500 → ще ні, далі`);
+      const L = $('#ml-led'); L.setAttribute('fill', led ? 'var(--n5)' : 'var(--panel)');
+      const grid = n * 500;
+      $('#ml-out').innerHTML = n ? `Перемикань: <b>${n}</b> · last = <b>${fmt.num(last, 0)}</b> · сітка ${fmt.num(grid, 0)} → зсув <b class="${last - grid ? 'bad' : 'ok'}">${last - grid}&nbsp;мс</b>` : 'Мітка now біжить; LED A перемикається кожні 500&nbsp;мс.';
+    };
+    const sim = Study.sim(svg, (dt) => {
+      t += dt * 1000; flash -= dt;
+      while (passAt + P() <= t) {
+        passAt += P(); now = passAt;          // now = millis() at the start of each pass
+        if (now - last >= 500) { last = mode === 'add' ? last + 500 : now; led ^= 1; n++; flash = 0.45; }
+      }
+      if (n >= 24) reset();
+      draw();
+    });
+    $('#ml-slow').addEventListener('switch', (e) => { slow = e.detail.on; reset(); sim.draw(); });
+    $$('#ml-mode button').forEach((b) => b.addEventListener('click', () => {
+      $$('#ml-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); mode = b.dataset.m; reset(); sim.draw();
+    }));
+    draw();
+  })();
 
   /* =====================================================================
      W2-3a «Таймлайн суперциклу»: a 1-ms step model of three firmwares.
@@ -1279,38 +2161,8 @@ document.addEventListener('study:ready', () => {
   /* =====================================================================
      08 breadboard: three LED branches in the top half, the button in the bottom half
      ===================================================================== */
-  const bbSvg = $('#bb-loop');
-  const g = S.svg('g', {}, bbSvg);
-  S.svg('rect', { x: 2, y: 34, width: 58, height: 182, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
-  S.svg('text', { class: 'sch-pin', x: 6, y: 26 }, g).textContent = 'плата';
-  const pin = (label, net, cls, y) => {
-    S.svg('text', { class: `sch-pin ${cls}`, 'data-net': net, x: 8, y: y + 5 }, g).textContent = label;
-    return { x: 52, y };
-  };
-  const p4 = pin('4', 'gpio4', 'net-sig2', 56), p5 = pin('5', 'gpio5', 'net-sig3', 80), p15 = pin('15', 'gpio15', 'net-sig', 104);
-  const p21 = pin('21', 'gpio21', 'net-in', 160), pG = pin('GND', 'gnd', 'net-gnd', 200);
-  const bb = S.breadboard(bbSvg, { cols: 22, rails: true, x: 76, y: 0, colLabels: 'bottom' });
-  const branch = (c0, from, net, cls, color, label, lift) => {
-    bb.mark(c0, 'top', net, cls);
-    S.part(bbSvg, 'jumper', { from, to: bb.hole(c0, 'c'), net, cls, lift, title: `Дріт ${net.toUpperCase()} → стовпчик ${c0}` });
-    S.part(bbSvg, 'res', { from: bb.hole(c0, 'a'), to: bb.hole(c0 + 4, 'a'), ohms: 220 });
-    S.part(bbSvg, 'led', { anode: bb.hole(c0 + 4, 'e'), cathode: bb.hole(c0 + 5, 'e'), color, label, h: 22 });
-    bb.mark(c0 + 5, 'top', 'gnd', 'net-gnd');
-    S.part(bbSvg, 'jumper', { from: bb.hole(c0 + 5, 'b'), to: bb.rail('top', '-', c0 + 5), net: 'gnd', cls: 'net-gnd', lift: 0, title: `Катод → шина мінус` });
-  };
-  bb.markRail('top', '-', 'gnd', 'net-gnd');
-  bb.markRail('bottom', '-', 'gnd', 'net-gnd');
-  // the top pin goes to the farthest column, so the three wires nest instead of crossing
-  branch(16, p4, 'gpio4', 'net-sig2', 'red', 'A', 40);
-  branch(9, p5, 'gpio5', 'net-sig3', 'green', 'B', 26);
-  branch(2, p15, 'gpio15', 'net-sig', 'yellow', 'C', 10);
-  bb.mark(3, 'bottom', 'gpio21', 'net-in');
-  bb.mark(6, 'bottom', 'gnd', 'net-gnd');
-  S.part(bbSvg, 'btn4', { x: bb.hole(3, 'f').x, y: bb.hole(3, 'f').y, w: 30, h: 30, label: 'S1' });
-  S.part(bbSvg, 'jumper', { from: p21, to: bb.hole(3, 'j'), net: 'gpio21', cls: 'net-in', lift: 0, title: 'Дріт GPIO21 → стовпчик 3 (кнопка)' });
-  S.part(bbSvg, 'jumper', { from: bb.hole(6, 'j'), to: bb.rail('bottom', '-', 6), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Кнопка → нижня шина мінус' });
-  S.part(bbSvg, 'jumper', { from: pG, to: bb.rail('bottom', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → нижня шина мінус' });
-  S.part(bbSvg, 'jumper', { from: bb.rail('bottom', '-', 22), to: bb.rail('top', '-', 22), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Перемичка між шинами мінус' });
+  // the same Kit bench as the lab; wires and strips carry data-net, so Schem.link highlights them with the schematic
+  bench($('#bb-loop'), { nets: true });
 });
 </script>
 </body>

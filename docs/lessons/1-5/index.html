@@ -30,6 +30,10 @@
 .wctl input[type="range"] { width: 150px; }
 .readout { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 8px; font-size: 15px; color: var(--muted); }
 .readout b { font: 600 15px var(--f-mono); color: var(--ink); }
+.readout b.warnout { color: var(--bad); }
+.halo { paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; }
+.idea .wctl label { color: var(--ink); }
+.idea .wctl input[type="range"] { accent-color: var(--accent); }
 .scope-cv { max-width: 760px; margin: 0 auto; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); touch-action: manipulation; }
 .model-chip { display: inline-block; vertical-align: middle; padding: 1px 8px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .04em; white-space: nowrap; }
 .status { font: 600 14px var(--f-mono); color: var(--hi-ink); min-height: 1.4em; margin: 6px 0 0; }
@@ -43,10 +47,19 @@
 .fig-svg text { font-family: var(--f-mono); }
 /* The breadboard sheet (380 units) is wider than the schematic (320): share the row in that ratio so its labels stay >= 13 px. */
 @media (min-width: 720px) { #dual-btn { grid-template-columns: minmax(0, 320fr) minmax(0, 380fr); } }
-/* On a phone the breadboard keeps 380 px (labels >= 13 px) and scrolls sideways inside its sheet. */
+/* On a phone the breadboard keeps 480 px (labels >= 13 px) and scrolls sideways inside its sheet. */
 #dual-btn .bb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 #dual-btn .bb-scroll > svg { display: block; width: 100%; height: auto; }
-@media (max-width: 719px) { #dual-btn .bb-scroll > svg { min-width: 380px; } }
+@media (max-width: 719px) { #dual-btn .bb-scroll > svg { min-width: 480px; } }
+/* ---------- real-part drawings (assets/kit.js): 1 unit = 0,1 мм; labels outside the parts in theme ink */
+.kitv { display: block; width: 100%; height: auto; overflow: hidden; }
+.kit-lbl { font: 600 46px var(--f-mono); fill: var(--ink); }
+.kit-val { font-weight: 500; fill: var(--muted); }
+#bb-btn .kit-lbl { font-size: 32px; } #bb-btn .kit-lbl.mid { dominant-baseline: central; } /* ≈ 13 px: the sheet is ≥ 480 px wide */
+.kitv .kit-lead { fill: none; stroke: var(--muted); stroke-width: 3; stroke-dasharray: 9 6; }
+text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig { fill: var(--nsig-ink, var(--nsig)); } text.kit-lbl.net-gnd { fill: var(--ngnd-ink, var(--ngnd)); }
+.kitv .schem-flow { stroke-width: 12; stroke-dasharray: 10 38; animation-name: kit-flow; }
+@keyframes kit-flow { to { stroke-dashoffset: -48; } }
 .drill-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .drill-row input { width: 9em; }
 .drill-q { font-weight: 600; margin: 10px 0 0; }
@@ -60,6 +73,61 @@
 .vid b { display: block; }
 .tools td, .tools th { font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .press-btn[aria-pressed="true"] { transform: none; } }
+
+/* ---------- lab: oscilloscope on the button. The scope screen is an instrument: dark in both themes. */
+.hub { --scr: #0f1a22; --scr-edge: #263845; --scr-ink: #b4c6d3; }
+:root[data-theme="dark"] .hub { --scr: #081017; --scr-edge: #22323e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hub { --scr: #081017; --scr-edge: #22323e; } }
+.b5-stage { display: grid; gap: 14px 18px; align-items: center; }
+@media (min-width: 760px) { .b5-stage { grid-template-columns: 250px minmax(0, 1fr); } }
+.b5-left { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.b5-left svg { display: block; width: 100%; max-width: 300px; height: auto; }
+.b5-ct { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.b5-bar { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+#b5-c1 { transition: opacity var(--t2) var(--ease); }
+#b5-c1.b5-off { opacity: .22; }
+.b5-probe { fill: var(--ink); }
+.b5-lvl { font: 600 14px var(--f-mono); fill: var(--lvl-hi); }
+.b5-lvl.lo { fill: var(--lvl-lo); }
+.b5-key { display: block; width: 100%; max-width: 280px; padding: 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--sheet); cursor: pointer;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: border-color var(--t1), box-shadow var(--t1); }
+.b5-key:hover { border-color: var(--accent); }
+.b5-key[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.b5-key:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.b5-key svg { display: block; width: 100%; height: auto; border-radius: 9px; pointer-events: none; }
+.b5-key .kit-lbl { font-size: 17px; }
+.b5-ring { fill: rgba(244, 180, 0, .22); stroke: #f4b400; stroke-width: 7; opacity: 0; transition: opacity 60ms; } .b5-ring.on { opacity: 1; }
+.b5-tag rect { fill: #1b1d22; } .b5-tag text { font: 700 24px var(--f-mono); fill: #fff; }
+.b5-hint { margin: 2px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
+.b5-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.b5-scope { position: relative; border-radius: 12px; overflow: hidden; background: var(--scr); box-shadow: inset 0 0 0 1px var(--scr-edge), 0 1px 0 var(--line); }
+.b5-scope canvas { display: block; width: 100%; height: 400px; }
+@media (max-width: 600px) { .b5-scope canvas { height: 340px; } }
+.b5-grp { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.b5-k { font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.b5-model { font-size: 14px; color: var(--muted); border-top: 0; padding-top: 0; }
+.lab-read output.bad { color: var(--bad); } .lab-read output.ok { color: var(--ok); }
+@media (prefers-reduced-motion: reduce) { .b5-key, #b5-c1 { transition: none; } }
+
+/* ---------- explainer: inside the contacts */
+.ba-house { fill: var(--panel-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.ba-t { font: 500 14px var(--f-mono); fill: var(--muted); }
+.ba-cap { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.ba-capt { fill: var(--ink); }
+.ba-stem { stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
+.ba-spring { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
+.ba-plate { fill: var(--copper-hi); stroke: var(--copper); stroke-width: 1.5; }
+.ba-pad { fill: var(--copper); }
+.ba-spark path { stroke: var(--hi); stroke-width: 2.5; stroke-linecap: round; }
+.ba-state { font: 600 15px var(--f-mono); fill: var(--ink); }
+.ba-scr { fill: var(--scr); stroke: var(--scr-edge); }
+.ba-grid path { stroke: rgba(150, 200, 230, .14); stroke-width: 1; }
+.ba-scrt { font: 500 14px var(--f-mono); fill: var(--scr-ink); }
+.ba-trace { fill: none; stroke: #f2d93c; stroke-width: 2.5; stroke-linejoin: round; }
+.ba-lock { fill: rgba(122, 184, 255, .2); stroke: #7ab8ff; stroke-dasharray: 4 3; }
+.ba-lockt { fill: #9cc8ff; }
+.ba-count { font: 700 15px var(--f-mono); fill: #ff8a7a; }
+.ba-count.ok { fill: #95d86a; }
 </style>
 </head>
 <body data-lesson="1-5">
@@ -82,6 +150,127 @@
       <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
     </div>
   </header>
+
+  <!-- ============================================================ lab: an oscilloscope wired to the button -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія: осцилограф на кнопці</h2><p>Натисніть і відпустіть S1, наблизьте шкалу часу, а потім увімкніть фільтри.</p></header>
+    <div class="lab-stage b5-stage">
+      <div class="b5-left">
+        <svg id="b5-sch" viewBox="0 0 250 236" role="img" aria-label="Схема стенду: від 3V3 через резистор R1 10 кілоом до вузла GPIO21; кнопка S1 з'єднує вузол із GND; конденсатор C1 100 нанофарад від вузла до GND вмикається перемикачем «RC-фільтр»; щуп CH1 осцилографа на вузлі.">
+          <use class="sch-sym net-3v3" href="#vcc" x="50" y="34"/>
+          <text class="sch-pin net-3v3" x="64" y="20">3V3</text>
+          <path class="sch-w net-3v3" d="M50 34V40"/>
+          <use class="sch-sym" href="#res" x="50" y="40" transform="rotate(90 50 40)"/>
+          <text class="sch-ref" x="64" y="66">R1</text>
+          <text class="sch-val" x="64" y="84">10 кОм</text>
+          <path class="sch-w net-sig" d="M50 100V150M50 120H206"/>
+          <use class="sch-sym net-sig" href="#dot" x="50" y="120"/>
+          <use class="sch-sym net-sig" href="#dot" x="110" y="120"/>
+          <path class="sch-w" d="M50 150V161M50 189V200"/>
+          <circle class="b5-ct" cx="50" cy="164" r="3"/><circle class="b5-ct" cx="50" cy="186" r="3"/>
+          <g id="b5-bar"><path class="b5-bar" d="M61 158V192M61 175H76M76 167V183"/></g>
+          <text class="sch-ref" x="36" y="180" text-anchor="end">S1</text>
+          <use class="sch-sym net-gnd" href="#gnd" x="50" y="200"/>
+          <g id="b5-c1" class="b5-off">
+            <path class="sch-w net-sig" d="M110 120V140"/>
+            <use class="sch-sym" href="#cap" x="110" y="140" transform="rotate(90 110 140)"/>
+            <use class="sch-sym net-gnd" href="#gnd" x="110" y="200"/>
+            <text class="sch-ref" x="126" y="168">C1</text>
+            <text class="sch-val" x="126" y="186">100 нФ</text>
+          </g>
+          <path class="b5-probe" d="M206 112H226L240 120L226 128H206Z"/>
+          <text class="sch-pin net-sig" x="150" y="110" text-anchor="middle">GPIO21</text>
+          <text class="sch-pin" x="223" y="104" text-anchor="middle">CH1</text>
+          <text id="b5-lvl" class="b5-lvl" x="244" y="146" text-anchor="end">3,3 В · HIGH</text>
+        </svg>
+        <button type="button" class="b5-key" id="b5-press" aria-pressed="false" aria-label="S1" aria-describedby="b5-keyhint"><svg id="b5-kit" class="kitv" viewBox="676 -80 330 600" aria-hidden="true" focusable="false"></svg></button>
+        <p class="b5-hint" id="b5-keyhint">Кнопка S1 на макетці: утримуйте мишею, пальцем або Пробілом</p>
+        <div class="b5-row">
+          <button type="button" class="sw" id="b5-hold" aria-checked="false">Утримувати</button>
+          <button type="button" class="btn sm" id="b5-ten">10 натискань</button>
+          <button type="button" class="btn sm ghost" id="b5-reset">Скинути</button>
+        </div>
+      </div>
+      <div class="b5-scope" id="b5-scope">
+        <canvas id="b5-cv" width="640" height="400" role="img" aria-label="Екран осцилографа: напруга на GPIO21 у часі, 1 вольт на поділку; під нею доріжка «що порахувала програма»: кожна точка — спрацювання переривання. Опис останньої події — у рядку під лабораторією."></canvas>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <div class="b5-grp"><span class="b5-k" id="b5-tb-k">Час/под</span>
+        <div class="seg" role="group" aria-labelledby="b5-tb-k" id="b5-tb">
+          <button type="button" data-v="1e-4" aria-pressed="false">100 мкс</button>
+          <button type="button" data-v="1e-3" aria-pressed="true">1 мс</button>
+          <button type="button" data-v="1e-2" aria-pressed="false">10 мс</button>
+          <button type="button" data-v="1e-1" aria-pressed="false">100 мс</button>
+        </div></div>
+      <div class="b5-grp"><span class="b5-k" id="b5-tr-k">Тригер</span>
+        <div class="seg" role="group" aria-labelledby="b5-tr-k" id="b5-trig">
+          <button type="button" data-v="0" aria-pressed="true">↓ натискання</button>
+          <button type="button" data-v="1" aria-pressed="false">↑ відпускання</button>
+        </div></div>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="b5-rc" aria-checked="false">RC-фільтр (C1, τ = 1 мс)</button>
+      <button type="button" class="sw" id="b5-db" aria-checked="false">Програмний антибрязкіт 30 мс</button>
+      <div class="b5-grp"><span class="b5-k" id="b5-md-k">Модель брязкоту</span>
+        <div class="seg" role="group" aria-labelledby="b5-md-k" id="b5-mode">
+          <button type="button" data-v="teach" aria-pressed="true">навчальна</button>
+          <button type="button" data-v="bench" aria-pressed="false">як на стенді</button>
+        </div></div>
+    </div>
+    <div class="lab-read">
+      <div><b>Натиснули насправді</b><output id="b5-real">0</output></div>
+      <div><b>Порахувала програма</b><output id="b5-prog">0</output></div>
+      <div><b>Фронтів в останній події</b><output id="b5-n">—</output></div>
+      <div><b>Брязкіт тривав</b><output id="b5-dur">—</output></div>
+    </div>
+    <p class="lab-note" id="b5-note" aria-live="polite">Натисніть S1: осцилограф чекає на спад ↓ (натискання з підтяжкою вгору — це HIGH → LOW).</p>
+    <p class="lab-note b5-model" id="b5-mnote"><span class="model-chip">модель</span> <span id="b5-mtext"></span></p>
+    <a class="lab-more" href="../../bounce-lab/">Повна лабораторія брязкоту →</a>
+  </section>
+
+  <figure class="anim wide" id="b5-anim" aria-labelledby="b5-anim-h">
+    <header class="anim-head"><h3 id="b5-anim-h">Анімація: що відбувається всередині кнопки</h3></header>
+    <div class="anim-stage">
+      <svg viewBox="0 0 640 286" role="img" aria-label="Ліворуч розріз кнопки: пружна металева пластина вдаряється об нерухомі контакти й кілька разів відскакує. Праворуч екран осцилографа: кожен удар дає спад напруги, кожен відскок — фронт; уповільнено.">
+        <g id="ba-L">
+        <rect class="ba-house" x="16" y="34" width="246" height="208" rx="14"/>
+        <text class="ba-t" x="139" y="26" text-anchor="middle">кнопка в розрізі</text>
+        <g id="ba-push">
+          <rect class="ba-cap" x="104" y="44" width="70" height="56" rx="10"/>
+          <text class="ba-t ba-capt" x="139" y="77" text-anchor="middle">тисне</text>
+          <path class="ba-stem" d="M139 100V128"/>
+        </g>
+        <path id="ba-spring" class="ba-spring" d="M64 92 L64 128"/>
+        <path id="ba-spring2" class="ba-spring" d="M214 92 L214 128"/>
+        <rect id="ba-plate" class="ba-plate" x="52" y="128" width="174" height="12" rx="4"/>
+        <rect class="ba-pad" x="58" y="182" width="58" height="12" rx="3"/>
+        <rect class="ba-pad" x="162" y="182" width="58" height="12" rx="3"/>
+        <g id="ba-spark" class="ba-spark" opacity="0">
+          <path d="M52 186l-12 -6M52 190h-14M52 194l-12 6M226 186l12 -6M226 190h14M226 194l12 6"/>
+        </g>
+        <path class="sch-w net-sig" d="M87 194V226H30"/>
+        <path class="sch-w net-gnd" d="M191 194V226H248"/>
+        <text class="sch-pin net-sig" x="30" y="218">GPIO21</text>
+        <text class="sch-pin net-gnd" x="248" y="218" text-anchor="end">GND</text>
+        <text id="ba-state" class="ba-state" x="139" y="266" text-anchor="middle">розімкнено</text>
+        </g>
+        <g id="ba-R">
+        <rect class="ba-scr" x="282" y="34" width="346" height="232" rx="10"/>
+        <g id="ba-grid" class="ba-grid"></g>
+        <path id="ba-lock" class="ba-lock" d="M0 0"/>
+        <text id="ba-lockt" class="ba-scrt ba-lockt" x="0" y="0"></text>
+        <path id="ba-trace" class="ba-trace" d="M300 92"/>
+        <g id="ba-isr"></g>
+        <text class="ba-scrt" x="294" y="56">CH1 · GPIO21</text>
+        <text class="ba-scrt" x="616" y="56" text-anchor="end">уповільнено</text>
+        <text class="ba-scrt" x="294" y="88">3,3 В</text>
+        <text class="ba-scrt" x="294" y="196">0 В</text>
+        <text id="ba-count" class="ba-count" x="616" y="252" text-anchor="end"></text>
+        </g>
+      </svg>
+    </div>
+  </figure>
 
   <!-- 01 why -->
   <section class="hs" id="why">
@@ -131,23 +320,20 @@
       <p>Екран поділено сіткою. Ручка <b>В/под</b> каже, скільки вольтів в одній клітинці по вертикалі, ручка <b>с/под</b> — скільки часу в одній клітинці по горизонталі. Будь-яке значення читається однаково: порахуйте поділки й помножте на ціну поділки.</p>
       <p>Великий масштаб часу (100&nbsp;мс/под) показує загальну картину, малий (100&nbsp;мкс/под) — дрібні деталі, які на великому зливаються в одну риску.</p>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 300 200" role="img" aria-label="Сітка осцилографа 10 на 6 поділок. Прямокутний сигнал: висота 3 поділки при 1 вольт на поділку, тобто 3 вольти; період 4 поділки при 1 мілісекунді на поділку, тобто 4 мілісекунди.">
-          <g stroke="var(--line)" stroke-width="1">
-            <path d="M30 20V164M54 20V164M78 20V164M102 20V164M126 20V164M150 20V164M174 20V164M198 20V164M222 20V164M246 20V164M270 20V164"/>
-            <path d="M30 20H270M30 44H270M30 68H270M30 92H270M30 116H270M30 140H270M30 164H270"/>
-          </g>
-          <path d="M30 140H54V68H102V140H150V68H198V140H246V68H270" fill="none" stroke="var(--nsig2)" stroke-width="3"/>
-          <text x="4" y="144" font-size="14" fill="var(--muted)">0 В</text>
-          <path d="M120 140V72" stroke="var(--hi)" stroke-width="2" marker-end="url(#ar1)"/>
-          <defs><marker id="ar1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--hi)"/></marker></defs>
-          <text x="108" y="58" font-size="14" fill="var(--hi-ink)">3 под × 1 В = 3 В</text>
-          <path d="M54 176H150" stroke="var(--accent)" stroke-width="2" marker-start="url(#ar2)" marker-end="url(#ar2)"/>
-          <defs><marker id="ar2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker></defs>
-          <text x="102" y="195" font-size="14" text-anchor="middle" fill="var(--accent)">T = 4 под × 1 мс = 4 мс</text>
-          <text x="270" y="14" font-size="14" text-anchor="end" fill="var(--muted)">1 В/под · 1 мс/под</text>
-          <text x="292" y="180" font-size="14" text-anchor="end" fill="var(--muted)">час →</text>
-        </svg>
-        <figcaption>Значення = поділки × ціна поділки, по обох осях.</figcaption>
+        <svg class="fig-svg" id="i1-svg" viewBox="0 0 300 206" role="img" aria-label="Сітка осцилографа 10 на 6 поділок. Прямокутний сигнал 3 вольти з періодом 4 мілісекунди; кількість поділок залежить від вибраних ручок вольт на поділку і час на поділку."></svg>
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Ручка вольт на поділку" id="i1-v">
+            <button type="button" data-v="0.5" aria-pressed="false">0,5 В/под</button>
+            <button type="button" data-v="1" aria-pressed="true">1 В/под</button>
+            <button type="button" data-v="2" aria-pressed="false">2 В/под</button>
+          </div>
+          <div class="seg" role="group" aria-label="Ручка час на поділку" id="i1-t">
+            <button type="button" data-v="0.5" aria-pressed="false">0,5 мс/под</button>
+            <button type="button" data-v="1" aria-pressed="true">1 мс/под</button>
+            <button type="button" data-v="2" aria-pressed="false">2 мс/под</button>
+          </div>
+        </div>
+        <figcaption>Покрутіть ручки: поділок стає більше чи менше, а напруга й період — ті самі. Значення = поділки × ціна поділки, по обох осях.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Рахуйте поділки й множте на В/под або с/под. Масштаб часу вирішує, які деталі ви взагалі побачите.</p>
     </article>
@@ -155,15 +341,14 @@
     <article class="idea">
       <h3>Тригер зупиняє картинку</h3>
       <p>Осцилограф малює екран за екраном. Якщо кожен прохід починається з випадкового місця сигналу, картинки не збігаються: зображення пливе й двоїться. <b>Тригер</b> (синхронізація) чекає, доки сигнал перетне заданий <b>рівень</b> у заданий <b>бік</b> (вгору ↑ або вниз ↓), і лише тоді починає прохід. Усі проходи лягають один на одного, і картинка стоїть.</p>
-      <p>Режим <b>AUTO</b> малює навіть без події тригера (зручно шукати сигнал). <b>NORMAL</b> малює лише після події, тому одноразове натискання кнопки ловлять саме ним (або режимом SINGLE).</p>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 300 130" role="img" aria-label="Ліворуч без тригера: три проходи зсунуті один відносно одного, картинка розмита. Праворуч з тригером: три проходи збігаються, позначено рівень тригера і точку старту.">
+        <svg class="fig-svg" id="i2-svg" viewBox="0 0 300 130" role="img" aria-label="Анімація. Ліворуч без тригера: три проходи зсунуті один відносно одного, картинка розмита. Праворуч з тригером: три проходи збігаються, позначено рівень тригера і точку старту.">
           <rect x="6" y="20" width="134" height="90" rx="6" fill="var(--panel-2)" stroke="var(--line)"/>
           <rect x="160" y="20" width="134" height="90" rx="6" fill="var(--panel-2)" stroke="var(--line)"/>
           <g fill="none" stroke="var(--nsig2)" stroke-width="2.5">
-            <path d="M10 90H30V40H55V90H80V40H105V90H130V40H136"/>
-            <path d="M10 40H20V90H45V40H70V90H95V40H120V90H136" opacity=".45"/>
-            <path d="M10 90H40V40H65V90H90V40H115V90H136" opacity=".25"/>
+            <path id="i2-a" d="M10 90H30V40H55V90H80V40H105V90H130V40H136"/>
+            <path id="i2-b" d="M10 40H20V90H45V40H70V90H95V40H120V90H136" opacity=".45"/>
+            <path id="i2-c" d="M10 90H40V40H65V90H90V40H115V90H136" opacity=".25"/>
             <path d="M164 90H202V40H227V90H252V40H277V90H290" stroke-width="3"/>
           </g>
           <path d="M164 65H290" stroke="var(--hi)" stroke-width="1.5" stroke-dasharray="4 3"/>
@@ -172,8 +357,11 @@
           <text x="248" y="14" font-size="14" text-anchor="middle" fill="var(--muted)">з тригером ↑</text>
           <text x="236" y="126" font-size="14" text-anchor="middle" fill="var(--hi-ink)">- - рівень</text>
         </svg>
-        <figcaption>Ліворуч кожен прохід стартує деінде; праворуч — завжди з фронту ↑, що перетинає рівень.</figcaption>
+        <figcaption>Ліворуч кожен прохід стартує деінде, і картинка стрибає; праворуч — завжди з фронту ↑, що перетинає рівень. Клацніть малюнок, щоб зупинити чи запустити.</figcaption>
       </figure>
+      <details class="more"><summary>Детальніше: AUTO, NORMAL і SINGLE</summary>
+        <p>Режим <b>AUTO</b> малює навіть без події тригера (зручно шукати сигнал). <b>NORMAL</b> малює лише після події, тому одноразове натискання кнопки ловлять саме ним (або режимом SINGLE).</p>
+      </details>
       <p class="key"><b>Головне</b>Тригер = «почни малювати, коли сигнал перетне цей рівень у цей бік». Без нього повторюваний сигнал пливе.</p>
     </article>
 
@@ -214,50 +402,53 @@
       <p class="note"><b>Фронт</b> — будь-який перехід між рівнями. <b>Висхідний</b> фронт: LOW → HIGH, ↑, в Arduino <code>RISING</code>. <b>Спадний</b> фронт (коротко «спад»): HIGH → LOW, ↓, <code>FALLING</code>. Брязкіт дає кілька фронтів обох видів поспіль.</p>
       <p><b>Період T</b> — час від одного фронту ↑ до наступного фронту ↑. <b>Частота</b> f&nbsp;=&nbsp;1&nbsp;/&nbsp;T: скільки періодів за секунду. <b>Тривалість імпульсу</b> t<sub>HIGH</sub> — скільки сигнал тримається в HIGH. <b>Коефіцієнт заповнення</b> D&nbsp;=&nbsp;t<sub>HIGH</sub>&nbsp;/&nbsp;T: яку частку періоду займає HIGH. Сигнал з D&nbsp;=&nbsp;50&nbsp;% називають <b>меандром</b>.</p>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 300 150" role="img" aria-label="Прямокутний сигнал. Період T від одного висхідного фронту до наступного. t HIGH — частина періоду в стані HIGH. Формули: f дорівнює 1 поділити на T, D дорівнює t HIGH поділити на T.">
-          <path d="M14 100H40V40H90V100H160V40H210V100H286" fill="none" stroke="var(--nsig2)" stroke-width="3"/>
-          <path d="M40 120H160" stroke="var(--accent)" stroke-width="2" marker-start="url(#ar3)" marker-end="url(#ar3)"/>
-          <path d="M40 26H90" stroke="var(--hi)" stroke-width="2" marker-start="url(#ar4)" marker-end="url(#ar4)"/>
-          <defs>
-            <marker id="ar3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker>
-            <marker id="ar4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--hi)"/></marker>
-          </defs>
-          <text x="100" y="140" font-size="14" text-anchor="middle" fill="var(--accent)">період T</text>
-          <text x="65" y="18" font-size="14" text-anchor="middle" fill="var(--hi-ink)">t<tspan font-size="11" dy="3">HIGH</tspan></text>
-          <text x="228" y="22" font-size="14" fill="var(--ink)">f = 1 / T</text>
-          <text x="228" y="138" font-size="14" fill="var(--ink)">D = t/T</text>
-        </svg>
-        <figcaption>Тут t<sub>HIGH</sub> = 50 з 120 одиниць, тобто D ≈ 42 %.</figcaption>
+        <svg class="fig-svg" id="i3-svg" viewBox="0 0 300 150" role="img" aria-label="Прямокутний сигнал на 10 мілісекундах екрана. Період T — від одного висхідного фронту до наступного, t HIGH — частина періоду в стані HIGH. Значення — у рядку під малюнком."></svg>
+        <div class="wctl">
+          <label>Період <input type="range" id="i3-T" min="2" max="8" step="0.5" value="4" aria-describedby="i3-out"> <b id="i3-Tv">4 мс</b></label>
+          <label>Заповнення <input type="range" id="i3-D" min="10" max="90" step="5" value="40" aria-describedby="i3-out"> <b id="i3-Dv">40 %</b></label>
+        </div>
+        <p class="readout" id="i3-out" aria-live="polite"></p>
+        <figcaption>Рухайте повзунки: частота й заповнення перераховуються самі.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>f = 1 / T, D = t<sub>HIGH</sub> / T. Усе вимірюється поділками, помноженими на с/под.</p>
     </article>
 
     <article class="idea">
       <h3>Фронт не миттєвий, а пін вирішує в «сірій зоні»</h3>
-      <p>Якщо розтягнути фронт по часу, видно схил. Його тривалість, <b>час наростання</b>, домовилися вимірювати між 10&nbsp;% і 90&nbsp;% амплітуди<sup class="cite" data-fact="rise-time-10-90"></sup>: краї розмиті шумом. VDD — напруга живлення чипа, у нас 3,3&nbsp;В. ESP32-S3 гарантовано бачить LOW до 0,25·VDD<sup class="cite" data-fact="s3-vil"></sup> і HIGH від 0,75·VDD<sup class="cite" data-fact="s3-vih"></sup>. Між ними (≈&nbsp;0,83–2,48&nbsp;В) рівень не визначений, тож повільний або зашумлений фронт може дати кілька перемикань.</p>
+      <p>Якщо розтягнути фронт по часу, видно схил. Його тривалість, <b>час наростання</b>, домовилися вимірювати між 10&nbsp;% і 90&nbsp;% амплітуди<sup class="cite" data-fact="rise-time-10-90"></sup>. ESP32-S3 гарантовано бачить LOW до 0,25·VDD<sup class="cite" data-fact="s3-vil"></sup> і HIGH від 0,75·VDD<sup class="cite" data-fact="s3-vih"></sup>. Між ними (≈&nbsp;0,83–2,48&nbsp;В) рівень не визначений.</p>
+      <details class="more"><summary>Детальніше: чому 10–90 % і що таке VDD</summary>
+        <p>Краї фронту розмиті шумом, тому тривалість міряють не від 0 до 100&nbsp;%, а між 10 і 90&nbsp;%. VDD — напруга живлення чипа, у нас 3,3&nbsp;В. Повільний або зашумлений фронт довго сидить у сірій зоні й може дати кілька перемикань: увімкніть «Шум» на малюнку.</p>
+      </details>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 300 165" role="img" aria-label="Висхідний фронт із нахилом. Пунктирні рівні 10 і 90 відсотків, між ними час наростання. Смуга від 0,25 до 0,75 VDD позначена як невизначена зона входу ESP32-S3.">
-          <rect x="40" y="55" width="250" height="50" fill="var(--hi)" opacity=".12"/>
-          <text x="286" y="86" font-size="14" text-anchor="end" fill="var(--hi-ink)">невизначено</text>
-          <text x="286" y="70" font-size="14" text-anchor="end" fill="var(--muted)">0,75·VDD</text>
-          <text x="286" y="101" font-size="14" text-anchor="end" fill="var(--muted)">0,25·VDD</text>
-          <path d="M40 120H290M40 40H290" stroke="var(--muted)" stroke-dasharray="3 3"/>
-          <text x="4" y="124" font-size="14" fill="var(--muted)">10 %</text>
-          <text x="4" y="44" font-size="14" fill="var(--muted)">90 %</text>
-          <path d="M40 130H90C112 130 118 38 172 31H290" fill="none" stroke="var(--nsig2)" stroke-width="3"/>
-          <path d="M98 120V150M152 40V150" stroke="var(--accent)" stroke-dasharray="2 3"/>
-          <path d="M98 150H152" stroke="var(--accent)" stroke-width="2" marker-start="url(#ar5)" marker-end="url(#ar5)"/>
-          <defs><marker id="ar5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker></defs>
-          <text x="160" y="155" font-size="14" fill="var(--accent)">t наростання</text>
-        </svg>
-        <figcaption>Пунктир — рівні 10 % і 90 %; смуга — зона, де пін ще «не вирішив».</figcaption>
+        <svg class="fig-svg" id="i4-svg" viewBox="0 0 300 196" role="img" aria-label="Висхідний фронт RC-кола на 100 мікросекундах. Пунктирні рівні 10 і 90 відсотків, між ними час наростання. Смуга від 0,25 до 0,75 VDD — невизначена зона входу ESP32-S3. Нижня доріжка — що вирішив вхід."></svg>
+        <div class="wctl">
+          <label>Повільність τ = RC <input type="range" id="i4-tau" min="2" max="24" step="1" value="10" aria-describedby="i4-out"> <b id="i4-tv">10 мкс</b></label>
+          <button type="button" class="sw" id="i4-noise" aria-checked="false">Шум</button>
+        </div>
+        <p class="readout" id="i4-out" aria-live="polite"></p>
+        <figcaption>Пунктир — рівні 10 % і 90 %; смуга — зона, де пін ще «не вирішив». <span class="model-chip">модель</span> вхід перемикається посередині смуги.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Фронт має тривалість (10→90 %). Між 0,25 і 0,75·VDD цифровий вхід нічого не гарантує.</p>
     </article>
 
     <article class="idea">
       <h3>Аналізатор бачить 0/1 на багатьох каналах, осцилограф — напругу</h3>
-      <p><b>Осцилограф</b> показує справжню форму напруги: схили, викиди, шум. Каналів зазвичай 2–4, запис короткий. <b>Логічний аналізатор</b> на кожному з 8–16 каналів записує лише «вище порогу чи нижче», зате довго, і вміє розшифровувати UART, I²C, SPI. Аналізатор записує стан входу короткими «знімками» — <b>вибірками</b>. Дешеві аналізатори на чипі FX2 роблять до 24&nbsp;млн вибірок за секунду (24&nbsp;МГц)<sup class="cite" data-fact="la-fx2-24mhz"></sup>: між двома вибірками ≈&nbsp;42&nbsp;нс. Усе, що коротше за проміжок між вибірками, прилад може не помітити.</p>
+      <p><b>Осцилограф</b> показує справжню форму напруги: схили, викиди, шум. <b>Логічний аналізатор</b> записує лише «вище порогу чи нижче», зате на багатьох каналах і довго. Стан входу він бачить лише в моменти <b>вибірок</b>: що коротше за проміжок між ними, може проскочити.</p>
+      <figure>
+        <svg class="fig-svg" id="i5-svg" viewBox="0 0 300 168" role="img" aria-label="Зверху справжній сигнал відпускання кнопки зі стенду: 5 фронтів за 0,58 мілісекунди. Знизу те, що записав аналізатор: точки — моменти вибірки. Кількість побачених фронтів — у рядку під малюнком."></svg>
+        <div class="wctl">
+          <div class="seg" role="group" aria-label="Частота вибірки" id="i5-rate">
+            <button type="button" data-v="1e6" aria-pressed="true">1 МГц</button>
+            <button type="button" data-v="1e5" aria-pressed="false">100 кГц</button>
+            <button type="button" data-v="2e4" aria-pressed="false">20 кГц</button>
+          </div>
+        </div>
+        <p class="readout" id="i5-out" aria-live="polite"></p>
+        <figcaption>Відпускання #58 зі стенду. Зменшуйте частоту вибірки: короткі імпульси починають зникати.</figcaption>
+      </figure>
+      <details class="more"><summary>Детальніше: канали, довжина запису, 24 МГц</summary>
+        <p>Осцилограф має зазвичай 2–4 канали й короткий запис. Логічний аналізатор має 8–16 каналів і вміє розшифровувати UART, I²C, SPI. Дешеві аналізатори на чипі FX2 роблять до 24&nbsp;млн вибірок за секунду (24&nbsp;МГц)<sup class="cite" data-fact="la-fx2-24mhz"></sup>: між двома вибірками ≈&nbsp;42&nbsp;нс. Усе, що коротше за проміжок між вибірками, прилад може не помітити.</p>
+      </details>
       <details class="more">
         <summary>Порівняння інструментів</summary>
         <div class="tbl"><table class="tools">
@@ -507,7 +698,10 @@
   <!-- 08 circuit -->
   <section class="hs" id="circuit">
     <h2><span class="n">08</span> Схема і макетка</h2>
-    <p>Кнопка з'єднує GPIO21 з GND, резистор 10&nbsp;кОм тягне пін до 3V3. Канал CH1 аналізатора (так його називає прошивка) дивиться на той самий вузол, а GND аналізатора з'єднано з GND плати: без спільної землі приладу нема від чого відраховувати напругу. GPIO21 — як на стенді з уроку й у прошивці <code>esp32-s3-bounce-test</code>.</p>
+    <p>Кнопка з'єднує GPIO21 з GND, резистор 10&nbsp;кОм тягне пін до 3V3. CH1 аналізатора дивиться на той самий вузол, GND аналізатора — на GND плати.</p>
+    <details class="more"><summary>Детальніше: навіщо спільна земля і чому GPIO21</summary>
+      <p>Канал CH1 аналізатора (так його називає прошивка) дивиться на той самий вузол, а GND аналізатора з'єднано з GND плати: без спільної землі приладу нема від чого відраховувати напругу. GPIO21 — як на стенді з уроку й у прошивці <code>esp32-s3-bounce-test</code>.</p>
+    </details>
     <figure class="dual wide" id="dual-btn" data-nets="gpio21=GPIO21 (вузол кнопки); v33=3V3; gnd=GND">
       <div class="view" data-view="sch">
         <svg viewBox="0 0 320 210" role="img" aria-label="Схема: від 3V3 через резистор R1 10 кілоом до вузла GPIO21; від вузла кнопка S1 до землі; від вузла провід до каналу CH1 логічного аналізатора, земля аналізатора на загальну землю.">
@@ -543,7 +737,7 @@
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <div class="bb-scroll"><svg id="bb-btn" viewBox="0 0 380 222" role="img" aria-label="Макетка: кнопка над жолобком у стовпчиках 7 і 10; резистор зі стовпчика 2 у стовпчик 7; дріт зі стовпчика 2 на шину плюс 3V3; дріт зі стовпчика 10 на шину мінус; GPIO21 плати у стовпчик 7; канал CH1 аналізатора у стовпчик 7, GND аналізатора на шину мінус."></svg></div>
+        <div class="bb-scroll"><svg id="bb-btn" class="kitv" viewBox="-40 -24 1180 924" role="img" aria-label="Макетка з платою ESP32-S3, вставленою в отвори (гребінки в рядах i та b, стовпчики 3–24). Праворуч від плати: кнопка S1 над жолобком, ніжки в стовпчиках 34 і 36; резистор R1 10 кілоом у ряду h зі стовпчика 30 у 34. Жовтий дріт від GPIO21 (a20) іде вгору, рівно праворуч над рядом a і вниз у a34. Помаранчеві дроти: 3V3 плати (j3) і стовпчик 30 (R1) на шину плюс, обидва на лівій половині шини; чорні: GND плати (j24) і стовпчик 36 (S1) на шину мінус, а її розрив між стовпчиками 31 і 33 закриває коротка чорна перемичка. Під макеткою логічний аналізатор: зелений дріт від CH1 прямо вгору в j34, чорний від GND праворуч і вгору на шину мінус. Дроти не перетинаються."></svg></div>
       </div>
       <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах.</figcaption>
     </figure>
@@ -551,7 +745,9 @@
       <button type="button" class="btn primary press-btn" id="c-press" aria-pressed="false">Утримувати S1</button>
       <span class="out" id="c-out" aria-live="polite"></span>
     </div>
+    <details class="more"><summary>Детальніше: який струм тече через R1</summary>
     <p class="small">Як мотузка-петля: поки кнопку не натиснуто, петля розірвана, і через R1 нічого не тече; пін просто «бачить» 3,3&nbsp;В. Натиснули — петля замкнулася, і через R1 тече 3,3&nbsp;В&nbsp;/&nbsp;10&nbsp;кОм&nbsp;=&nbsp;0,33&nbsp;мА. Прошивка ще вмикає внутрішню підтяжку ≈&nbsp;45&nbsp;кОм<sup class="cite" data-fact="s3-pullup"></sup>, паралельно з R1 це ≈&nbsp;8,2&nbsp;кОм; нічого не ламається.</p>
+    </details>
     <div class="note warn">Кліпси аналізатора — лише на 3,3-вольтові лінії й GND. Піни ESP32-S3 не розраховані на 5&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>, тож щуп, випадково перекинутий на 5V, через макетку може дістатися до GPIO.</div>
   </section>
 
@@ -723,12 +919,13 @@
       <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-button-bounce">esp32-s3-button-bounce</a>: ДЗ «Лабораторія брязкоту» (GPIO16, маркер ISR на GPIO17); cpp/ і rust/.</li>
     </ul>
     <p class="small">Проєкти збираються на Arduino-ESP32 2.0.17 (платформа espressif32 7.x)<sup class="cite" data-fact="build-platform"></sup>. <code>attachInterrupt</code> з <code>RISING</code>/<code>FALLING</code>/<code>CHANGE</code><sup class="cite" data-fact="core-interrupt-modes"></sup> в ядрі 3.x не змінився.</p>
-    <h3>Що виправлено порівняно з LMS</h3>
+    <details class="more"><summary>Що виправлено порівняно з LMS (3)</summary>
     <ul>
       <li>LMS у розділі про брязкіт називає натискання переднім (висхідним) фронтом. З підтяжкою вгору натискання — це <b>спад</b>, HIGH → LOW<sup class="cite" data-fact="lms-err-1-5-press-edge"></sup>.</li>
       <li>LMS: пін вирішує на порозі «зазвичай половина живлення». ESP32-S3 гарантує LOW лише до 0,25·VDD і HIGH від 0,75·VDD, а між ними рівень не визначений<sup class="cite" data-fact="s3-vil"></sup><sup class="cite" data-fact="s3-vih"></sup>.</li>
       <li>LMS: брязкіт «зазвичай триває 5–20 мс» і видний на 10&nbsp;мс/под. Виміряно: у кнопки зі стенду медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс без двох аномалій 28 і 52&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>; у вимірюваннях Ганссла на 16 з 18 кнопок у середньому ≈&nbsp;1,6&nbsp;мс, максимум 6,2&nbsp;мс<sup class="cite" data-fact="bounce-ganssle"></sup>. 5–20&nbsp;мс — радше запас для вікна антибрязкоту, а дивитися брязкіт треба на 100&nbsp;мкс/под–1&nbsp;мс/под.</li>
     </ul>
+    </details>
     <div id="sources">
       <h3>Джерела</h3>
     </div>
@@ -746,6 +943,7 @@
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -753,6 +951,74 @@ document.addEventListener('study:ready', () => {
   const S = window.Schem;
   const NB = ' ';
   const tk = () => Study.tokens();
+
+  /* ---------- the button bench from our kit (assets/kit.js), in Kit units (0,1 мм) ----------
+     Laid out like the real bench: the YD-ESP32-S3 sits IN a full WB-102 (headers in rows i and b, columns 3–24; rows j
+     and a stay free) and the parts stand to its right, using the breadboard strips. Every jumper is a straight Kit.route
+     on the hole grid — nothing crosses, nothing lies over a part:
+       GPIO21 (right header R18, a20) → yellow up to the strip above row a, right to column 34 → a34 → S1 (legs e34/f34 |
+       e36/f36, across the trench); R1 10 кОм in row h from 30 to 34 (pull-up: column 34 = the GPIO21 node);
+       3V3 (L1, j3) → orange → «+» rail ← orange ← j30 (R1's other end); S1's other side j36 → black → «−» rail ←
+       black ← GND (L22, j24). The 24 MHz logic analyzer lies under the breadboard: CH1 straight up into j34,
+       its GND right and up into the «−» rail. The WB-102 rails are split between columns 31 and 33: the «+» rail is used
+       on the left half only (columns 3 and 30); the «−» rail has GND on both halves, so a short black bridge
+       bottom-31 → bottom-33 joins them (CH1 at column 34 keeps clear of it). */
+  function btnBench(parent, { nets = false, analyzer = true, cut = null } = {}) {
+    const K = window.Kit;
+    const sv = (tag, a, p) => S.svg(tag, a, p);
+    const bb = K.part('breadboard', { parent, title: 'Макетка' });
+    if (cut != null) { // the breadboard fades out from x = cut, so the labels to its right sit on the page background
+      const id = parent.id + '-cut', defs = sv('defs', {}, parent);
+      const lg = sv('linearGradient', { id: id + 'g', gradientUnits: 'userSpaceOnUse', x1: cut, x2: cut + 60, y1: 0, y2: 0 }, defs);
+      sv('stop', { offset: 0, 'stop-color': '#fff' }, lg); sv('stop', { offset: 1, 'stop-color': '#000' }, lg);
+      const m = sv('mask', { id, maskUnits: 'userSpaceOnUse', x: -100, y: -100, width: 2000, height: 1200 }, defs);
+      sv('rect', { x: -100, y: -100, width: 2000, height: 1200, fill: `url(#${id}g)` }, m);
+      bb.setAttribute('mask', `url(#${id})`);
+    }
+    bb.classList.add('bb-board');            // Schem: a breadboard view keeps its level tags in the legend only
+    const route = (pts, colour, net, cls, title) => {
+      const w = K.route(parent, pts.map((q) => (typeof q === 'string' ? bb.at(q) : q)), colour);
+      if (nets) { w.dataset.net = net; w.classList.add(cls); }
+      sv('title', {}, w).textContent = title;
+      return w;
+    };
+    const C0 = 3, cG = C0 + 21, c21 = C0 + 17, N = 34, cLA = N + 3; // N = the GPIO21 node column (S1 left legs, R1 right leg)
+    const p0 = bb.hole(C0, 'i');
+    const esp = K.part('esp32s3', { parent, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: гребінки в рядах i та b' });
+    esp.set({ highlight: ['GPIO21'] });
+    const res = K.part('resistor', { parent, ohms: 10000, span: 4, ...bb.hole(N - 4, 'h'), title: `R1 10 кОм: стовпчики ${N - 4} і ${N}, ряд h` });
+    const btn = K.part('button', { parent, ...bb.hole(N, 'e'), title: `Кнопка S1: ніжки в стовпчиках ${N} і ${N + 2}, над жолобком` });
+    const laneT = bb.hole(1, 'a').y - K.P * 1.15; // the strip between the top rails and row a
+    const a21 = bb.at('a' + c21), aN = bb.at('a' + N);
+    const w = {
+      sig: route([a21, { x: a21.x, y: laneT }, { x: aN.x, y: laneT }, aN], 'yellow', 'gpio21', 'net-sig', `GPIO21 плати (a${c21}) → a${N}`),
+      v33: route(['j' + C0, 'bottom+' + C0], 'orange', 'v33', 'net-3v3', `3V3 плати (j${C0}) → шина плюс`),
+      gnd: route(['j' + cG, 'bottom-' + cG], 'black', 'gnd', 'net-gnd', `GND плати (j${cG}) → шина мінус`),
+      r: route(['j' + (N - 4), 'bottom+' + (N - 4)], 'orange', 'v33', 'net-3v3', `Стовпчик ${N - 4} (R1) → шина плюс`),
+      k: route(['j' + (N + 2), 'bottom-' + (N + 2)], 'black', 'gnd', 'net-gnd', `Стовпчик ${N + 2} (S1) → шина мінус`),
+      br: route(['bottom-31', 'bottom-33'], 'black', 'gnd', 'net-gnd', 'Перемичка через розрив шини мінус: стовпчик 31 → 33'),
+    };
+    let la = null;
+    if (analyzer) {
+      // rot 0: header on the right, CH1 = top of the inner column → straight up; GND = bottom of the outer column → right, up
+      la = K.part('logic-analyzer', { parent, title: 'Логічний аналізатор 24 МГц, 8 каналів' });
+      const jN = bb.at('j' + N), l = la.local.CH1;
+      la.place(jN.x - l.x, 620);
+      la.set({ pwr: true, hl: ['CH1', 'GND'] });
+      const g = la.pins.GND, r35 = bb.at('bottom-' + cLA);
+      // CH1: one straight green lead. Its last 2,6 mm run over the analyzer's own header (the Dupont plug on the pin), so
+      // that bit is drawn inside the analyzer group: the header sits 5 mm below the case top, and a lead that enters the
+      // case's bounding box from above would otherwise read as «over the part» although it only touches its own pin.
+      const ch = la.pins.CH1, hTop = { x: ch.x, y: la.toParent(0, 53.5).y };
+      w.ch1 = route([hTop, jN], 'green', 'gpio21', 'net-sig', `CH1 аналізатора → j${N}`);
+      w.ch1.querySelector('circle')?.remove(); // no ring where the lead meets its plug
+      const plug = route([ch, hTop], 'green', 'gpio21', 'net-sig', 'CH1 аналізатора');
+      plug.querySelectorAll('circle')[1]?.remove();
+      la.appendChild(plug);
+      w.lag = route([g, { x: r35.x, y: g.y }, r35], 'black', 'gnd', 'net-gnd', 'GND аналізатора → шина мінус');
+    }
+    return { bb, btn, res, esp, la, w, N, C0, c21, cLA };
+  }
 
   /* ---------- shared helpers ---------- */
   // A canvas that refits on resize and redraws on theme change.
@@ -800,6 +1066,577 @@ document.addEventListener('study:ready', () => {
     return fmt.num(s * 1e9, 0) + NB + 'нс';
   };
   const fmtDiv = (s) => fmtTime(s) + '/под';
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  const SCR = { grid: 'rgba(150,200,230,.14)', grid2: 'rgba(150,200,230,.30)', ink: '#b4c6d3', tr: '#f2d93c',
+    ok: '#95d86a', bad: '#ff8a7a', z: 'rgba(242,184,75,.11)', zi: '#f2b84b', lock: 'rgba(122,184,255,.18)', locki: '#9cc8ff' };
+  const scrBg = () => getComputedStyle($('.hub')).getPropertyValue('--scr').trim() || '#0f1a22';
+
+  /* ==================== LAB: an oscilloscope wired to the button ==================== */
+  (function () {
+    const VDD = 3.3, VTH = 1.65, VIL = 0.25 * VDD, VIH = 0.75 * VDD; // model input threshold: middle of the undefined zone
+    const TAU_RC = 1000, TAU_UP = 0.05, TAU_DN = 0.05; // µs: C1 100 nF · R1 10 kΩ; without C1 the edges are near-vertical
+    const LOCK = 30000; // µs, software debounce window
+    // Teaching model and bench-like model: copied from ../../bounce-lab/ (genBounce, BENCH/genBench), times in µs.
+    function genTeach(toLevel) {
+      if (toLevel === 1 && Math.random() < 0.12) return [0];
+      const force = 0.3 + 0.5 * Math.random(), speed = 0.3 + 0.5 * Math.random();
+      const D = clamp(2100 * (1.35 - 0.7 * speed) * (0.75 + 0.5 * (1 - force)) * (0.7 + 0.6 * Math.random()), 300, 6000);
+      let N = Math.round((10 + 60 * force + 30 * Math.random()) * (0.7 + 0.6 * speed));
+      N = clamp(N, 5, 121); if (N % 2 === 0) N++;
+      const g = [];
+      for (let k = 1; k < N; k++) { const hi = 4 + 300 * Math.pow(k / N, 0.9); g.push(Math.exp(Math.log(0.1) + Math.random() * (Math.log(hi) - Math.log(0.1)))); }
+      const sc = D / g.reduce((a, b) => a + b, 0);
+      const ts = [0]; let t = 0;
+      for (const x of g) { t += Math.max(0.1, x * sc); ts.push(t); }
+      return ts;
+    }
+    // Bench recording 17.10.2026 (esp32-s3-bounce-test/docs/bench-11-40.serial.txt): presses bounced 1 of 91, releases 35 of 91;
+    // gaps in µs from the ISR micros() log (the 51,7 ms anomaly left out). Wrong parity = an edge the ISR lost: +1 µs pulse (modelled).
+    const BENCH = {
+      pressP: 1 / 91, releaseP: 35 / 91,
+      press: [[10]],
+      release: [[131], [102], [386, 8, 578], [12, 12], [82], [10, 3, 6], [61, 1744], [5, 283, 872, 1382, 1015], [182], [184],
+        [134, 44, 6, 45], [38, 348, 171], [15, 349], [26, 7, 39], [3, 151], [85], [311, 165, 33, 71], [5, 225, 93, 20, 253],
+        [328, 289, 163], [4, 114], [1267], [20, 709, 30, 438, 306, 258, 188], [69], [55, 59], [125, 60, 107, 33, 115], [39, 90],
+        [44], [177, 4], [82], [4, 40], [242], [574], [627], [100]],
+    };
+    function genBench(toLevel) {
+      const press = toLevel === 0;
+      if (Math.random() >= (press ? BENCH.pressP : BENCH.releaseP)) return [0];
+      const set = press ? BENCH.press : BENCH.release, gaps = set[Math.floor(Math.random() * set.length)];
+      const ts = [0];
+      for (const g of gaps) ts.push(ts[ts.length - 1] + g);
+      if (ts.length % 2 === 0) ts.splice(1, 0, 1);
+      return ts;
+    }
+
+    const st = { mode: 'teach', rc: false, db: false, sdiv: 1e-3, trig: 0, pressed: false, hold: false, auto: false };
+    let E = [], EVS = [], SEG = [], DIG = [];
+    const T0 = performance.now();
+    const now = () => (performance.now() - T0) * 1000;
+
+    function rebuild() {
+      SEG = []; DIG = [];
+      let v = VDD;
+      for (let k = 0; k < E.length; k++) {
+        const e = E[k], tn = k + 1 < E.length ? E[k + 1].t : Infinity;
+        const target = e.l ? VDD : 0, tau = e.l ? (st.rc ? TAU_RC : TAU_UP) : TAU_DN;
+        SEG.push({ t: e.t, v0: v, target, tau, tn });
+        let dt = -1;
+        if (!e.l && v > VTH) dt = tau * Math.log(v / VTH);
+        else if (e.l && v < VTH) dt = tau * Math.log((VDD - v) / (VDD - VTH));
+        if (dt >= 0 && e.t + dt < tn) DIG.push({ t: e.t + dt, l: e.l, ev: e.ev });
+        v = tn === Infinity ? target : target + (v - target) * Math.exp(-(tn - e.t) / tau);
+      }
+      EVS.forEach((ev, i) => { const d = DIG.find((x) => x.ev === i && x.l === (ev.kind === 'press' ? 0 : 1)); ev.trigT = d ? d.t : null; });
+    }
+    function segIdx(t) { let lo = 0, hi = SEG.length - 1, r = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (SEG[m].t <= t) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
+    function vAt(t) { const k = segIdx(t); if (k < 0) return VDD; const s = SEG[k]; return s.target + (s.v0 - s.target) * Math.exp(-(t - s.t) / s.tau); }
+
+    // What the program counted up to time T: FALLING interrupts, or a 30 ms lock-out after every accepted change.
+    function count(T) {
+      const seen = new Set(), marks = [], locks = [];
+      let falls = 0, acc = 0, o = 1, lock = -Infinity;
+      const accept = (t, l, genuine) => { o = l; lock = t + LOCK; locks.push(t); if (!l) { acc++; marks.push({ t, kind: genuine ? 'ok' : 'extra' }); } };
+      const levelAt = (t) => { let l = 1; for (const d of DIG) { if (d.t <= t) l = d.l; else break; } return l; };
+      const settle = (until) => { while (lock !== -Infinity && lock <= until) { const l = levelAt(lock); if (l !== o) accept(lock, l, true); else lock = -Infinity; } };
+      for (const d of DIG) {
+        if (d.t > T) break;
+        let genuine = false;
+        if (!d.l) { falls++; if (EVS[d.ev].kind === 'press' && !seen.has(d.ev)) { genuine = true; seen.add(d.ev); } }
+        if (!st.db) { if (!d.l) marks.push({ t: d.t, kind: genuine ? 'ok' : 'extra' }); continue; }
+        settle(d.t);
+        if (d.t >= lock && d.l !== o) accept(d.t, d.l, genuine);
+        else if (!d.l) marks.push({ t: d.t, kind: 'ign' });
+      }
+      if (st.db) settle(T);
+      return { prog: st.db ? acc : falls, marks, locks, real: EVS.filter((e) => e.kind === 'press' && e.t <= T).length };
+    }
+
+    function addEvent(kind) {
+      if (E.length > 20000) { E = []; EVS = []; }
+      const last = E.length ? E[E.length - 1].t : 0;
+      const t = Math.max(now(), last + 50), to = kind === 'press' ? 0 : 1;
+      const ts = (st.mode === 'bench' ? genBench : genTeach)(to);
+      const ev = EVS.length;
+      ts.forEach((dt, i) => E.push({ t: t + dt, l: to ^ (i & 1), ev }));
+      EVS.push({ kind, t, n: ts.length, dur: ts[ts.length - 1], mode: st.mode });
+      rebuild();
+      if (kind === 'press') jitter = { t: performance.now(), n: ts.length };
+      kick(t);
+    }
+
+    /* ---------- drawing ---------- */
+    const cv = $('#b5-cv');
+    let ctx = Study.fitCanvas(cv);
+    let liveUntil = 0, jitter = null, lastNote = '';
+    function trigEvent(T) {
+      for (let i = EVS.length - 1; i >= 0; i--) {
+        const e = EVS[i];
+        if (e.kind === (st.trig ? 'release' : 'press') && e.trigT != null && e.trigT <= T) return e;
+      }
+      return null;
+    }
+    function draw() {
+      const T = now(), { w, h } = ctx, t = Study.tokens();
+      const TOP = 30, BOT = 28, dH = (h - TOP - BOT) / 8, dW = w / 10, mono = t['f-mono'];
+      const y = (v) => TOP + (5 - v) * dH;
+      ctx.fillStyle = scrBg(); ctx.fillRect(0, 0, w, h);
+      // graticule with centre ticks
+      ctx.strokeStyle = SCR.grid; ctx.lineWidth = 1; ctx.beginPath();
+      for (let i = 0; i <= 10; i++) { const x = Math.round(i * dW) + 0.5; ctx.moveTo(x, TOP); ctx.lineTo(x, h - BOT); }
+      for (let j = 0; j <= 8; j++) { const yy = Math.round(TOP + j * dH) + 0.5; ctx.moveTo(0, yy); ctx.lineTo(w, yy); }
+      ctx.stroke();
+      ctx.strokeStyle = SCR.grid2; ctx.beginPath();
+      for (let i = 1; i < 50; i++) { const x = Math.round(i * dW / 5) + 0.5; ctx.moveTo(x, y(0) - 3); ctx.lineTo(x, y(0) + 3); }
+      ctx.stroke();
+      // undefined input zone of the S3 (VIL..VIH)
+      ctx.fillStyle = SCR.z; ctx.fillRect(0, y(VIH), w, y(VIL) - y(VIH));
+      const txt = (s, x, yy, c, al = 'left', f = 13) => { ctx.font = `600 ${f}px ${mono}`; ctx.textAlign = al; ctx.fillStyle = c; ctx.fillText(s, x, yy); };
+      const ev = trigEvent(T);
+      const S = st.sdiv * 1e6;
+      // ISR lane
+      const laneY = y(-0.6), laneH = 1.9 * dH;
+      txt(st.db ? 'програма: антибрязкіт 30 мс' : 'програма: переривання FALLING', 6, laneY + 16, SCR.ink);
+      if (ev) {
+        const a = ev.trigT - S, b = ev.trigT + 9 * S, tEnd = Math.min(b, T), pxT = (b - a) / w;
+        const X = (tt) => (tt - a) / (b - a) * w;
+        // lock-out windows of the debounce
+        const c = count(T);
+        if (st.db) {
+          for (const lt of c.locks) {
+            if (lt > tEnd || lt + LOCK < a) continue;
+            const x0 = Math.max(0, X(lt)), x1 = Math.min(X(Math.min(lt + LOCK, tEnd)), w);
+            ctx.fillStyle = SCR.lock; ctx.fillRect(x0, laneY + 22, x1 - x0, laneH - 24);
+            if (x1 - x0 > 150) txt('30 мс не слухаю пін', x0 + 6, laneY + 40, SCR.locki);
+          }
+        }
+        // trace
+        ctx.strokeStyle = SCR.tr; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath();
+        let k = Math.max(0, segIdx(a)), first = true;
+        const put = (tt) => { const xx = X(tt), yy = y(vAt(tt)); if (first) { ctx.moveTo(xx, yy); first = false; } else ctx.lineTo(xx, yy); };
+        if (segIdx(a) < 0) { put(a); }
+        for (; k < SEG.length; k++) {
+          const s = SEG[k];
+          if (s.t > tEnd) break;
+          const s0 = Math.max(s.t, a), s1 = Math.min(s.tn, tEnd);
+          if (s1 <= s0) continue;
+          const pts = [s0];
+          if (s.t + 5 * s.tau > s0 && s.t + 5 * s.tau < s1) pts.push(s.t + 5 * s.tau);
+          if (s.tau * 5 > pxT * 0.5) for (const f of [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 4, 5]) { const tt = s.t + f * s.tau; if (tt > s0 && tt < s1) pts.push(tt); }
+          const n = Math.min(40, Math.ceil((s1 - s0) / (pxT * 4)));
+          for (let i = 1; i <= n; i++) pts.push(s0 + (s1 - s0) * i / n);
+          pts.sort((p, q) => p - q).forEach(put);
+        }
+        if (k >= SEG.length || first) put(tEnd);
+        ctx.stroke();
+        if (T < b) { ctx.fillStyle = SCR.grid2; ctx.fillRect(X(T), TOP, 2, h - TOP - BOT); }
+        // interrupt marks
+        for (const m of [...c.marks].sort((p, q) => (p.kind === 'ign' ? 0 : 1) - (q.kind === 'ign' ? 0 : 1))) {
+          if (m.t < a || m.t > tEnd) continue;
+          const x = X(m.t), col = m.kind === 'ok' ? SCR.ok : m.kind === 'extra' ? SCR.bad : SCR.ink;
+          ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x, laneY + 24); ctx.lineTo(x, laneY + laneH - 22); ctx.stroke();
+          ctx.beginPath(); ctx.arc(x, laneY + laneH - 16, 5, 0, 7);
+          if (m.kind === 'ign') ctx.stroke(); else ctx.fill();
+        }
+        // event label + trigger marker
+        const lbl = `${ev.kind === 'press' ? 'Натискання' : 'Відпускання'} · ${ev.n} ${plural(ev.n, 'фронт', 'фронти', 'фронтів')}${ev.n > 1 ? ' · ' + fmtTime(ev.dur * 1e-6) : ''}`;
+        txt(lbl, X(ev.trigT) + 8, y(4.3), SCR.ink);
+        ctx.fillStyle = SCR.zi; ctx.beginPath(); ctx.moveTo(X(ev.trigT) - 7, TOP); ctx.lineTo(X(ev.trigT) + 7, TOP); ctx.lineTo(X(ev.trigT), TOP + 10); ctx.fill();
+      } else {
+        ctx.strokeStyle = SCR.tr; ctx.globalAlpha = 0.35; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+        ctx.beginPath(); ctx.moveTo(0, y(VDD)); ctx.lineTo(w, y(VDD)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+        txt(`Чекаю на ${st.trig ? 'фронт ↑ (відпускання)' : 'спад ↓ (натискання)'}…`, w / 2, y(4.3), SCR.ink, 'center', 14);
+      }
+      // trigger level and scale labels
+      ctx.fillStyle = SCR.zi; ctx.beginPath(); ctx.moveTo(w, y(VTH) - 7); ctx.lineTo(w, y(VTH) + 7); ctx.lineTo(w - 10, y(VTH)); ctx.fill();
+      txt('сіра зона S3', w - 14, y(VTH) + 5, SCR.zi, 'right');
+      txt('0 В ▸', 4, y(0) - 5, SCR.ink);
+      txt('CH1 1 В/под', 8, 20, SCR.tr);
+      txt(fmtDiv(st.sdiv), w - 8, 20, SCR.ink, 'right');
+      if (w > 460) txt(st.mode === 'bench' ? 'модель: як на стенді' : 'модель: навчальна', w / 2, 20, SCR.zi, 'center');
+      const stopped = !sim.running && !Study.reducedMotion();
+      txt(stopped ? '■ STOP — клацніть екран' : ev ? `TRIG'D ${st.trig ? '↑' : '↓'} 1,65 В` : `READY ${st.trig ? '↑' : '↓'}`, 8, h - 9, stopped ? SCR.bad : ev ? SCR.ok : SCR.ink);
+      txt(st.pressed ? 'S1 натиснута' : 'S1 відпущена', w - 8, h - 9, SCR.ink, 'right');
+    }
+
+    /* ---------- UI: readouts, schematic, note ---------- */
+    const out = { real: $('#b5-real'), prog: $('#b5-prog'), n: $('#b5-n'), dur: $('#b5-dur') };
+    function ui() {
+      const T = now(), c = count(T), v = vAt(T);
+      out.real.textContent = String(c.real);
+      out.prog.textContent = String(c.prog);
+      out.prog.className = !c.real && !c.prog ? '' : c.prog === c.real ? 'ok' : 'bad';
+      const last = EVS.filter((e) => e.t <= T).pop();
+      out.n.textContent = last ? String(last.n) : '—';
+      out.dur.textContent = !last ? '—' : last.n > 1 ? fmtTime(last.dur * 1e-6) : 'чисто';
+      const lv = $('#b5-lvl');
+      lv.textContent = `${fmt.num(v, 1)} В · ${v > VTH ? 'HIGH' : 'LOW'}`;
+      lv.classList.toggle('lo', v <= VTH);
+      let note;
+      if (!last) note = 'Натисніть S1: осцилограф чекає на спад ↓ (натискання з підтяжкою вгору — це HIGH → LOW).';
+      else {
+        const extra = c.marks.filter((m) => m.kind === 'extra').length, ign = c.marks.filter((m) => m.kind === 'ign').length;
+        const what = last.kind === 'press' ? 'Натискання' : 'Відпускання';
+        note = last.n === 1 ? `${what}: один чистий фронт, без брязкоту.` : `${what}: ${last.n} ${plural(last.n, 'фронт', 'фронти', 'фронтів')} за ${fmtTime(last.dur * 1e-6)} — це брязкіт.`;
+        if (c.prog > c.real) note += ` Програма нарахувала ${c.prog} натискань замість ${c.real}: зайві спади брязкоту.`;
+        else if (st.db && ign) note += ` Антибрязкіт відкинув ${ign} ${plural(ign, 'зайвий спад', 'зайві спади', 'зайвих спадів')}: лічильник чесний.`;
+        else if (st.rc && c.real) note += ' RC-фільтр згладжує відскоки: до порогу доходить лише один перехід.';
+        if (st.rc && c.prog > c.real && extra) note += ' τ = 1 мс замала для такого довгого відскоку.';
+      }
+      if (note !== lastNote) { $('#b5-note').textContent = note; lastNote = note; }
+    }
+    function mtext() {
+      $('#b5-mtext').textContent = st.mode === 'bench'
+        ? 'Як на стенді: інтервали між фронтами — із запису нашої кнопки 17.10.2026. Натискання брязкотіло 1 раз із 91, відпускання — 35 з 91, тож здебільшого фронт буде чистим.'
+        : 'Навчальна: навмисно перебільшена, брязкотить майже кожна подія (0,3–6 мс, у межах вимірів Ганссла). Справжня кнопка — режим «як на стенді».';
+    }
+
+    /* ---------- the press button visual (bounce jitter of the contact bar) ---------- */
+    function bar(T) {
+      let dx = st.pressed ? -9 : 0;
+      if (jitter && st.pressed) {
+        const age = (performance.now() - jitter.t) / 1000;
+        if (age < 0.35 && jitter.n > 1 && !Study.reducedMotion()) dx += 6 * Math.exp(-age * 10) * Math.abs(Math.sin(age * 70));
+      }
+      $('#b5-bar').setAttribute('transform', `translate(${dx.toFixed(2)} 0)`);
+    }
+
+    const sim = Study.sim($('#b5-scope'), () => {
+      const T = now();
+      const busy = T < liveUntil || (jitter && performance.now() - jitter.t < 400);
+      if (!busy) return;
+      draw(); ui(); bar(T);
+    });
+    function kick(t) {
+      liveUntil = Math.max(liveUntil, t + Math.max(10 * st.sdiv * 1e6, 40000) + 80000);
+      draw(); ui(); bar(now());
+      // reduced motion or a stopped screen: still settle the readouts after the bounce and the 30 ms window
+      [60, 400, 1200].forEach((ms) => setTimeout(() => { ui(); if (!sim.running) draw(); }, ms));
+    }
+    const redraw = () => { draw(); ui(); };
+
+    /* ---------- controls ---------- */
+    const key = $('#b5-press');
+    // the key is the real S1 on the breadboard, wired to the board below it (a crop of the section 08 bench)
+    const real = $('#b5-kit'), RB = btnBench(real, { analyzer: false });
+    { // a crop of the bench around S1: the S1 tag and the GPIO21 name sit in the margin above the breadboard
+      const cx = RB.btn.pins['1a'].x + Kit.P, tg = S.svg('g', { class: 'b5-tag' }, real);
+      S.svg('rect', { x: cx - 26, y: -52, width: 52, height: 36, rx: 8 }, tg);
+      S.svg('text', { x: cx, y: -34, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, tg).textContent = 'S1';
+      const t = S.svg('text', { class: 'kit-lbl net-sig', x: RB.bb.at('a' + (RB.N - 5)).x, y: -28, 'text-anchor': 'middle' }, real); t.textContent = 'GPIO21'; }
+    // a finger-press ring around the cap (the 6 × 6 mm cap itself moves only a fraction of a millimetre)
+    const ring = S.svg('circle', { class: 'b5-ring', cx: RB.btn.pins['1a'].x + Kit.P, cy: RB.btn.pins['1a'].y + 1.5 * Kit.P, r: 46 }, real);
+    function setPressed(p) {
+      if (p === st.pressed) return;
+      st.pressed = p;
+      RB.btn.set({ pressed: p }); ring.classList.toggle('on', p);
+      key.setAttribute('aria-pressed', String(p));
+      addEvent(p ? 'press' : 'release');
+    }
+    key.addEventListener('pointerdown', (e) => { if (st.hold || st.auto) return; e.preventDefault(); try { key.setPointerCapture(e.pointerId); } catch (_) { /* synthetic pointer */ } setPressed(true); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((n) => key.addEventListener(n, () => { if (!st.hold && !st.auto) setPressed(false); }));
+    key.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !st.hold && !st.auto) { e.preventDefault(); setPressed(true); } });
+    key.addEventListener('keyup', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !st.hold && !st.auto) { e.preventDefault(); setPressed(false); } });
+    key.addEventListener('blur', () => { if (!st.hold && !st.auto) setPressed(false); });
+    $('#b5-hold').addEventListener('switch', (e) => { st.hold = e.detail.on; setPressed(e.detail.on); });
+    $('#b5-ten').addEventListener('click', (e) => {
+      const b = e.currentTarget;
+      if (st.auto) return;
+      if (st.hold) $('#b5-hold').click();
+      st.auto = true; b.disabled = true;
+      let at = 0;
+      for (let i = 0; i < 10; i++) {
+        const hold = 90 + Math.random() * 160;
+        setTimeout(() => setPressed(true), at);
+        setTimeout(() => setPressed(false), at + hold);
+        at += hold + 160 + Math.random() * 160;
+      }
+      setTimeout(() => { st.auto = false; b.disabled = false; }, at);
+    });
+    $('#b5-reset').addEventListener('click', () => { if (st.auto) return; E = []; EVS = []; rebuild(); liveUntil = 0; lastNote = ''; redraw(); });
+    seg('#b5-tb', (v) => { st.sdiv = +v; redraw(); });
+    seg('#b5-trig', (v) => { st.trig = +v; redraw(); });
+    seg('#b5-mode', (v) => { st.mode = v; mtext(); redraw(); });
+    $('#b5-rc').addEventListener('switch', (e) => { st.rc = e.detail.on; $('#b5-c1').classList.toggle('b5-off', !st.rc); rebuild(); lastNote = ''; redraw(); });
+    $('#b5-db').addEventListener('switch', (e) => { st.db = e.detail.on; lastNote = ''; redraw(); });
+    $('#b5-scope').addEventListener('click', () => setTimeout(draw, 0));
+    let rw = cv.parentElement.clientWidth;
+    new ResizeObserver(() => { const w = cv.parentElement.clientWidth; if (Math.abs(w - rw) < 1) return; rw = w; ctx = Study.fitCanvas(cv); draw(); }).observe(cv.parentElement);
+    Study.onTheme(draw);
+    mtext(); rebuild(); redraw();
+  })();
+
+  /* ==================== explainer: inside the contacts (slowed down) ==================== */
+  (function () {
+    const FL = [0.5, 0.28, 0.16, 0.09, 0.05], DW = 0.07; // flight and dwell durations, story units
+    const END = 1 + FL.length * DW + FL.reduce((a, b) => a + b, 0);
+    const X0 = 340, X1 = 612, TMAX = 4, HI = 92, LO = 192;
+    const xOf = (tau) => X0 + tau / TMAX * (X1 - X0);
+    // plate height above the pads and contact state at story time tau
+    function plate(tau) {
+      if (tau < 1) return { h: 42 * (1 - tau * tau), closed: false };
+      let t = 1;
+      for (let k = 0; k < FL.length; k++) {
+        if (tau < t + DW) return { h: 0, closed: true };
+        t += DW;
+        if (tau < t + FL[k]) { const s = (tau - t) / FL[k], H = 30 * (FL[k] / FL[0]) ** 2; return { h: 4 * H * s * (1 - s), closed: false }; }
+        t += FL[k];
+      }
+      return { h: 0, closed: true };
+    }
+    const falls = [1]; { let t = 1; for (const f of FL) { t += DW + f; falls.push(t); } }
+    const NS = 'http://www.w3.org/2000/svg';
+    const grid = $('#ba-grid');
+    { let d = ''; for (let i = 0; i <= 8; i++) d += `M${X0 + i * (X1 - X0) / 8} 66V232`; for (let j = 0; j <= 5; j++) d += `M${X0} ${66 + j * 33.2}H${X1}`;
+      const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); grid.append(p); }
+    const isr = $('#ba-isr');
+    const mk = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); isr.append(e); return e; };
+    const ticks = falls.map((tau, i) => {
+      const g = document.createElementNS(NS, 'g'); isr.append(g);
+      const x = xOf(tau);
+      const l = document.createElementNS(NS, 'path'); l.setAttribute('d', `M${x} 204V222`); l.setAttribute('stroke-width', '2.5'); g.append(l);
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', x); c.setAttribute('cy', 226); c.setAttribute('r', 4.5); g.append(c);
+      return { g, l, c, first: i === 0 };
+    });
+    void mk;
+    const TAU = [() => 0, (p) => p, (p) => 1 + p * (DW + FL[0]), (p) => 1 + DW + FL[0] + p * (END + 0.12 - 1 - DW - FL[0]), (p) => END + 0.12 + p * (TMAX - END - 0.12), () => TMAX, () => TMAX];
+    function spring(id, x, yTop, yBot) {
+      let d = `M${x} ${yTop}`; const n = 6, dy = (yBot - yTop) / n;
+      for (let i = 1; i <= n; i++) d += `L${x + (i % 2 ? 7 : -7)} ${yTop + dy * (i - 0.5)}L${x} ${yTop + dy * i}`;
+      $(id).setAttribute('d', d);
+    }
+    // phones: stack the cutaway above the screen so the labels stay readable
+    const asvg = $('#b5-anim svg');
+    const layout = () => {
+      const narrow = asvg.parentElement.clientWidth < 560;
+      asvg.setAttribute('viewBox', narrow ? '0 0 352 560' : '0 0 640 286');
+      $('#ba-L').setAttribute('transform', narrow ? 'translate(37 0)' : '');
+      $('#ba-R').setAttribute('transform', narrow ? 'translate(-279 290)' : '');
+    };
+    new ResizeObserver(layout).observe(asvg.parentElement); layout();
+    Study.anim($('#b5-anim'), {
+      steps: [
+        { title: 'Відпущено', cap: 'Кнопка відпущена: пружна пластина вгорі, кола немає. Підтяжка R1 тримає GPIO21 на <b>3,3 В</b> — на екрані рівна лінія HIGH.', dur: 3.5 },
+        { title: 'Натискаємо', cap: 'Ви тиснете: пластина летить донизу. Поки метал не торкнувся металу, на піні все ще HIGH.', dur: 3 },
+        { title: 'Удар і відскок', cap: 'Удар: пін з’єднався з GND — <b>спад ↓</b>. Але пластина пружна: вона відскакує, коло знову рветься, і підтяжка повертає HIGH — <b>фронт ↑</b>.', dur: 4.5 },
+        { title: 'Ще удари', cap: 'Кожен наступний відскок нижчий і коротший. Удар — ще один спад, відскок — ще один фронт. Ця пачка фронтів і є <b>брязкіт</b>.', dur: 4.5 },
+        { title: 'Заспокоїлось', cap: 'Пластина лягла: стабільний LOW. Тут усе уповільнено. На нашому стенді брязкіт, коли він був, тривав здебільшого частки мілісекунди (найдовше 3,56&nbsp;мс), і частіше брязкотіло <b>відпускання</b>.', dur: 4.5 },
+        { title: 'Що побачила програма', cap: 'Переривання <code>FALLING</code> спрацьовує на <b>кожен</b> спад: лічильник показує 6 натискань замість одного.', dur: 4 },
+        { title: 'Антибрязкіт', cap: 'Програмний антибрязкіт: прийняли перший спад і <b>30&nbsp;мс</b> не слухаємо пін. Зайві спади потрапляють у смугу — лічильник чесний: 1. RC-фільтр робить те саме апаратно.', dur: 4.5 },
+      ],
+      draw(i, p) {
+        const tau = TAU[i](p), pl = plate(tau);
+        // finger pushes the cap; plate and springs follow
+        const py = 170 - pl.h;
+        $('#ba-plate').setAttribute('y', py.toFixed(1));
+        $('#ba-push').setAttribute('transform', `translate(0 ${(py - 128).toFixed(1)})`);
+        spring('#ba-spring', 64, 50, py); spring('#ba-spring2', 214, 50, py);
+        $('#ba-spark').setAttribute('opacity', pl.closed && tau < END + 0.05 ? '1' : '0');
+        $('#ba-state').textContent = pl.closed ? 'замкнено · GPIO21 = 0 В' : 'розімкнено · GPIO21 = 3,3 В';
+        // trace up to tau
+        let d = `M${X0} ${HI}`, prev = false;
+        const N = Math.ceil(tau / 0.004);
+        for (let k = 1; k <= N; k++) {
+          const tt = Math.min(tau, k * 0.004), c = plate(tt).closed;
+          const x = xOf(tt).toFixed(1);
+          if (c !== prev) { d += `L${x} ${prev ? LO : HI}L${x} ${c ? LO : HI}`; prev = c; }
+        }
+        d += `L${xOf(tau).toFixed(1)} ${prev ? LO : HI}`;
+        $('#ba-trace').setAttribute('d', d);
+        // ISR ticks and the debounce window
+        const shown = i < 5 ? 0 : i === 5 ? Math.ceil(p * falls.length * 1.25) : falls.length;
+        let cnt = 0;
+        ticks.forEach((tk, k) => {
+          const vis = k < shown, ign = i === 6 && !tk.first && p > 0.25;
+          tk.g.style.display = vis ? '' : 'none';
+          const col = tk.first ? '#95d86a' : ign ? '#b4c6d3' : '#ff8a7a';
+          tk.l.setAttribute('stroke', col); tk.c.setAttribute('stroke', col); tk.c.setAttribute('stroke-width', '2');
+          tk.c.setAttribute('fill', ign ? 'none' : col);
+          if (vis && !ign) cnt++;
+        });
+        const lockW = i === 6 ? Math.min(1, p * 2.5) * (X1 - xOf(1)) : 0;
+        $('#ba-lock').setAttribute('d', lockW ? `M${xOf(1)} 200h${lockW.toFixed(1)}V232H${xOf(1)}Z` : 'M0 0');
+        const lt = $('#ba-lockt');
+        lt.textContent = i === 6 && p > 0.3 ? '30 мс не слухаємо' : '';
+        lt.setAttribute('x', xOf(1) + 8); lt.setAttribute('y', 248);
+        const ct = $('#ba-count');
+        ct.textContent = i >= 5 ? `лічильник: ${cnt}` : '';
+        ct.classList.toggle('ok', cnt === 1);
+        ct.setAttribute('y', 80);
+      },
+    });
+  })();
+
+  /* ==================== idea cards: small responsive figures ==================== */
+  const sv = (svg, tag, attrs, text) => { const e = S.svg(tag, attrs, svg); if (text != null) e.textContent = text; return e; };
+  const arrowDefs = (svg, id, color) => {
+    const d = sv(svg, 'defs', {}), m = sv(d, 'marker', { id, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
+    sv(m, 'path', { d: 'M0 0L8 4L0 8z', fill: color });
+  };
+  // square wave path from x0 to x1: first rising edge at xr, period P px, high for H px
+  const sqPath = (x0, x1, xr, P, H, yH, yL) => {
+    let x = xr; while (x - P > x0) x -= P;
+    let d = `M${x0} ${x0 >= x && x0 < x + H ? yH : yL}`;
+    for (; x < x1; x += P) {
+      if (x > x0) d += `H${x}V${yH}`; else d += `V${x0 < x + H ? yH : yL}`;
+      const xf = x + H; if (xf >= x1) break;
+      if (xf > x0) d += `H${xf}V${yL}`;
+    }
+    return d + `H${x1}`;
+  };
+
+  /* --- card 1: the scale knobs --- */
+  (function () {
+    const svg = $('#i1-svg'), X0 = 30, Y0 = 20, C = 24;
+    arrowDefs(svg, 'i1-ar1', 'var(--hi)'); arrowDefs(svg, 'i1-ar2', 'var(--accent)');
+    let d = ''; for (let i = 0; i <= 10; i++) d += `M${X0 + i * C} ${Y0}V${Y0 + 6 * C}`; for (let j = 0; j <= 6; j++) d += `M${X0} ${Y0 + j * C}H${X0 + 10 * C}`;
+    sv(svg, 'path', { d, stroke: 'var(--line)', 'stroke-width': 1 });
+    sv(svg, 'text', { x: 2, y: 144, 'font-size': 15, fill: 'var(--muted)' }, '0 В');
+    const wave = sv(svg, 'path', { fill: 'none', stroke: 'var(--nsig2)', 'stroke-width': 3, 'stroke-linejoin': 'round' });
+    const va = sv(svg, 'path', { stroke: 'var(--hi)', 'stroke-width': 2, 'marker-end': 'url(#i1-ar1)' });
+    const vt = sv(svg, 'text', { 'font-size': 15, fill: 'var(--hi-ink)', class: 'halo' });
+    const vc = sv(svg, 'text', { 'font-size': 15, fill: 'var(--bad)', class: 'halo' });
+    const ta = sv(svg, 'path', { stroke: 'var(--accent)', 'stroke-width': 2, 'marker-start': 'url(#i1-ar2)', 'marker-end': 'url(#i1-ar2)' });
+    const tt = sv(svg, 'text', { y: 200, 'font-size': 15, 'text-anchor': 'middle', fill: 'var(--accent)' });
+    const knobs = sv(svg, 'text', { x: 270, y: 14, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' });
+    const st = { v: 1, t: 1 };
+    function draw() {
+      const amp = 3 / st.v, P = 4 / st.t, yL = 140, yHraw = yL - amp * C, clip = yHraw < Y0, yH = Math.max(Y0, yHraw);
+      wave.setAttribute('d', sqPath(X0, X0 + 10 * C, X0 + C, P * C, P * C / 2, yH, yL));
+      const xa = X0 + C + P * C / 4;
+      va.setAttribute('d', `M${xa} ${yL}V${yH + 4}`);
+      vt.setAttribute('x', Math.min(xa + 8, 126)); vt.setAttribute('y', clip ? 44 : Math.max(44, yH + 22));
+      vt.textContent = `${fmt.num(amp, 1)} под × ${fmt.num(st.v, 1)} В = 3 В`;
+      vc.setAttribute('x', Math.min(xa + 8, 126)); vc.setAttribute('y', 64); vc.textContent = clip ? '↑ вершина за екраном' : '';
+      const x1 = X0 + C, x2 = Math.min(X0 + 10 * C, x1 + P * C);
+      ta.setAttribute('d', `M${x1} 178H${x2}`);
+      tt.setAttribute('x', Math.max(118, Math.min(186, (x1 + x2) / 2)));
+      tt.textContent = `T = ${fmt.num(P, 1)} под × ${fmt.num(st.t, 1)} мс = 4 мс`;
+      knobs.textContent = `${fmt.num(st.v, 1)} В/под · ${fmt.num(st.t, 1)} мс/под`;
+    }
+    seg('#i1-v', (v) => { st.v = +v; draw(); });
+    seg('#i1-t', (v) => { st.t = +v; draw(); });
+    draw();
+  })();
+
+  /* --- card 2: free-running vs triggered sweeps (runs 6 s, click to replay) --- */
+  (function () {
+    const paths = ['#i2-a', '#i2-b', '#i2-c'].map((q) => $(q));
+    let acc = 0, run = 0;
+    const ctl = Study.sim($('#i2-svg'), (dt) => {
+      if (!dt) return;
+      acc += dt; run += dt;
+      if (run > 6) { run = 0; ctl.pause(); return; }
+      if (acc < 0.22) return;
+      acc = 0;
+      paths.forEach((p) => p.setAttribute('d', sqPath(10, 136, 10 + Math.random() * 50, 50, 25, 40, 90)));
+    });
+  })();
+
+  /* --- card 3: period and duty sliders --- */
+  (function () {
+    const svg = $('#i3-svg'), X0 = 14, X1 = 286, PX = (X1 - X0) / 10; // 10 ms across
+    arrowDefs(svg, 'i3-ar1', 'var(--accent)'); arrowDefs(svg, 'i3-ar2', 'var(--hi)');
+    const wave = sv(svg, 'path', { fill: 'none', stroke: 'var(--nsig2)', 'stroke-width': 3, 'stroke-linejoin': 'round' });
+    const pa = sv(svg, 'path', { stroke: 'var(--accent)', 'stroke-width': 2, 'marker-start': 'url(#i3-ar1)', 'marker-end': 'url(#i3-ar1)' });
+    const pt = sv(svg, 'text', { y: 140, 'font-size': 15, 'text-anchor': 'middle', fill: 'var(--accent)' });
+    const ha = sv(svg, 'path', { stroke: 'var(--hi)', 'stroke-width': 2, 'marker-start': 'url(#i3-ar2)', 'marker-end': 'url(#i3-ar2)' });
+    const ht = sv(svg, 'text', { y: 18, 'font-size': 15, 'text-anchor': 'middle', fill: 'var(--hi-ink)' });
+    function draw() {
+      const T = +$('#i3-T').value, D = +$('#i3-D').value, xr = X0 + 1 * PX, P = T * PX, H = P * D / 100;
+      wave.setAttribute('d', sqPath(X0, X1, xr, P, H, 40, 100));
+      pa.setAttribute('d', `M${xr} 120H${Math.min(X1, xr + P)}`); pt.setAttribute('x', xr + Math.min(P, X1 - xr) / 2); pt.textContent = 'період T';
+      ha.setAttribute('d', `M${xr} 26H${xr + H}`); ht.setAttribute('x', Math.max(xr + H / 2, 40)); ht.textContent = 't HIGH';
+      $('#i3-Tv').textContent = `${fmt.num(T, 1)} мс`; $('#i3-Dv').textContent = `${D} %`;
+      $('#i3-T').setAttribute('aria-valuetext', `${fmt.num(T, 1)} мс`); $('#i3-D').setAttribute('aria-valuetext', `${D} %`);
+      $('#i3-out').innerHTML = `<span>f = 1 / T = <b>${fmt.num(1000 / T, 0)} Гц</b></span><span>t<sub>HIGH</sub> = <b>${fmt.num(T * D / 100, 2)} мс</b></span><span>D = <b>${D} %</b>${D === 50 ? ' (меандр)' : ''}</span>`;
+    }
+    $('#i3-T').addEventListener('input', draw); $('#i3-D').addEventListener('input', draw);
+    draw();
+  })();
+
+  /* --- card 4: rise time, the undefined zone and noise --- */
+  (function () {
+    const svg = $('#i4-svg'), VDD = 3.3, L = 40, R = 292, T0 = 10, TW = 100; // µs window
+    const y = (v) => 140 - v / VDD * 110, x = (t) => L + t / TW * (R - L);
+    arrowDefs(svg, 'i4-ar', 'var(--accent)');
+    sv(svg, 'rect', { x: L, y: y(0.75 * VDD), width: R - L, height: y(0.25 * VDD) - y(0.75 * VDD), fill: 'var(--hi)', opacity: 0.12 });
+    sv(svg, 'text', { x: R, y: y(0.5 * VDD) + 5, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--hi-ink)' }, 'невизначено');
+    sv(svg, 'text', { x: R, y: y(0.75 * VDD) - 4, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' }, '0,75·VDD');
+    sv(svg, 'text', { x: R, y: y(0.25 * VDD) + 15, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' }, '0,25·VDD');
+    sv(svg, 'path', { d: `M${L} ${y(0.1 * VDD)}H${R}M${L} ${y(0.9 * VDD)}H${R}`, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' });
+    sv(svg, 'text', { x: 2, y: y(0.1 * VDD) + 5, 'font-size': 15, fill: 'var(--muted)' }, '10 %');
+    sv(svg, 'text', { x: 2, y: y(0.9 * VDD) + 5, 'font-size': 15, fill: 'var(--muted)' }, '90 %');
+    const curve = sv(svg, 'path', { fill: 'none', stroke: 'var(--nsig2)', 'stroke-width': 3, 'stroke-linejoin': 'round' });
+    const m1 = sv(svg, 'path', { stroke: 'var(--accent)', 'stroke-dasharray': '2 3' });
+    const br = sv(svg, 'path', { stroke: 'var(--accent)', 'stroke-width': 2, 'marker-start': 'url(#i4-ar)', 'marker-end': 'url(#i4-ar)' });
+    sv(svg, 'text', { x: 2, y: 172, 'font-size': 15, fill: 'var(--muted)' }, 'вхід');
+    const dig = sv(svg, 'path', { fill: 'none', stroke: 'var(--nsig3)', 'stroke-width': 2.5 });
+    sv(svg, 'text', { x: R, y: 194, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' }, '100 мкс на екран');
+    // a fixed noise pattern (so the picture does not flicker): sum of a few sines + seeded jitter
+    const NZ = Array.from({ length: 501 }, (_, i) => 0.22 * Math.sin(i * 0.27) + 0.08 * Math.sin(i * 0.83 + 1) + 0.04 * Math.sin(i * 2.1));
+    let noise = false;
+    function draw() {
+      const tau = +$('#i4-tau').value, v = (t) => (t < T0 ? 0 : VDD * (1 - Math.exp(-(t - T0) / tau)));
+      let d = '', dg = '', lvl = 0, flips = 0;
+      for (let i = 0; i <= 500; i++) {
+        const t = i / 500 * TW, vv = v(t) + (noise ? NZ[i] : 0);
+        d += (i ? 'L' : 'M') + x(t).toFixed(1) + ' ' + y(vv).toFixed(1);
+        const nl = vv > VDD / 2 ? 1 : 0;
+        if (!i) dg = `M${L} ${nl ? 158 : 178}`;
+        else if (nl !== lvl) { dg += `H${x(t).toFixed(1)}V${nl ? 158 : 178}`; flips++; }
+        lvl = nl;
+      }
+      curve.setAttribute('d', d); dig.setAttribute('d', dg + `H${R}`);
+      const t10 = T0 + tau * Math.log(10 / 9), t90 = T0 + tau * Math.log(10);
+      m1.setAttribute('d', `M${x(t10)} ${y(0.1 * VDD)}V148M${x(t90)} ${y(0.9 * VDD)}V148`);
+      br.setAttribute('d', `M${x(t10)} 148H${x(t90)}`);
+      $('#i4-tv').textContent = `${tau} мкс`; $('#i4-tau').setAttribute('aria-valuetext', `${tau} мікросекунд`);
+      $('#i4-out').innerHTML = `<span>t наростання = 2,2·τ ≈ <b>${fmt.num(2.197 * tau, 0)} мкс</b></span><span>у сірій зоні ≈ <b>${fmt.num(tau * Math.log(3), 0)} мкс</b></span><span>перемикань входу <b class="${flips > 1 ? 'warnout' : ''}">${flips}</b></span>`;
+    }
+    $('#i4-tau').addEventListener('input', draw);
+    $('#i4-noise').addEventListener('switch', (e) => { noise = e.detail.on; draw(); });
+    draw();
+  })();
+
+  /* --- card 5: what the analyzer samples (release #58 from the bench) --- */
+  (function () {
+    const svg = $('#i5-svg'), L = 10, R = 292, TA = -50, TB = 650, edges = [0, 311, 476, 509, 580];
+    const x = (t) => L + (t - TA) / (TB - TA) * (R - L);
+    const lvlAt = (t) => { let l = 0; for (const e of edges) if (t >= e) l ^= 1; return l; };
+    let d = `M${L} 62`, l = 0;
+    for (const e of edges) { d += `H${x(e)}V${l ? 62 : 22}`; l ^= 1; }
+    sv(svg, 'text', { x: L, y: 14, 'font-size': 15, fill: 'var(--muted)' }, 'справжній сигнал: 5 фронтів');
+    sv(svg, 'path', { d: d + `H${R}`, fill: 'none', stroke: 'var(--nsig2)', 'stroke-width': 2.5 });
+    sv(svg, 'text', { x: L, y: 92, 'font-size': 15, fill: 'var(--muted)' }, 'запис аналізатора');
+    const ticks = sv(svg, 'path', { stroke: 'var(--nsig3)', 'stroke-width': 1.5, opacity: 0.55 });
+    const bits = sv(svg, 'path', { fill: 'none', stroke: 'var(--nsig3)', 'stroke-width': 2.5 });
+    const lost = sv(svg, 'g', {});
+    sv(svg, 'text', { x: R, y: 164, 'font-size': 15, 'text-anchor': 'end', fill: 'var(--muted)' }, '100 мкс/под');
+    function draw(fs) {
+      const step = 1e6 / fs, ph = 0.37;
+      let tk = '', b = '', prev = 0, seen = 0;
+      b = `M${L} 140`;
+      for (let t = TA + ph * step; t <= TB; t += step) {
+        const v = lvlAt(t);
+        if (step * (R - L) / (TB - TA) >= 3) tk += `M${x(t).toFixed(1)} 144V150`;
+        if (v !== prev) { b += `H${x(t).toFixed(1)}V${v ? 104 : 140}`; seen++; prev = v; }
+      }
+      ticks.setAttribute('d', tk); bits.setAttribute('d', b + `H${R}`);
+      lost.replaceChildren();
+      for (let k = 0; k < edges.length - 1; k++) {
+        let hit = false;
+        for (let t = TA + ph * step; t <= TB; t += step) if (t > edges[k] && t < edges[k + 1]) { hit = true; break; }
+        if (!hit) sv(lost, 'text', { x: (x(edges[k]) + x(edges[k + 1])) / 2, y: 80, 'font-size': 15, 'text-anchor': 'middle', fill: 'var(--bad)' }, '✕');
+      }
+      $('#i5-out').innerHTML = `<span>Між вибірками <b>${fmtTime(1 / fs)}</b></span><span>Аналізатор побачив <b class="${seen < 5 ? 'warnout' : ''}">${seen} з 5</b> фронтів</span>`;
+    }
+    seg('#i5-rate', (v) => draw(+v));
+    draw(1e6);
+  })();
 
   /* ---------- W-trig: mini scope with trigger ---------- */
   (function () {
@@ -1170,47 +2007,49 @@ document.addEventListener('study:ready', () => {
     gen();
   })();
 
-  /* ---------- 08 dual figure: breadboard + press ---------- */
+  /* ---------- 08 dual figure: breadboard + press (real parts: assets/kit.js) ---------- */
   (function () {
     const svg = $('#bb-btn');
-    const g = S.svg('g', {}, svg);
-    S.svg('rect', { x: 2, y: 30, width: 58, height: 110, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
-    S.svg('text', { class: 'sch-pin', x: 6, y: 24 }, g).textContent = 'плата';
-    S.svg('text', { class: 'sch-pin net-3v3', 'data-net': 'v33', x: 8, y: 52 }, g).textContent = '3V3';
-    S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 87 }, g).textContent = 'GND';
-    S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio21', x: 8, y: 122 }, g).textContent = '21';
-    const p3 = { x: 50, y: 48 }, pG = { x: 50, y: 83 }, p21 = { x: 50, y: 118 };
-    const bb = S.breadboard(svg, { cols: 16, rails: true, x: 76, y: 0, colLabels: 'bottom' });
-    bb.mark(2, 'top', 'v33', 'net-3v3');
-    bb.mark(7, 'top', 'gpio21', 'net-sig'); bb.mark(7, 'bottom', 'gpio21', 'net-sig');
-    bb.mark(10, 'top', 'gnd', 'net-gnd'); bb.mark(10, 'bottom', 'gnd', 'net-gnd');
-    bb.markRail('top', '+', 'v33', 'net-3v3'); bb.markRail('top', '-', 'gnd', 'net-gnd');
-    const la = S.svg('g', {}, svg);
-    S.svg('rect', { x: 300, y: 70, width: 74, height: 96, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, la);
-    S.svg('text', { class: 'sch-pin', x: 300, y: 64 }, la).textContent = 'аналізатор';
-    S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio21', x: 318, y: 104 }, la).textContent = 'CH1';
-    S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 318, y: 144 }, la).textContent = 'GND';
-    const j3 = S.part(svg, 'jumper', { from: p3, to: bb.rail('top', '+', 1), net: 'v33', cls: 'net-3v3', lift: 14, title: '3V3 плати → шина плюс' });
-    const jG = S.part(svg, 'jumper', { from: pG, to: bb.rail('top', '-', 2), net: 'gnd', cls: 'net-gnd', lift: 30, title: 'GND плати → шина мінус' });
-    const jR = S.part(svg, 'jumper', { from: bb.hole(2, 'a'), to: bb.rail('top', '+', 3), net: 'v33', cls: 'net-3v3', lift: 0, title: 'Стовпчик 2 → шина плюс' });
-    S.part(svg, 'res', { from: bb.hole(2, 'b'), to: bb.hole(7, 'b'), ohms: 10000, label: 'R1' });
-    S.part(svg, 'jumper', { from: p21, to: bb.hole(7, 'c'), net: 'gpio21', cls: 'net-sig', lift: 22, title: 'GPIO21 → стовпчик 7' });
-    const e7 = bb.hole(7, 'e'), f7 = bb.hole(7, 'f');
-    let btnG = S.part(svg, 'btn4', { x: e7.x, y: e7.y, w: 30, h: f7.y - e7.y, label: 'S1' });
-    const jK = S.part(svg, 'jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 10), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 10 → шина мінус' });
-    S.part(svg, 'jumper', { from: bb.hole(7, 'd'), to: { x: 306, y: 100 }, net: 'gpio21', cls: 'net-sig', lift: 70, title: 'Стовпчик 7 → CH1 аналізатора' });
-    S.part(svg, 'jumper', { from: bb.rail('top', '-', 15), to: { x: 306, y: 140 }, net: 'gnd', cls: 'net-gnd', lift: 10, title: 'Шина мінус → GND аналізатора' });
+    const B = btnBench(svg, { nets: true, cut: 945 });
+    const L = (x, y, t, net, cls, anc = 'middle') => {
+      const e = S.svg('text', { class: `kit-lbl ${cls || ''}`.trim(), x, y, 'text-anchor': anc }, svg);
+      if (net) e.dataset.net = net;
+      e.textContent = t;
+      return e;
+    };
+    // labels in the clear margins (above the breadboard, right of it, in the gap above the analyzer), straight leaders
+    const lead = (x1, y1, x2, y2) => S.svg('path', { class: 'kit-lead', d: `M${x1} ${y1}L${x2} ${y2}` }, svg);
+    const P = Kit.P, N = B.N, colX = (c) => B.bb.at('j' + c).x;
+    const sX = colX(N + 1), gX = colX(B.c21);
+    const mX = 1012, tY = (B.btn.pins['1a'].y + B.btn.pins['1b'].y) / 2; // the trench: a clear strip right of S1
+    lead(colX(N + 2) + 16, tY, mX - 12, tY); L(mX, tY + 12, 'S1', null, '', 'start');
+    // GPIO21 names the yellow jumper where it leaves the board: in the clear strip between the top rails and row a
+    L(gX - 18, B.w.sig.pins.a.y - Kit.P * 1.15, 'GPIO21', 'gpio21', 'net-sig mid', 'end');
+    const rY = B.res.pins[1].y, rX = B.res.pins[2].x + 14;
+    lead(rX, rY, mX - 12, rY); L(mX, rY + 12, 'R1', null, '', 'start'); L(mX, rY + 62, '10 кОм', null, 'kit-val', 'start');
+    const v = B.w.v33.pins.b; lead(v.x, v.y + 14, v.x, 566); L(v.x, 600, '3V3', 'v33', 'net-3v3');
+    L(colX(N) - 16, 588, 'CH1', 'gpio21', 'net-sig', 'end');
+    L(colX(B.cLA) + 16, 588, 'GND', 'gnd', 'net-gnd', 'start');
+    L(B.la.pins.USB.x - 40, B.la.pins.USB.y + 12, 'аналізатор', null, '', 'end');
+    const kitBtn = B.btn;
+    const j3 = B.w.v33.path, jR = B.w.r.path, jK = B.w.k.path, jG = B.w.gnd.path, jBr = B.w.br.path;
 
     const fig = $('#dual-btn');
-    const flowW = [[$('#w-v33'), 1], [$('#w-node'), 1], [$('#w-s1g'), 1], [$('#w-pg'), -1], [j3, 1], [jR, -1], [jK, 1], [jG, -1]];
+    // Schem.flow on a Kit wire: dots styled by .kitv .schem-flow; the reduced-motion arrow is scaled up here.
+    const kitFlow = (path, o) => {
+      const c = S.flow(path, o);
+      const ar = path.nextElementSibling && path.nextElementSibling.nextElementSibling;
+      if (path.closest('.kitv') && ar && ar.classList.contains('schem-flow-arrow')) ar.setAttribute('d', 'M24 0L-18 -24V24Z');
+      return c;
+    };
+    const flowW = [[$('#w-v33'), 1], [$('#w-node'), 1], [$('#w-s1g'), 1], [$('#w-pg'), -1], [j3, 1], [jR, -1], [jK, 1], [jBr, -1], [jG, -1]];
     let pressed = false;
     function upd() {
       S.setNetLevel(fig, 'gpio21', pressed ? 'lo' : 'hi');
       const i = pressed ? 0.33 : 0;
-      flowW.forEach(([w, dir]) => { if (i) S.flow(w, { mA: i, dir }); else if (w._flow) w._flow.set(0); });
+      flowW.forEach(([w, dir]) => { if (i) kitFlow(w, { mA: i, dir }); else if (w._flow) w._flow.set(0); });
       $('#s1-open').toggleAttribute('hidden', pressed); $('#s1-closed').toggleAttribute('hidden', !pressed);
-      btnG.remove();
-      btnG = S.part(svg, 'btn4', { x: e7.x, y: e7.y, w: 30, h: f7.y - e7.y, label: 'S1', pressed });
+      kitBtn.set({ pressed });
       $('#c-out').textContent = pressed
         ? 'S1 замкнена: GPIO21 = 0 В → LOW. Через R1 тече 3,3 В / 10 кОм = 0,33 мА.'
         : 'S1 розімкнена: струму немає, GPIO21 = 3,3 В через R1 → HIGH.';

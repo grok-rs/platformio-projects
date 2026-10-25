@@ -201,7 +201,13 @@ for (const page of pages) {
     const problems = [];
     const onMsg = (m) => {
       if (m.sessionId !== sessionId) return;
-      if (m.method === 'Runtime.exceptionThrown') problems.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).split('\n')[0]);
+      if (m.method === 'Runtime.exceptionThrown') {
+        const d = m.params.exceptionDetails;
+        const urls = (d.stackTrace?.callFrames || []).map((f) => f.url).filter(Boolean);
+        // giscus's own client.js reads localStorage unguarded; with storage blocked only the comment box fails, not the page.
+        if (urls.length && urls.every((u) => u.startsWith('https://giscus.app/'))) return;
+        problems.push('exception: ' + (d.exception?.description || d.text).split('\n')[0] + (urls.length ? ' @' + urls.join(' < ') : ''));
+      }
       if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') problems.push('console.error: ' + m.params.args.map((a) => a.value ?? a.description).join(' ').slice(0, 200));
       if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') problems.push('log: ' + m.params.entry.text.slice(0, 200));
     };

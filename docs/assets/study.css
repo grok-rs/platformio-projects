@@ -381,6 +381,8 @@ figcaption code { font-size: max(13px, .88em); }
   .idea:has(> figure) > :is(h3, .key, .full) { grid-column: 1 / -1; }
   /* the figure spans the text rows only (rows 2–12; «Головне» is pinned to row 13), so the sticky sheet never slides over it */
   .idea:has(> figure) > figure { grid-column: 2; grid-row: 2 / span 11; align-self: start; margin: 0 0 12px; position: sticky; top: 96px; }
+  /* an interactive figure (controls, switches, canvas) can be taller than the text: it scrolls with the card instead */
+  .idea:has(> figure) > figure:has(button, input, select, canvas) { position: static; }
   .idea:has(> figure) > .key { align-self: end; position: relative; z-index: 1; grid-row: 13; }
   .idea:not(:has(> figure)) > :not(h3) { max-width: 68ch; }
   /* a card with code, or a long one (4+ paragraphs): one 68ch text column; the figure gets the full card width
@@ -892,6 +894,83 @@ form.exit-ticket .actions { margin: 0; }
 @media (max-width: 480px) { .hub-end .btn { flex: 1 1 100%; } .hub-end .btn:last-child:not(:only-child) { margin-left: 0; } }
 /* a section the reader has finished: a small ✓ after its TOC entry (the state is also in the link's label) */
 .hub-toc a.done::after { content: "✓"; margin-left: auto; padding-left: 6px; font: 700 13px/1 var(--f-body); color: var(--ok); }
+
+/* ================================================================ lab: the lesson's interactive bench (first block of a hub)
+   <section class="lab wide" aria-labelledby="lab-h">
+     <header class="lab-head"><h2 id="lab-h">Лабораторія</h2><p>what to try</p></header>
+     <div class="lab-stage">svg / canvas</div>
+     <div class="lab-ctl">.sw switches, sliders (.lab-range), .seg buttons</div>
+     <div class="lab-read"><div><b>Струм</b><output>12 мА</output></div>…</div>
+     <p class="lab-note">what just happened, in one sentence (aria-live)</p>
+   </section> */
+.lab {
+  margin: 28px 0 12px; border-radius: var(--r-lg); overflow: hidden;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.lab-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.lab-head :is(h2, h3) { margin: 0; font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+.lab-head :is(h2, h3)::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); vertical-align: 1px; }
+.lab-head p { margin: 0; font-size: 15px; color: var(--muted); }
+.lab-stage { position: relative; background: var(--sheet); padding: clamp(8px, 2vw, 16px); }
+.lab-stage > :is(svg, canvas) { display: block; width: 100%; }
+.lab-stage > svg { height: auto; }
+.lab-stage[data-sim] { cursor: pointer; }
+.lab-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 18px; border-top: 1px solid var(--line); background: var(--panel-2); }
+.lab-range { display: inline-flex; align-items: center; gap: 10px; font: 600 14px var(--f-body); }
+.lab-range input[type="range"] { width: clamp(120px, 22vw, 220px); accent-color: var(--accent); }
+.lab-range output { min-width: 5.5em; font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; }
+.lab-read { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); border-top: 1px solid var(--line); }
+.lab-read > div { padding: 8px 16px 10px; }
+.lab-read > div + div { border-left: 1px solid var(--line); }
+.lab-read b { display: block; font: 600 13px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lab-read output { font: 650 clamp(18px, 2.4vw, 22px)/1.3 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.lab-read .bad { color: var(--bad); } .lab-read .ok { color: var(--ok); }
+.lab-note { margin: 0; padding: 10px 18px 12px; border-top: 1px dashed var(--line-2); font-size: 15px; }
+.lab-more { display: inline-block; margin: 0 18px 14px; font-weight: 600; }
+
+/* on/off switch: <button class="sw" aria-checked> (role and the click behaviour come from study.js) */
+button.sw {
+  position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 6px 14px 6px 60px;
+  border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); color: var(--ink);
+  font: 600 14px/1.2 var(--f-body); cursor: pointer; user-select: none; -webkit-user-select: none;
+}
+button.sw::before { content: ""; position: absolute; left: 8px; top: 50%; width: 42px; height: 24px; margin-top: -12px; border-radius: 999px;
+  background: var(--sunk); box-shadow: inset 0 0 0 1.5px var(--line-strong); transition: background-color .18s var(--ease); }
+button.sw::after { content: ""; position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%;
+  background: var(--muted); transition: transform .18s var(--ease), background-color .18s var(--ease); }
+button.sw[aria-checked="true"]::before { background: var(--accent); box-shadow: none; }
+button.sw[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent-ink); }
+button.sw:hover { border-color: var(--accent); }
+button.sw:disabled { opacity: .55; cursor: not-allowed; }
+@media (pointer: coarse) { button.sw { min-height: 44px; } }
+
+/* animated explainer («відео» in steps): Study.anim builds .anim-ctl and fills .anim-cap */
+.anim { margin: 24px 0; border-radius: var(--r-lg); overflow: hidden; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.anim > .anim-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.anim > .anim-head :is(h2, h3) { margin: 0; font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+.anim > .anim-head :is(h2, h3)::before { content: "▶"; margin-right: 8px; color: var(--accent); }
+.anim-stage { position: relative; background: var(--sheet); padding: clamp(8px, 2vw, 16px); cursor: pointer; }
+.anim-stage > :is(svg, canvas) { display: block; width: 100%; }
+.anim-stage > svg { height: auto; }
+.anim-cap { min-height: 3.2em; margin: 0; padding: 10px 18px; border-top: 1px solid var(--line); font-size: 16px; line-height: 1.55; }
+.anim-ctl { display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px; background: var(--panel-2); border-top: 1px solid var(--line); }
+.anim-btn { flex: none; min-width: 40px; min-height: 40px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel);
+  color: var(--ink); font: 600 16px/1 var(--f-body); cursor: pointer; }
+.anim-btn.play { min-width: 48px; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 1.5px 0 var(--accent-deep); }
+.anim-btn:hover { border-color: var(--accent); }
+.anim-steps { flex: 1; display: flex; gap: 4px; margin: 0 4px; padding: 0; list-style: none; min-width: 0; }
+.anim-steps li { flex: 1; margin: 0; }
+.anim-steps button { display: block; width: 100%; height: 28px; padding: 11px 0; border: 0; background: none; cursor: pointer; }
+.anim-steps button > span { display: block; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) calc(var(--p, 0) * 100%), var(--line-2) 0); }
+.anim-steps button[aria-current="step"] > span { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.anim-n { flex: none; font: 600 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) { .anim-btn { min-width: 44px; min-height: 44px; } .anim-steps button { height: 44px; padding: 19px 0; } }
+
+/* soft predict gate: the widget works right away; this hint points back to the question until it is answered */
+.gate-hint { display: block; width: 100%; margin: 0 0 8px; padding: 8px 14px; border: 1px dashed color-mix(in srgb, var(--hi) 55%, var(--line));
+  border-radius: 10px; background: color-mix(in srgb, var(--hi) 7%, var(--panel)); color: var(--hi-ink); font: 600 14px/1.4 var(--f-body);
+  text-align: left; cursor: pointer; }
 
 /* ================================================================ «Коротко»: the lesson in 2 minutes (after #goals)
    <aside class="tldr" aria-labelledby="…"><h2 class="tldr-h">Коротко</h2><p class="tldr-time">≈ 10 хв основне · віджети — ще 20</p>

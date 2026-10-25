@@ -179,6 +179,13 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; cursor: pointer; }
 .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
 
+/* 01: the group's real UNI-T UT136C+ (Kit 'multimeter') next to the readouts; hardware colours stay in both themes */
+.s1-meter { display: grid; grid-template-columns: 112px 1fr; border-top: 1px solid var(--line); }
+.s1-meter .dmm-real { padding: 8px 4px 8px 10px; display: flex; align-items: center; }
+.s1-meter .dmm-real svg { display: block; width: 100%; height: auto; }
+.s1-meter .stats { border-top: 0; border-left: 1px solid var(--line); grid-template-columns: 1fr; }
+.s1-meter .stat { border-right: 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; justify-content: center; }
+.s1-meter .stat:last-child { border-bottom: 0; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 0; border-top: 1px solid var(--line); }
 .stat { padding: 8px 12px; border-right: 1px solid var(--line); min-width: 0; }
 .stat:last-child { border-right: 0; }
@@ -415,10 +422,13 @@ pre.serial { margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); ba
       <div class="ph"><h3>Осцилограф · повільна розгортка</h3><span class="hint">промінь іде зліва направо в реальному часі</span></div>
       <div id="s1-scope"></div>
       <div class="gen" id="s1-gen"></div>
-      <div class="stats">
-        <div class="stat"><div class="k">Мультиметр зараз</div><div class="v sig" id="s1-dmm">—</div></div>
-        <div class="stat"><div class="k">Період T</div><div class="v hi" id="s1-T">—</div></div>
-        <div class="stat"><div class="k">Клітинок на період</div><div class="v" id="s1-div">—</div></div>
+      <div class="s1-meter">
+        <div class="dmm-real" id="s1-dmm-kit"></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Мультиметр зараз</div><div class="v sig" id="s1-dmm">—</div></div>
+          <div class="stat"><div class="k">Період T</div><div class="v hi" id="s1-T">—</div></div>
+          <div class="stat"><div class="k">Клітинок на період</div><div class="v" id="s1-div">—</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1106,11 +1116,14 @@ t_r приладу ≈ 0,35 / смуга
 </footer>
 </div>
 
+<script src="../assets/kit.js" defer></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Kit parts (assets/kit.js, deferred) exist only after parsing: build them on DOMContentLoaded
+const kitReady = fn => { if (window.Kit) fn(); else document.addEventListener('DOMContentLoaded', () => { if (window.Kit) fn(); }); };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += Math.random(); return (u - 3) * 1.4142; };
 
@@ -1675,7 +1688,24 @@ function genUI(host, g, o, onChange) {
     $('#s1-T').textContent = U(T, 'с');
     $('#s1-div').textContent = sig(T / s.tdiv) + ' ' + plural(T / s.tdiv, CELLS);
   }
-  const dmm = { root: $('#time'), draw() { $('#s1-dmm').textContent = U(g.fn(SIM.t), 'В'); } };
+  // the real meter refreshes its LCD ~3 times a second (like the UT136C+), the readout tile every frame
+  let meter = null, lastLcd = -1;
+  kitReady(() => {
+    const host = $('#s1-dmm-kit');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '-10 -10 900 1880'); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Мультиметр UNI-T UT136C+ у режимі постійної напруги: одне число — напруга в цю мить');
+    host.appendChild(svg);
+    meter = Kit.part('multimeter', { parent: svg, shadow: false });
+    meter.set({ dial: 'V', unit: 'V', ac: false, display: '0.000' });
+  });
+  const lcd = v => { const a = Math.abs(v); return (v < 0 ? '-' : '') + (a < 3.9995 ? a.toFixed(3) : a < 39.995 ? a.toFixed(2) : a.toFixed(1)); };
+  const dmm = { root: $('#time'), draw() {
+    const v = g.fn(SIM.t);
+    $('#s1-dmm').textContent = U(v, 'В');
+    const now = performance.now();
+    if (meter && (now - lastLcd > 330 || lastLcd < 0)) { lastLcd = now; meter.set({ display: lcd(v) }); }
+  } };
   addSim(dmm);
   hooks.t1 = () => { g.f = 0.25; ui.sync(); sc.setTdiv(2); };
   upd(sc);

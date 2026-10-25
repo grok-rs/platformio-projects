@@ -244,27 +244,32 @@ svg.circuit, svg.taps, svg.pins, svg.ldr-pic { display: block; width: 100%; heig
 
 .ldr-pic .lamp { fill: var(--light); }
 .ldr-pic .glow { fill: var(--light); }
-.ldr-pic .disc { fill: color-mix(in srgb, var(--hi) 25%, var(--panel)); stroke: var(--ink); stroke-width: 2; }
-.ldr-pic .track { fill: none; stroke: var(--pwr); stroke-width: 3; }
-.ldr-pic .carrier { fill: var(--nsig2, var(--sig)); }
+/* the magnifier shows the real GL55xx face (Kit colours: they never follow the theme) */
+.ldr-pic .zoom-rim { fill: #a8361f; } .ldr-pic .zoom-rim2 { fill: #c4472a; }
+.ldr-pic .disc { fill: #efe4d4; }
+.ldr-pic .track { fill: none; stroke: #c9542a; stroke-width: 9; stroke-linejoin: round; }
+.ldr-pic .elec { fill: none; stroke: #c7c9cc; stroke-width: 12; }
+.ldr-pic .shade { fill: #000; }
+.ldr-pic .carrier { fill: #1f4fc4; stroke: #fff; stroke-width: 1; }
+.ldr-pic .cone { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 4; }
 .ldr-pic .ray { stroke: var(--hi); stroke-width: 3; stroke-linecap: round; }
 .ldr-pic .sub { fill: var(--muted); font: 500 11.5px var(--f-mono); }
 .ldr-pic .lbl { fill: var(--ink); font: 600 13px var(--f-body); }
 
-.pins .board { fill: #163049; stroke: #0b1a28; stroke-width: 2; }
-.pins .module { fill: #3a4652; stroke: #0b1a28; stroke-width: 1.5; }
-.pins .modtxt { fill: #e8eef2; font: 600 12px var(--f-mono); }
-.pins .usb { fill: #9aa7b1; stroke: #0b1a28; stroke-width: 1.5; }
+/* pin map: the real YD-ESP32-S3 (Kit part, purple PCB in both themes); category dots and pin names sit OUTSIDE the board in theme ink */
+svg.pins { max-width: 470px; margin: 4px auto 0; }
+.pins .hdr { fill: var(--muted); font: 600 17px var(--f-mono); }
 .pins .pin { cursor: pointer; outline: none; }
-.pins .pin circle { stroke: #0b1a28; stroke-width: 2; transition: r .15s; }
-.pins .pin text { font: 600 11.5px var(--f-mono); fill: #e8eef2; }
-.pins .pin:hover circle { r: 10; stroke: var(--hi); stroke-width: 2.5; }
-.pins .pin.sel circle { stroke: var(--hi); stroke-width: 3.5; r: 10; }
+.pins .pin circle.dot { stroke: var(--panel); stroke-width: 2.5; transition: r .15s; }
+.pins .pin text { font: 600 19px var(--f-mono); fill: var(--ink); }
+.pins .pin:hover circle.dot { r: 11px; stroke: var(--hi); stroke-width: 3; }
+.pins .pin.sel circle.dot { stroke: var(--hi); stroke-width: 4; r: 12px; }
+.pins .pin.sel text { font-weight: 800; }
+.pins .pin .lead { stroke: var(--line); stroke-width: 2; }
 /* keyboard focus: the site's focus blue, distinct from hover/selected brass */
 .pins .pin:focus { outline: none; }
-.pins .pin circle.pf { fill: none; display: none; pointer-events: none; r: 14px; }
+.pins .pin circle.pf { fill: none; display: none; pointer-events: none; }
 .pins .pin:focus-visible circle.pf { display: inline; }
-/* focus: a dashed blue ring on a panel-coloured halo, readable on the navy board in both themes and distinct from the solid amber selection */
 .pins .pin .pf.h { stroke: var(--panel); stroke-width: 7; }
 .pins .pin .pf.f { stroke: var(--focus, #1d5fa8); stroke-width: 3; stroke-dasharray: 4 3; }
 .pins .pin .hit { fill: transparent; }
@@ -893,6 +898,7 @@ U_out = 3,3 В · R2 / (R_LDR + R2)
 </footer>
 </div>
 
+<script src="../assets/kit.js" defer></script>
 <script>
 'use strict';
 const VCC = 3.3, FS = 3.1, ADC_MAX = 4095, VIH = 2.47, VIL = 0.82;
@@ -900,6 +906,8 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+// Kit parts (assets/kit.js, deferred) exist only after parsing: build them on DOMContentLoaded
+const kitReady = fn => { if (window.Kit) fn(); else document.addEventListener('DOMContentLoaded', () => { if (window.Kit) fn(); }); };
 
 // ---------- formatting (Ukrainian decimal comma) ----------
 const f = (x, d = 0) => x.toFixed(d).replace('.', ',').replace('-', '−');
@@ -1217,20 +1225,34 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
 /* ================================================================ 04 LDR */
 (() => {
   const box = $('#ldr-pic-box'), lIn = $('#l-lux'), cv = $('#sc-ldr');
-  const carriers = Array.from({ length: 40 }, (_, i) => ({ x: 170 + Math.random() * 180, y: 60 + Math.random() * 100, vx: 0, vy: 0, seed: i }));
+  const MX = 330, MY = 110, MR = 62;   // magnifier centre + the radius carriers stay inside
+  const carriers = Array.from({ length: 40 }, (_, i) => ({ x: MX, y: MY, vx: 0, vy: 0, seed: i }));
+  // serpentine of the real GL55xx face (Kit 'ldr' geometry ×3)
+  let serp = `M${MX - 45} ${MY - 39}`;
+  for (let k = 0; k < 6; k++) { serp += `V${MY + (k % 2 ? -39 : 39)}`; if (k < 5) serp += 'h18'; }
   box.innerHTML = `<svg class="ldr-pic" viewBox="0 0 520 220" role="img" aria-label="Лампа світить на фоторезистор; що більше світла, то більше вільних носіїв заряду">
-    <circle class="glow" id="lp-glow" cx="70" cy="80" r="56" opacity=".3"/>
-    <circle class="lamp" id="lp-lamp" cx="70" cy="80" r="22"/>
-    <text class="sub" x="70" y="170" text-anchor="middle">лампа</text>
+    <circle class="glow" id="lp-glow" cx="62" cy="70" r="56" opacity=".3"/>
+    <circle class="lamp" id="lp-lamp" cx="62" cy="70" r="22"/>
+    <text class="sub" x="62" y="170" text-anchor="middle">лампа</text>
     <g id="lp-rays"></g>
-    <circle class="disc" cx="260" cy="110" r="96"/>
-    <path class="track" d="M190 70 H330 M330 70 V90 M330 90 H190 M190 90 V110 M190 110 H330 M330 110 V130 M330 130 H190 M190 130 V150 M190 150 H330"/>
+    <path class="cone" d="M172 78 L${MX} ${MY - 84} M172 122 L${MX} ${MY + 84}"/>
+    <g id="lp-kit"></g>
+    <circle class="zoom-rim" cx="${MX}" cy="${MY}" r="84"/><circle class="zoom-rim2" cx="${MX}" cy="${MY}" r="76.5"/>
+    <circle class="disc" cx="${MX}" cy="${MY}" r="69"/>
+    <path class="track" d="${serp}"/>
+    <path class="elec" d="M${MX - 63} ${MY - 18}a69 69 0 0 1 27 -45M${MX + 63} ${MY + 18}a69 69 0 0 1 -27 45"/>
+    <circle class="shade" id="lp-shade" cx="${MX}" cy="${MY}" r="69" opacity="0"/>
     <g id="lp-car"></g>
-    <line x1="164" y1="110" x2="120" y2="200" stroke="var(--lo)" stroke-width="3"/><line x1="356" y1="110" x2="400" y2="200" stroke="var(--lo)" stroke-width="3"/>
-    <text class="lbl" x="430" y="70">LDR</text>
-    <text class="sub" x="430" y="90" id="lp-r">—</text>
-    <text class="sub" x="430" y="108" id="lp-n">—</text>
+    <text class="lbl" x="428" y="70">LDR</text>
+    <text class="sub" x="428" y="90" id="lp-r">—</text>
+    <text class="sub" x="428" y="108" id="lp-n">—</text>
   </svg>`;
+  // the small part is the real GL55xx from the kit (Kit 'ldr'); the circle is its face under a magnifier
+  let ldrPart = null;
+  kitReady(() => {
+    ldrPart = Kit.part('ldr', { x: 161.8, y: 172, scale: 0.8, leg: 60, parent: $('#lp-kit'), title: 'Фоторезистор GL55xx з набору' });
+    update();
+  });
   const what = l => l < 1 ? 'ніч' : l < 30 ? 'сутінки' : l < 350 ? 'кімната' : l < 1000 ? 'офіс' : l < 20000 ? 'день' : 'сонце';
   let active = 0;
   function update() {
@@ -1241,8 +1263,10 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     $('#lp-glow').setAttribute('r', (30 + 40 * k).toFixed(0));
     $('#lp-lamp').setAttribute('opacity', (0.25 + 0.75 * k).toFixed(2));
     let rays = '';
-    for (let i = 0; i < 4; i++) { const y = 50 + i * 20; rays += `<line class="ray" x1="104" y1="${y}" x2="160" y2="${y + (110 - y) * 0.3}" opacity="${(k).toFixed(2)}"/>`; }
+    for (let i = 0; i < 4; i++) { const y = 44 + i * 17; rays += `<line class="ray" x1="96" y1="${y}" x2="134" y2="${(y + (92 - y) * 0.45).toFixed(1)}" opacity="${(k).toFixed(2)}"/>`; }
     $('#lp-rays').innerHTML = rays;
+    $('#lp-shade').setAttribute('opacity', ((1 - k) * 0.35).toFixed(2));
+    if (ldrPart) ldrPart.set({ light: k });
     active = Math.round(3 + 37 * k);
     $('#lp-r').textContent = 'R = ' + ohm(r); $('#lp-n').textContent = `носіїв: ${active}`;
     drawCar(); drawPlot();
@@ -1273,12 +1297,12 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
       for (const c of carriers.slice(0, active)) {
         c.vx += gauss() * sp * dt * 6; c.vy += gauss() * sp * dt * 6; c.vx *= 0.92; c.vy *= 0.92;
         c.x += c.vx * dt; c.y += c.vy * dt;
-        const dx = c.x - 260, dy = c.y - 110, d = Math.hypot(dx, dy);
-        if (d > 84) { c.x = 260 + dx / d * 84; c.y = 110 + dy / d * 84; c.vx *= -1; c.vy *= -1; }
+        const dx = c.x - MX, dy = c.y - MY, d = Math.hypot(dx, dy);
+        if (d > MR) { c.x = MX + dx / d * MR; c.y = MY + dy / d * MR; c.vx *= -1; c.vy *= -1; }
       }
       drawCar(); },
     draw: drawPlot });
-  for (const c of carriers) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * 80; c.x = 260 + Math.cos(a) * r; c.y = 110 + Math.sin(a) * r; }
+  for (const c of carriers) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * MR; c.x = MX + Math.cos(a) * r; c.y = MY + Math.sin(a) * r; }
   hooks.ldrDark = () => { lIn.value = -1; update(); };
   update();
 })();
@@ -1401,28 +1425,32 @@ function setPressed(group, btn) { $$(group + ' button').forEach(x => x.setAttrib
     if (n >= 35 && n <= 37) return ['usbp', `GPIO${n}`, [['z', 'PSRAM']], 'На модулі N16R8 цей пін зайнятий восьмибітною PSRAM. Не використовуйте.'];
     return ['other', `GPIO${n}`, [['lo', 'цифровий']], `Звичайний цифровий пін. АЦП немає: analogRead() тут не працює.${n === 48 ? ' На багатьох платах DevKitC тут RGB-світлодіод.' : ''}${n >= 39 && n <= 42 ? ' Також використовується для JTAG.' : ''}`];
   }
-  const rowH = 24, top = 70;
-  let s = `<svg class="pins" viewBox="0 0 360 ${top + 22 * rowH + 60}" role="group" aria-label="Карта пінів YD-ESP32-S3">
-    <rect class="board" x="40" y="20" width="280" height="${22 * rowH + 90}" rx="10"/>
-    <rect class="module" x="110" y="30" width="140" height="190" rx="4"/>
-    <text class="modtxt" x="180" y="60" text-anchor="middle">антена</text>
-    <text class="modtxt" x="180" y="130" text-anchor="middle">ESP32-S3</text>
-    <text class="modtxt" x="180" y="148" text-anchor="middle">WROOM-1</text>
-    <text class="modtxt" x="180" y="166" text-anchor="middle">N16R8</text>
-    <rect class="usb" x="152" y="${top + 22 * rowH + 44}" width="56" height="26" rx="4"/>
-    <text class="modtxt" x="180" y="${top + 22 * rowH + 36}" text-anchor="middle">USB-C</text>
-    <text class="modtxt" x="70" y="${top - 18}" text-anchor="middle">J1</text><text class="modtxt" x="290" y="${top - 18}" text-anchor="middle">J3</text>`;
+  // The real YD-ESP32-S3 (Kit 'esp32s3', 1 unit = 0.1 mm): left header J1 at x = 0, right header J3 at x = 10·P, pin i at y = i·P.
+  // Category dots + readable pin names sit outside the board; the board itself keeps its own (sideways) silkscreen.
+  const P = 25.4, RX = 10 * P;
+  const kitName = (side, i) => side ? ['GND2', 'TX', 'RX'][i] || (i === 20 ? 'GND3' : i === 21 ? 'GND4' : 'GPIO' + J3[i])
+    : ['3V3', '3V3_2', 'RST'][i] || (i === 20 ? '5V' : i === 21 ? 'GND' : 'GPIO' + J1[i]);
+  let s = `<svg class="pins" viewBox="-112 -112 490 688" role="group" aria-label="Карта пінів YD-ESP32-S3">
+    <g id="pins-kit" aria-hidden="true"></g>
+    <text class="hdr" x="-34" y="-30" text-anchor="middle">J1</text><text class="hdr" x="${RX + 34}" y="-30" text-anchor="middle">J3</text>`;
   const all = [];
-  [[J1, 70, 'start', 18], [J3, 290, 'end', -18]].forEach(([J, x, anchor, dx]) => J.forEach((p, i) => {
-    const [cat, name] = info(p), y = top + i * rowH, id = `pin-${x}-${i}`;
-    all.push({ id, p, cat });
-    s += `<g class="pin" id="${id}" data-cat="${cat}" tabindex="0" role="button" aria-label="${name}"><rect class="hit" x="${x - 23}" y="${y - 12}" width="46" height="24"/><circle class="${cat}" cx="${x}" cy="${y}" r="8"/><circle class="pf h" cx="${x}" cy="${y}" r="14"/><circle class="pf f" cx="${x}" cy="${y}" r="14"/><text x="${x + dx}" y="${y + 4}" text-anchor="${anchor}">${/^\d+$/.test(p) ? p : p}</text></g>`;
+  [[J1, 70, 0], [J3, 290, 1]].forEach(([J, x, side]) => J.forEach((p, i) => {
+    const [cat, name] = info(p), y = i * P, id = `pin-${x}-${i}`;   // ids kept from the old map (pin-70-3 = GPIO4)
+    const px = side ? RX : 0, dx = side ? RX + 34 : -34, tx = side ? RX + 52 : -52;
+    all.push({ id, p, cat, kit: kitName(side, i) });
+    s += `<g class="pin" id="${id}" data-cat="${cat}" tabindex="0" role="button" aria-label="${name}"><rect class="hit" x="${side ? px - 14 : -112}" y="${(y - P / 2).toFixed(1)}" width="126" height="${P}"/><line class="lead" x1="${px + (side ? 10 : -10)}" y1="${y}" x2="${dx + (side ? -9 : 9)}" y2="${y}"/><circle class="dot ${cat}" cx="${dx}" cy="${y}" r="9"/><circle class="pf h" cx="${dx}" cy="${y}" r="15"/><circle class="pf f" cx="${dx}" cy="${y}" r="15"/><text x="${tx}" y="${y + 6.5}" text-anchor="${side ? 'start' : 'end'}">${p}</text></g>`;
   }));
   s += '</svg>';
   $('#pins-box').innerHTML = s;
+  let esp = null, cur = null;
+  kitReady(() => {
+    esp = Kit.part('esp32s3', { parent: $('#pins-kit'), title: 'YD-ESP32-S3 з набору' });
+    if (cur) esp.set({ highlight: cur.kit });
+  });
   function select(el) {
     $$('.pins .pin').forEach(x => x.classList.toggle('sel', x === el));
-    const p = all.find(a => a.id === el.id).p, [, name, badges, text] = info(p);
+    cur = all.find(a => a.id === el.id); if (esp) esp.set({ highlight: cur.kit });
+    const p = cur.p, [, name, badges, text] = info(p);
     $('#pin-info').innerHTML = `<h3>${name}</h3><p>${badges.map(([c, t]) => `<span class="badge ${c}">${t}</span>`).join('')}</p><p style="margin-top:4px">${text}</p>`;
   }
   $$('.pins .pin').forEach(el => {

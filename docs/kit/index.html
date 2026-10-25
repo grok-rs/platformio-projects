@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Наш набір</title>
+<meta name="description" content="Усі деталі нашого набору ESP32-S3 у вигляді живих малюнків: плата YD-ESP32-S3, макетка, мультиметр UNI-T UT136C+, логічний аналізатор, світлодіоди, резистори, реле, мотор і решта. Для чого кожна деталь і як вона виглядає в роботі.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Page widgets only; colours from study.css tokens. */
+.kit-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); margin: 8px 0 0; }
+.kit-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.kit-card.span2 { grid-column: 1 / -1; }
+.kit-stage { position: relative; background: var(--sheet); border-bottom: 1px solid var(--line); padding: 12px; min-height: 160px; display: grid; place-items: center; }
+.kit-stage > svg { display: block; width: 100%; height: auto; max-height: 420px; }
+.kit-card.span2 .kit-stage > svg { max-height: 480px; }
+.kit-body { padding: 12px 16px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.kit-ctl .lab-range { flex-wrap: wrap; }
+.kit-ctl .lab-range input[type="range"] { width: clamp(120px, 40vw, 180px); }
+.kit-ctl .lab-range output { min-width: 3.5em; }
+.kit-body h3 { font-size: var(--fs-h4); margin: 0; }
+.kit-model { margin: 0; font: 500 14px/1.4 var(--f-mono); color: var(--muted); }
+.kit-body p { margin: 0; font-size: 15px; line-height: 1.5; }
+.kit-pins { font-size: 14px !important; color: var(--muted); }
+.kit-pins b { color: var(--ink); font-family: var(--f-mono); font-weight: 600; }
+.kit-ctl { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 6px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { min-height: 40px; padding: 6px 11px; border: 0; background: transparent; color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.kit-cap { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 14px; margin: 6px 0 0; font: 500 13px var(--f-mono); color: var(--muted); }
+#demo-stage > svg { max-height: none; }
+</style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="kit">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main">
+  <header id="top">
+    <p class="eyebrow">Довідник</p>
+    <h1>Наш <span>набір</span></h1>
+    <p class="lead">Кожна деталь, яка лежить у вашій коробці, намальована такою, як вона є: ті самі кольори, написи й порядок виводів. Саме ці малюнки ви побачите в лабораторіях уроків. Перемикачі під малюнками показують, як деталь виглядає в роботі.</p>
+  </header>
+
+  <section class="hs wide" id="parts" aria-labelledby="parts-h">
+    <h2 id="parts-h"><span class="n">01</span> Деталі</h2>
+    <div class="kit-grid">
+
+      <article class="kit-card span2" id="k-esp">
+        <div class="kit-stage" data-draw="esp"></div>
+        <div class="kit-body">
+          <h3>Плата ESP32-S3 N16R8</h3>
+          <p class="kit-model">YD-ESP32-S3 («AI-S3»), модуль ESP32-S3-WROOM-1, 16 МБ flash + 8 МБ PSRAM</p>
+          <p>Мозок кожного проєкту. На ній вчимося Wi-Fi, цифровим входам і виходам (GPIO), АЦП, ШІМ, I2C, SPI та UART.</p>
+          <p class="kit-pins">Ліва гребінка зверху вниз: <b>3V3 3V3 RST 4 5 6 7 15 16 17 18 8 3 46 9 10 11 12 13 14 5Vin GND</b>; права: <b>GND TX RX 1 2 42 41 40 39 38 37 36 35 0 45 48 47 21 20 19 GND GND</b>. Знизу два USB-C: лівий «COM» (через міст UART), правий «USB» (рідний USB чипа).</p>
+          <div class="kit-ctl">
+            <button type="button" class="sw" data-k="esp-power" aria-checked="true">Живлення</button>
+            <button type="button" class="sw" data-k="esp-rgb" aria-checked="false">RGB-світлодіод (GPIO48)</button>
+            <button type="button" class="sw" data-k="esp-boot" aria-checked="false">Натиснути BOOT</button>
+            <button type="button" class="sw" data-k="esp-rst" aria-checked="false">Натиснути RST</button>
+            <button type="button" class="sw" data-k="esp-hl" aria-checked="false">Знайти GPIO15</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card span2" id="k-bb">
+        <div class="kit-stage" data-draw="bb"></div>
+        <div class="kit-body">
+          <h3>Макетна плата WB-102</h3>
+          <p class="kit-model">830 отворів: 63 стовпчики × 2 половини по 5 отворів + 4 шини живлення</p>
+          <p>Збираємо схеми без паяння. П’ять отворів одного стовпчика (a–e або f–j) з’єднані між собою; шини «+» і «−» тягнуться вздовж краю.</p>
+          <div class="kit-ctl">
+            <button type="button" class="sw" data-k="bb-marks" aria-checked="false">Показати, що з’єднано</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-mm">
+        <div class="kit-stage" data-draw="mm"></div>
+        <div class="kit-body">
+          <h3>Мультиметр UNI-T UT136C+</h3>
+          <p class="kit-model">4000 відліків, автодіапазон, щупи червоний і чорний</p>
+          <p>Міряємо напругу, опір, прозвонюємо з’єднання і міряємо струм.</p>
+          <p class="kit-pins">Гнізда: <b>10A</b> · <b>COM</b> (чорний щуп) · <b>VΩmA</b> (червоний щуп).</p>
+          <div class="kit-ctl">
+            <div class="seg" role="group" aria-label="Положення перемикача" data-k="mm-dial">
+              <button type="button" data-v="OFF" aria-pressed="false">OFF</button>
+              <button type="button" data-v="V" aria-pressed="true">V⎓</button>
+              <button type="button" data-v="V~" aria-pressed="false">V~</button>
+              <button type="button" data-v="Ω" aria-pressed="false">Ω</button>
+              <button type="button" data-v="mA" aria-pressed="false">mA</button>
+            </div>
+            <button type="button" class="sw" data-k="mm-fuse" aria-checked="false">Запобіжник 400 мА згорів</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-la">
+        <div class="kit-stage" data-draw="la"></div>
+        <div class="kit-body">
+          <h3>Логічний аналізатор</h3>
+          <p class="kit-model">8 каналів, 24 МГц, mini-USB</p>
+          <p>Показує цифрові сигнали в часі: коли пін став HIGH, яка частота ШІМ, що летить по I2C чи UART.</p>
+          <p class="kit-pins">Гребінка 2×5: <b>CH1 CH3 CH5 CH7 CLK</b> / <b>CH2 CH4 CH6 CH8 GND</b>.</p>
+          <div class="kit-ctl">
+            <button type="button" class="sw" data-k="la-pwr" aria-checked="false">USB під’єднано</button>
+            <button type="button" class="sw" data-k="la-hl" aria-checked="false">Знайти CH1 і GND</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-led">
+        <div class="kit-stage" data-draw="led"></div>
+        <div class="kit-body">
+          <h3>Світлодіоди 5 мм</h3>
+          <p class="kit-model">червоні, зелені, жовті, сині, білі</p>
+          <p>Індикація стану, перші досліди з GPIO, яскравість через ШІМ.</p>
+          <p class="kit-pins"><b>A</b> — анод, довша ніжка (+); <b>K</b> — катод, коротша ніжка й зріз на ободку (−).</p>
+          <div class="kit-ctl">
+            <label class="lab-range">Яскравість <input type="range" data-k="led-b" min="0" max="100" value="0"><output data-k="led-bo">0 %</output></label>
+            <button type="button" class="sw" data-k="led-burnt" aria-checked="false">Без резистора (згорів)</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-res">
+        <div class="kit-stage" data-draw="res"></div>
+        <div class="kit-body">
+          <h3>Резистори 0,5 Вт</h3>
+          <p class="kit-model">кольорове маркування, 4 смуги</p>
+          <p>Обмежують струм, підтягують входи, ділять напругу.</p>
+          <div class="kit-ctl">
+            <label class="lab-range">Нагрів <input type="range" data-k="res-h" min="0" max="100" value="0"><output data-k="res-ho">0 %</output></label>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-ldr">
+        <div class="kit-stage" data-draw="ldr"></div>
+        <div class="kit-body">
+          <h3>Фоторезистор</h3>
+          <p class="kit-model">GL5528 (серія GL55xx)</p>
+          <p>Відчуває світло: що світліше, то менший опір.</p>
+          <div class="kit-ctl">
+            <label class="lab-range">Світло <input type="range" data-k="ldr-l" min="0" max="100" value="60"><output data-k="ldr-lo">60 %</output></label>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-pot">
+        <div class="kit-stage" data-draw="pot"></div>
+        <div class="kit-body">
+          <h3>Потенціометри 10 кОм і 20 кОм</h3>
+          <p class="kit-model">B10K / B20K, лінійні, вал 6 мм</p>
+          <p>Регульований дільник напруги: крутите вал — змінюється напруга на середньому виводі.</p>
+          <p class="kit-pins"><b>1</b> і <b>3</b> — кінці доріжки, <b>2</b> — повзунок.</p>
+          <div class="kit-ctl">
+            <label class="lab-range">Вал <input type="range" data-k="pot-p" min="0" max="100" value="50"><output data-k="pot-po">50 %</output></label>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-cap">
+        <div class="kit-stage" data-draw="cap"></div>
+        <div class="kit-body">
+          <h3>Конденсатори 10 нФ, 100 нФ, 100 мкФ</h3>
+          <p class="kit-model">керамічні «103» і «104», електролітичний 100 мкФ</p>
+          <p>Згладжують живлення й гасять завади біля мікросхем.</p>
+          <p class="kit-pins">У електролітичного <b>−</b> позначений світлою смугою, <b>+</b> — довша ніжка. Керамічним полярність не важлива.</p>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-diode">
+        <div class="kit-stage" data-draw="diode"></div>
+        <div class="kit-body">
+          <h3>Діоди 1N4001 / 1N4007</h3>
+          <p class="kit-model">випрямні, 1 А</p>
+          <p>Захист від переплутаної полярності й гасіння викиду від котушки реле чи мотора.</p>
+          <p class="kit-pins">Сіра смуга — <b>K</b> (катод).</p>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-npn">
+        <div class="kit-stage" data-draw="npn"></div>
+        <div class="kit-body">
+          <h3>Транзистори 2N2222, BC547B, BC557B</h3>
+          <p class="kit-model">корпус TO-92; BC557B — PNP</p>
+          <p>Електронні ключі: малий струм бази вмикає більший струм навантаження.</p>
+          <p class="kit-pins">Пласким боком до себе, ніжки вниз: BC547B і BC557B — <b>C B E</b>, 2N2222 — <b>E B C</b>.</p>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-btn">
+        <div class="kit-stage" data-draw="btn"></div>
+        <div class="kit-body">
+          <h3>Тактові кнопки 6×6 мм</h3>
+          <p class="kit-model">чотири ніжки, ставиться через канавку макетки</p>
+          <p>Кнопки, переривання, боротьба з брязкотом контактів.</p>
+          <p class="kit-pins">Ніжки через канавку (<b>1a–1b</b>, <b>2a–2b</b>) з’єднані завжди; натискання з’єднує <b>1</b> з <b>2</b>.</p>
+          <div class="kit-ctl"><button type="button" class="sw" data-k="btn-p" aria-checked="false">Натиснута</button></div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-relay">
+        <div class="kit-stage" data-draw="relay"></div>
+        <div class="kit-body">
+          <h3>Модуль реле 5 В</h3>
+          <p class="kit-model">реле SRD-05VDC-SL-C, гвинтова колодка NO / COM / NC</p>
+          <p>Вмикає навантаження, відокремлене від плати: котушка тягне контакт, і COM перескакує з NC на NO.</p>
+          <p class="kit-pins">Гребінка: <b>VCC GND IN</b>. Червоний LED — живлення, зелений — котушка ввімкнена.</p>
+          <div class="kit-ctl"><button type="button" class="sw" data-k="relay-on" aria-checked="false">IN: увімкнути котушку</button></div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-motor">
+        <div class="kit-stage" data-draw="motor"></div>
+        <div class="kit-body">
+          <h3>Мотор-редуктор TT</h3>
+          <p class="kit-model">жовтий, 3–6 В, білий вал з двома лисками</p>
+          <p>Вчимося драйверам двигунів і керуванню швидкістю через ШІМ.</p>
+          <div class="kit-ctl">
+            <label class="lab-range">Оберти <input type="range" data-k="motor-s" min="0" max="100" value="30"><output data-k="motor-so">30 %</output></label>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-pm">
+        <div class="kit-stage" data-draw="pm"></div>
+        <div class="kit-body">
+          <h3>Модуль живлення макетки</h3>
+          <p class="kit-model">MB102: вхід 6,5–12 В або USB, виходи 5 В і 3,3 В</p>
+          <p>Встромляється в край макетки й дає напругу на обидві пари шин; перемичка вибирає 5 В або 3,3 В для кожного боку.</p>
+          <div class="kit-ctl">
+            <button type="button" class="sw" data-k="pm-on" aria-checked="true">Увімкнено</button>
+            <div class="seg" role="group" aria-label="Верхня шина" data-k="pm-top">
+              <button type="button" data-v="5V" aria-pressed="true">5 В</button>
+              <button type="button" data-v="OFF" aria-pressed="false">OFF</button>
+              <button type="button" data-v="3.3V" aria-pressed="false">3,3 В</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="kit-card" id="k-wire">
+        <div class="kit-stage" data-draw="wire"></div>
+        <div class="kit-body">
+          <h3>Дроти-перемички</h3>
+          <p class="kit-model">Dupont «тато–тато», «тато–мама», «мама–мама»</p>
+          <p>З’єднують отвори макетки між собою та з виводами плати. Червоний — живлення, чорний — земля: так легше читати свою схему.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="lab wide" id="demo" aria-labelledby="demo-h">
+    <header class="lab-head"><h2 id="demo-h">Усе разом</h2><p>Плата на макетці: GPIO15 → резистор 220 Ом → червоний світлодіод → GND. Мультиметр міряє напругу на світлодіоді.</p></header>
+    <div class="lab-stage" id="demo-stage"></div>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="demo-sw" aria-checked="false">GPIO15</button>
+    </div>
+    <div class="lab-read">
+      <div><b>GPIO15</b><output id="demo-v">0 В</output></div>
+      <div><b>Струм</b><output id="demo-i">0 мА</output></div>
+      <div><b>Мультиметр</b><output id="demo-m">0,000 В</output></div>
+    </div>
+    <p class="lab-note" id="demo-note" aria-live="polite">GPIO15 = LOW: напруги немає, світлодіод темний.</p>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const K = window.Kit, P = K.P;
+  const $ = (s, r = document) => r.querySelector(s);
+  const ctl = (k) => $(`[data-k="${k}"]`);
+  const onSwitch = (k, fn) => ctl(k).addEventListener('switch', (e) => fn(e.detail.on));
+  const onRange = (k, fn) => { const i = ctl(k), o = ctl(k + 'o'); const f = () => { o.textContent = i.value + ' %'; fn(i.value / 100); }; i.addEventListener('input', f); f(); };
+  const onSeg = (k, fn) => ctl(k).querySelectorAll('button').forEach((b, _, all) => b.addEventListener('click', () => {
+    all.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v);
+  }));
+  const stage = (k, label) => K.svg($(`[data-draw="${k}"]`), '0 0 10 10', label);
+  const caption = (k, items) => { const p = document.createElement('p'); p.className = 'kit-cap'; items.forEach((t) => { const s = document.createElement('span'); s.textContent = t; p.append(s); }); $(`[data-draw="${k}"]`).append(p); };
+
+  /* ESP32-S3: shown lying as on the breadboard (module to the left), so pin labels read upright */
+  {
+    const s = stage('esp', 'Плата YD-ESP32-S3: модуль ESP32-S3-WROOM-1 зліва, два роз’єми USB-C справа, кнопки RST і BOOT, RGB-світлодіод, дві гребінки по 22 виводи.');
+    const b = K.part('esp32s3', { parent: s, rot: -90 });
+    K.fit(s, 30);
+    onSwitch('esp-power', (on) => b.set({ power: on }));
+    onSwitch('esp-rgb', (on) => b.set({ rgb: on ? '#19e04a' : null }));
+    onSwitch('esp-boot', (on) => b.set({ boot: on }));
+    onSwitch('esp-rst', (on) => b.set({ rst: on }));
+    onSwitch('esp-hl', (on) => b.set({ highlight: on ? ['GPIO15'] : null }));
+  }
+  {
+    const s = stage('bb', 'Макетна плата на 830 отворів з чотирма шинами живлення.');
+    const bb = K.part('breadboard', { parent: s });
+    K.fit(s, 16);
+    onSwitch('bb-marks', (on) => {
+      const m = [];
+      if (on) {
+        'abcde'.split('').forEach((r) => m.push({ col: 10, row: r, color: '#e8a400' }));
+        'fghij'.split('').forEach((r) => m.push({ col: 20, row: r, color: '#1f8f4a' }));
+        for (let c = 3; c <= 61; c++) if ((c - 3) % 6 !== 5) m.push({ col: c, rail: '+', side: 'top', color: '#d8262c' });
+      }
+      bb.set({ marks: m });
+    });
+  }
+  {
+    const s = stage('mm', 'Мультиметр UNI-T UT136C+ у червоному чохлі з двома щупами.');
+    const mm = K.part('multimeter', { parent: s, fuseView: true });
+    const pr = K.part('probe', { parent: s, color: 'red', x: 1000, y: 260, rot: 0 });
+    const pb = K.part('probe', { parent: s, color: 'black', x: 1110, y: 300, rot: 0 });
+    K.wire(s, pr.pins.end, mm.pins.V, 'red', { width: 26, ends: ['none', 'banana'], lift: -160 });
+    K.wire(s, pb.pins.end, mm.pins.COM, '#26272a', { width: 26, ends: ['none', 'banana'], lift: -260 });
+    K.fit(s, 20);
+    const st = { dial: 'V', fuse: 'ok' };
+    const show = () => {
+      const d = { V: ['3.300', 'V', false], 'V~': ['0.000', 'V', true], 'Ω': ['OL', 'MΩ', false], mA: [st.fuse === 'blown' ? '0.00' : '6.36', 'mA', false], OFF: ['', '', false] }[st.dial];
+      mm.set({ dial: st.dial, display: d[0], unit: d[1], ac: d[2], fuse: st.fuse });
+    };
+    onSeg('mm-dial', (v) => { st.dial = v; show(); });
+    onSwitch('mm-fuse', (on) => { st.fuse = on ? 'blown' : 'ok'; show(); });
+    show();
+  }
+  {
+    const s = stage('la', 'Логічний аналізатор: чорний корпус з білою наліпкою, гребінка 2 на 5 виводів і mini-USB.');
+    const la = K.part('logic-analyzer', { parent: s });
+    K.fit(s, 20);
+    onSwitch('la-pwr', (on) => la.set({ pwr: on }));
+    onSwitch('la-hl', (on) => la.set({ hl: on ? ['CH1', 'GND'] : null }));
+  }
+  {
+    const s = stage('led', 'П’ять світлодіодів 5 мм: червоний, зелений, жовтий, синій і білий.');
+    const leds = ['red', 'green', 'yellow', 'blue', 'white'].map((c, i) => K.part('led', { parent: s, color: c, x: i * 90 }));
+    K.fit(s, 50);
+    caption('led', ['червоний', 'зелений', 'жовтий', 'синій', 'білий']);
+    let br = 0, burnt = false;
+    const upd = () => leds.forEach((l, i) => l.set({ on: br, burnt: burnt && i === 0 }));
+    onRange('led-b', (v) => { br = v; upd(); });
+    onSwitch('led-burnt', (on) => { burnt = on; upd(); });
+  }
+  {
+    const s = stage('res', 'Чотири резистори з кольоровими смугами: 220 Ом, 1 кОм, 4,7 кОм і 10 кОм.');
+    const vals = [220, 1000, 4700, 10000];
+    const rs = vals.map((v, i) => K.part('resistor', { parent: s, ohms: v, y: i * 60 }));
+    K.fit(s, 20);
+    caption('res', ['220 Ом', '1 кОм', '4,7 кОм', '10 кОм'].map((t, i) => `${t}: ${K.bands(vals[i]).join('-')}`));
+    onRange('res-h', (v) => rs[0].set({ heat: v }));
+  }
+  {
+    const s = stage('ldr', 'Фоторезистор: червонуватий диск зі змійкою на світлій поверхні, дві ніжки.');
+    const l = K.part('ldr', { parent: s });
+    K.fit(s, 30);
+    onRange('ldr-l', (v) => l.set({ light: v }));
+  }
+  {
+    const s = stage('pot', 'Потенціометр зверху: круглий корпус, гайка й рифлений вал, три виводи.');
+    const p = K.part('pot', { parent: s });
+    K.fit(s, 20);
+    onRange('pot-p', (v) => p.set({ pos: v }));
+  }
+  {
+    const s = stage('cap', 'Керамічні конденсатори 103 і 104 та електролітичний 100 мікрофарад.');
+    K.part('cap-ceramic', { parent: s, code: '103', color: 'yellow' });
+    K.part('cap-ceramic', { parent: s, code: '104', x: 90 });
+    K.part('cap-electrolytic', { parent: s, x: 190 });
+    K.fit(s, 30);
+    caption('cap', ['10 нФ «103»', '100 нФ «104»', '100 мкФ']);
+  }
+  {
+    const s = stage('diode', 'Діод 1N4007: чорний циліндр зі світлою смугою катода.');
+    K.part('diode', { parent: s });
+    K.part('diode', { parent: s, model: '1N4001', y: 50 });
+    K.fit(s, 20);
+  }
+  {
+    const s = stage('npn', 'Три транзистори TO-92 з підписаними виводами.');
+    K.part('npn', { parent: s, model: 'BC547B' });
+    K.part('npn', { parent: s, model: '2N2222', x: 110 });
+    K.part('npn', { parent: s, model: 'BC557B', x: 220 });
+    K.fit(s, 20);
+    caption('npn', ['BC547B', '2N2222', 'BC557B']);
+  }
+  {
+    const s = stage('btn', 'Тактова кнопка 6 на 6 мм зверху: чорний квадрат із круглою кнопкою й чотирма ніжками.');
+    const b = K.part('button', { parent: s });
+    K.fit(s, 20);
+    onSwitch('btn-p', (on) => b.set({ pressed: on }));
+  }
+  {
+    const s = stage('relay', 'Модуль реле: синя плата, синій куб реле, гвинтова колодка і гребінка з трьох виводів.');
+    const r = K.part('relay-module', { parent: s, xray: true });
+    K.fit(s, 20);
+    onSwitch('relay-on', (on) => r.set({ on }));
+  }
+  {
+    const host = $('[data-draw="motor"]');
+    const s = stage('motor', 'Жовтий мотор-редуктор TT: металевий двигун зліва, білий вал на редукторі справа.');
+    const m = K.part('tt-motor', { parent: s });
+    K.fit(s, 20);
+    let rpm = 0;
+    onRange('motor-s', (v) => { rpm = v * 200; m.set({ rpm }); });
+    Study.sim(host, (dt) => m.tick(dt));
+  }
+  {
+    const s = stage('pm', 'Модуль живлення MB102: чорна плата, гніздо живлення, USB, кнопка, зелений світлодіод і жовті перемички.');
+    const p = K.part('power-module', { parent: s });
+    K.fit(s, 20);
+    onSwitch('pm-on', (on) => p.set({ on }));
+    onSeg('pm-top', (v) => p.set({ top: v }));
+  }
+  {
+    const s = stage('wire', 'Половинка макетки з чотирма дротами-перемичками, покладеними рівно по сітці отворів: червоний з отвору a6 на шину плюс, чорний з j4 на шину мінус, жовтий уздовж ряду c зі стовпчика 9 у 18, синій через канавку з e23 у f23.');
+    const bb = K.part('breadboard', { parent: s, size: 'half' });
+    // Tidy jumpers (as in #demo): Kit.route through hole centres, horizontal and vertical runs only. On the half board the rail
+    // holes sit half a pitch off the column holes, so a rail jumper ends with a half-pitch step along its rail row.
+    const a6 = bb.at('a6'), tp = bb.rail('top', '+', 6), j4 = bb.at('j4'), bm = bb.rail('bottom', '-', 4);
+    K.route(s, [a6, { x: a6.x, y: tp.y }, tp], 'red');
+    K.route(s, [j4, { x: j4.x, y: bm.y }, bm], 'black');
+    K.route(s, [bb.at('c9'), bb.at('c18')], 'yellow');
+    K.route(s, [bb.at('e23'), bb.at('f23')], 'blue');
+    K.fit(s, 30);
+    const vb = s.viewBox.baseVal; // headroom: the «Роздивитися» button sits in the top-right corner, keep it off the rails
+    s.setAttribute('viewBox', `${vb.x} ${vb.y - 120} ${vb.width} ${vb.height + 120}`);
+  }
+
+  /* ================= demo: ESP32-S3 on the breadboard, GPIO15 → 220 Ом → LED → GND, UT136C+ across the LED */
+  {
+    const s = K.svg($('#demo-stage'), '0 0 10 10', 'Макетка з платою ESP32-S3: жовтий дріт від GPIO15 до резистора 220 Ом, далі червоний світлодіод, чорний дріт на мінусову шину, яка з’єднана з GND плати. Щупи мультиметра торкаються ніжок світлодіода.');
+    const bb = K.part('breadboard', { parent: s });
+    // Tidy layout (the reference for every breadboard scene): the board sits in the holes, parts use the breadboard strips,
+    // and the few jumpers are Kit.route lines on the hole grid — no crossings, nothing over a part.
+    // Headers are 9 rows apart: left header (GPIO15 side) in row i, right header in row b; rows j and a stay free.
+    const c0 = 30;
+    const p0 = bb.hole(c0, 'i');
+    const esp = K.part('esp32s3', { parent: s, x: p0.x, y: p0.y, rot: -90 });
+    const col15 = c0 + 7, colG = c0 + 21; // GPIO15 = L8, GND = L22
+    // R1 lies in row h from column 20 to 24; the LED stands in row f, put in mirrored: anode column 20 (R1's strip), cathode 19
+    const R = K.part('resistor', { parent: s, ohms: 220, span: 4 });
+    const ra = bb.hole(20, 'h'); R.place(ra.x, ra.y);
+    const la = bb.hole(20, 'f');
+    const led = K.part('led', { parent: s, color: 'red', x: la.x, y: la.y, leg: 40, mirror: true });
+    // lane on the divider strip between row j and the bottom rails
+    const laneY = bb.hole(1, 'j').y + Kit.P * 1.15;
+    const j15 = bb.at('j' + col15), j24 = bb.at('j24');
+    K.route(s, [j15, { x: j15.x, y: laneY }, { x: j24.x, y: laneY }, j24], 'yellow');
+    K.route(s, [bb.at('j19'), bb.at('bottom-19')], 'black');
+    K.route(s, [bb.at('j' + colG), bb.at('bottom-' + colG)], 'black');
+    // the rails are split in the middle (columns 31 | 33): a short black bridge joins the two halves of the − rail
+    K.route(s, [bb.at('bottom-31'), bb.at('bottom-33')], 'black');
+    // multimeter above the board, probes on the LED legs (holes d… are another strip, so the tips sit on the legs themselves)
+    const mm = K.part('multimeter', { parent: s, x: 330, y: -760, scale: 0.36 });
+    // red tip on the anode (right leg, column 20), black on the cathode (left leg, column 19): each lead leaves on its own side, so they never cross
+    const pa = led.pins.A, pk = led.pins.K;
+    const pr = K.part('probe', { parent: s, color: 'red', x: pa.x + 2, y: pa.y - 70, rot: 205, scale: 0.55 });
+    const pb = K.part('probe', { parent: s, color: 'black', x: pk.x - 2, y: pk.y - 70, rot: 155, scale: 0.55 });
+    K.wire(s, pr.pins.end, mm.pins.V, 'red', { width: 11, ends: ['none', 'banana'], lift: 40 });
+    K.wire(s, pb.pins.end, mm.pins.COM, '#26272a', { width: 11, ends: ['none', 'banana'], lift: 40 });
+    K.fit(s, 24);
+    const VF = 1.9, RV = 220;
+    const upd = (on) => {
+      const i = on ? (3.3 - VF) / RV * 1000 : 0;
+      esp.set({ highlight: on ? ['GPIO15'] : null });
+      led.set({ on: on ? Math.min(1, i / 8) : 0 });
+      const disp = on ? VF.toFixed(3) : '0.000';
+      mm.set({ dial: 'V', display: disp, unit: 'V' });
+      $('#demo-v').textContent = on ? '3,3 В' : '0 В';
+      $('#demo-i').textContent = Study.fmt ? Study.fmt.num(i, 1) + ' мА' : i.toFixed(1).replace('.', ',') + ' мА';
+      $('#demo-m').textContent = disp.replace('.', ',') + ' В';
+      $('#demo-note').textContent = on
+        ? `GPIO15 = HIGH: I = (3,3 − 1,9) / 220 ≈ ${i.toFixed(1).replace('.', ',')} мА, на світлодіоді ≈ 1,9 В.`
+        : 'GPIO15 = LOW: напруги немає, світлодіод темний.';
+    };
+    $('#demo-sw').addEventListener('switch', (e) => upd(e.detail.on));
+    upd(false);
+  }
+});
+</script>
+</body>
+</html>

@@ -119,6 +119,9 @@
 .cmp > div { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
 .cmp .bad-ex { border-left: 4px solid var(--bad); }
 .cmp .good-ex { border-left: 4px solid var(--ok); }
+/* a cloze gap as the trainer shows it, and the answers under the example */
+.cmp .gap { padding: 0 6px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 12%, var(--panel)); color: var(--accent); font-weight: 600; }
+.cmp .ans { display: block; margin-top: 6px; font-size: 14px; color: var(--muted); }
 .cmp .tag { display: block; margin-bottom: 4px; }
 
 /* 05 roles */
@@ -402,7 +405,8 @@
     </ol>
     <div class="cmp">
       <div class="bad-ex"><span class="tag">Погано</span>«Поясніть, як працює мультиметр»</div>
-      <div class="good-ex"><span class="tag">Добре</span>«Струм міряють, увімкнувши амперметр {{c1::послідовно}}» і окрема картка «Струм до 400&nbsp;мА мультиметр UT136C+ міряє через гніздо {{c1::VΩmA}}, а не 10A»<sup class="cite" data-fact="ut136-jacks"></sup><sup class="cite" data-fact="ut136-ma-range"></sup>.</div>
+      <div class="good-ex"><span class="tag">Добре</span>«Струм міряють, увімкнувши амперметр <span class="gap" title="відповідь: послідовно">[…]</span>» і окрема картка «Струм до 400&nbsp;мА мультиметр UT136C+ міряє через гніздо <span class="gap" title="відповідь: VΩmA">[…]</span>, а не 10A»<sup class="cite" data-fact="ut136-jacks"></sup><sup class="cite" data-fact="ut136-ma-range"></sup>.
+        <span class="ans">Відповіді: <b>послідовно</b>, <b>VΩmA</b>. У файлі картки пропуск пишуть так: <code>{{c1::послідовно}}</code>.</span></div>
     </div>
   </section>
 

@@ -57,9 +57,76 @@
 .code { overflow-x: auto; max-width: 100%; padding: 12px 14px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); font: 14px/1.5 var(--f-mono); }
 .swing { margin-top: 8px; padding: 8px 12px; border-radius: 8px; background: var(--panel-2); font-size: 15px; }
 .swing b { font-family: var(--f-mono); }
+.wifi-x { stroke: var(--bad); stroke-width: 3; stroke-linecap: round; }
+.readout b.warnout { color: var(--bad); }
+.ctl .sw { margin-top: 6px; }
 .undef { fill: color-mix(in srgb, var(--warn) 18%, transparent); }
+/* ---------- lab: from the sun to a number */
+.b6-grid { display: grid; gap: 14px; }
+@media (min-width: 640px) { .b6-grid { grid-template-columns: 1fr 1fr; } .b6-adcp { grid-column: 1 / -1; } .b6-adcp svg { max-width: 420px; } }
+@media (min-width: 900px) { .b6-grid { grid-template-columns: 1fr 0.88fr 1.06fr; } .b6-adcp { grid-column: auto; } }
+.b6-panel { min-width: 0; }
+.b6-panel svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+.b6-cap { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.b6-cap span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); letter-spacing: 0; }
+.b6-tag rect { fill: rgba(10, 14, 30, .62); }
+.b6-tag text { font: 600 14px var(--f-mono); fill: #fff; }
+#b6-hand { transition: transform .45s var(--ease); }
+.b6-link { stroke: var(--nsig); stroke-width: 1.5; stroke-dasharray: 3 3; fill: none; }
+.b6-col { fill: var(--sunk); stroke: var(--line-strong); }
+.b6-colfill { fill: var(--nsig); }
+.b6-ceilp { stroke: var(--bad); stroke-width: 2.5; stroke-dasharray: 6 4; fill: none; }
+.b6-ceilt { font: 600 14px var(--f-mono); fill: var(--bad); }
+.b6-axis { font: 500 13px var(--f-mono); fill: var(--muted); }
+.b6-vbig { font: 700 17px var(--f-mono); fill: var(--ink); }
+.b6-chip { fill: var(--panel-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.b6-t1 { font: 600 15px var(--f-body); fill: var(--ink); }
+.b6-t2 { font: 500 14px var(--f-mono); fill: var(--muted); }
+.b6-bitn { font: 500 13px var(--f-mono); fill: var(--muted); }
+.b6-cell { fill: var(--sunk); stroke: var(--line-2); transition: fill var(--t1); }
+.b6-cell.on { fill: var(--accent); stroke: var(--accent-deep); }
+.b6-bit { font: 700 16px var(--f-mono); fill: var(--muted); }
+.b6-bit.on { fill: var(--accent-ink); }
+.b6-code { font: 700 44px var(--f-mono); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.b6-code.sat { fill: var(--bad); }
+.b6-rule { fill: var(--sunk); stroke: var(--line-2); }
+.b6-rulef { fill: var(--accent); }
+.b6-mark { fill: var(--ink); }
+.b6-plotw { margin-top: 14px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+.b6-plotw canvas { display: block; width: 100%; height: 190px; }
+.b6-light input[type="range"] { width: clamp(150px, 32vw, 320px); }
+.b6-grp { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.b6-k { font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.b6-model { font-size: 14px; color: var(--muted); border-top: 0; padding-top: 0; }
+.lab-read output.bad { color: var(--bad); }
+.model-chip { display: inline-block; vertical-align: middle; padding: 1px 8px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .04em; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { #b6-hand, .b6-cell { transition: none; } }
+/* ---------- explainer: quantisation */
+.qa-sheet, .qa-card { fill: var(--sheet); stroke: var(--line); }
+.qa-ax { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.qa-lv { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 3 4; }
+.qa-lvt { font: 500 13px var(--f-mono); fill: var(--muted); }
+.qa-t { font: 500 14px var(--f-mono); fill: var(--muted); }
+.qa-big { font: 700 28px var(--f-mono); fill: var(--ink); }
+.qa-mid { font: 700 20px var(--f-mono); fill: var(--copper); }
+.qa-code { font: 700 17px var(--f-mono); fill: var(--accent); letter-spacing: .02em; }
+.qa-curve { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 4; }
+.qa-stair { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; }
+.qa-dot { fill: var(--hi); stroke: var(--sheet); stroke-width: 2; }
+.qa-zbox { fill: var(--panel); stroke: var(--hi); stroke-width: 2; }
+.qa-narrow .qa-t { font-size: 17px; } .qa-narrow .qa-lvt { font-size: 16px; } .qa-narrow .qa-big { font-size: 26px; } .qa-narrow .qa-code { font-size: 19px; }
 .narrow-only { display: none; }
 @media (max-width: 700px) { .narrow-only { display: block; } }
+/* ---------- real-part drawings (assets/kit.js): 1 unit = 0,1 мм, labels in theme ink */
+.kitv { display: block; width: 100%; height: auto; overflow: hidden; }
+.kit-lbl { font: 600 34px var(--f-mono); fill: var(--ink); }
+.kit-val { font-weight: 500; fill: var(--muted); }
+text.kit-lbl[class*="net-"] { fill: currentColor; }
+text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig { fill: var(--nsig-ink, var(--nsig)); } text.kit-lbl.net-gnd { fill: var(--ngnd-ink, var(--ngnd)); }
+.kitv .schem-flow { stroke-width: 12; stroke-dasharray: 10 38; animation-name: kit-flow; }
+@keyframes kit-flow { to { stroke-dashoffset: -48; } }
+#dual-ldr .bb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
 </style>
 </head>
 <body data-lesson="1-6">
@@ -82,6 +149,156 @@
       <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
     </div>
   </header>
+
+  <!-- ============================================================ lab: light → resistance → voltage → number -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія: від сонця до числа</h2><p>Рухайте світло від ночі до яскравого сонця і стежте за всім ланцюжком: опір, напруга, 12 бітів.</p></header>
+    <div class="lab-stage" id="b6-stage">
+      <div class="b6-grid">
+        <div class="b6-panel">
+          <p class="b6-cap"><span>1</span> Світло → опір</p>
+          <svg id="b6-scene" viewBox="0 0 300 260" role="img" aria-label="Небо над фоторезистором: від нічного неба з місяцем і зорями до яскравого сонця. Фотони летять до фоторезистора на макетці; рука може накрити його.">
+            <defs>
+              <linearGradient id="b6-sky" x1="0" y1="0" x2="0" y2="1"><stop id="b6-s0" offset="0" stop-color="#070b1f"/><stop id="b6-s1" offset="1" stop-color="#1a2147"/></linearGradient>
+              <radialGradient id="b6-glow"><stop offset="0" stop-color="#fff6c8" stop-opacity=".95"/><stop offset=".35" stop-color="#ffd25e" stop-opacity=".5"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>
+              <clipPath id="b6-clip"><rect width="300" height="260" rx="12"/></clipPath>
+            </defs>
+            <g clip-path="url(#b6-clip)">
+              <rect width="300" height="260" fill="url(#b6-sky)"/>
+              <g id="b6-stars" fill="#fff"></g>
+              <g id="b6-moon"><circle cx="232" cy="54" r="17" fill="#f1ead2"/><circle cx="226" cy="49" r="3.5" fill="#d9cfae"/><circle cx="238" cy="61" r="2.5" fill="#d9cfae"/></g>
+              <g id="b6-sun"><circle r="70" fill="url(#b6-glow)"/><circle r="17" fill="#ffe27a" stroke="#ffc533" stroke-width="2"/></g>
+              <g id="b6-photons" fill="#ffe27a"></g>
+              <path id="b6-hill" d="M0 170C50 154 96 166 140 160S236 146 300 160V260H0Z" fill="#0d1424"/>
+              <g id="b6-kit"></g>
+              <g id="b6-kitldr"></g>
+              <circle id="b6-ldrglow" cx="150" cy="196" r="22" fill="url(#b6-glow)" opacity="0"/>
+              <g id="b6-handpos"><g id="b6-hand" transform="translate(400 0)">
+                <path d="M128 170C120 166 108 168 100 174L94 162C91 156 84 157 84 164L88 182C80 180 72 184 74 192L78 214C82 228 98 236 118 234L190 232V170Z" fill="#e0a77a" stroke="#a8724c" stroke-width="2"/>
+                <path d="M94 164L112 160M102 176L124 168" stroke="#a8724c" stroke-width="1.6" fill="none"/>
+              </g></g>
+              <g class="b6-tag"><rect id="b6-luxbg" x="10" y="10" width="150" height="28" rx="8"/><text id="b6-luxt" x="20" y="29">300 лк · кімната</text></g>
+            </g>
+          </svg>
+        </div>
+        <div class="b6-panel">
+          <p class="b6-cap"><span>2</span> Опір → напруга</p>
+          <svg id="b6-div" viewBox="0 0 260 260" role="img" aria-label="Подільник: 3,3 В, зверху фоторезистор LDR1, у середній точці вивід GPIO4, знизу резистор R1 10 кілоом до землі. Стовпчик праворуч — напруга на GPIO4, червона лінія — стеля шкали АЦП. Точки показують струм.">
+            <use class="sch-sym net-3v3" href="#vcc" x="62" y="38"/>
+            <text class="sch-pin net-3v3" x="76" y="22">3,3 В</text>
+            <path class="sch-w net-3v3" d="M62 38V46"/>
+            <use class="sch-sym" href="#ldr" x="62" y="46" transform="rotate(90 62 46)"/>
+            <text class="sch-ref" x="86" y="72">LDR1</text>
+            <text class="sch-val" id="b6-rlt" x="86" y="90">1,6 кОм</text>
+            <path class="sch-w net-sig" d="M62 106V150M62 128H150"/>
+            <use class="sch-sym net-sig" href="#dot" x="62" y="128"/>
+            <text class="sch-pin net-sig" x="104" y="120" text-anchor="middle">GPIO4</text>
+            <use class="sch-sym" href="#res" x="62" y="150" transform="rotate(90 62 150)"/>
+            <text class="sch-ref" x="86" y="176">R1</text>
+            <text class="sch-val" x="86" y="194">10 кОм</text>
+            <use class="sch-sym net-gnd" href="#gnd" x="62" y="210"/>
+            <path id="b6-loop" d="M62 30V210" fill="none" stroke="none"/>
+            <g id="b6-dots" fill="var(--flow)"></g>
+            <path class="b6-link" d="M150 128H176"/>
+            <rect class="b6-col" x="180" y="30" width="40" height="180" rx="6"/>
+            <rect id="b6-colfill" class="b6-colfill" x="182" y="210" width="36" height="0" rx="4"/>
+            <path id="b6-ceil" class="b6-ceilp" d="M176 50H224"/>
+            <text id="b6-ceilt" class="b6-ceilt" x="172" y="55" text-anchor="end">3,1</text>
+            <text class="b6-axis" x="226" y="226" text-anchor="end">0 В</text>
+            <text id="b6-vt" class="b6-vbig" x="200" y="250" text-anchor="middle">2,83 В</text>
+          </svg>
+        </div>
+        <div class="b6-panel b6-adcp">
+          <p class="b6-cap"><span>3</span> Напруга → число</p>
+          <svg id="b6-adc" viewBox="0 0 320 260" role="img" aria-label="Блок АЦП ESP32-S3: вибране ослаблення і шкала, 12 бітів числа (світяться одиниці), саме число від 0 до 4095 і його місце на лінійці.">
+            <rect class="b6-chip" x="4" y="4" width="312" height="252" rx="12"/>
+            <text class="b6-t1" x="18" y="30">ESP32-S3 · АЦП 12 біт</text>
+            <text class="b6-t2" id="b6-att" x="18" y="52">GPIO4 · 11 дБ · шкала 0…3,1 В</text>
+            <g id="b6-bits"></g>
+            <text class="b6-t2" x="18" y="150">analogRead() =</text>
+            <text id="b6-code" class="b6-code" x="18" y="194">3740</text>
+            <text id="b6-of" class="b6-t2" x="160" y="194">з 4095</text>
+            <rect class="b6-rule" x="18" y="212" width="284" height="10" rx="5"/>
+            <rect id="b6-rulef" class="b6-rulef" x="18" y="212" width="0" height="10" rx="5"/>
+            <path id="b6-mark" class="b6-mark" d="M18 208l-6 -10h12z"/>
+            <text class="b6-t2" x="18" y="244">0</text>
+            <text class="b6-t2" x="302" y="244" text-anchor="end">4095</text>
+          </svg>
+        </div>
+      </div>
+      <div class="b6-plotw">
+        <canvas id="b6-plot" width="900" height="190" role="img" aria-label="Графік analogRead у часі за останні 12 секунд: точки — окремі виміри, лінія — показане число. Червоний пунктир — стеля 4095."></canvas>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <label class="lab-range b6-light">Світло <input type="range" id="b6-lux" min="-2" max="5" step="0.01" value="2.48" aria-describedby="b6-note"><output id="b6-luxo">300 лк</output></label>
+      <div class="seg" role="group" aria-label="Типові умови" id="b6-pre">
+        <button type="button" data-v="-1.3" aria-pressed="false">ніч</button>
+        <button type="button" data-v="0.48" aria-pressed="false">сутінки</button>
+        <button type="button" data-v="2.48" aria-pressed="true">кімната</button>
+        <button type="button" data-v="3.7" aria-pressed="false">хмарно</button>
+        <button type="button" data-v="5" aria-pressed="false">сонце</button>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="b6-palm" aria-checked="false">Долоня на LDR</button>
+      <div class="b6-grp"><span class="b6-k" id="b6-att-k">Ослаблення</span>
+        <div class="seg" role="group" aria-labelledby="b6-att-k" id="b6-atts">
+          <button type="button" data-v="0" aria-pressed="false">0 дБ</button>
+          <button type="button" data-v="1" aria-pressed="false">2,5 дБ</button>
+          <button type="button" data-v="2" aria-pressed="false">6 дБ</button>
+          <button type="button" data-v="3" aria-pressed="true">11 дБ</button>
+        </div></div>
+      <button type="button" class="sw" id="b6-noise" aria-checked="false">Шум</button>
+      <button type="button" class="sw" id="b6-avg" aria-checked="false">Середнє з 16</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Світло</b><output id="b6-o-lux">300 лк</output></div>
+      <div><b>Опір LDR</b><output id="b6-o-r">—</output></div>
+      <div><b>V на GPIO4</b><output id="b6-o-v">—</output></div>
+      <div><b>analogRead</b><output id="b6-o-raw">—</output></div>
+    </div>
+    <p class="lab-note" id="b6-note" aria-live="polite"></p>
+    <p class="lab-note b6-model"><span class="model-chip">модель</span> Фоторезистор GL5528: 10–20&nbsp;кОм при 10&nbsp;лк<sup class="cite" data-fact="ldr-gl5528-light"></sup>, γ&nbsp;≈&nbsp;0,65<sup class="cite" data-fact="ldr-gl5528-gamma"></sup>, у темряві до 1&nbsp;МОм<sup class="cite" data-fact="ldr-gl5528-dark"></sup>. Шкали ослаблень — межі входу 0,95 / 1,25 / 1,75 / 3,1&nbsp;В<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>. Шум — модельний, σ&nbsp;≈&nbsp;10 одиниць.</p>
+    <a class="lab-more" href="../../ldr-lab/">Повна лабораторія: люксметр →</a>
+  </section>
+
+  <figure class="anim wide" id="b6-anim" aria-labelledby="b6-anim-h">
+    <header class="anim-head"><h3 id="b6-anim-h">Анімація: як плавна напруга стає сходинками</h3></header>
+    <div class="anim-stage">
+      <svg viewBox="0 0 640 280" role="img" aria-label="Плавна крива напруги від 0 до 3,1 В і її квантована версія — сходинки. Праворуч — кількість бітів, рівнів і висота сходинки; кожен новий біт подвоює кількість рівнів, 12 бітів дають 4096.">
+        <g id="qa-L">
+          <rect class="qa-sheet" x="8" y="12" width="424" height="256" rx="10"/>
+          <g id="qa-levels"></g>
+          <path class="qa-ax" d="M52 28V236H376"/>
+          <text class="qa-t" x="46" y="40" text-anchor="end">3,1</text>
+          <text class="qa-t" x="46" y="240" text-anchor="end">0 В</text>
+          <text class="qa-t" x="420" y="258" text-anchor="end">час →</text>
+          <path id="qa-curve" class="qa-curve" d="M52 236"/>
+          <path id="qa-stair" class="qa-stair" d="M52 236"/>
+          <circle id="qa-dot" class="qa-dot" r="6" cx="52" cy="236"/>
+          <g id="qa-zoom" opacity="0">
+            <rect class="qa-zbox" x="250" y="40" width="160" height="96" rx="8"/>
+            <path id="qa-zstair" class="qa-stair" d="M260 120"/>
+            <path id="qa-zcurve" class="qa-curve" d="M260 120"/>
+            <text class="qa-t" x="330" y="58" text-anchor="middle">лупа ×1000</text>
+            <text class="qa-t" x="330" y="130" text-anchor="middle">крок 0,76 мВ</text>
+          </g>
+        </g>
+        <g id="qa-R">
+          <rect id="qa-card" class="qa-card" x="444" y="12" width="188" height="256" rx="10"/>
+          <text id="qa-k1" class="qa-t" x="460" y="40">розрядність</text>
+          <text id="qa-bits" class="qa-big" x="460" y="80">1 біт</text>
+          <text id="qa-k2" class="qa-t" x="460" y="112">рівнів 2ⁿ</text>
+          <text id="qa-lv" class="qa-big" x="460" y="150">2</text>
+          <text id="qa-k3" class="qa-t" x="460" y="182">крок</text>
+          <text id="qa-step" class="qa-mid" x="460" y="208">3,1 В</text>
+          <text id="qa-k4" class="qa-t" x="460" y="236">код у точці</text>
+          <text id="qa-code" class="qa-code" x="460" y="258">1</text>
+        </g>
+      </svg>
+    </div>
+  </figure>
 
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
@@ -153,6 +370,13 @@
       <h3>Цифровий вхід питає «чи є?», аналоговий — «скільки?»</h3>
       <p><code>digitalRead()</code> порівнює напругу з порогом і відповідає 0 або 1. Усе, що вище ≈&nbsp;0,75·VDD, — це HIGH<sup class="cite" data-fact="s3-vih"></sup>, нижче ≈&nbsp;0,25·VDD — LOW<sup class="cite" data-fact="s3-vil"></sup>. Для кнопки цього досить. Світло ж змінюється плавно, і нам потрібна не відповідь «так/ні», а <i>число</i>. Його дає <code>analogRead()</code> через аналого-цифровий перетворювач (АЦП, англ. ADC).</p>
       <figure>
+        <svg class="fig-svg" id="c1-svg" viewBox="0 0 320 150" role="img" aria-label="Шкала напруги на піні від 0 до 3,3 В зі смугою невизначеності 0,83–2,48 В. Маркер — вибрана напруга; праворуч відповіді digitalRead і analogRead."></svg>
+        <div class="ctl"><label for="c1-v">Напруга на піні <b id="c1-vv">1,6 В</b></label>
+          <input type="range" id="c1-v" min="0" max="3.3" step="0.01" value="1.6"></div>
+        <figcaption>Рухайте повзунок: <code>digitalRead</code> знає лише 0 і 1 (а в смузі — «як вийде»), <code>analogRead</code> дає число.</figcaption>
+      </figure>
+      <details class="more"><summary>Приклад: та сама крива в чотири моменти</summary>
+        <figure>
         <svg viewBox="0 0 320 162" role="img" aria-label="Та сама плавна крива напруги від 0 до 3,3 В, прочитана в чотири моменти. Смуга посередині — від 0,83 до 2,48 В, де цифровий рівень не визначений. digitalRead: 0, 1, 1 і знак питання для точки в смузі. analogRead: 560, 3740, 3450, 2120.">
           <rect class="undef" x="30" y="35" width="280" height="50"/>
           <text class="lbl-m" x="200" y="78" text-anchor="middle">невизначено</text>
@@ -171,6 +395,7 @@
         </svg>
         <figcaption>Рядок 1 — <code>digitalRead</code>, рядок 2 — <code>analogRead</code> у тих самих чотирьох моментах (≈&nbsp;0,42; 2,83; 2,61 і 1,61&nbsp;В). Остання точка в смузі 0,83…2,48&nbsp;В: тут цифровий вхід може повернути і 0, і 1, а АЦП спокійно каже «2120».</figcaption>
       </figure>
+      </details>
       <p class="key"><b>Головне</b>Цифровий вхід стискає напругу до одного біта, АЦП зберігає її величину як число.</p>
     </article>
 
@@ -206,31 +431,42 @@
 
     <article class="idea">
       <h3>Кінець лінійки — не 3,3&nbsp;В, а ≈&nbsp;3,1&nbsp;В</h3>
-      <p>Перед АЦП стоїть <b>ослаблення</b> (attenuation): воно задає, яку напругу вважати «повною шкалою». В Arduino-ESP32 за замовчуванням режим 11&nbsp;дБ (дБ тут — просто назва режиму)<sup class="cite" data-fact="core-adc-default-atten"></sup>: вхід приймає приблизно до 3,1&nbsp;В<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>, а гарантована точність ±50&nbsp;мВ — до 2,9&nbsp;В<sup class="cite" data-fact="s3-adc-error-atten3"></sup>. Усе вище ≈&nbsp;3,1&nbsp;В АЦП показує як 4095. Точні мілівольти дає <code>analogReadMilliVolts()</code>: він враховує заводське калібрування чипа<sup class="cite" data-fact="core-analogreadmillivolts"></sup>. Для оцінки вручну: <span class="formula">V ≈ raw / 4095 · 3,1 В</span></p>
+      <p>Перед АЦП стоїть <b>ослаблення</b> (attenuation): воно задає, яку напругу вважати «повною шкалою». В Arduino-ESP32 за замовчуванням режим 11&nbsp;дБ (дБ тут — просто назва режиму)<sup class="cite" data-fact="core-adc-default-atten"></sup>: вхід приймає приблизно до 3,1&nbsp;В<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>, а гарантована точність ±50&nbsp;мВ — до 2,9&nbsp;В<sup class="cite" data-fact="s3-adc-error-atten3"></sup>. Усе вище ≈&nbsp;3,1&nbsp;В АЦП показує як 4095.</p>
+      <details class="more"><summary>Детальніше: точні мілівольти</summary>
+        <p>Точні мілівольти дає <code>analogReadMilliVolts()</code>: він враховує заводське калібрування чипа<sup class="cite" data-fact="core-analogreadmillivolts"></sup>. Для оцінки вручну: <span class="formula">V ≈ raw / 4095 · 3,1 В</span></p>
+      </details>
       <figure>
         <svg viewBox="0 0 320 170" role="img" aria-label="Чотири смуги діапазонів АЦП. 0 дБ: до 0,85 В. 2,5 дБ: до 1,1 В. 6 дБ: до 1,6 В. 11 дБ, за замовчуванням: калібровано до 2,9 В, вхід до приблизно 3,1 В. Напруга живлення 3,3 В лежить за межею шкали.">
           <g id="att-bars"></g>
+          <path id="att-mark" d="M0 0" stroke="var(--hi)" stroke-width="2.5"/>
           <path class="ax" d="M70 140H300"/>
           <path class="ceil" d="M300 8V140"/>
           <text class="ceil-t" x="300" y="160" text-anchor="middle">3,3 В</text>
           <text class="lbl-m" x="70" y="160" text-anchor="middle">0</text>
           <text class="lbl-m" x="175" y="160" text-anchor="middle">1,5 В</text>
         </svg>
-        <figcaption>Темна частина — калібрований діапазон<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>, світла — запас входу до ≈&nbsp;3,1&nbsp;В. 3,3&nbsp;В лежить за межею шкали.</figcaption>
+        <div class="ctl"><label for="att-v">Напруга на піні <b id="att-vv">2,0 В</b></label>
+          <input type="range" id="att-v" min="0" max="3.3" step="0.01" value="2"></div>
+        <p class="readout" id="att-out" aria-live="polite"></p>
+        <figcaption>Темна частина — калібрований діапазон<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>, світла — запас входу до ≈&nbsp;3,1&nbsp;В. 3,3&nbsp;В лежить за межею шкали. Жовта риска — ваша напруга.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>4095 означає «≈&nbsp;3,1&nbsp;В або більше», а не «рівно 3,3&nbsp;В». Для вольтів беріть <code>analogReadMilliVolts()</code>.</p>
     </article>
 
     <article class="idea">
       <h3>АЦП міряє напругу, тому опір LDR треба «перекласти»</h3>
-      <p>Фоторезистор (LDR) на світлі має малий опір, у темряві — великий: GL5528 при 10&nbsp;лк має 10–20&nbsp;кОм<sup class="cite" data-fact="ldr-gl5528-light"></sup>, а в повній темряві — від 1&nbsp;МОм<sup class="cite" data-fact="ldr-gl5528-dark"></sup>. АЦП опору не бачить, тож LDR ставимо послідовно з постійним резистором R1 — виходить <b>подільник напруги</b>. Згадайте мотузку-петлю: через обидва резистори тягнеться та сама «мотузка» струму I&nbsp;=&nbsp;3,3&nbsp;В&nbsp;/&nbsp;(R<sub>LDR</sub>&nbsp;+&nbsp;R1) — закон Ома з уроку 1.1. Пін бачить напругу на нижньому резисторі: V&nbsp;=&nbsp;I&nbsp;·&nbsp;R1. Підставте I — і вийде формула на малюнку. Хто з двох резисторів більший, тому дістається більша частка напруги.</p>
+      <p>Фоторезистор (LDR) на світлі має малий опір, у темряві — великий: GL5528 при 10&nbsp;лк має 10–20&nbsp;кОм<sup class="cite" data-fact="ldr-gl5528-light"></sup>, а в повній темряві — від 1&nbsp;МОм<sup class="cite" data-fact="ldr-gl5528-dark"></sup>. АЦП опору не бачить, тож LDR ставимо послідовно з постійним резистором R1 — виходить <b>подільник напруги</b>.</p>
+      <details class="more"><summary>Детальніше: звідки формула подільника</summary>
+      <p>Згадайте мотузку-петлю: через обидва резистори тягнеться та сама «мотузка» струму I&nbsp;=&nbsp;3,3&nbsp;В&nbsp;/&nbsp;(R<sub>LDR</sub>&nbsp;+&nbsp;R1) — закон Ома з уроку 1.1. Пін бачить напругу на нижньому резисторі: V&nbsp;=&nbsp;I&nbsp;·&nbsp;R1. Підставте I — і вийде формула на малюнку. Хто з двох резисторів більший, тому дістається більша частка напруги.</p>
+      </details>
       <figure>
         <svg viewBox="0 0 320 180" role="img" aria-label="Подільник: 3,3 В, зверху фоторезистор LDR, у середній точці вивід GPIO4, знизу резистор R1 10 кілоом до землі. Формула: V на GPIO4 дорівнює 3,3 В помножити на R1 і поділити на суму R LDR і R1.">
           <use class="sch-sym net-3v3" href="#vcc" x="60" y="22"/>
           <text class="sch-pin net-3v3" x="76" y="14">3,3 В</text>
           <path class="sch-w net-3v3" d="M60 22V30"/>
           <use class="sch-sym" href="#ldr" x="60" y="30" transform="rotate(90 60 30)"/>
-          <text class="sch-ref" x="90" y="64">LDR</text>
+          <text class="sch-ref" x="90" y="58">LDR</text>
+          <text class="sch-val" id="c4-rl" x="90" y="76">1,6 кОм</text>
           <path class="sch-w net-sig" d="M60 90V110H130"/>
           <use class="sch-sym" href="#dot" x="60" y="110"/>
           <text class="sch-pin net-sig" x="134" y="115">GPIO4</text>
@@ -243,7 +479,10 @@
           <text class="lbl" x="268" y="46" text-anchor="middle">R1</text>
           <path class="ax" d="M232 52H306"/>
           <text class="lbl" x="268" y="70" text-anchor="middle">R<tspan font-size="11" dy="3">LDR</tspan><tspan dy="-3"> + R1</tspan></text>
+          <text class="lbl-b" id="c4-v" x="200" y="118">= 2,83 В</text>
+          <text class="lbl-m" id="c4-raw" x="200" y="140">raw ≈ 3740</text>
         </svg>
+        <div class="ctl"><button type="button" class="sw" id="c4-palm" aria-checked="false">Накрити LDR долонею</button></div>
         <figcaption>Пін вимірює напругу на нижньому резисторі R1. Куди рухатиметься число, коли світла поменшає, — спрогнозуйте в розділі 05.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Подільник перетворює зміну опору на зміну напруги. Напрям («світло = більше число» чи навпаки) задає місце LDR.</p>
@@ -254,6 +493,7 @@
       <p>Канали ADC1 — це GPIO1…GPIO10<sup class="cite" data-fact="s3-adc1-pins"></sup>, ADC2 — GPIO11…GPIO20<sup class="cite" data-fact="s3-adc2-pins"></sup>. ADC2 ділить апаратуру з Wi-Fi, тож під час роботи Wi-Fi він для датчиків непридатний<sup class="cite" data-fact="s3-adc2-wifi"></sup>. Пін GPIO3 — strapping<sup class="cite" data-fact="s3-strap-gpio3"></sup>, GPIO19/20 зайняті USB<sup class="cite" data-fact="s3-usb-pins-as-gpio"></sup>. Решта пінів (0, 21, 26–48) АЦП не мають зовсім.</p>
       <figure>
         <svg id="pins-svg" viewBox="0 0 330 152" role="img" aria-label="Піни GPIO1–GPIO20. Перший ряд, 1–10: ADC1, працюють завжди; GPIO3 — strapping, GPIO4 — наш фоторезистор. Другий ряд, 11–20: ADC2, конфлікт з Wi-Fi; GPIO19 і 20 — USB."></svg>
+        <div class="ctl"><button type="button" class="sw" id="c5-wifi" aria-checked="false">Wi-Fi увімкнено</button> <span class="small" id="c5-out" aria-live="polite"></span></div>
         <figcaption>Суцільна рамка — ADC1, пунктир — ADC2. Наш вибір — GPIO4.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Датчик — на ADC1 (GPIO1…10, краще 4–7). ADC2 лише тоді, коли Wi-Fi вимкнено.</p>
@@ -456,7 +696,7 @@
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-ldr" viewBox="0 0 262 222" role="img" aria-label="Макетка: дріт від 3V3 у стовпчик 3; фоторезистор зі стовпчика 3 у стовпчик 6 (ряд c); дріт від GPIO4 у стовпчик 6; резистор 10 кілоом зі стовпчика 6 у стовпчик 11; дріт зі стовпчика 11 на шину мінус, з'єднану з GND плати."></svg>
+        <div class="bb-scroll"><svg id="bb-ldr" class="kitv" viewBox="-20 -10 1010 700" role="img" aria-label="Макетка з платою ESP32-S3, вставленою прямо в отвори: ліва гребінка в ряду i, вільний ряд j під нею. Ліворуч від плати стоїть подільник: фоторезистор у стовпчиках 7 і 8, резистор 10 кілоом у ряду h зі стовпчика 3 у стовпчик 7. Помаранчевий дріт вздовж ряду j з'єднує 3V3 (стовпчик 13) з верхньою ніжкою фоторезистора (стовпчик 8). Жовтий дріт іде від GPIO4 (стовпчик 16) під рядом j у стовпчик 7, середню точку. Чорні дроти: зі стовпчика 3 (резистор) і зі стовпчика 34 (GND плати) коротко вниз на шину мінус; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg></div>
       </div>
       <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Фоторезистор полярності не має.</figcaption>
     </figure>
@@ -614,7 +854,7 @@ void loop() {
       <summary>Джерела: звідки кожне число на сторінці</summary>
       <div id="sources"></div>
     </details>
-    <h3>Що виправлено порівняно з LMS</h3>
+    <details class="more"><summary>Що виправлено порівняно з LMS (5)</summary>
     <ul>
       <li>LMS: АЦП ділить 0…3,3&nbsp;В, 4095 = 3,3&nbsp;В, V = raw/4095·3,3. Насправді за замовчуванням (11&nbsp;дБ) шкала закінчується на ≈&nbsp;3,1&nbsp;В, а калібрована точність діє до 2,9&nbsp;В<sup class="cite" data-fact="core-3x-adc-default-atten"></sup><sup class="cite" data-fact="s3-adc-atten-ranges"></sup>. Оцінка: V ≈ raw/4095·3,1&nbsp;В, точно — <code>analogReadMilliVolts()</code>.</li>
       <li>LMS: raw 2048 → 1,65&nbsp;В, «рівно половина». За шкалою ≈&nbsp;3,1&nbsp;В це ≈&nbsp;1,55&nbsp;В.</li>
@@ -622,6 +862,7 @@ void loop() {
       <li>LMS: «для точних вимірів потрібне калібрування». Заводське калібрування вже записане в чип і застосовується в <code>analogReadMilliVolts()</code><sup class="cite" data-fact="core-analogreadmillivolts"></sup>.</li>
       <li>Уточнення: LMS наводить «темрява ≈&nbsp;50&nbsp;кОм». Це правдоподібно для LDR під долонею, але темновий опір GL5528 — від 1&nbsp;МОм<sup class="cite" data-fact="lms-err-1-6-ldr-values"></sup>.</li>
     </ul>
+    </details>
     <p><span class="checked-stamp">✓ Перевірено 24.10.2026</span></p>
   </section>
 
@@ -636,6 +877,7 @@ void loop() {
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -653,6 +895,315 @@ document.addEventListener('study:ready', () => {
   const ohm = (r) => fmt.si(r, 'Ом', 2);
   const luxText = (l) => (l < 0.1 ? 'темрява' : l < 10 ? fmt.num(l, 1) + NB + 'лк' : fmt.num(Math.round(l / (l < 100 ? 1 : 10)) * (l < 100 ? 1 : 10), 0) + NB + 'лк');
 
+  const luxDesc = (lx) => (lx < 1 ? 'ніч' : lx < 10 ? 'сутінки' : lx < 100 ? 'тьмяна кімната' : lx < 1000 ? 'кімната' : lx < 10000 ? 'хмарний день' : 'пряме сонце');
+  const luxFmt = (lx) => (lx < 10 ? fmt.num(lx, lx < 0.1 ? 2 : 1) : lx < 1000 ? fmt.num(Math.round(lx), 0) : lx < 1e5 ? fmt.num(lx / 1000, lx < 1e4 ? 1 : 0) + NB + 'тис.' : '100' + NB + 'тис.') + NB + 'лк';
+  // Arduino-ESP32 input ranges per attenuation (facts: s3-adc-atten-ranges, note): 0 / 2,5 / 6 / 11 дБ
+  const ATT = [['0 дБ', 0.95], ['2,5 дБ', 1.25], ['6 дБ', 1.75], ['11 дБ', 3.1]];
+  const SIG = 10; // modelled noise, raw units (as in the noise widget of section 05)
+  const gauss = () => { let s = 0; for (let k = 0; k < 6; k++) s += Math.random(); return (s - 3) * Math.SQRT2; };
+  const mix = (a, b, t) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const ramp = (stops, t) => { for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { const [t0, c0] = stops[i - 1], [t1, c1] = stops[i]; return mix(c0, c1, (t - t0) / (t1 - t0)); } return stops[stops.length - 1][1]; };
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+  /* ==== the LDR bench from our kit (assets/kit.js), drawn in Kit units (0,1 мм) into `parent` ====
+     Full WB-102 breadboard (the caller crops it), tidy layout: the YD-ESP32-S3 lies IN the holes (c0 = 13: left header
+     in row i, right header in row b; rows j and a stay free), the divider stands left of the board on the lower strips:
+     LDR1 legs in g7 (node) and g8, R1 10 кОм in row h from column 3 to 7 (node strip). Jumpers are Kit.route lines:
+     3V3 (j13) along free row j → j8; GPIO4 (j16) down to the lane under row j → j7; j3 → «−» rail; GND (j34) → «−» rail;
+     the «−» rail is split between columns 31 and 33, a short black bridge bottom-31 → bottom-33 joins its halves. */
+  // ldrLayer = { parent, map(p) → {x, y} }: draw the LDR into another group (the lab scene squashes the board for
+  // a bench seen at an angle, while the LDR stands upright).
+  const LDR_COLS = { c0: 13, v33: 13, gpio: 16, gnd: 34, node: 7, top: 8, rgnd: 3 };
+  function ldrBench(parent, { nets = false, ldrLayer = null } = {}) {
+    const K = window.Kit, C = LDR_COLS;
+    const bb = K.part('breadboard', { parent, title: 'Макетка WB-102' });
+    bb.classList.add('bb-board');            // Schem: a breadboard view keeps its level tags in the legend only
+    const kRoute = (pts, colour, net, cls, title) => {
+      const w = K.route(parent, pts, colour);
+      if (nets) { w.dataset.net = net; w.classList.add(cls); }
+      txt(sv('title', {}, w), title);
+      return w;
+    };
+    const p0 = bb.hole(C.c0, 'i');
+    const esp = K.part('esp32s3', { parent, x: p0.x, y: p0.y, rot: -90, title: `Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, 3V3 у стовпчику ${C.v33}, GPIO4 у стовпчику ${C.gpio}, GND у стовпчику ${C.gnd}` });
+    esp.set({ highlight: ['GPIO4'] });
+    const lp = bb.hole(C.node, 'g'), LEG = 60;
+    const at = ldrLayer ? ldrLayer.map(lp) : lp;
+    const ldr = K.part('ldr', { parent: ldrLayer ? ldrLayer.parent : parent, x: at.x, y: at.y, leg: LEG, title: `Фоторезистор LDR1 (GL55xx): отвори g${C.node} і g${C.top}, полярності немає` });
+    ldr.face = { x: at.x + K.P / 2, y: at.y - LEG - 30 };
+    const rp = bb.hole(C.rgnd, 'h');
+    const res = K.part('resistor', { parent, ohms: 10000, x: rp.x, y: rp.y, title: `R1 10 кОм (коричневий-чорний-помаранчевий): отвори h${C.rgnd} і h${C.node}` });
+    const laneY = bb.hole(1, 'j').y + K.P * 1.15;   // the divider strip between row j and the bottom rails
+    const jG = bb.at('j' + C.gpio), jN = bb.at('j' + C.node);
+    const wires = {
+      j33: kRoute([bb.at('j' + C.v33), bb.at('j' + C.top)], 'orange', 'v33', 'net-3v3', `3V3 плати (j${C.v33}) → j${C.top}: верхня ніжка LDR1`),
+      j4: kRoute([jG, { x: jG.x, y: laneY }, { x: jN.x, y: laneY }, jN], 'yellow', 'gpio4', 'net-sig', `GPIO4 (j${C.gpio}) → j${C.node}: середня точка подільника`),
+      jK: kRoute([bb.at('j' + C.rgnd), bb.at('bottom-' + C.rgnd)], 'black', 'gnd', 'net-gnd', `R1 (j${C.rgnd}) → шина «−»`),
+      jB: kRoute([bb.at('j' + C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd', `GND плати (j${C.gnd}) → шина «−»`),
+      // the WB-102 rails are split between columns 31 and 33: R1 (column 3) and the board's GND (34) sit on different halves
+      jBr: kRoute([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd', 'Перемичка через розрив шини «−»: стовпчик 31 → 33'),
+    };
+    return { bb, esp, ldr, res, wires };
+  }
+
+  /* ==================== LAB: from the sun to a number ==================== */
+  (function () {
+    const lab = { lg: Math.log10(300), palm: false, att: 3, noise: false, avg: false };
+    const hist = [];      // {raw, shown}
+    let last = null, photons = [];
+    const NS = 'http://www.w3.org/2000/svg';
+    // static scene parts: stars and breadboard holes
+    { const g = $('#b6-stars'); let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 34; i++) { const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', (rnd() * 296).toFixed(1)); c.setAttribute('cy', (rnd() * 170).toFixed(1)); c.setAttribute('r', (0.6 + rnd() * 1.2).toFixed(2)); g.append(c); }
+    }
+    // the bench under the sky: the same Kit parts as in section 08 (ESP32-S3 in a WB-102, LDR + 10 kΩ next to it), scaled
+    const KX = 4, KY = 176, SX = 0.315, SY = 0.15, SL = 0.44;   // board seen at an angle (squashed); the LDR a bit closer
+    const kitG = $('#b6-kit'), ldrG = $('#b6-kitldr');
+    kitG.setAttribute('transform', `translate(${KX} ${KY}) scale(${SX} ${SY})`);
+    ldrG.setAttribute('transform', `scale(${SL})`);
+    const ldr = ldrBench(kitG, { ldrLayer: { parent: ldrG, map: (p) => ({ x: (KX + SX * p.x) / SL - Kit.P / 2 * (1 - SX / SL), y: (KY + SY * p.y) / SL }) } }).ldr;
+    const LX = SL * ldr.face.x, LY = SL * ldr.face.y;   // LDR face in scene coordinates
+    $('#b6-ldrglow').setAttribute('cx', LX.toFixed(1)); $('#b6-ldrglow').setAttribute('cy', LY.toFixed(1));
+    $('#b6-handpos').setAttribute('transform', `translate(${(LX - 150).toFixed(1)} ${(LY - 196).toFixed(1)})`);
+    const pg = $('#b6-photons');
+    // ADC bit cells
+    const bitsG = $('#b6-bits'), cells = [];
+    for (let k = 0; k < 12; k++) {
+      const x = 18 + k * 24, b = 11 - k;
+      const n = document.createElementNS(NS, 'text'); n.setAttribute('class', 'b6-bitn'); n.setAttribute('x', x + 10.5); n.setAttribute('y', 84); n.setAttribute('text-anchor', 'middle'); n.textContent = String(b); bitsG.append(n);
+      const r = document.createElementNS(NS, 'rect'); r.setAttribute('class', 'b6-cell'); r.setAttribute('x', x); r.setAttribute('y', 92); r.setAttribute('width', 21); r.setAttribute('height', 32); r.setAttribute('rx', 4); bitsG.append(r);
+      const t = document.createElementNS(NS, 'text'); t.setAttribute('class', 'b6-bit'); t.setAttribute('x', x + 10.5); t.setAttribute('y', 114); t.setAttribute('text-anchor', 'middle'); bitsG.append(t);
+      cells.push({ r, t });
+    }
+    // current dots along the divider
+    const loop = $('#b6-loop'), LEN = loop.getTotalLength(), dots = [];
+    for (let i = 0; i < 9; i++) { const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', 3.2); c.setAttribute('cx', 62); $('#b6-dots').append(c); dots.push(c); }
+    let dpos = 0;
+
+    const luxEff = () => { const lx = 10 ** lab.lg; return lab.palm ? Math.min(lx, 1) : lx; };
+    const model = () => {
+      const lx = luxEff(), rl = rLdr(lx), v = VCC * 10000 / (rl + 10000), vfs = ATT[lab.att][1];
+      const ideal = Math.max(0, Math.min(RAWMAX, Math.round(v / vfs * RAWMAX)));
+      return { lx, rl, v, vfs, ideal, i: VCC / (rl + 10000) };
+    };
+    const sample = (m) => {
+      const one = () => Math.max(0, Math.min(RAWMAX, Math.round(m.v / m.vfs * RAWMAX + (lab.noise ? gauss() * SIG : 0))));
+      const raw = one();
+      if (!lab.avg) return { raw, shown: raw };
+      let s = raw; for (let k = 1; k < 16; k++) s += one();
+      return { raw, shown: Math.round(s / 16) };
+    };
+    function scene(m) {
+      const t = (Math.log10(Math.max(m.lx, 0.01)) + 2) / 7;  // 0 = 0,01 лк … 1 = 100 тис. лк
+      $('#b6-s0').setAttribute('stop-color', ramp([[0, '#060a1c'], [0.3, '#1b2350'], [0.52, '#41679f'], [0.75, '#3f8fdc'], [1, '#78bdf7']], t));
+      $('#b6-s1').setAttribute('stop-color', ramp([[0, '#151c3d'], [0.3, '#6b4d7a'], [0.52, '#eda77c'], [0.75, '#a9d5fa'], [1, '#eaf7ff']], t));
+      $('#b6-hill').setAttribute('fill', ramp([[0, '#080d1a'], [0.35, '#1d2a2f'], [0.6, '#4d6f3c'], [1, '#79a457']], t));
+      $('#b6-stars').setAttribute('opacity', (1 - smooth(0.12, 0.38, t)).toFixed(2));
+      $('#b6-moon').setAttribute('opacity', (1 - smooth(0.25, 0.5, t)).toFixed(2));
+      const sv = smooth(0.26, 0.4, t), sy = 200 - (t - 0.28) / 0.72 * 160, sx = 70 + t * 90;
+      $('#b6-sun').setAttribute('transform', `translate(${sx.toFixed(1)} ${Math.max(36, sy).toFixed(1)}) scale(${(0.7 + 0.5 * t).toFixed(2)})`);
+      $('#b6-sun').setAttribute('opacity', sv.toFixed(2));
+      $('#b6-ldrglow').setAttribute('opacity', (lab.palm ? 0 : smooth(0.35, 1, t) * 0.9).toFixed(2));
+      ldr.set({ light: lab.palm ? 0 : smooth(0.15, 0.95, t) });
+      $('#b6-hand').setAttribute('transform', lab.palm ? 'translate(0 0)' : 'translate(400 0)');
+      const tx = $('#b6-luxt');
+      tx.textContent = `${luxFmt(m.lx)} · ${lab.palm ? 'під долонею' : luxDesc(m.lx)}`;
+      $('#b6-luxbg').setAttribute('width', Math.min(280, tx.getComputedTextLength() + 20).toFixed(0));
+      return { sx, sy: Math.max(36, sy), sv, t };
+    }
+    let sun = { sx: 0, sy: 0, sv: 0, t: 0 };
+    function draw(m) {
+      sun = scene(m);
+      $('#b6-rlt').textContent = ohm(m.rl);
+      const BB = 210, BH = 180, h = BH * Math.min(m.v, VCC) / VCC;
+      $('#b6-colfill').setAttribute('y', (BB - h).toFixed(1)); $('#b6-colfill').setAttribute('height', h.toFixed(1));
+      const yc = BB - BH * Math.min(m.vfs, VCC) / VCC;
+      $('#b6-ceil').setAttribute('d', `M176 ${yc.toFixed(1)}H224`);
+      $('#b6-ceilt').setAttribute('y', (yc + 5).toFixed(1)); $('#b6-ceilt').textContent = `стеля ${fmt.num(m.vfs, 2)}`;
+      $('#b6-vt').textContent = `${fmt.num(m.v, 2)} В`;
+      const shown = last ? last.shown : m.ideal, sat = shown >= RAWMAX;
+      $('#b6-att').textContent = `GPIO4 · ${ATT[lab.att][0]} · шкала 0…${fmt.num(m.vfs, 2)} В`;
+      cells.forEach((c, k) => { const on = (shown >> (11 - k)) & 1; c.r.classList.toggle('on', !!on); c.t.classList.toggle('on', !!on); c.t.textContent = on ? '1' : '0'; });
+      const code = $('#b6-code'); code.textContent = String(shown); code.classList.toggle('sat', sat);
+      $('#b6-of').setAttribute('x', 18 + code.getComputedTextLength() + 12);
+      $('#b6-of').textContent = sat ? 'стеля!' : 'з 4095';
+      const xm = 18 + 284 * shown / RAWMAX;
+      $('#b6-rulef').setAttribute('width', (xm - 18).toFixed(1)); $('#b6-mark').setAttribute('d', `M${xm.toFixed(1)} 208l-6 -10h12z`);
+      $('#b6-o-lux').textContent = luxFmt(m.lx);
+      $('#b6-o-r').textContent = ohm(m.rl);
+      $('#b6-o-v').textContent = fmt.num(m.v, 2) + NB + 'В';
+      const or = $('#b6-o-raw'); or.textContent = String(shown); or.classList.toggle('bad', sat);
+      $('#b6-luxo').textContent = luxFmt(10 ** lab.lg);
+      $('#b6-lux').setAttribute('aria-valuetext', `${luxFmt(10 ** lab.lg)}, ${luxDesc(10 ** lab.lg)}`);
+      plot();
+    }
+    let noteTimer = 0;
+    function note(m) {
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(() => {
+        const where = lab.palm ? 'Під долонею' : luxDesc(m.lx)[0].toUpperCase() + luxDesc(m.lx).slice(1);
+        let s = `${where}: LDR ≈ ${ohm(m.rl)}, пін бачить ${fmt.num(m.v, 2)} В → analogRead ≈ ${m.ideal}.`;
+        if (m.ideal >= RAWMAX) s += ` Стеля: ${fmt.num(m.v, 2)} В більше за шкалу ${fmt.num(m.vfs, 2)} В, тож АЦП показує 4095 і змін світла вже не бачить.${lab.att < 3 ? ' Поверніть ослаблення 11 дБ.' : ''}`;
+        else if (m.ideal < 60) s += ' Число біля нуля: світла замало, щоб подільник дав помітну напругу.';
+        if (lab.noise) s += lab.avg ? ' Середнє з 16 гасить шум приблизно в 4 рази (√16).' : ' Шум: останні цифри стрибають на кілька одиниць.';
+        $('#b6-note').textContent = s;
+      }, 250);
+    }
+    // plot of the shown number over the last 12 s
+    const cv = $('#b6-plot');
+    let ctx = Study.fitCanvas(cv);
+    function plot() {
+      const t = Study.tokens(), { w, h } = ctx, L = 52, R = w - 10, T = 26, B = h - 22, N = 120;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = t.panel; ctx.fillRect(0, 0, w, h);
+      const Y = (r) => B - r / RAWMAX * (B - T), X = (i) => R - (N - 1 - i) / (N - 1) * (R - L);
+      ctx.font = `500 13px ${t['f-mono']}`; ctx.textAlign = 'right';
+      ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.fillStyle = t.muted;
+      [0, 1024, 2048, 3072].forEach((r) => { ctx.beginPath(); ctx.moveTo(L, Y(r) + 0.5); ctx.lineTo(R, Y(r) + 0.5); ctx.stroke(); ctx.fillText(String(r), L - 6, Y(r) + 4); });
+      ctx.strokeStyle = t.bad; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, Y(RAWMAX)); ctx.lineTo(R, Y(RAWMAX)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = t.bad; ctx.fillText('4095', L - 6, Y(RAWMAX) + 4);
+      ctx.textAlign = 'left'; ctx.fillStyle = t.ink; ctx.font = `600 13px ${t['f-mono']}`;
+      ctx.fillText(lab.avg ? 'analogRead · точки — окремі виміри, лінія — середнє з 16' : 'analogRead() у часі, останні 12 с', L, 16);
+      const off = N - hist.length;
+      if (lab.noise || lab.avg) { ctx.fillStyle = t.muted; hist.forEach((p, i) => { ctx.beginPath(); ctx.arc(X(i + off), Y(p.raw), 1.8, 0, 7); ctx.fill(); }); }
+      ctx.strokeStyle = t.accent; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.beginPath();
+      hist.forEach((p, i) => { const x = X(i + off), y = Y(p.shown); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.stroke();
+      if (hist.length) { const p = hist[hist.length - 1]; ctx.fillStyle = t.hi; ctx.beginPath(); ctx.arc(X(N - 1), Y(p.shown), 4.5, 0, 7); ctx.fill(); }
+    }
+    function push() {
+      const m = model();
+      last = sample(m); hist.push(last); if (hist.length > 120) hist.shift();
+      return m;
+    }
+    const update = () => { const m = push(); draw(m); note(m); };
+    let acc = 0;
+    const sim = Study.sim($('#b6-stage'), (dt) => {
+      const m = model();
+      acc += dt;
+      if (acc >= 0.1) { acc = 0; push(); draw(m); }
+      // current dots: speed ∝ current (0,3 мА ≈ one pass in 3 s)
+      dpos = (dpos + dt * m.i * 1000 * 60) % LEN;
+      dots.forEach((c, k) => { const y = 30 + ((dpos + k * LEN / dots.length) % LEN); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('opacity', m.i * 1000 > 0.002 ? 1 : 0); });
+      // photons fly from the sun to the LDR, more of them in brighter light
+      if (sun.sv > 0.05 && !lab.palm && Math.random() < dt * (2 + sun.t * 26)) {
+        const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', 2.4); pg.append(c);
+        photons.push({ c, p: 0, x0: sun.sx + (Math.random() - 0.5) * 14, y0: sun.sy + 10 });
+      }
+      photons = photons.filter((ph) => {
+        ph.p += dt * 1.1;
+        if (ph.p >= 1) { ph.c.remove(); return false; }
+        ph.c.setAttribute('cx', (ph.x0 + (LX - ph.x0) * ph.p).toFixed(1)); ph.c.setAttribute('cy', (ph.y0 + (LY - 4 - ph.y0) * ph.p).toFixed(1));
+        ph.c.setAttribute('opacity', (Math.sin(ph.p * Math.PI) * sun.sv).toFixed(2));
+        return true;
+      });
+    });
+    void sim;
+    $('#b6-lux').addEventListener('input', (e) => { lab.lg = +e.target.value; $$('#b6-pre button').forEach((b) => b.setAttribute('aria-pressed', 'false')); update(); });
+    $$('#b6-pre button').forEach((b) => b.addEventListener('click', () => {
+      lab.lg = +b.dataset.v; $('#b6-lux').value = lab.lg;
+      $$('#b6-pre button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      update();
+    }));
+    $$('#b6-atts button').forEach((b) => b.addEventListener('click', () => {
+      lab.att = +b.dataset.v; $$('#b6-atts button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update();
+    }));
+    $('#b6-palm').addEventListener('switch', (e) => { lab.palm = e.detail.on; update(); });
+    $('#b6-noise').addEventListener('switch', (e) => { lab.noise = e.detail.on; update(); });
+    $('#b6-avg').addEventListener('switch', (e) => { lab.avg = e.detail.on; update(); });
+    let rw = cv.parentElement.clientWidth;
+    new ResizeObserver(() => { const w = cv.parentElement.clientWidth; if (Math.abs(w - rw) < 1) return; rw = w; ctx = Study.fitCanvas(cv); plot(); }).observe(cv.parentElement);
+    Study.onTheme(plot);
+    for (let k = 0; k < 30; k++) push();
+    update();
+  })();
+
+  /* ==================== explainer: quantisation ==================== */
+  (function () {
+    const L = 52, R = 372, T = 28, B = 236, VF = 3.1;
+    const vOf = (u) => 1.55 + 1.05 * Math.sin(u * 5.2 - 1.2) + 0.32 * Math.sin(u * 13 + 0.4); // smooth test signal, u ∈ [0, 1]
+    const X = (u) => L + u * (R - L), Y = (v) => B - v / VF * (B - T);
+    const curveD = (u1) => { let d = ''; for (let k = 0; k <= 200 * u1; k++) { const u = k / 200; d += (k ? 'L' : 'M') + X(u).toFixed(1) + ' ' + Y(vOf(u)).toFixed(1); } return d; };
+    const q = (v, n) => { const lv = 2 ** n; return Math.min(lv - 1, Math.max(0, Math.floor(v / VF * lv))); };
+    const stairD = (n, u1) => {
+      const lv = 2 ** n; let d = '', prev = null;
+      for (let k = 0; k <= 400 * u1; k++) {
+        const u = k / 400, c = q(vOf(u), n), y = Y((c + 0.5) * VF / lv).toFixed(1), x = X(u).toFixed(1);
+        if (prev === null) d = `M${x} ${y}`; else if (c !== prev) d += `H${x}V${y}`;
+        prev = c;
+      }
+      return d + `H${X(u1).toFixed(1)}`;
+    };
+    const lvG = $('#qa-levels'), NS = 'http://www.w3.org/2000/svg';
+    function levels(n) {
+      lvG.replaceChildren();
+      const lv = 2 ** n;
+      if (lv > 32) return;
+      for (let c = 0; c <= lv; c++) {
+        const p = document.createElementNS(NS, 'path'); p.setAttribute('class', 'qa-lv'); p.setAttribute('d', `M${L} ${Y(c * VF / lv).toFixed(1)}H${R + 4}`); lvG.append(p);
+      }
+      if (lv <= 8) for (let c = 0; c < lv; c++) {
+        const t = document.createElementNS(NS, 'text'); t.setAttribute('class', 'qa-lvt'); t.setAttribute('x', 424); t.setAttribute('text-anchor', 'end');
+        t.setAttribute('y', (Y((c + 0.5) * VF / lv) + 5).toFixed(1)); t.textContent = c.toString(2).padStart(n, '0'); lvG.append(t);
+      }
+    }
+    const word = (n) => (n === 1 ? 'біт' : n < 5 ? 'біти' : 'бітів');
+    const stepTxt = (n) => { const mv = VF / 2 ** n * 1000; return mv >= 1000 ? fmt.num(mv / 1000, 2) + NB + 'В' : fmt.num(mv, mv < 1 ? 2 : mv < 10 ? 1 : 0) + NB + 'мВ'; };
+    let lastN = -1;
+    function frame(n, u1, curveU, zoom) {
+      if (n !== lastN) { levels(n); lastN = n; }
+      $('#qa-curve').setAttribute('d', curveD(curveU));
+      $('#qa-stair').setAttribute('d', n ? stairD(n, u1) : 'M0 0');
+      const u = Math.max(0.001, n ? u1 : curveU);
+      $('#qa-dot').setAttribute('cx', X(u).toFixed(1)); $('#qa-dot').setAttribute('cy', Y(vOf(u)).toFixed(1));
+      $('#qa-bits').textContent = n ? `${n} ${word(n)}` : '—';
+      $('#qa-lv').textContent = n ? fmt.num(2 ** n, 0) : '∞';
+      $('#qa-step').textContent = n ? stepTxt(n) : 'будь-який';
+      $('#qa-code').textContent = n ? q(vOf(u), n).toString(2).padStart(n, '0') : `${fmt.num(vOf(u), 3)} В`;
+      $('#qa-zoom').setAttribute('opacity', zoom ? '1' : '0');
+      if (zoom) {
+        // ×1000 around 1,55 В: steps of 0,76 мВ become visible again
+        let d = '', dc = '';
+        for (let k = 0; k <= 60; k++) {
+          const s = k / 60, v = 1.55 + (s - 0.5) * 0.004, c = Math.floor(v / VF * 4096), x = 260 + s * 140;
+          const y = (vv) => (120 - (vv - 1.548) / 0.004 * 56).toFixed(1);
+          d += (k ? `H${x.toFixed(1)}V` : `M${x.toFixed(1)} `) + y((c + 0.5) * VF / 4096);
+          dc += (k ? 'L' : 'M') + x.toFixed(1) + ' ' + y(v);
+        }
+        $('#qa-zstair').setAttribute('d', d); $('#qa-zcurve').setAttribute('d', dc);
+      }
+    }
+    Study.anim($('#b6-anim'), {
+      steps: [
+        { title: 'Плавна напруга', cap: 'Напруга на піні змінюється плавно: між 1,2 і 1,3&nbsp;В — безліч значень. Число так не вміє: його треба <b>округлити</b> до найближчої поділки.', dur: 3.5 },
+        { title: '1 біт = 2 рівні', cap: '1 біт — лише два числа, 0 і 1. Уся крива перетворюється на «є/немає», як у <code>digitalRead</code>.', dur: 3.5 },
+        { title: '2 біти = 4 рівні', cap: '2 біти дають 4 коди: 00, 01, 10, 11. Сходинки вдвічі нижчі — крива вже впізнавана.', dur: 3.5 },
+        { title: '3 біти = 8 рівнів', cap: 'Кожен новий біт <b>подвоює</b> кількість рівнів: 2·2·2 = 2³ = 8. Сходинка знову вдвічі нижча, а діапазон той самий.', dur: 4 },
+        { title: 'Біти додаються', cap: '4 біти — 16 рівнів, 8 — 256, 10 — 1024… Сходинки стають тоншими за лінію.', dur: 4.5 },
+        { title: '12 біт = 4096', cap: 'АЦП ESP32-S3 12-бітний: 2¹² = <b>4096</b> рівнів, числа 0…4095. За ослаблення 11&nbsp;дБ шкала ≈&nbsp;3,1&nbsp;В, тож сходинка ≈&nbsp;3,1&nbsp;В&nbsp;/&nbsp;4096 ≈ <b>0,76&nbsp;мВ</b>. Під лупою сходинки нікуди не зникли.', dur: 5 },
+      ],
+      draw(i, p) {
+        if (i === 0) frame(0, 0, p, false);
+        else if (i <= 3) frame(i, p, 1, false);
+        else if (i === 4) frame(Math.min(12, 4 + Math.floor(p * 8.999)), 1, 1, false);
+        else frame(12, 1, 1, p > 0.25);
+      },
+    });
+    // phones: the number card becomes a 2×2 strip under the plot, and the labels grow
+    const asvg = $('#b6-anim svg');
+    const POS = { wide: [[444, 12, 188, 256], [460, 40], [460, 80], [460, 112], [460, 150], [460, 182], [460, 208], [460, 236], [460, 258]],
+      narrow: [[8, 276, 424, 130], [22, 302], [22, 336], [232, 302], [232, 336], [22, 366], [22, 396], [232, 366], [232, 396]] };
+    const ids = ['#qa-k1', '#qa-bits', '#qa-k2', '#qa-lv', '#qa-k3', '#qa-step', '#qa-k4', '#qa-code'];
+    const layout = () => {
+      const narrow = asvg.parentElement.clientWidth < 560, P = POS[narrow ? 'narrow' : 'wide'];
+      asvg.setAttribute('viewBox', narrow ? '4 8 432 402' : '0 0 640 280');
+      asvg.classList.toggle('qa-narrow', narrow);
+      const c = $('#qa-card'); ['x', 'y', 'width', 'height'].forEach((k, i) => c.setAttribute(k, P[0][i]));
+      ids.forEach((id, i) => { $(id).setAttribute('x', P[i + 1][0]); $(id).setAttribute('y', P[i + 1][1]); });
+    };
+    new ResizeObserver(layout).observe(asvg.parentElement); layout();
+  })();
+
   /* ==== 04 attenuation bars ==== */
   (() => {
     const g = $('#att-bars');
@@ -669,6 +1220,50 @@ document.addEventListener('study:ready', () => {
     });
   })();
 
+  /* ==== 04 attenuation: your voltage on every scale ==== */
+  (() => {
+    const X = (mv) => 70 + mv / 3300 * 230, ins = [950, 1250, 1750, 3100], names = ['0 дБ', '2,5 дБ', '6 дБ', '11 дБ'];
+    const draw = () => {
+      const v = +$('#att-v').value;
+      $('#att-mark').setAttribute('d', `M${X(v * 1000)} 6V142`);
+      $('#att-vv').textContent = fmt.num(v, 2) + NB + 'В';
+      $('#att-out').innerHTML = ins.map((m, i) => { const r = Math.min(RAWMAX, Math.round(v * 1000 / m * RAWMAX)); return `<span>${names[i]} <b class="${r >= RAWMAX ? 'warnout' : ''}">${r}</b></span>`; }).join('');
+    };
+    $('#att-v').addEventListener('input', draw); draw();
+  })();
+
+  /* ==== 04 card 1: digitalRead vs analogRead ==== */
+  (() => {
+    const g = $('#c1-svg'), L = 20, R = 300, X = (v) => L + v / VCC * (R - L);
+    sv('rect', { class: 'undef', x: X(0.825), y: 30, width: X(2.475) - X(0.825), height: 40 }, g);
+    sv('rect', { x: L, y: 30, width: R - L, height: 40, fill: 'none', stroke: 'var(--line-strong)', rx: 4 }, g);
+    txt(sv('text', { class: 'lbl-m', x: (X(0.825) + X(2.475)) / 2, y: 55, 'text-anchor': 'middle' }, g), 'невизначено');
+    txt(sv('text', { class: 'lbl-m', x: L, y: 88 }, g), '0 В');
+    txt(sv('text', { class: 'lbl-m', x: R, y: 88, 'text-anchor': 'end' }, g), '3,3 В');
+    txt(sv('text', { class: 'lbl-m', x: X(0.825), y: 22, 'text-anchor': 'middle' }, g), '0,83');
+    txt(sv('text', { class: 'lbl-m', x: X(2.475), y: 22, 'text-anchor': 'middle' }, g), '2,48');
+    const mk = sv('path', { stroke: 'var(--hi)', 'stroke-width': 4, 'stroke-linecap': 'round' }, g);
+    txt(sv('text', { class: 'lbl', x: L, y: 118 }, g), 'digitalRead');
+    txt(sv('text', { class: 'lbl', x: 170, y: 118 }, g), 'analogRead');
+    const d = sv('text', { class: 'lbl-b', x: L, y: 142 }, g), a = sv('text', { class: 'lbl-b', x: 170, y: 142 }, g);
+    const draw = () => {
+      const v = +$('#c1-v').value;
+      mk.setAttribute('d', `M${X(v)} 24V76`);
+      d.textContent = v < 0.825 ? '0' : v > 2.475 ? '1' : '0 або 1 ?';
+      a.textContent = String(toRaw(v)) + (v >= VMAX ? ' (стеля)' : '');
+      $('#c1-vv').textContent = fmt.num(v, 2) + NB + 'В';
+      $('#c1-v').setAttribute('aria-valuetext', `${fmt.num(v, 2)} В: digitalRead ${d.textContent}, analogRead ${a.textContent}`);
+    };
+    $('#c1-v').addEventListener('input', draw); draw();
+  })();
+
+  /* ==== 04 card 4: palm over the LDR ==== */
+  $('#c4-palm').addEventListener('switch', (e) => {
+    const lx = e.detail.on ? 1 : 300, rl = rLdr(lx), v = VCC * 10000 / (rl + 10000);
+    $('#c4-rl').textContent = ohm(rl); $('#c4-v').textContent = '= ' + fmt.num(v, 2) + NB + 'В'; $('#c4-raw').textContent = 'raw ≈ ' + toRaw(v);
+  });
+  { const rl = rLdr(300), v = VCC * 10000 / (rl + 10000); $('#c4-rl').textContent = ohm(rl); $('#c4-v').textContent = '= ' + fmt.num(v, 2) + NB + 'В'; $('#c4-raw').textContent = 'raw ≈ ' + toRaw(v); }
+
   /* ==== 04 pin tiles ==== */
   (() => {
     const g = $('#pins-svg');
@@ -676,6 +1271,7 @@ document.addEventListener('study:ready', () => {
       const row = n <= 10 ? 0 : 1, col = (n - 1) % 10;
       const x = 6 + col * 32, y = 22 + row * 74;
       sv('rect', { class: row ? 'tile-a2' : 'tile-a1', x, y, width: 28, height: 30, rx: 5 }, g);
+      if (row) { const xx = sv('path', { class: 'wifi-x', d: `M${x + 4} ${y + 4}L${x + 24} ${y + 26}M${x + 24} ${y + 4}L${x + 4} ${y + 26}` }, g); xx.style.display = 'none'; }
       txt(sv('text', { class: 'lbl-b', x: x + 14, y: y + 20, 'text-anchor': 'middle', 'font-size': 14 }, g), String(n));
       const tag = { 3: 'strap', 4: 'LDR', 19: 'USB', 20: 'USB' }[n];
       if (tag) txt(sv('text', { class: 'lbl-m', x: n === 3 ? x + 24 : n === 4 ? x + 8 : x + 14, y: y + 47, 'text-anchor': n === 3 ? 'end' : n === 4 ? 'start' : 'middle' }, g), tag);
@@ -683,6 +1279,12 @@ document.addEventListener('study:ready', () => {
     }
     txt(sv('text', { class: 'lbl', x: 6, y: 16 }, g), 'ADC1 · GPIO1–10 · працює завжди');
     txt(sv('text', { class: 'lbl', x: 6, y: 90 }, g), 'ADC2 · GPIO11–20 · ✕ з Wi-Fi');
+    $('#c5-wifi').addEventListener('switch', (e) => {
+      const on = e.detail.on;
+      $$('#pins-svg .wifi-x').forEach((x) => { x.style.display = on ? '' : 'none'; });
+      $$('#pins-svg .tile-a2').forEach((t) => { t.style.opacity = on ? '.35' : ''; });
+      $('#c5-out').textContent = on ? 'Wi-Fi забрав ADC2: GPIO11…20 для датчиків непридатні. GPIO4 (ADC1) працює.' : 'Wi-Fi вимкнено: працюють обидва АЦП.';
+    });
   })();
 
   /* ==== 04 staircase (gated) ==== */
@@ -899,47 +1501,38 @@ document.addEventListener('study:ready', () => {
     void sim;
   })();
 
-  /* ==== 08 breadboard ==== */
+  /* ==== 08 breadboard: the real parts of our kit (assets/kit.js) ==== */
   const bbSvg = $('#bb-ldr');
-  const g = sv('g', {}, bbSvg);
-  sv('rect', { x: 2, y: 44, width: 58, height: 110, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
-  txt(sv('text', { class: 'sch-pin', x: 6, y: 36 }, g), 'плата');
-  txt(sv('text', { class: 'sch-pin net-3v3', 'data-net': 'v33', x: 8, y: 70 }, g), '3V3');
-  txt(sv('text', { class: 'sch-pin net-sig', 'data-net': 'gpio4', x: 8, y: 104 }, g), '4');
-  txt(sv('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 138 }, g), 'GND');
-  const pin33 = { x: 50, y: 66 }, pin4 = { x: 50, y: 100 }, pinG = { x: 50, y: 134 };
-  const bb = S.breadboard(bbSvg, { cols: 14, rails: true, x: 76, y: 0, colLabels: 'bottom' });
-  bb.mark(3, 'top', 'v33', 'net-3v3');
-  bb.mark(6, 'top', 'gpio4', 'net-sig');
-  bb.mark(11, 'top', 'gnd', 'net-gnd');
-  bb.markRail('top', '-', 'gnd', 'net-gnd');
-  const j33 = S.part(bbSvg, 'jumper', { from: pin33, to: bb.hole(3, 'e'), net: 'v33', cls: 'net-3v3', lift: 20, title: 'Дріт 3V3 → стовпчик 3' });
-  const j4 = S.part(bbSvg, 'jumper', { from: pin4, to: bb.hole(6, 'e'), net: 'gpio4', cls: 'net-sig', lift: 30, title: 'Дріт GPIO4 → стовпчик 6' });
-  // LDR: two legs into columns 3 and 6, disc with the meander above (no Schem.part kind for it)
-  const a = bb.hole(3, 'c'), c = bb.hole(6, 'c');
-  const lg = sv('g', { class: 'bb-ldr' }, bbSvg);
-  txt(sv('title', {}, lg), 'Фоторезистор LDR1: полярності немає');
-  const cx = (a.x + c.x) / 2, cy = a.y - 12;
-  sv('path', { d: `M${a.x} ${a.y}V${cy + 6}L${cx - 4} ${cy + 2}M${c.x} ${c.y}V${cy + 6}L${cx + 4} ${cy + 2}`, fill: 'none', stroke: '#9aa3aa', 'stroke-width': 1.6 }, lg);
-  sv('circle', { cx, cy: cy - 4, r: 10, fill: '#e9d7a8', stroke: '#8c7a4c', 'stroke-width': 1.2 }, lg);
-  sv('path', { d: `M${cx - 7} ${cy - 9}H${cx + 6}V${cy - 5}H${cx - 6}V${cy - 1}H${cx + 7}`, fill: 'none', stroke: '#b4442c', 'stroke-width': 1.6 }, lg);
-  for (const e of [a, c]) sv('circle', { cx: e.x, cy: e.y, r: 2, fill: '#6f7980' }, lg);
-  txt(sv('text', { class: 'bb-part-lbl', x: cx, y: bb.hole(3, 'e').y + 17, 'text-anchor': 'middle' }, lg), 'LDR1');
-  S.part(bbSvg, 'res', { from: bb.hole(6, 'd'), to: bb.hole(11, 'd'), ohms: 10000, label: 'R1' });
-  const jK = S.part(bbSvg, 'jumper', { from: bb.hole(11, 'a'), to: bb.rail('top', '-', 11), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 11 → шина мінус' });
-  const jG = S.part(bbSvg, 'jumper', { from: pinG, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → шина мінус' });
+  const bench = ldrBench(bbSvg, { nets: true });
+  const { bb, wires: { j33, jK, jB, jBr } } = bench;
+  // labels under the breadboard (theme ink), each under its own column, nothing over a part or a wire
+  const yL = bb.size.h + 46, C = LDR_COLS;
+  [['3V3', C.v33, 'end', 'v33', 'net-3v3', 10], ['GPIO4', C.gpio, 'start', 'gpio4', 'net-sig', -10], ['GND', C.gnd, 'middle', 'gnd', 'net-gnd', 0]].forEach(([t, c, anc, net, cls, dx]) => {
+    txt(sv('text', { class: 'kit-lbl ' + cls, 'data-net': net, x: bb.hole(c, 'j').x + dx, y: yL, 'text-anchor': anc }, bbSvg), t);
+  });
+  txt(sv('text', { class: 'kit-lbl', x: (bb.hole(C.node, 'j').x + bb.hole(C.top, 'j').x) / 2, y: yL, 'text-anchor': 'middle' }, bbSvg), 'LDR1');
+  const rl = sv('text', { class: 'kit-lbl', x: (bb.hole(C.rgnd, 'j').x + bb.hole(C.node, 'j').x) / 2, y: yL + 56, 'text-anchor': 'middle' }, bbSvg);
+  txt(rl, 'R1 ');
+  txt(sv('tspan', { class: 'kit-val' }, rl), '10 кОм');
+  { const x0 = bb.hole(1, 'j').x - Kit.P * 1.5, x1 = bb.hole(38, 'j').x; bbSvg.setAttribute('viewBox', `${x0.toFixed(0)} -10 ${(x1 - x0).toFixed(0)} ${(yL + 74).toFixed(0)}`); }
 
+  // Schem.flow on a Kit wire: the dots are styled by .kitv .schem-flow; the reduced-motion arrow is scaled up here.
+  const kitFlow = (path, o) => {
+    const c = S.flow(path, o);
+    const ar = path.nextElementSibling && path.nextElementSibling.nextElementSibling;
+    if (path.closest('.kitv') && ar && ar.classList.contains('schem-flow-arrow')) ar.setAttribute('d', 'M24 0L-18 -24V24Z');
+    return c;
+  };
   let flowOn = false;
   const dualWires = [[$$('#dual-ldr [data-view="sch"] path.net-3v3')[0], 1], [$$('#dual-ldr [data-view="sch"] path.net-sig')[1], 1],
     [$$('#dual-ldr [data-view="sch"] path.net-gnd')[0], 1], [$$('#dual-ldr [data-view="sch"] path.net-gnd')[1], -1],
-    [j33, 1], [jK, 1], [jG, -1]];
+    [j33.path, 1], [jK.path, 1], [jBr.path, 1], [jB.path, -1]];
   $('#flow-btn').addEventListener('click', (e) => {
     flowOn = !flowOn;
     e.currentTarget.setAttribute('aria-pressed', String(flowOn));
     e.currentTarget.textContent = flowOn ? 'Сховати струм' : 'Показати струм';
     const i = VCC / (rLdr(300) + 10000) * 1000;
-    dualWires.forEach(([w, dir]) => w && S.flow(w, { mA: flowOn ? i : 0, dir, k: 10 }));
-    if (j4._flow) j4._flow.set(0);
+    dualWires.forEach(([w, dir]) => w && kitFlow(w, { mA: flowOn ? i : 0, dir, k: 10 }));
     $('#flow-out').textContent = flowOn ? `Кімната: I = 3,3 / (1,6 кОм + 10 кОм) ≈ ${fmt.num(i, 2)} мА. У пін АЦП струм майже не тече.` : '';
   });
 });

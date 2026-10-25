@@ -143,7 +143,88 @@ pre.snip .c { color: var(--muted); }
 @media (min-width: 640px) { .vs { grid-template-columns: 1fr 1fr; } }
 .fix-list li { margin-bottom: 10px; }
 .yt li { margin-bottom: 10px; }
-.lab-note { display: block; margin-top: 4px; }
+#lab .lab-note { display: block; margin-top: 4px; }
+
+/* ---- lab «Blink на платі»: Kit parts (assets/kit.js) keep their real colours (purple PCB) in both themes */
+#bench, #bl-anim, .idea { --cable: #3a3d42; }
+.bl-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 860px) { .bl-grid { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); align-items: start; } }
+.bl-left, .bl-right { display: grid; gap: 12px; align-content: start; min-width: 0; }
+#bl-board, #ba-svg { display: block; width: 100%; height: auto; }
+#ba-svg { max-width: 720px; margin: 0 auto; }
+/* Kit scenes (assets/kit.js): hardware keeps its real colours; only the labels around it follow the theme.
+   --k = svg user units per CSS px (set by the script), so callouts stay 14 px on any screen. */
+.kit-scene .kit-lbl { fill: var(--ink); font: 600 calc(var(--k, 2) * 13px) var(--f-mono); paint-order: stroke; stroke: var(--panel); stroke-width: calc(var(--k, 2) * 3px); stroke-linejoin: round; }
+.kit-scene .kit-lead { fill: none; stroke: var(--muted); stroke-width: calc(var(--k, 2) * 1.2px); stroke-dasharray: calc(var(--k, 2) * 3px) calc(var(--k, 2) * 2px); }
+.kit-scene { overflow: hidden; }
+.kit-scene .schem-flow { vector-effect: non-scaling-stroke; }
+.kit-scene .kit-strip { fill: transparent; }
+.kit-scene .kit-strip.net-on { fill: currentColor; fill-opacity: .35; }
+.kit-scene g[data-net].net-on { filter: drop-shadow(0 0 calc(var(--k, 2) * 3px) currentColor) drop-shadow(0 0 calc(var(--k, 2) * 3px) currentColor); }
+.bl-tags { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin: 0; font: 600 15px var(--f-mono); }
+.bl-tags .net-sig { color: var(--nsig-ink); }
+.bl-tags .muted { color: var(--muted); }
+.bl-pkt { fill: var(--flow); stroke: #fff; }
+.bl-rst { cursor: pointer; outline: none; }
+.bl-rst .bl-hit { fill: transparent; stroke: transparent; }
+.bl-rst:hover .bl-hit { stroke: var(--accent); }
+.bl-rst:focus-visible .bl-hit { stroke: var(--focus, var(--accent)); stroke-dasharray: 8 6; }
+.bl-cable { fill: none; stroke: var(--cable); stroke-width: 4; stroke-linecap: round; }
+.bl-cable[hidden], .kit-usb[hidden] { display: none; }
+.kit-usb { transition: transform .35s; }
+@media (prefers-reduced-motion: reduce) { .kit-usb { transition: none; } }
+.bl-trace canvas { display: block; width: 100%; height: 130px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.bl-trace .small { margin: 4px 0 0; }
+.bl-code { font-size: 14px; line-height: 1.5; }
+.bl-code li { --g: 0; background: color-mix(in srgb, var(--accent) calc(var(--g) * 22%), transparent); }
+.bl-code li.cur { box-shadow: inset 4px 0 var(--accent); font-weight: 600; }
+.bl-code .s { color: var(--copper, var(--hi-ink)); }
+.bl-code .n { color: var(--hl); font-weight: 700; }
+.bl-mon { border: 1px solid var(--line); border-radius: 8px; background: var(--sunk, var(--panel-2)); overflow: hidden; }
+.bl-mon-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 6px 6px 6px 12px;
+  border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.bl-mon-h .seg button { min-height: 36px; padding: 4px 12px; font-size: 13px; }
+.bl-mon pre { margin: 0; height: calc(6 * 1.5em + 16px); padding: 8px 12px; overflow: hidden; border: 0; border-radius: 0; background: transparent;
+  font: 13.5px/1.5 var(--f-mono); color: var(--ink); white-space: pre-wrap; }
+.bl-mon pre .dim { color: var(--muted); font-style: italic; }
+.bl-mon pre .new { color: var(--accent); font-weight: 600; }
+#bench .lab-ctl .seg button { min-height: 44px; }
+#bench .lab-ctl .btn { min-height: 44px; }
+@media (max-width: 599px) { #bench .lab-ctl > .seg, #bench .lab-range { width: 100%; } #bench .lab-ctl > .seg button { flex: 1; } #bench .lab-range input[type="range"] { flex: 1; width: auto; } }
+/* animation «від коду до світла» */
+.ba-screen { fill: var(--panel-2); stroke: var(--ink); stroke-width: 2; }
+.ba-base { fill: var(--line-2, var(--line)); stroke: var(--ink); stroke-width: 1.5; }
+.ba-file { fill: var(--accent); font: 700 17px var(--f-mono); }
+.ba-code { fill: var(--ink); font: 500 16px/1 var(--f-mono); white-space: pre; }
+.ba-code.bin { fill: var(--muted); }
+.ba-track, .ba-flash { fill: var(--line); }
+.ba-fill { fill: var(--accent); } .ba-flash-f { fill: var(--hi); }
+.ba-wave { fill: none; stroke: var(--lvl-hi); stroke-width: 2.5; stroke-linejoin: round; }
+.ba-axis { stroke: var(--line-2, var(--line)); stroke-width: 1.5; }
+#ba-svg .ba-lbl { fill: var(--ink); font: 500 17px var(--f-mono); }
+#ba-svg text.net-sig { fill: var(--nsig-ink); }
+.ba-pill rect { fill: var(--panel); stroke: var(--ink); stroke-width: 1.2; }
+.ba-pill text { fill: var(--ink); font: 700 17px var(--f-mono); }
+#ba-svg .bl-pkt { stroke: none; }
+#ba-cable { stroke-width: 5.4; }
+.up-cable { fill: none; stroke: var(--cable); stroke-width: 4; stroke-linecap: round; }
+.step-board svg, .blink-led svg { overflow: visible; }
+/* idea widgets */
+.mini-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0 0; }
+.mini-ctl .btn { min-height: 44px; }
+.race-fig { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); cursor: pointer; }
+.race { display: block; width: 100%; height: auto; }
+.race .tk { fill: var(--line); } .race .mcu { fill: var(--accent); } .race .sbc { fill: var(--hi); }
+.race text { fill: var(--ink); font: 500 16px var(--f-body); }
+.race .mono { font: 600 16px var(--f-mono); }
+.up-bits { fill: var(--accent); }
+.ml-code li { --g: 0; background: color-mix(in srgb, var(--accent) calc(var(--g) * 22%), transparent); }
+.ml-code li.cur { box-shadow: inset 4px 0 var(--accent); }
+.ml-read { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
+.ml-read b { font: 600 16px var(--f-mono); color: var(--ink); }
+[data-sim] { outline-offset: 3px; }
+/* idea figures here carry controls and are taller than the folded text: keep them in flow, so they never slide over «Головне» */
+@media (min-width: 820px) { #ideas .idea:has(> figure) > figure { position: static; } }
 </style>
 </head>
 <body data-lesson="1-3">
@@ -167,6 +248,116 @@ pre.snip .c { color: var(--muted); }
     </div>
   </header>
 
+  <!-- ============================================================ lab: Blink on a drawn YD-ESP32-S3 (motion via Study.sim only) -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія: Blink на платі</h2><p>Стежте, який рядок Blink виконується, що робить вивід і що друкує Serial (▶ або «Крок»). Потім змініть delay, світлодіод чи кабель.</p></header>
+    <div class="lab-stage" id="bl-stage">
+      <div class="bl-grid">
+        <div class="bl-left">
+          <svg id="bl-board" class="kit-scene" viewBox="0 -110 1200 740" role="img" aria-label="Плата YD-ESP32-S3 на макетці: модуль ESP32-S3-WROOM-1 зліва, справа два роз'єми USB-C, підписані USB і COM, кнопки BOOT і RST, RGB-світлодіод на GPIO48. Плата вставлена в отвори макетки: гребінки в рядах i та b, вільні лише крайні ряди j та a. Від виводу 15 жовтий дріт іде прямо вниз і рівно вздовж смуги під рядом j ліворуч до резистора R1 220 ом; поруч стоїть червоний світлодіод LED1, його катод коротким чорним дротом іде на мінусову шину, з'єднану другим чорним дротом з виводом GND плати; шина посередині розірвана, тож її половинки з'єднує коротка чорна перемичка. Дроти не перетинаються. Кабель USB-C вставлено в один з роз'ємів."></svg>
+          <p class="bl-tags"><span class="bl-v net-sig" id="bl-pin-st">GPIO15 · Z</span><span class="bl-v" id="bl-pwr">● живлення є</span></p>
+          <div class="bl-trace">
+            <canvas id="bl-tr" width="900" height="130" aria-label="Графік рівня на LED_PIN за останні 4 секунди: прямокутні імпульси HIGH і LOW."></canvas>
+            <p class="small" id="bl-tr-cap">GPIO15 (LED_PIN) за останні 4&nbsp;с — так його показав би осцилограф.</p>
+          </div>
+        </div>
+        <div class="bl-right">
+          <ol class="codebox bl-code" id="bl-code" aria-label="Програма Blink; рядок, що виконується, підсвічено">
+<li><span class="k">#include</span> &lt;Arduino.h&gt;</li>
+<li id="bl-def"><span class="k">#define</span> LED_PIN 15  <span class="c">// зовнішній LED</span></li>
+<li></li>
+<li><span class="k">void</span> setup() {</li>
+<li>  Serial.begin(115200);</li>
+<li>  pinMode(LED_PIN, OUTPUT);</li>
+<li>  Serial.println(<span class="s">"Blink: старт"</span>);</li>
+<li>}</li>
+<li><span class="k">void</span> loop() {</li>
+<li>  digitalWrite(LED_PIN, HIGH);</li>
+<li>  Serial.println(<span class="s">"LED: HIGH"</span>);</li>
+<li>  delay(<span class="n" data-d>1000</span>);</li>
+<li>  digitalWrite(LED_PIN, LOW);</li>
+<li>  Serial.println(<span class="s">"LED: LOW"</span>);</li>
+<li>  delay(<span class="n" data-d>1000</span>);</li>
+<li>}</li>
+          </ol>
+          <div class="bl-mon">
+            <div class="bl-mon-h"><span>Монітор порту · 115200</span>
+              <span class="seg" role="group" aria-label="У який роз'єм вставлено кабель" id="bl-port">
+                <button type="button" data-p="usb" aria-pressed="true">USB</button>
+                <button type="button" data-p="com" aria-pressed="false">COM</button>
+              </span>
+            </div>
+            <pre id="bl-serial" aria-label="Що надрукувала програма"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="btn primary" id="bl-play">⏸ Пауза</button>
+      <button type="button" class="btn" id="bl-step">Крок →</button>
+      <button type="button" class="btn" id="bl-rst">↻ RST</button>
+      <div class="seg" role="group" aria-label="Який світлодіод блимає" id="bl-led">
+        <button type="button" data-p="15" aria-pressed="true">LED_PIN 15</button>
+        <button type="button" data-p="b" aria-pressed="false">LED_BUILTIN</button>
+      </div>
+      <label class="lab-range">delay <input type="range" id="bl-dly" min="0" max="6" step="1" value="5" aria-label="Обидві затримки, мс"><output id="bl-dly-o">1000 мс</output></label>
+      <button type="button" class="sw" id="bl-pw" aria-checked="true">Кабель під'єднано</button>
+      <button type="button" class="sw" id="bl-slow" aria-checked="false">Повільно ×¼</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Рядок</b><output id="bl-r-ln">—</output></div>
+      <div><b>LED_PIN</b><output id="bl-r-lv">Z</output></div>
+      <div><b>Період</b><output id="bl-r-p">2000 мс</output></div>
+      <div><b>setup() / loop()</b><output id="bl-r-n">0 / 0</output></div>
+      <div><b>millis()</b><output id="bl-r-t">0</output></div>
+    </div>
+    <p class="lab-note" id="bl-note" aria-live="polite">Плату щойно увімкнули: ядро викличе setup() один раз, а потім loop() — знову і знову.</p>
+    <a class="lab-more" href="../../lab/#led-blink">Повна лабораторія: Стенд ESP32-S3, «Миготіння LED» →</a>
+  </section>
+
+  <figure class="anim wide" id="bl-anim" aria-labelledby="bl-anim-h">
+    <header class="anim-head"><h3 id="bl-anim-h">Анімація: від коду до світла</h3></header>
+    <div class="anim-stage">
+      <svg id="ba-svg" viewBox="0 0 430 244" role="img" aria-label="Ноутбук з файлом main.cpp з'єднаний кабелем USB з платою ESP32-S3; над платою світлодіод на GPIO15. Кроки: код, компіляція, запис у flash по кабелю, скидання, setup, loop.">
+        <defs><radialGradient id="ba-g"><stop offset="0" stop-color="#ff3b30" stop-opacity=".95"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
+          <clipPath id="ba-clip"><rect id="ba-clip-r" x="14" y="36" width="0" height="86"/></clipPath></defs>
+        <!-- laptop -->
+        <rect class="ba-screen" x="6" y="8" width="220" height="124" rx="6"/>
+        <path class="ba-base" d="M0 142H232L224 132H8Z"/>
+        <text class="ba-file" id="ba-file" x="16" y="30">main.cpp</text>
+        <g id="ba-src" clip-path="url(#ba-clip)">
+          <text class="ba-code" x="16" y="54">void setup() {</text>
+          <text class="ba-code" x="16" y="76"> pinMode(15,OUTPUT);</text>
+          <text class="ba-code" x="16" y="98">}</text>
+          <text class="ba-code" x="16" y="120">void loop() { … }</text>
+        </g>
+        <g id="ba-bin" opacity="0">
+          <text class="ba-code bin" x="16" y="54">0110 1001 1100 01</text>
+          <text class="ba-code bin" x="16" y="76">1010 0011 0101 11</text>
+          <text class="ba-code bin" x="16" y="98">0001 1110 1011 00</text>
+          <text class="ba-code bin" x="16" y="120">1100 0110 0010 10</text>
+        </g>
+        <rect class="ba-track" x="8" y="166" width="216" height="10" rx="5"/>
+        <rect class="ba-fill" id="ba-cbar" x="8" y="166" width="0" height="10" rx="5"/>
+        <text class="ba-lbl" id="ba-clbl" x="8" y="200"></text>
+        <!-- cable (its path is set by the script: laptop → USB-C plug of the board) -->
+        <path class="bl-cable" id="ba-cable" d="M226 100H380"/>
+        <!-- the real bench: YD-ESP32-S3 on the breadboard, GPIO15 → 220 Ом → LED (drawn by Kit) -->
+        <g id="ba-board"></g>
+        <g id="ba-bits"></g>
+        <g class="ba-pill" id="ba-flash-l"><rect x="0" y="0" width="62" height="24" rx="5"/><text x="31" y="18" text-anchor="middle">flash</text></g>
+        <rect class="ba-flash" id="ba-ftrack" x="0" y="0" width="0" height="6" rx="3"/>
+        <rect class="ba-flash-f" id="ba-fbar" x="0" y="0" width="0" height="6" rx="3"/>
+        <g class="ba-pill" id="ba-rst" opacity="0"><rect x="0" y="0" width="46" height="24" rx="5"/><text x="23" y="18" text-anchor="middle">RST</text></g>
+        <text class="ba-lbl net-sig" id="ba-pin" x="428" y="40" text-anchor="end">GPIO15: Z</text>
+        <text class="ba-lbl" x="240" y="76">LED1</text>
+        <!-- mini scope of GPIO15 -->
+        <path class="ba-axis" d="M252 240H428"/>
+        <path id="ba-wave" class="ba-wave" d="M252 240"/>
+      </svg>
+    </div>
+  </figure>
+
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
     <h2><span class="n">01</span> Навіщо це</h2>
@@ -178,23 +369,25 @@ pre.snip .c { color: var(--muted); }
         <text x="18" y="28" fill="var(--muted)" font-size="14" font-weight="600">Без мікроконтролера</text>
         <rect x="22" y="58" width="40" height="56" rx="4" fill="none" stroke="var(--n33)" stroke-width="2"/>
         <text x="42" y="91" text-anchor="middle" fill="var(--ink)" font-size="13">3,3 В</text>
-        <path d="M42 58V44H200V70M200 108V128H42V114" fill="none" stroke="var(--muted)" stroke-width="2"/>
-        <rect x="100" y="38" width="40" height="12" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
-        <circle cx="200" cy="89" r="16" fill="var(--bad)" opacity=".85"/>
-        <text x="224" y="94" fill="var(--ink)" font-size="13">LED</text>
+        <path d="M42 58V44H174V118H193M204 118H220V132H42V114" fill="none" stroke="var(--muted)" stroke-width="2"/>
+        <g class="why-kit" data-kit="r" data-x="100" data-y="44"></g>
+        <g class="why-kit" data-kit="led" data-x="193" data-y="118"></g>
+        <text x="226" y="74" fill="var(--ink)" font-size="13">LED</text>
+        <text x="120" y="66" text-anchor="middle" fill="var(--muted)" font-size="13">220 Ом</text>
         <text x="18" y="150" fill="var(--ink)" font-size="14">світить, поки є напруга</text>
       </svg>
       <svg class="why-fig" viewBox="0 0 270 162" role="img" aria-label="З мікроконтролером: між живленням і світлодіодом стоїть ESP32-S3 з програмою; від його виводу через той самий резистор до світлодіода — LED світить тоді, коли скаже код.">
         <rect x="4" y="4" width="262" height="154" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>
         <text x="18" y="28" fill="var(--accent)" font-size="14" font-weight="600">З мікроконтролером</text>
-        <rect x="18" y="42" width="116" height="78" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
-        <text x="76" y="62" text-anchor="middle" fill="var(--ink)" font-size="14" font-weight="600">ESP32-S3</text>
-        <text x="76" y="84" text-anchor="middle" fill="var(--accent)" font-size="13" font-family="var(--f-mono)">if (…) HIGH;</text>
-        <text x="76" y="104" text-anchor="middle" fill="var(--accent)" font-size="13" font-family="var(--f-mono)">delay(…);</text>
-        <path d="M134 66H206V73M206 105V128H134V112" fill="none" stroke="var(--muted)" stroke-width="2"/>
-        <rect x="150" y="60" width="40" height="12" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
-        <circle cx="206" cy="89" r="16" fill="var(--bad)" opacity=".85"/>
-        <text x="228" y="94" fill="var(--ink)" font-size="13">LED</text>
+        <path id="why-w15" d="M64.7 88V132H236V122" fill="none" stroke="var(--muted)" stroke-width="2"/>
+        <path d="M247.4 122V128" fill="none" stroke="var(--muted)" stroke-width="2"/>
+        <use class="sch-sym net-gnd" href="#gnd" x="247.4" y="128"/>
+        <g class="why-kit" data-kit="esp" data-x="18" data-y="36"></g>
+        <g class="why-kit" data-kit="r" data-x="140" data-y="132"></g>
+        <g class="why-kit" data-kit="led" data-x="236" data-y="122"></g>
+        <text x="140" y="44" fill="var(--accent)" font-size="13" font-family="var(--f-mono)">if (…) HIGH;</text>
+        <text x="140" y="60" fill="var(--accent)" font-size="13" font-family="var(--f-mono)">delay(…);</text>
+        <text x="80" y="112" fill="var(--ink)" font-size="13" font-weight="600">ESP32-S3 + код</text>
         <text x="18" y="150" fill="var(--ink)" font-size="14">світить, коли скаже код</text>
       </svg>
     </div>
@@ -239,7 +432,9 @@ pre.snip .c { color: var(--muted); }
     <article class="idea">
       <h3>ESP32-S3 — увесь комп'ютер в одному чипі, без операційної системи</h3>
       <p>Raspberry Pi — <b>одноплатний комп'ютер</b> (SBC): процесор, окрема оперативна пам'ять, SD-картка з Linux. Після увімкнення він спершу завантажує ОС. <b>Мікроконтролер</b> (MCU) тримає процесор, пам'ять і виводи в одному корпусі, а програма в нього одна і стартує одразу: це «голе залізо», bare metal.</p>
+      <details class="more"><summary>Детальніше: що всередині ESP32-S3</summary>
       <p>ESP32-S3: два ядра Xtensa LX7 до 240&nbsp;МГц<sup class="cite" data-fact="s3-cpu"></sup>, 512&nbsp;КБ SRAM<sup class="cite" data-fact="s3-sram"></sup>, Wi-Fi 2,4&nbsp;ГГц і Bluetooth 5 LE<sup class="cite" data-fact="s3-wireless"></sup>. На нашій платі чип сидить у модулі WROOM-1 <b>N16R8</b>: 16&nbsp;МБ flash для програми і 8&nbsp;МБ PSRAM (додаткової оперативної пам'яті)<sup class="cite" data-fact="wroom-n16r8-memory"></sup>.</p>
+      </details>
       <figure>
         <svg viewBox="0 0 320 324" role="img" aria-label="Угорі мікроконтролер: модуль WROOM-1, у ньому чип ESP32-S3 з двома ядрами, SRAM, ROM і виводами GPIO, поруч flash 16 МБ і PSRAM 8 МБ; підпис: одна програма, старт одразу. Унизу одноплатний комп'ютер: окремі процесор, оперативна пам'ять і SD-картка з Linux; підпис: спершу завантажує ОС.">
           <g font-size="16">
@@ -269,6 +464,18 @@ pre.snip .c { color: var(--muted); }
           <text x="160" y="318" text-anchor="middle" fill="var(--muted)">flash 16 МБ і PSRAM 8 МБ — у модулі</text>
           </g>
         </svg>
+      <div class="race-fig" id="race">
+          <svg class="race" viewBox="0 0 320 116" role="img" aria-label="Схематичне порівняння старту після ввімкнення: мікроконтролер одразу запускає loop() і блимає світлодіодом, одноплатний комп'ютер спершу довго завантажує операційну систему.">
+            <text x="0" y="20" class="mono">MCU</text>
+            <rect class="tk" x="70" y="8" width="200" height="16" rx="8"/><rect class="mcu" id="race-m" x="70" y="8" width="0" height="16" rx="8"/>
+            <g id="race-led" class="race-kit"></g>
+            <text id="race-mt" x="70" y="48">вимкнено</text>
+            <text x="0" y="80" class="mono">SBC</text>
+            <rect class="tk" x="70" y="68" width="200" height="16" rx="8"/><rect class="sbc" id="race-b" x="70" y="68" width="0" height="16" rx="8"/>
+            <text id="race-bt" x="70" y="108">вимкнено</text>
+          </svg>
+          <div class="mini-ctl"><button type="button" class="sw" id="race-sw" aria-checked="false">Живлення</button><span class="small">схематично, без масштабу часу</span></div>
+        </div>
         <figcaption>MCU — «спецпризначенець» з однією задачею; SBC — маленький ПК.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>MCU: одна програма, миттєвий старт, мале споживання. SBC: операційна система і багато програм.</p>
@@ -277,26 +484,27 @@ pre.snip .c { color: var(--muted); }
     <article class="idea">
       <h3>Upload не копіює ваш код: на плату їде лише машинний код</h3>
       <p>Плата не знає C++. Компілятор перекладає <code>main.cpp</code> у команди процесора Xtensa, лінкер додає ядро Arduino (там живуть <code>pinMode</code> і <code>delay</code>), і виходить образ <code>firmware.bin</code>. Програма-прошивальник esptool записує його у flash <b>через завантажувач у ROM</b> чипа<sup class="cite" data-fact="s3-rom"></sup> (точніше, ROM спершу приймає в RAM маленького помічника esptool, і flash пише вже він).</p>
+      <details class="more"><summary>Детальніше</summary>
       <p>Тому «скачати код з плати» не вийде: <code>main.cpp</code> лишається на ноутбуці. Зате прошивка у flash переживає вимкнення і працює від будь-якого живлення.</p>
-      <figure>
-        <svg viewBox="0 0 320 252" role="img" aria-label="Ноутбук з файлом main.cpp; від нього кабель USB до плати; над кабелем підпис: лише машинний код firmware.bin. На платі flash з нулями й одиницями. Під ноутбуком: вихідний код лишається тут.">
+      </details>
+      <figure id="up-fig">
+        <svg viewBox="0 0 320 252" role="img" aria-label="Ноутбук з файлом main.cpp; від нього кабель USB до плати; над кабелем підпис: лише машинний код firmware.bin. Плата YD-ESP32-S3: у її модулі flash, куди лягають нулі й одиниці. Біля ноутбука: вихідний код лишається тут.">
           <g font-size="16">
           <rect x="8" y="8" width="170" height="72" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
           <path d="M0 88H186L178 80H8Z" fill="var(--line)" stroke="var(--ink)"/>
           <text x="93" y="38" text-anchor="middle" fill="var(--accent)" font-family="var(--f-mono)">main.cpp</text>
           <text x="93" y="62" text-anchor="middle" fill="var(--muted)" font-family="var(--f-mono)">void loop()…</text>
           <text x="192" y="34" fill="var(--ink)">код</text><text x="192" y="54" fill="var(--ink)">лишається</text><text x="192" y="74" fill="var(--ink)">тут</text>
-          <path d="M93 92V146" fill="none" stroke="var(--muted)" stroke-width="3"/>
-          <path d="M86 138l7 12 7-12z" fill="var(--muted)"/>
-          <text x="110" y="126" fill="var(--ink)">лише <tspan fill="var(--accent)" font-family="var(--f-mono)">.bin</tspan></text>
-          <rect x="8" y="156" width="304" height="90" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
-          <text x="20" y="178" fill="var(--ink)" font-weight="600">ESP32-S3</text>
-          <rect x="20" y="188" width="130" height="48" rx="3" fill="var(--panel)" stroke="var(--hi)"/>
-          <text x="85" y="207" text-anchor="middle" fill="var(--ink)">flash</text>
-          <text x="85" y="227" text-anchor="middle" fill="var(--muted)" font-family="var(--f-mono)">0110 1001</text>
-          <text x="164" y="208" fill="var(--ink)">машинні</text><text x="164" y="228" fill="var(--ink)">команди</text>
+          <path id="up-path" class="up-cable" d="M93 92V122C93 150 268 128 270 162C271 176 262 181 250 181"/>
+          <g id="up-board"></g>
+          <g id="up-bits"></g>
+          <text x="112" y="116" fill="var(--ink)">лише <tspan fill="var(--accent)" font-family="var(--f-mono)">.bin</tspan></text>
+          <rect id="up-can" x="0" y="0" width="0" height="0" rx="3" fill="none" stroke="var(--hi)" stroke-width="2.5" stroke-dasharray="5 3"/>
+          <text x="226" y="214" fill="var(--ink)">flash:</text>
+          <text id="up-flash" x="224" y="236" fill="var(--muted)" font-family="var(--f-mono)">…</text>
           </g>
         </svg>
+        <div class="mini-ctl"><button type="button" class="sw" id="up-sw" aria-checked="false">Upload</button><span class="small" id="up-st" aria-live="polite">Натисніть Upload</span></div>
         <figcaption>Компілюється на комп'ютері, виконується на платі.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Між ноутбуком і платою мандрує лише машинний код. Кожна помилка має свій етап — дивіться віджет нижче.</p>
@@ -385,10 +593,12 @@ pre.snip .c { color: var(--muted); }
 
     <article class="idea">
       <h3>setup() — один раз, loop() — знову і знову</h3>
-      <p>У звичайному C++ програма починається з <code>main()</code> і колись закінчується. Пристрій не повинен «закінчуватися», тому ядро Arduino ховає <code>main</code> у себе. Після кожного увімкнення чи скидання воно один раз викликає вашу <code>setup()</code>, а потім у нескінченному циклі — <code>loop()</code><sup class="cite" data-fact="core-main-setup-loop"></sup>. (Обидві виконуються на процесорному ядрі 1 із двох<sup class="cite" data-fact="core-loop-task"></sup>.)</p>
       <p>У <code>setup()</code> налаштовують залізо (<code>pinMode</code>), у <code>loop()</code> — те, що треба робити постійно. <b><code>delay()</code> — це «стоп» для <code>loop()</code>, а не для всього чипа:</b> наступні рядки <code>loop()</code> чекають, а сам чип працює далі<sup class="cite" data-fact="core-delay"></sup>. Як робити кілька справ одночасно — в уроці 2.3.</p>
-      <figure>
-        <ol class="codebox" aria-label="Спрощений прихований main ядра Arduino-ESP32 2.0.17">
+      <details class="more"><summary>Детальніше: куди подівся main()</summary>
+      <p>У звичайному C++ програма починається з <code>main()</code> і колись закінчується. Пристрій не повинен «закінчуватися», тому ядро Arduino ховає <code>main</code> у себе. Після кожного увімкнення чи скидання воно один раз викликає вашу <code>setup()</code>, а потім у нескінченному циклі — <code>loop()</code><sup class="cite" data-fact="core-main-setup-loop"></sup>. (Обидві виконуються на процесорному ядрі 1 із двох<sup class="cite" data-fact="core-loop-task"></sup>.)</p>
+      </details>
+      <figure id="ml-fig">
+        <ol class="codebox ml-code" id="ml-code" aria-label="Спрощений прихований main ядра Arduino-ESP32 2.0.17">
 <li><span class="c">// ядро 2.0.17, спрощено</span></li>
 <li><span class="k">void</span> loopTask(<span class="k">void</span>*) {</li>
 <li>  setup();  <span class="c">// ① раз</span></li>
@@ -397,6 +607,8 @@ pre.snip .c { color: var(--muted); }
 <li>  }</li>
 <li>}</li>
         </ol>
+        <div class="mini-ctl"><button type="button" class="btn" id="ml-run">▶ Запустити</button><button type="button" class="btn ghost" id="ml-rst">RST</button></div>
+        <p class="ml-read" aria-live="polite">setup(): <b id="ml-ns">0</b> · loop(): <b id="ml-nl">0</b></p>
         <figcaption>Спрощено з <code>cores/esp32/main.cpp</code>. Ви пишете лише <code>setup()</code> і <code>loop()</code>.</figcaption>
       </figure>
       <p class="key"><b>Головне</b><code>setup()</code> — підготовка після кожного скидання; <code>loop()</code> — серце, що б'ється, поки є живлення.</p>
@@ -405,7 +617,9 @@ pre.snip .c { color: var(--muted); }
     <article class="idea">
       <h3>digitalWrite перемикає вивід між 3,3 В і 0 В, а струм задає резистор</h3>
       <p>Вивід у режимі <code>OUTPUT</code> — це перемикач усередині чипа: <code>HIGH</code> з'єднує ніжку з 3,3&nbsp;В, <code>LOW</code> — із землею. Згадайте мотузку-петлю: перемикач лише вирішує, чи може мотузка рухатися, а наскільки туго — задає резистор.</p>
+      <details class="more"><summary>Детальніше: скільки струму</summary>
       <p>З 220&nbsp;Ом і червоним LED (≈&nbsp;1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>) виходить ≈&nbsp;6,4&nbsp;мА. Вихід за замовчуванням розрахований на ≈&nbsp;20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup>, але це налаштування драйвера, а не обмежувач: без резистора струм може вийти за безпечні межі і для виводу, і для LED (максимум 30&nbsp;мА<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>).</p>
+      </details>
       <figure>
         <svg class="sw-svg" id="gpio-sw" viewBox="0 -10 320 182" role="img" aria-label="Усередині чипа перемикач з'єднує вивід GPIO15 або з шиною 3,3 вольта, або з землею. Від виводу йде коло: резистор R1 220 ом, світлодіод LED1, назад до землі. У стані HIGH по колу біжать точки струму.">
           <rect x="6" y="16" width="104" height="126" rx="6" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
@@ -485,10 +699,7 @@ pre.snip .c { color: var(--muted); }
           </ol>
           <div class="step-side">
             <div class="step-board">
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <circle id="st-glow" cx="32" cy="28" r="26" fill="var(--bad)" opacity="0"/>
-                <path d="M20 40V24a12 12 0 0 1 24 0v16z" id="st-dome" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
-                <path d="M26 40v18M38 40v14" stroke="var(--muted)" stroke-width="2"/>
+              <svg id="st-led" viewBox="-36 -146 100 152" aria-hidden="true">
               </svg>
               <div><div class="small">GPIO15 → R1 → LED1</div><div class="v" id="st-v">не налаштований (Z)</div></div>
             </div>
@@ -519,11 +730,7 @@ pre.snip .c { color: var(--muted); }
       <div class="pb">
         <div class="blink-grid">
           <div class="blink-led" id="blink-stage" role="button" aria-pressed="false" aria-label="Світлодіод: запустити або зупинити миготіння">
-            <svg viewBox="0 0 110 110" aria-hidden="true">
-              <circle class="glow" id="bl-glow" cx="55" cy="46" r="44" fill="var(--bad)" opacity="0"/>
-              <path id="bl-dome" d="M35 70V42a20 20 0 0 1 40 0v28z" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
-              <rect x="31" y="68" width="48" height="6" rx="1" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
-              <path d="M45 74v32M65 74v26" stroke="var(--muted)" stroke-width="3"/>
+            <svg id="bl-led-k" viewBox="-36 -146 100 152" aria-hidden="true">
             </svg>
             <span class="st" id="bl-st">пауза</span>
           </div>
@@ -663,9 +870,9 @@ pre.snip .c { color: var(--muted); }
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-led" viewBox="0 0 262 222" role="img" aria-label="Макетка: дріт від виводу 15 плати у стовпчик 3, резистор зі стовпчика 3 у стовпчик 8, світлодіод анодом у стовпчик 8 і катодом у 9, дріт зі стовпчика 9 на шину мінус, з'єднану з виводом G (GND) плати."></svg>
+        <svg id="bb-led" class="kit-scene" viewBox="0 -80 1050 680" role="img" aria-label="Макетка з платою YD-ESP32-S3, вставленою в отвори (гребінки в рядах i та b, стовпчики 14–35). Від виводу GPIO15 (j21) жовтий дріт іде прямо вниз і вздовж смуги під рядом j до j8; резистор R1 220 ом лежить у ряду h від стовпчика 8 до 4; червоний світлодіод LED1 анодом у f4, катодом у f3; короткий чорний дріт j3 на шину мінус; другий чорний дріт з'єднує вивід GND плати (j35) з тією самою шиною; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка. Дроти не перетинаються."></svg>
       </div>
-      <figcaption>Наведіть чи торкніться дроту або кнопки вузла — той самий вузол підсвітиться на обох видах. Плата YD-ESP32-S3 широка: на одній макетці вільний лише один ряд отворів з кожного боку, тому часто ставлять дві макетки поруч або виводять піни дротами «мама-тато».</figcaption>
+      <figcaption>Наведіть чи торкніться дроту або кнопки вузла — той самий вузол підсвітиться на обох видах. Плата YD-ESP32-S3 широка: її гребінки стоять у рядах i та b, тож біля кожного виводу вільний лише один отвір — у крайньому ряду j або a. Тому деталі ставлять поруч із платою, а до виводів ведуть короткі прямі перемички.</figcaption>
     </figure>
     <div class="dual-ctl">
       <div class="seg" role="group" aria-label="Рівень на GPIO15" id="lvl">
@@ -904,6 +1111,7 @@ monitor_speed = 115200</code></pre>
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -914,6 +1122,420 @@ document.addEventListener('study:ready', () => {
   const I_LED = (VDD - VF) / R1 * 1000; // ≈ 6,4 мА
   const press = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /* ==== Kit (assets/kit.js): realistic drawings of the parts from OUR kit; 1 unit = 0,1 мм ==== */
+  const K = window.Kit;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  // Callouts around Kit parts stay 13 px on screen: --k = svg user units per CSS px (see .kit-lbl).
+  const keepText = (svg) => {
+    const upd = () => { const w = svg.getBoundingClientRect().width, vb = svg.viewBox.baseVal; if (w && vb && vb.width) svg.style.setProperty('--k', (vb.width / w).toFixed(3)); };
+    if (window.ResizeObserver) new ResizeObserver(upd).observe(svg);
+    upd();
+  };
+  // A label in the margin with a dashed leader to the part; `below` labels hang under y, the others sit on y.
+  const callout = (parent, x, y, txt, to, below = false) => {
+    if (to) sv('path', { class: 'kit-lead', d: `M${to.x} ${to.y}L${x} ${below ? y - 10 : y + 10}` }, parent);
+    const t = sv('text', { class: 'kit-lbl', x, y, 'text-anchor': 'middle', 'dominant-baseline': below ? 'hanging' : 'alphabetic' }, parent);
+    t.textContent = txt;
+    return t;
+  };
+  // The same bench on every view of this page, laid out like the owner's real bench: the YD-ESP32-S3 sits IN the WB-102
+  // breadboard (headers in rows i and b, columns 14–35; rows j and a stay free), the parts use the breadboard strips and the
+  // few jumpers run straight along the hole grid (Kit.route) — nothing crosses, nothing lies over a part.
+  // GPIO15 (j21) → yellow along the strip under row j → j8 → R1 220 Ом (h8–h4) → red LED (anode f4, cathode f3, put in
+  // mirrored) → black j3 → − rail ← black ← GND of the board (j35); the rail is split between columns 31 and 33, so a short
+  // black bridge (bottom-31 → bottom-33) joins its halves. The breadboard fades out at `cut` (x of the fade start).
+  let fadeN = 0;
+  const C0 = 14; // first header column (L1 = 3V3)
+  function bench(parent, cut = 1030) {
+    const id = `kit-cut-${++fadeN}`;
+    const defs = sv('defs', {}, parent);
+    const lg = sv('linearGradient', { id: id + 'g', gradientUnits: 'userSpaceOnUse', x1: cut, x2: cut + 98, y1: 0, y2: 0 }, defs);
+    sv('stop', { offset: 0, 'stop-color': '#fff' }, lg); sv('stop', { offset: 1, 'stop-color': '#000' }, lg);
+    const mask = sv('mask', { id, maskUnits: 'userSpaceOnUse', x: -100, y: -100, width: 2000, height: 900 }, defs);
+    sv('rect', { x: -100, y: -100, width: 2000, height: 900, fill: `url(#${id}g)` }, mask);
+    const bb = K.part('breadboard', { parent });
+    bb.setAttribute('mask', `url(#${id})`);
+    const p0 = bb.hole(C0, 'i');
+    const esp = K.part('esp32s3', { parent, x: p0.x, y: p0.y, rot: -90 });
+    const col15 = C0 + 7, colG = C0 + 21; // GPIO15 = L8, GND = L22
+    const ra = bb.hole(4, 'h');
+    const R = K.part('resistor', { parent, ohms: 220, span: 4, x: ra.x, y: ra.y });
+    const la = bb.hole(4, 'f');
+    const led = K.part('led', { parent, color: 'red', x: la.x, y: la.y, leg: 40, mirror: true });
+    const laneY = bb.hole(1, 'j').y + K.P * 1.15; // the strip between row j and the bottom rails
+    const j15 = bb.at('j' + col15), j8 = bb.at('j8');
+    const w15 = K.route(parent, [j15, { x: j15.x, y: laneY }, { x: j8.x, y: laneY }, j8], 'yellow');
+    const wK = K.route(parent, [bb.at('j3'), bb.at('bottom-3')], 'black');
+    const wG = K.route(parent, [bb.at('j' + colG), bb.at('bottom-' + colG)], 'black');
+    // the WB-102 rails are split between columns 31 and 33: a short black bridge joins the two halves of the − rail
+    const wBr = K.route(parent, [bb.at('bottom-31'), bb.at('bottom-33')], 'black');
+    return { bb, esp, R, led, w15, wK, wG, wBr, col15, colG };
+  }
+  // A USB-C plug in a mouth of the board (Kit has no cable part): black overmold; `tail(x, y)` continues the cable path.
+  function usbPlug(parent, m, tail) {
+    const g = sv('g', { class: 'kit-usb' }, parent);
+    const x = m.x, y = m.y, d = `M${x + 140} ${y}${tail ? tail(x + 140, y) : ''}`;
+    const core = sv('path', { d, fill: 'none', stroke: '#1d1e21', 'stroke-width': 40, 'stroke-linecap': 'round' }, g);
+    sv('path', { d, fill: 'none', stroke: '#35383d', 'stroke-width': 32, 'stroke-linecap': 'round' }, g);
+    sv('path', { d, fill: 'none', stroke: '#7a7f88', 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.45, transform: 'translate(0 -8)' }, g);
+    sv('path', { d: `M${x + 96} ${y - 28}L${x + 150} ${y - 21}V${y + 21}L${x + 96} ${y + 28}Z`, fill: '#26282c' }, g);
+    sv('rect', { x: x - 4, y: y - 34, width: 110, height: 68, rx: 14, fill: '#2b2d31', stroke: '#131416', 'stroke-width': 2 }, g);
+    sv('rect', { x: x + 6, y: y - 26, width: 90, height: 11, rx: 5.5, fill: '#4c4f56', opacity: 0.7 }, g);
+    g.core = core; g.end = { x: x + 140, y };
+    return g;
+  }
+  // set() only when the state really changes (some parts rebuild a few nodes on every set)
+  const setter = (part) => { let last = ''; return (st) => { const k = JSON.stringify(st); if (k !== last) { last = k; part.set(st); } }; };
+
+  /* ==== lab: Blink on the drawn board — code line, pin level, LED, Serial, trace ==== */
+  {
+    const board = $('#bl-board'), stage = $('#bl-stage'), lines = $$('#bl-code li'), mon = $('#bl-serial'), cv = $('#bl-tr');
+    const B = bench(board, 1100), esp = B.esp;
+    const setEsp = setter(esp), setLed = setter(B.led);
+    // the cable rises from the plug to the laptop above the bench; only the plugged port gets one
+    const rise = (x, y) => `C${x + 70} ${y} ${x + 90} ${y - 40} ${x + 90} -175`;
+    const cables = { usb: usbPlug(board, esp.pins.USB_OTG, rise), com: usbPlug(board, esp.pins.USB_COM, rise) };
+    cables.usb.id = 'bl-cab-usb'; cables.com.id = 'bl-cab-com';
+    const pg = sv('g', { id: 'bl-pkts' }, board);
+    const pt = (n, dx = 0, dy = 0) => { const q = esp.toParent(n[0], n[1]); return { x: q.x + dx, y: q.y + dy }; };
+    // callouts in the margins above and below the breadboard (labels follow the theme, the hardware does not);
+    // every leader runs over free holes only, clear of the jumpers
+    const BOT = 556, TOP = -24;
+    const lc = (B.led.pins.A.x + B.led.pins.K.x) / 2, rc = (B.R.pins[1].x + B.R.pins[2].x) / 2;
+    const rq = pt([136, 246]), gq = pt([47, 369]), uc = esp.pins.USB_COM, uo = esp.pins.USB_OTG;
+    callout(board, rq.x, BOT, 'RST', rq, true);
+    callout(board, gq.x, BOT, 'RGB', gq, true);
+    callout(board, uc.x + 34, BOT, 'COM', { x: uc.x, y: uc.y + 44 }, true);
+    // USB: an L-shaped leader from just above the plug, right of the board edge, then left — clear of the ⤢ button
+    sv('path', { class: 'kit-lead', d: `M${uo.x + 14} ${uo.y - 40}V${TOP - 6}H${uo.x - 200}` }, board);
+    callout(board, uo.x - 212, TOP, 'USB').setAttribute('text-anchor', 'end');
+    callout(board, rc, BOT, 'R1 220 Ом', { x: rc, y: B.R.pins[1].y + 18 }, true);
+    callout(board, lc, TOP, 'LED1', { x: lc, y: B.led.pins.A.y - 140 });
+    keepText(board);
+    // RST on the board is a real button here: click it (or Enter / Space)
+    const rstAt = pt([155, 246]);
+    const rb = sv('g', { id: 'bl-rst-btn', class: 'bl-rst', role: 'button', tabindex: '0', 'aria-label': 'Кнопка RST: перезапустити чип' }, board);
+    sv('rect', { class: 'bl-hit', x: rstAt.x - 42, y: rstAt.y - 36, width: 84, height: 72, rx: 12, 'stroke-width': 6 }, rb);
+    const DLY = [10, 50, 100, 200, 500, 1000, 2000];
+    // PROG: one entry per statement; ln = line index in #bl-code
+    const PROG = [
+      { ln: 3, k: 'boot', msg: 'Чип стартував, ядро викликає setup() — один раз після кожного увімкнення чи RST.' },
+      { ln: 4, k: 'begin', msg: 'Serial.begin: відкрили Serial. У наших проєктах він іде через роз\'єм «USB».' },
+      { ln: 5, k: 'pm', msg: 'pinMode(LED_PIN, OUTPUT): вивід став виходом, поки що LOW.' },
+      { ln: 6, k: 'print', s: 'Blink: старт', msg: 'Serial.println: рядок «Blink: старт» пішов у монітор порту.' },
+      { ln: 7, k: 'esetup', msg: 'setup() закінчилась. До наступного скидання її не викличуть.' },
+      { ln: 8, k: 'loop', msg: 'Ядро викликає loop() — це вже {n}-й раз.' },
+      { ln: 9, k: 'hi', msg: 'HIGH: вивід з\'єднано з 3,3 В, струм тече через R1 і LED — світить.' },
+      { ln: 10, k: 'print', s: 'LED: HIGH', msg: 'Serial.println: «LED: HIGH» у монітор.' },
+      { ln: 11, k: 'delay', msg: 'delay: loop() чекає {d} мс. LED так і світить — вимкнути його нікому.' },
+      { ln: 12, k: 'lo', msg: 'LOW: вивід з\'єднано із землею, струму немає — LED темний.' },
+      { ln: 13, k: 'print', s: 'LED: LOW', msg: 'Serial.println: «LED: LOW» у монітор.' },
+      { ln: 14, k: 'delay', msg: 'delay: ще {d} мс очікування з темним LED.' },
+      { ln: 15, k: 'eloop', msg: 'Кінець loop(). Ядро одразу викликає її знову, без паузи.' },
+    ];
+    const BOOT_MS = 300; // schematic start-up time of the model, not a datasheet value
+    const st = { power: true, port: 'usb', pin: '15', dly: 1000, slow: false, pc: 0, T: 0, boot: 0, wait: 0, level: 'z',
+      segs: [{ t: 0, v: 'z' }], ns: 0, nl: 0, clock: 0, hit: new Array(lines.length).fill(-1e9), cur: -1, pk: [], rstDown: false };
+    const out = [];
+    const serial = (txt, cls = '') => {
+      out.push({ txt, cls, at: st.clock });
+      if (out.length > 6) out.splice(0, out.length - 6);
+      mon.innerHTML = '';
+      out.forEach((o, k) => { const s = document.createElement('span'); s.className = o.cls || (k === out.length - 1 ? 'new' : ''); s.textContent = o.txt + '\n'; mon.appendChild(s); });
+    };
+    const setLevel = (v) => { if (st.level === v) return; st.level = v; st.segs.push({ t: st.T, v }); if (st.segs.length > 400) st.segs.splice(0, 100); };
+    const note = (m) => { $('#bl-note').textContent = m; };
+    const msgOf = (p) => p.msg.replace('{n}', st.nl).replace(/\{d\}/g, st.dly);
+    function exec() {
+      const p = PROG[st.pc];
+      st.cur = p.ln; st.hit[p.ln] = st.clock;
+      switch (p.k) {
+        case 'boot': st.ns++; st.wait = BOOT_MS; break;
+        case 'pm': setLevel('lo'); break;
+        case 'print': if (st.port === 'usb') { serial(p.s); st.pk.push(st.clock); } break;
+        case 'loop': st.nl++; break;
+        case 'hi': setLevel('hi'); break;
+        case 'lo': setLevel('lo'); break;
+        case 'delay': st.wait = st.dly; break;
+        default: break;
+      }
+      st.pc = p.k === 'eloop' ? PROG.findIndex((q) => q.k === 'loop') : st.pc + 1;
+      return p;
+    }
+    // advance virtual time by ms, executing statements (they take no time; delay and boot do)
+    function advance(ms) {
+      let guard = 0;
+      while (ms > 0 && guard++ < 500) {
+        if (st.wait > 0) { const u = Math.min(st.wait, ms); st.wait -= u; ms -= u; st.T += u; continue; }
+        exec();
+      }
+      if (st.wait <= 0 && guard < 500) { /* statements due at this instant run on the next frame */ }
+    }
+    function powerUp() { st.pc = 0; st.wait = 0; st.boot = st.T; setLevel('z'); }
+    const fastBlink = () => 2 * st.dly < 80;
+    function paint() {
+      const on = st.power && st.level === 'hi';
+      const avg = st.power && st.level !== 'z' && fastBlink() && st.nl > 1; // the eye sees the average
+      const ext = st.pin === '15', glow = avg ? 0.5 : on ? 1 : 0;
+      setLed({ on: ext ? glow : 0 });
+      // LED_BUILTIN on our board = the WS2812 on GPIO48, lit white by the core
+      setEsp({ power: st.power, rgb: !ext && glow ? (avg ? '#9c9c9c' : '#ffffff') : null, rst: st.rstDown, highlight: ext ? ['GPIO15', 'GND'] : null });
+      cables.usb.toggleAttribute('hidden', st.port !== 'usb');
+      cables.com.toggleAttribute('hidden', st.port !== 'com');
+      cables[st.port].style.transform = st.power ? '' : 'translate(150px, -60px)'; // unplugged
+      const lv = !st.power ? 'немає живлення' : st.level === 'hi' ? 'HIGH' : st.level === 'lo' ? 'LOW' : 'Z';
+      $('#bl-pin-st').textContent = 'GPIO15 · ' + (!ext ? 'Z' : !st.power ? '0 В' : st.level === 'hi' ? 'HIGH' : st.level === 'lo' ? 'LOW' : 'Z');
+      $('#bl-pwr').textContent = st.power ? `● живлення є (${st.port === 'usb' ? 'USB' : 'COM'})` : '○ кабель від\'єднано';
+      $('#bl-pwr').classList.toggle('muted', !st.power);
+      // code highlight: the current line plus a short fading trail
+      lines.forEach((li, k) => {
+        const age = (st.clock - st.hit[k]) / 0.6;
+        li.style.setProperty('--g', st.power ? Math.max(0, 1 - age).toFixed(2) : 0);
+        li.classList.toggle('cur', st.power && k === st.cur);
+      });
+      // Serial packets travel along the cable towards the laptop
+      pg.textContent = '';
+      st.pk = st.pk.filter((t0) => st.clock - t0 < 0.6);
+      const cab = cables.usb.core, CL = cab.getTotalLength();
+      if (st.power && st.port === 'usb') st.pk.forEach((t0) => { const q = cab.getPointAtLength((st.clock - t0) / 0.6 * CL); sv('circle', { class: 'bl-pkt', cx: q.x.toFixed(1), cy: q.y.toFixed(1), r: 13, 'stroke-width': 4 }, pg); });
+      // readouts
+      $('#bl-r-ln').textContent = st.power && st.cur >= 0 ? String(st.cur + 1) : '—';
+      $('#bl-r-lv').textContent = lv;
+      $('#bl-r-p').textContent = `${fmt.num(2 * st.dly, 0)} мс`;
+      $('#bl-r-n').textContent = `${st.ns} / ${st.nl}`;
+      $('#bl-r-t').textContent = st.power ? fmt.num(st.T - st.boot, 0) : '—';
+      const W = 4000, tEnd = Math.max(st.T, W);
+      plot(cv, { tStart: tEnd - W, tEnd, segs: st.segs, now: st.T, grid: 1000, rel: true, labels: ext ? ['3,3 В', '0 В'] : ['HIGH', 'LOW'] });
+    }
+    let sim = null;
+    const frame = (dt) => {
+      st.clock += dt;
+      if (dt && st.power) advance(dt * 1000 * (st.slow ? 0.25 : 1));
+      paint();
+    };
+    sim = Study.sim(stage, frame);
+    const playBtn = $('#bl-play');
+    const syncPlay = () => { const on = sim.running; playBtn.textContent = on ? '⏸ Пауза' : '▶ Пуск'; playBtn.setAttribute('aria-pressed', String(on)); };
+    new MutationObserver(syncPlay).observe(stage, { attributes: true, attributeFilter: ['data-sim'] });
+    playBtn.addEventListener('click', () => { sim.toggle(); syncPlay(); if (sim.running) note('Програма працює в реальному часі. Натисніть «Крок», щоб пройти її рядок за рядком.'); });
+    $('#bl-step').addEventListener('click', () => {
+      if (!st.power) { note('Плата без живлення: під\'єднайте кабель.'); return; }
+      sim.pause(); syncPlay();
+      if (st.wait > 0) { st.T += st.wait; st.wait = 0; }
+      st.hit.fill(-1e9);
+      const p = exec();
+      note(msgOf(p)); paint();
+    });
+    const reset = (why) => {
+      powerUp(); st.cur = -1;
+      if (st.port === 'com') serial('— тут лише лог ROM при старті; Serial програми йде в «USB» —', 'dim');
+      note(why); paint();
+    };
+    const rst = () => {
+      st.rstDown = true; setTimeout(() => { st.rstDown = false; paint(); }, 180);
+      if (!st.power) { note('Без живлення RST нічого не робить.'); paint(); return; }
+      reset('RST: чип перезапустився. millis() знову з нуля, програма почнеться з setup().');
+    };
+    $('#bl-rst').addEventListener('click', rst);
+    rb.addEventListener('click', (e) => { e.stopPropagation(); rst(); });
+    rb.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); rst(); } });
+    $('#bl-pw').addEventListener('switch', (e) => {
+      st.power = e.detail.on;
+      if (st.power) reset('Живлення є: чип стартує, setup() виконується ще раз.');
+      else { setLevel('off'); st.wait = 0; st.cur = -1; note('Кабель від\'єднано: чип вимкнувся, програма зупинилась. У flash вона лишилась — під\'єднайте знову.'); paint(); }
+    });
+    $('#bl-slow').addEventListener('switch', (e) => { st.slow = e.detail.on; note(st.slow ? 'Час іде вчетверо повільніше: видно кожен перехід.' : 'Реальний час.'); });
+    $('#bl-dly').addEventListener('input', (e) => {
+      st.dly = DLY[+e.target.value];
+      $('#bl-dly-o').textContent = `${st.dly} мс`;
+      $$('#bl-code [data-d]').forEach((n) => { n.textContent = st.dly; });
+      const P = 2 * st.dly;
+      note(`delay(${st.dly}) двічі: період ${P} мс, ${fmt.num(1000 / P, P >= 1000 ? 2 : 1)} спалаху за секунду.`
+        + (fastBlink() ? ' Так швидко око миготіння не бачить: LED здається рівним, але тьмянішим.' : ''));
+      paint();
+    });
+    $$('#bl-led button').forEach((b) => b.addEventListener('click', () => {
+      press($('#bl-led'), b); st.pin = b.dataset.p;
+      $('#bl-def').innerHTML = st.pin === '15' ? '<span class="k">#define</span> LED_PIN 15  <span class="c">// зовнішній LED</span>'
+        : '<span class="k">#define</span> LED_PIN LED_BUILTIN';
+      $('#bl-tr-cap').textContent = st.pin === '15' ? 'GPIO15 (LED_PIN) за останні 4 с — так його показав би осцилограф.'
+        : 'Логічний стан LED_BUILTIN за останні 4 с. На GPIO48 при цьому йдуть пакети даних WS2812, а не рівні HIGH/LOW.';
+      if (st.power) reset(st.pin === '15' ? 'Нова прошивка: LED_PIN 15, світить зовнішній LED через 220 Ом.'
+        : 'Нова прошивка: LED_BUILTIN. На нашій платі це не GPIO, а віртуальний номер: ядро вмикає RGB на GPIO48 білим.');
+    }));
+    $$('#bl-port button').forEach((b) => b.addEventListener('click', () => {
+      press($('#bl-port'), b); st.port = b.dataset.p;
+      if (st.power) reset(st.port === 'usb' ? 'Кабель у роз\'ємі «USB»: живлення і Serial програми.'
+        : 'Кабель у «COM»: плата живиться і прошивається, але Serial наших проєктів сюди не пише — він іде через «USB».');
+    }));
+    powerUp(); paint();
+    Study.onTheme(paint);
+    window.addEventListener('resize', paint);
+  }
+
+  /* ==== 01 why: the same 220 Ом and red LED, with and without the board (Kit parts in a block diagram) ==== */
+  $$('.why-kit').forEach((g) => {
+    const x = +g.dataset.x, y = +g.dataset.y;
+    const layer = (sc, dx = 0, dy = 0) => sv('g', { transform: `translate(${x + dx} ${y + dy}) scale(${sc})` }, g);
+    if (g.dataset.kit === 'r') K.part('resistor', { parent: layer(40 / (4 * K.P)), ohms: 220 });
+    else if (g.dataset.kit === 'led') K.part('led', { parent: layer(0.45), color: 'red' }).set({ on: 1 });
+    else if (g.dataset.kit === 'esp') {
+      const sc = 0.179, esp = K.part('esp32s3', { parent: layer(sc, 83 * sc, 264 * sc), rot: -90 });
+      const q = esp.pins.GPIO15, px = x + 83 * sc + q.x * sc, py = y + 264 * sc + q.y * sc;
+      $('#why-w15').setAttribute('d', `M${px.toFixed(1)} ${(py + 2).toFixed(1)}V132H236V122`);
+    }
+  });
+
+  /* ==== animation: from code to light ==== */
+  {
+    const NS = 'http://www.w3.org/2000/svg';
+    // the real bench (same as the lab), scaled into the right half of the animation
+    const SC = { x: 238, y: 104, s: 0.168 }, A = (q) => ({ x: SC.x + q.x * SC.s, y: SC.y + q.y * SC.s });
+    const sc = $('#ba-board');
+    sc.setAttribute('transform', `translate(${SC.x} ${SC.y}) scale(${SC.s})`);
+    const B = bench(sc), setEsp = setter(B.esp), setLed = setter(B.led);
+    const plug = usbPlug(sc, B.esp.pins.USB_OTG);
+    const pe = A(plug.end);
+    const cable = $('#ba-cable');
+    cable.setAttribute('d', `M226 100C282 94 ${pe.x + 20} 92 ${pe.x + 20} ${pe.y - 18}C${pe.x + 20} ${pe.y - 5} ${pe.x + 9} ${pe.y} ${pe.x} ${pe.y}`);
+    const CL = cable.getTotalLength(), bits = $('#ba-bits');
+    // flash = the 16 МБ chip inside the module can: the progress bar sits on the can
+    const c0 = A(B.esp.toParent(45, -15)), c1 = A(B.esp.toParent(208, 165));
+    const can = { x: Math.min(c0.x, c1.x), y: Math.min(c0.y, c1.y), w: Math.abs(c1.x - c0.x), h: Math.abs(c1.y - c0.y) };
+    const FW = can.w - 6;
+    for (const id of ['#ba-ftrack', '#ba-fbar']) { const r = $(id); r.setAttribute('x', (can.x + 3).toFixed(1)); r.setAttribute('y', (can.y + can.h - 10).toFixed(1)); }
+    $('#ba-ftrack').setAttribute('width', FW.toFixed(1));
+    // the «flash» tag sits in the free margin above the bench (the laptop cable runs just below it), over the module can
+    $('#ba-flash-l').setAttribute('transform', `translate(${Math.max(292, can.x + can.w / 2 - 31).toFixed(1)} 56)`);
+    const rq = A(B.esp.toParent(155, 246));
+    $('#ba-rst').setAttribute('transform', `translate(${(rq.x - 23).toFixed(1)} 196)`);
+    const dots = Array.from({ length: 6 }, () => { const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', '5'); c.setAttribute('class', 'bl-pkt'); bits.appendChild(c); return c; });
+    const ease = (p) => p * p * (3 - 2 * p);
+    const wave = (until) => { // square wave 1 s HIGH / 1 s LOW, 4 s across 176 units
+      const x0 = 252, k = 176 / 4, yH = 222, yL = 238;
+      let d = `M${x0} ${yL}`;
+      for (let s = 0; s < until; s += 1) {
+        const hi = s % 2 === 0, a = x0 + s * k, b = x0 + Math.min(until, s + 1) * k;
+        d += `V${hi ? yH : yL}H${b.toFixed(1)}`; void a;
+      }
+      return d;
+    };
+    Study.anim($('#bl-anim'), {
+      steps: [
+        { title: 'Код', cap: 'Ви пишете <code>main.cpp</code> у VS Code. Це текст для людей і компілятора — плата його ніколи не побачить.', dur: 3.5 },
+        { title: 'Компіляція', cap: 'Build: компілятор перекладає C++ у машинні команди, лінкер додає ядро Arduino, і виходить образ <code>firmware.bin</code>. Усе це — на ноутбуці.', dur: 4 },
+        { title: 'Upload', cap: 'Upload: esptool по кабелю переводить чип у режим прошивки і записує у flash чотири образи; <code>firmware.bin</code> лягає за адресою 0x10000.', dur: 4.5 },
+        { title: 'Скидання', cap: 'Після запису esptool перезапускає чип. Завантажувач у ROM запускає завантажувач з flash, а той — вашу програму. GPIO15 поки не налаштований (Z).', dur: 4 },
+        { title: 'setup()', cap: 'Ядро Arduino один раз викликає <code>setup()</code>: <code>pinMode(15, OUTPUT)</code> робить вивід виходом, на ньому LOW.', dur: 3.5 },
+        { title: 'loop()', cap: 'Далі <code>loop()</code> крутиться без кінця: HIGH → 1000 мс → LOW → 1000 мс. LED блимає, поки є живлення.', dur: 5 },
+      ],
+      draw(i, p, t) {
+        $('#ba-clip-r').setAttribute('width', i === 0 ? (200 * ease(p)).toFixed(1) : 200);
+        $('#ba-src').setAttribute('opacity', i === 1 ? (1 - ease(p)).toFixed(2) : i === 0 ? 1 : 0);
+        $('#ba-bin').setAttribute('opacity', i === 1 ? ease(p).toFixed(2) : i > 1 ? 1 : 0);
+        $('#ba-file').textContent = i === 0 ? 'main.cpp' : i === 1 && p < 0.5 ? 'main.cpp → .o' : 'firmware.bin';
+        $('#ba-cbar').setAttribute('width', i === 0 ? 0 : i === 1 ? (216 * p).toFixed(1) : 216);
+        $('#ba-clbl').textContent = i === 0 ? 'Build ще не запущено' : i === 1 ? (p < 1 ? 'Build: компіляція…' : 'Build: [SUCCESS]') : 'Build: [SUCCESS]';
+        const up = i === 2;
+        dots.forEach((c, k) => {
+          const f = (p * 3 + k / dots.length) % 1;
+          const q = cable.getPointAtLength(f * CL);
+          c.setAttribute('cx', q.x.toFixed(1)); c.setAttribute('cy', q.y.toFixed(1));
+          c.setAttribute('opacity', up && p < 0.97 ? 1 : 0);
+        });
+        $('#ba-fbar').setAttribute('width', i < 2 ? 0 : i === 2 ? (FW * p).toFixed(1) : FW.toFixed(1));
+        $('#ba-rst').setAttribute('opacity', i === 3 ? (p < 0.5 ? 1 : 0.4) : 0);
+        let lv = i < 3 ? '—' : i === 3 ? 'Z' : i === 4 ? 'LOW' : 'HIGH';
+        let on = false;
+        if (i === 5) { on = Math.floor(t) % 2 === 0; lv = on ? 'HIGH' : 'LOW'; }
+        $('#ba-pin').textContent = `GPIO15: ${lv}`;
+        setLed({ on: on ? 1 : 0 });
+        setEsp({ rst: i === 3 && p < 0.35, highlight: i >= 4 ? ['GPIO15'] : null });
+        $('#ba-wave').setAttribute('d', i === 5 ? wave(Math.min(4, t)) : i === 4 ? 'M252 238H340' : 'M252 238');
+        $('#ba-wave').style.stroke = i === 4 ? 'var(--lvl-lo)' : '';
+      },
+    });
+  }
+
+  /* ==== 04 idea 1: power both on — MCU runs at once, SBC boots its OS first (schematic, no time scale) ==== */
+  {
+    const fig = $('#race'), sw = $('#race-sw');
+    const lay = sv('g', { transform: 'translate(292 36) scale(.2)' }, $('#race-led'));
+    const led = K.part('led', { parent: lay, color: 'red', leg: 40 }), setLed = setter(led);
+    let on = false, t = 0;
+    const draw = () => {
+      const m = on ? Math.min(1, t / 0.25) : 0, b = on ? Math.min(1, t / 4.5) : 0;
+      $('#race-m').setAttribute('width', (200 * m).toFixed(1));
+      $('#race-b').setAttribute('width', (200 * b).toFixed(1));
+      $('#race-mt').textContent = !on ? 'вимкнено' : 'loop() працює';
+      $('#race-bt').textContent = !on ? 'вимкнено' : b < 1 ? 'вантажить ОС…' : 'ОС готова';
+      const blink = on && m >= 1 && Math.floor(t * 2) % 2 === 0;
+      setLed({ on: blink ? 1 : 0 });
+    };
+    const sim = Study.sim(fig, (dt) => { if (on) t += dt; draw(); if (on && t > 6) sim.pause(); });
+    sim.pause();
+    sw.addEventListener('switch', (e) => { on = e.detail.on; t = 0; if (on) sim.play(); else sim.pause(); draw(); });
+    draw();
+  }
+
+  /* ==== 04 idea 2: Upload sends only machine code ==== */
+  {
+    const fig = $('#up-fig'), path = $('#up-path'), g = $('#up-bits');
+    // the board: Kit YD-ESP32-S3 lying with the module left; the cable from the laptop ends in the plug of its USB port
+    const s = 0.32, ox = 10 + 83 * s, oy = 156 + 264 * s, F = (q) => ({ x: ox + q.x * s, y: oy + q.y * s });
+    const lay = sv('g', { transform: `translate(${ox} ${oy}) scale(${s})` }, $('#up-board'));
+    const esp = K.part('esp32s3', { parent: lay, rot: -90 });
+    const pe = F(usbPlug(lay, esp.pins.USB_OTG).end);
+    path.setAttribute('d', `M93 92V118C93 146 ${pe.x + 26} 124 ${pe.x + 26} ${pe.y - 22}C${pe.x + 26} ${pe.y - 6} ${pe.x + 12} ${pe.y} ${pe.x} ${pe.y}`);
+    const L = path.getTotalLength();
+    const c0 = F(esp.toParent(45, -15)), c1 = F(esp.toParent(208, 165)), can = $('#up-can');
+    can.setAttribute('x', Math.min(c0.x, c1.x).toFixed(1)); can.setAttribute('y', Math.min(c0.y, c1.y).toFixed(1));
+    can.setAttribute('width', Math.abs(c1.x - c0.x).toFixed(1)); can.setAttribute('height', Math.abs(c1.y - c0.y).toFixed(1));
+    const NS = 'http://www.w3.org/2000/svg';
+    const dots = Array.from({ length: 4 }, () => { const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', '4.5'); c.setAttribute('class', 'up-bits'); g.appendChild(c); return c; });
+    let on = false, t = 0;
+    const BYTES = ['0110 1001', '1010 0011', '0001 1110', '1100 0110'];
+    const draw = () => {
+      const p = Math.min(1, t / 3);
+      dots.forEach((c, k) => {
+        const q = path.getPointAtLength(((t * 1.4 + k / 4) % 1) * L);
+        c.setAttribute('cx', q.x.toFixed(1)); c.setAttribute('cy', q.y.toFixed(1)); c.setAttribute('opacity', on && p < 1 ? 1 : 0);
+      });
+      $('#up-flash').textContent = !on ? '…' : p < 1 ? BYTES[Math.floor(t * 6) % 4] : '✓ записано';
+      $('#up-st').textContent = !on ? 'Натисніть Upload' : p < 1 ? `Запис… ${Math.round(p * 100)} %` : 'Готово: у flash лише .bin';
+    };
+    const sim = Study.sim(fig, (dt) => { if (on) t += dt; draw(); if (t > 3.2) sim.pause(); });
+    sim.pause();
+    $('#up-sw').addEventListener('switch', (e) => { on = e.detail.on; t = 0; if (on) sim.play(); else sim.pause(); draw(); });
+    draw();
+  }
+
+  /* ==== 04 idea 3: the hidden main — setup once, loop forever ==== */
+  {
+    const fig = $('#ml-fig'), li = $$('#ml-code li');
+    const SEQ = [2, 3, 4, 5]; // setup(), for, loop(), }
+    let k = -1, t = 0, ns = 0, nl = 0, clock = 0;
+    const hit = new Array(li.length).fill(-1e9);
+    const tick = () => {
+      if (k < 0) { k = 0; ns++; }
+      else { k = k === 3 ? 1 : k + 1; }
+      if (SEQ[k] === 4) nl++;
+      hit[SEQ[k]] = clock;
+    };
+    const draw = () => {
+      li.forEach((x, j) => { x.style.setProperty('--g', Math.max(0, 1 - (clock - hit[j]) / 0.7).toFixed(2)); x.classList.toggle('cur', k >= 0 && j === SEQ[k]); });
+      $('#ml-ns').textContent = ns; $('#ml-nl').textContent = nl;
+    };
+    const sim = Study.sim(fig, (dt) => { clock += dt; t += dt; if (t > 0.3) { t = 0; tick(); } draw(); });
+    sim.pause();
+    const syncBtn = () => { $('#ml-run').textContent = sim.running ? '⏸ Пауза' : '▶ Запустити'; };
+    new MutationObserver(syncBtn).observe(fig, { attributes: true, attributeFilter: ['data-sim'] });
+    $('#ml-run').addEventListener('click', () => { sim.toggle(); syncBtn(); });
+    $('#ml-rst').addEventListener('click', () => { k = -1; t = 0; hit.fill(-1e9); tick(); draw(); });
+    draw();
+  }
 
   /* ==== 04 idea 4: GPIO as a switch to 3,3 V or GND ==== */
   {
@@ -1003,7 +1625,7 @@ document.addEventListener('study:ready', () => {
   }
 
   /* ==== canvas helper: square-wave plot ==== */
-  function plot(cv, { tStart, tEnd, segs, now, grid = 1000, rel = false }) {
+  function plot(cv, { tStart, tEnd, segs, now, grid = 1000, rel = false, labels = ['3,3 В', '0 В'] }) {
     const ctx = Study.fitCanvas(cv), t = Study.tokens();
     const W = ctx.w, H = ctx.h, L = 44, Rp = 10, T = 12, Bm = 22;
     const x = (ms) => L + (ms - tStart) / (tEnd - tStart) * (W - L - Rp);
@@ -1011,7 +1633,7 @@ document.addEventListener('study:ready', () => {
     ctx.clearRect(0, 0, W, H);
     ctx.font = `13px ${t['f-mono']}`; ctx.fillStyle = t.muted; ctx.strokeStyle = t.line; ctx.lineWidth = 1;
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    ctx.fillText('3,3 В', L - 6, yHi); ctx.fillText('0 В', L - 6, yLo);
+    ctx.fillText(labels[0], L - 6, yHi); ctx.fillText(labels[1], L - 6, yLo);
     ctx.beginPath(); ctx.moveTo(L, yHi); ctx.lineTo(W - Rp, yHi); ctx.moveTo(L, yLo); ctx.lineTo(W - Rp, yLo); ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     const step = grid * Math.max(1, Math.ceil((tEnd - tStart) / grid / Math.max(2, Math.floor((W - L) / 80))));
@@ -1024,13 +1646,13 @@ document.addEventListener('study:ready', () => {
       ctx.fillText(rel && Math.abs(v) < 1e-6 ? 'зараз' : `${fmt.num(v, 1)} с`, x(g), H - 6);
     }
     ctx.textAlign = 'center';
-    const yOf = (v) => (v === 'hi' ? yHi : v === 'lo' ? yLo : yZ);
+    const yOf = (v) => (v === 'hi' ? yHi : v === 'lo' || v === 'off' ? yLo : yZ);
     ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
     for (let k = 0; k < segs.length; k++) {
       const s = segs[k], a = Math.max(s.t, tStart), b = Math.min(k + 1 < segs.length ? segs[k + 1].t : now, tEnd);
       if (b < a) continue;
-      ctx.strokeStyle = s.v === 'hi' ? t['lvl-hi'] : s.v === 'lo' ? t['lvl-lo'] : t['lvl-z'];
-      ctx.setLineDash(s.v === 'z' ? [5, 4] : []);
+      ctx.strokeStyle = s.v === 'hi' ? t['lvl-hi'] : s.v === 'lo' ? t['lvl-lo'] : s.v === 'off' ? t.muted : t['lvl-z'];
+      ctx.setLineDash(s.v === 'z' || s.v === 'off' ? [5, 4] : []);
       ctx.beginPath(); ctx.moveTo(x(a), yOf(s.v)); ctx.lineTo(x(b), yOf(s.v));
       if (k + 1 < segs.length && segs[k + 1].t <= tEnd && segs[k + 1].t >= tStart) ctx.lineTo(x(b), yOf(segs[k + 1].v));
       ctx.stroke();
@@ -1057,6 +1679,7 @@ document.addEventListener('study:ready', () => {
     ];
     const st = { i: 0, t: 0, pin: 'z', ns: 0, nl: 0, segs: [{ t: 0, v: 'z' }], busy: false, auto: false };
     const cv = $('#st-cv');
+    const stLed = setter(K.part('led', { parent: $('#st-led'), color: 'red', leg: 50 }));
     const level = (v) => { st.pin = v; st.segs.push({ t: st.t, v }); if (st.segs.length > 80) st.segs.splice(0, 20); };
     const draw = () => {
       const tEnd = Math.max(st.t, 5000);
@@ -1064,8 +1687,7 @@ document.addEventListener('study:ready', () => {
       $('#st-t').textContent = `${fmt.num(st.t, 0)} мс`;
       $('#st-ns').textContent = st.ns; $('#st-nl').textContent = st.nl;
       const on = st.pin === 'hi';
-      $('#st-glow').setAttribute('opacity', on ? '.5' : '0');
-      $('#st-dome').setAttribute('fill', on ? 'var(--bad)' : 'var(--panel)');
+      stLed({ on: on ? 1 : 0 });
       $('#st-v').textContent = st.pin === 'hi' ? 'HIGH ≈ 3,3 В' : st.pin === 'lo' ? 'LOW = 0 В' : 'не налаштований (Z)';
     };
     const mark = (ln) => code.forEach((li, k) => li.classList.toggle('cur', k === ln));
@@ -1121,6 +1743,7 @@ document.addEventListener('study:ready', () => {
     const toMs = (v) => Math.max(1, Math.round(Math.pow(MAX, v / 100)));
     const toV = (ms) => Math.log(ms) / Math.log(MAX) * 100;
     const on = $('#bl-on'), off = $('#bl-off'), cv = $('#bl-cv');
+    const led = setter(K.part('led', { parent: $('#bl-led-k'), color: 'red', leg: 50 }));
     let tOn = 1000, tOff = 1000, t = 0;
     const read = () => {
       const P = tOn + tOff;
@@ -1131,10 +1754,8 @@ document.addEventListener('study:ready', () => {
     };
     const draw = () => {
       const P = tOn + tOff, ph = ((t % P) + P) % P, isOn = ph < tOn, fast = P < 80;
-      const glow = fast ? 0.5 * tOn / P + 0.05 : (isOn ? 0.55 : 0);
-      $('#bl-glow').setAttribute('opacity', glow.toFixed(2));
-      $('#bl-dome').setAttribute('fill', fast ? 'var(--bad)' : (isOn ? 'var(--bad)' : 'var(--panel)'));
-      $('#bl-dome').setAttribute('fill-opacity', fast ? (0.25 + 0.75 * tOn / P).toFixed(2) : '1');
+      // too fast for the screen: draw the average brightness the eye sees
+      led({ on: fast ? Math.round((0.15 + 0.85 * tOn / P) * 100) / 100 : (isOn ? 1 : 0) });
       const running = sim && sim.running;
       $('#bl-st').textContent = !running ? 'пауза — натисніть' : fast ? 'занадто швидко для екрана: середня яскравість' : (isOn ? 'HIGH' : 'LOW');
       // Square wave over the last 2 s, built from its edges.
@@ -1176,33 +1797,32 @@ document.addEventListener('study:ready', () => {
   /* ==== 08 dual figure: breadboard + level + current ==== */
   {
     const bbSvg = $('#bb-led');
-    const g = S.svg('g', {}, bbSvg);
-    S.svg('rect', { x: 2, y: 50, width: 58, height: 86, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
-    S.svg('text', { class: 'sch-pin', x: 6, y: 42 }, g).textContent = 'плата';
-    S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 75 }, g).textContent = 'G';
-    S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio15', x: 8, y: 115 }, g).textContent = '15';
-    const pin15 = { x: 50, y: 110 }, pinGnd = { x: 50, y: 70 };
-    const bb = S.breadboard(bbSvg, { cols: 14, rails: true, x: 76, y: 0, colLabels: 'bottom' });
-    bb.mark(3, 'top', 'gpio15', 'net-sig');
-    bb.mark(8, 'top', 'led_a', 'net-sig2');
-    bb.mark(9, 'top', 'gnd', 'net-gnd');
-    bb.markRail('top', '-', 'gnd', 'net-gnd');
-    const j15 = S.part(bbSvg, 'jumper', { from: pin15, to: bb.hole(3, 'c'), net: 'gpio15', cls: 'net-sig', lift: 24, title: 'Дріт GPIO15 → стовпчик 3' });
-    S.part(bbSvg, 'res', { from: bb.hole(3, 'a'), to: bb.hole(8, 'a'), ohms: 220 });
-    const led = S.part(bbSvg, 'led', { anode: bb.hole(8, 'e'), cathode: bb.hole(9, 'e'), color: 'red' });
-    // Part labels sit in the empty centre channel, so they never cover holes or rails.
-    const chY = (bb.hole(5, 'e').y + bb.hole(5, 'f').y) / 2 + 4;
-    S.svg('text', { class: 'bb-part-lbl', x: (bb.hole(3, 'a').x + bb.hole(8, 'a').x) / 2, y: chY, 'text-anchor': 'middle' }, bbSvg).textContent = 'R1';
-    S.svg('text', { class: 'bb-part-lbl', x: bb.hole(9, 'e').x + 2, y: chY, 'text-anchor': 'middle' }, bbSvg).textContent = 'LED1';
-    const jK = S.part(bbSvg, 'jumper', { from: bb.hole(9, 'a'), to: bb.rail('top', '-', 9), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 9 → шина мінус' });
-    const jG = S.part(bbSvg, 'jumper', { from: pinGnd, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'G (GND) плати → шина мінус' });
+    const B = bench(bbSvg, 950), led = setter(B.led);
+    B.esp.set({ highlight: ['GPIO15', 'GND'] });
+    // net tags for Schem.link: wires (groups) and the breadboard strips they plug into (drawn under the parts)
+    const net = (el, n, col) => { el.dataset.net = n; el.style.color = col; return el; };
+    const strip = (col, n, c, rail) => {
+      const a = rail ? B.bb.rail('bottom', '-', 2) : B.bb.hole(col, 'f'), b = rail ? B.bb.rail('bottom', '-', 62) : B.bb.hole(col, 'j');
+      const r = sv('rect', { class: 'kit-strip', x: Math.min(a.x, b.x) - 13, y: a.y - 13, width: Math.abs(b.x - a.x) + 26, height: b.y - a.y + 26, rx: 8 }, bbSvg);
+      bbSvg.insertBefore(r, B.esp);
+      net(r, n, c);
+    };
+    strip(B.col15, 'gpio15', 'var(--nsig)'); strip(8, 'gpio15', 'var(--nsig)'); strip(4, 'led_a', 'var(--nsig2)');
+    strip(3, 'gnd', 'var(--ngnd)'); strip(B.colG, 'gnd', 'var(--ngnd)'); strip(0, 'gnd', 'var(--ngnd)', true);
+    net(B.w15, 'gpio15', 'var(--nsig)'); net(B.wK, 'gnd', 'var(--ngnd)'); net(B.wG, 'gnd', 'var(--ngnd)'); net(B.wBr, 'gnd', 'var(--ngnd)');
+    B.w15.setAttribute('aria-label', `Дріт GPIO15 (стовпчик ${B.col15}) → стовпчик 8`); B.wK.setAttribute('aria-label', 'Стовпчик 3 (катод) → шина мінус'); B.wG.setAttribute('aria-label', `GND плати (стовпчик ${B.colG}) → шина мінус`); B.wBr.setAttribute('aria-label', 'Перемичка через розрив шини мінус: стовпчик 31 → 33');
+    const lc = (B.led.pins.A.x + B.led.pins.K.x) / 2, rc = (B.R.pins[1].x + B.R.pins[2].x) / 2;
+    callout(bbSvg, rc, 548, 'R1', { x: rc, y: B.R.pins[1].y + 18 }, true);
+    callout(bbSvg, lc, -24, 'LED1', { x: lc, y: B.led.pins.A.y - 140 });
+    keepText(bbSvg);
+    const j15 = B.w15.path, jK = B.wK.path, jG = B.wG.path, jBr = B.wBr.path;
     const dual = $('#dual-led');
-    const wires = [[$('#w-g15'), 1], [$('#w-la'), 1], [$('#w-k'), 1], [$('#w-gp'), -1], [j15, 1], [jK, 1], [jG, -1]];
+    const wires = [[$('#w-g15'), 1], [$('#w-la'), 1], [$('#w-k'), 1], [$('#w-gp'), -1], [j15, 1], [jK, 1], [jBr, 1], [jG, -1]];
     let lvl = 'hi', flowOn = false;
     const upd = () => {
       const i = lvl === 'hi' ? I_LED : 0;
       S.setNetLevel(dual, 'gpio15', lvl);
-      led.style.opacity = lvl === 'hi' ? '1' : '.45';
+      led({ on: lvl === 'hi' ? 1 : 0 });
       wires.forEach(([w, dir]) => { if (flowOn) S.flow(w, { mA: i, dir }); else if (w._flow) w._flow.set(0); });
       $('#flow-out').textContent = lvl === 'hi' ? `I = (3,3 − 1,9) / 220 ≈ ${fmt.num(i, 1)} мА` : 'GPIO15 = 0 В: струму немає.';
     };

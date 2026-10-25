@@ -212,19 +212,15 @@
   }, { rootMargin: '80px' }) : null;
 
   function sim(el, frame) {
-    // Inside a still-locked .gated widget the animation waits for the prediction (it would give the answer
-    // away under the blur); it starts when the gate opens, unless the page has played/paused it by then.
-    const gate = el.closest('.gated');
-    const held = !!gate && !gate.classList.contains('open');
-    const s = { el, frame, t: 0, on: !mqReduce.matches && !held, visible: !visObs, held };
-    if (held) gate.addEventListener('predict', () => { if (s.held) { s.held = false; if (!mqReduce.matches) s.ctl.play(); } }, { once: true });
+    // Gates are soft (the widget is usable before the prediction), so an animation never waits for one.
+    const s = { el, frame, t: 0, on: !mqReduce.matches, visible: !visObs };
     const label = () => {
       el.dataset.sim = s.on ? 'running' : 'paused';
       el.title = s.on ? 'Натисніть, щоб зупинити' : 'Натисніть, щоб запустити';
     };
     s.ctl = {
-      play() { s.held = false; s.on = true; label(); kick(); },
-      pause() { s.held = false; s.on = false; label(); },
+      play() { s.on = true; label(); kick(); },
+      pause() { s.on = false; label(); },
       toggle() { s.on ? s.ctl.pause() : s.ctl.play(); },
       draw() { try { frame(0, s.t); } catch (e) { console.error(e); } },
       get running() { return s.on; },
@@ -245,6 +241,84 @@
     if (s.on) kick();
     return s.ctl;
   }
+
+  /* ================================================================ animated explainer: a short «video» in steps */
+  // <figure class="anim"><div class="anim-stage">svg or canvas</div></figure>
+  // Study.anim(fig, { steps: [{ title, cap, dur }], draw(i, p, t) }) redraws step i at progress p ∈ [0, 1]
+  // (t = seconds into the step). Adds ⏮ ▶ ⏭, a chapter strip and an aria-live caption (cap may hold inline HTML).
+  // Plays when scrolled into view, stops at the end; under reduced motion it waits for ▶. ← / → step through.
+  function anim(fig, { steps, draw }) {
+    const stage = $('.anim-stage', fig) || fig;
+    const cap = $('.anim-cap', fig) || fig.appendChild(h('figcaption', { class: 'anim-cap', 'aria-live': 'polite' }));
+    const bar = h('div', { class: 'anim-ctl' });
+    bar.innerHTML = `<button type="button" class="anim-btn" data-a="prev" aria-label="Попередній крок">⏮</button>
+      <button type="button" class="anim-btn play" data-a="play">▶</button>
+      <button type="button" class="anim-btn" data-a="next" aria-label="Наступний крок">⏭</button>
+      <ol class="anim-steps">${steps.map((st, k) => `<li><button type="button" data-k="${k}" title="${esc(st.title || '')}"
+        aria-label="Крок ${k + 1}${st.title ? ': ' + esc(st.title) : ''}"><span></span></button></li>`).join('')}</ol>
+      <span class="anim-n" aria-hidden="true"></span>`;
+    fig.appendChild(bar);
+    const playBtn = $('[data-a="play"]', bar), ticks = $$('.anim-steps button', bar), n = $('.anim-n', bar);
+    const dur = (k) => steps[k].dur || 4;
+    let i = 0, t = 0, ended = false, ctl = null;
+    const paint = () => {
+      const p = Math.min(1, t / dur(i));
+      try { draw(i, p, t); } catch (e) { console.error(e); }
+      ticks.forEach((b, k) => {
+        b.firstChild.style.setProperty('--p', k < i ? 1 : k === i ? p.toFixed(3) : 0);
+        b.setAttribute('aria-current', k === i ? 'step' : 'false');
+      });
+    };
+    const sync = () => {
+      const on = !!(ctl && ctl.running);
+      playBtn.textContent = on ? '⏸' : ended ? '↻' : '▶';
+      playBtn.setAttribute('aria-label', on ? 'Пауза' : ended ? 'Переглянути ще раз' : 'Відтворити');
+      fig.classList.toggle('playing', on);
+    };
+    const caption = () => { cap.innerHTML = steps[i].cap || ''; n.textContent = `${i + 1} / ${steps.length}`; };
+    const go = (k) => { i = Math.max(0, Math.min(steps.length - 1, k)); t = 0; ended = false; caption(); paint(); sync(); };
+    ctl = sim(stage, (dt) => {
+      if (dt) {
+        t += dt;
+        if (t >= dur(i)) {
+          if (i < steps.length - 1) { i++; t = 0; caption(); }
+          else { t = dur(i); ended = true; ctl.pause(); sync(); }
+        }
+      }
+      paint();
+    });
+    playBtn.addEventListener('click', () => { if (ended) go(0); ctl.toggle(); sync(); });
+    $('[data-a="prev"]', bar).addEventListener('click', () => go(t > 0.6 ? i : i - 1));
+    $('[data-a="next"]', bar).addEventListener('click', () => go(i + 1));
+    ticks.forEach((b, k) => b.addEventListener('click', () => go(k)));
+    stage.addEventListener('click', sync);
+    stage.addEventListener('keydown', sync);
+    fig.addEventListener('keydown', (e) => {
+      if (e.target.closest('input,select,textarea')) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(i - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); }
+    });
+    caption(); paint(); sync();
+    return { ...ctl, go, get step() { return i; } };
+  }
+
+  /* ================================================================ on/off switches */
+  // <button type="button" class="sw" aria-checked="false">Діод</button> — a click flips aria-checked and fires a
+  // bubbling `switch` event with detail.on. Pages: el.addEventListener('switch', (e) => …(e.detail.on)).
+  function switches(scope = doc) {
+    $$('button.sw', scope).forEach((b) => {
+      b.type = 'button';
+      b.setAttribute('role', 'switch');
+      if (!b.hasAttribute('aria-checked')) b.setAttribute('aria-checked', 'false');
+    });
+  }
+  doc.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('button.sw');
+    if (!b || b.disabled) return;
+    const on = b.getAttribute('aria-checked') !== 'true';
+    b.setAttribute('aria-checked', String(on));
+    b.dispatchEvent(new CustomEvent('switch', { bubbles: true, detail: { on } }));
+  });
 
   /* ================================================================ toast, copy, fetch */
   let toastEl, toastTimer;
@@ -313,24 +387,27 @@
   const CHECKS = 'study.checks.v1';
   const predictKey = (p, i) => p.id || (p.dataset.gate ? 'gate:' + p.dataset.gate : 'p' + i);
 
+  // Soft gate: the widget is always usable (students want to play with it); until the prediction is made a small
+  // hint above it points back to the question. `predict` still fires on the gate when the prediction is made.
   function lockGate(g) {
-    if (g._gate || g.classList.contains('open')) return;
+    if (g._gate) return;
     g._gate = true;
-    const msg = h('div', { class: 'gate-msg' }, '<button type="button">Спершу зробіть прогноз ↑</button>');
-    msg.firstChild.addEventListener('click', () => {
-      const p = $(`.predict[data-gate="${CSS.escape(g.id)}"]`);
-      if (!p) return;
+    g.classList.add('open');
+    if ($('.gate-hint', g)) return;
+    const p = $(`.predict[data-gate="${CSS.escape(g.id)}"]`);
+    if (!p || p.dataset.done) return;
+    const hint = h('button', { type: 'button', class: 'gate-hint' }, 'Порада: спершу спрогнозуйте ↑, потім перевірте тут');
+    hint.addEventListener('click', () => {
       p.scrollIntoView({ behavior: mqReduce.matches ? 'auto' : 'smooth', block: 'center' });
       const first = $('.opt:not(:disabled)', p);
       if (first) first.focus({ preventScroll: true });
     });
-    for (const c of g.children) c.inert = true;
-    g.prepend(msg);
-    g.setAttribute('aria-label', 'Віджет відкриється після прогнозу');
+    p.addEventListener('predicted', () => hint.remove(), { once: true });
+    g.prepend(hint);
   }
   function openGate(g, detail) {
     if (!g) return;
-    $$(':scope > .gate-msg', g).forEach((m) => m.remove());
+    $$(':scope > :is(.gate-msg, .gate-hint)', g).forEach((m) => m.remove());
     for (const c of g.children) c.inert = false;
     g.removeAttribute('aria-label');
     g.classList.add('open');
@@ -1114,7 +1191,7 @@
 
   /* ================================================================ boot */
   const Study = {
-    base, $, $$, store, parseNum, tokens, onTheme, isDark, fitCanvas, sim, predict, tryInit, measure, exit, teacher,
+    base, $, $$, store, parseNum, tokens, onTheme, isDark, fitCanvas, sim, anim, switches, predict, tryInit, measure, exit, teacher,
     toc, cites, comments, copy, toast, fetchJSON, lessonInfo, dual: { init: dualInit },
     fmt: { num, si, date: fmtDate },
     reducedMotion: () => mqReduce.matches,
@@ -1133,7 +1210,7 @@
   }
 
   function boot() {
-    const steps = [mountTeacherButton, () => predict.init(), () => tryInit(), () => measure.init(), () => exit.init(), () => dualInit(), toc,
+    const steps = [mountTeacherButton, () => switches(), () => predict.init(), () => tryInit(), () => measure.init(), () => exit.init(), () => dualInit(), toc,
       () => { if (doc.getElementById('talk')) comments('#talk'); }, challengeInit, hubEnd];
     for (const fn of steps) { try { fn(); } catch (e) { console.error('Study init:', e); } }
     cites().catch((e) => console.error('Study.cites:', e));

@@ -263,7 +263,31 @@ a.l-title:hover { color: var(--accent); text-decoration: underline; text-decorat
   a.l-title { display: flex; align-items: center; }
 }
 
-/* «Довідка» and deep pages: fixed column counts, so no lone card is left on a row */
+/* «Лабораторії»: big interactive pages as screenshot cards (the screenshot follows the theme) */
+.labs { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 560px) { .labs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 960px) { .labs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+a.lcard {
+  display: flex; flex-direction: column; overflow: hidden; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow);
+  transition: transform var(--t2) var(--ease), box-shadow var(--t2) var(--ease), border-color var(--t1);
+}
+a.lcard:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.lthumb { display: block; aspect-ratio: 16 / 10; overflow: hidden; background: var(--sunk); border-bottom: 1px solid var(--line); }
+.lthumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; transition: transform .5s var(--ease); }
+a.lcard:hover .lthumb img { transform: scale(1.04); }
+.lthumb .th-d { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lthumb .th-l { display: none; } :root:not([data-theme="light"]) .lthumb .th-d { display: block; } }
+:root[data-theme="dark"] .lthumb .th-l { display: none; }
+:root[data-theme="dark"] .lthumb .th-d { display: block; }
+.lbody { display: grid; gap: 5px; padding: 14px 16px 16px; }
+.lbody b { font: 650 1.2rem/1.2 var(--f-display); }
+.lbody > span:not(.tag) { font-size: 14.5px; color: var(--muted); }
+.lbody .tag { font: 600 13px var(--f-mono); color: var(--copper); }
+.lbody .nw { white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { a.lcard:hover, a.lcard:hover .lthumb img { transform: none; } }
+
+/* «Довідка»: fixed column counts, so no lone card is left on a row */
 .grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 560px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -320,6 +344,7 @@ footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--l
   <nav class="topbar" aria-label="Розділи карти" data-theme-slot>
     <a class="brand" href="./"><img src="favicon.svg" alt="">ESP32-S3</a>
     <a class="jl" href="#week">Цього тижня</a>
+    <a class="jl" href="#labs">Лабораторії</a>
     <a class="jl" href="#course">Модулі</a>
     <a class="jl" href="#ref">Довідка</a>
     <a class="jl" href="#projects">Проєкти</a>
@@ -336,6 +361,11 @@ footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--l
     <div id="week-cards"></div>
   </section>
 
+  <section class="blk" id="labs" aria-labelledby="labs-h" hidden>
+    <div class="blk-h"><h2 id="labs-h">Лабораторії</h2><span class="side">осцилографи, макетки й симуляції: вмикайте, крутіть, ламайте</span></div>
+    <div class="labs" id="labs-grid"></div>
+  </section>
+
   <section class="blk" id="start" aria-labelledby="start-h" hidden>
     <div class="blk-h"><h2 id="start-h">Почніть тут</h2></div>
     <div class="tiles" id="start-tiles"></div>
@@ -350,8 +380,6 @@ footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--l
   <section class="blk" id="ref" aria-labelledby="ref-h" hidden>
     <div class="blk-h"><h2 id="ref-h">Довідка</h2></div>
     <div class="grid ref" id="ref-grid"></div>
-    <p class="sub-h">Великі інтерактивні сторінки</p>
-    <div class="grid deep" id="deep-grid"></div>
   </section>
 
   <section class="blk" id="projects" aria-labelledby="proj-h" hidden>
@@ -730,11 +758,24 @@ footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--l
     $('#ref-grid').innerHTML = refs.map((g) => `<a class="card${g.key === 'teacher' ? ' slim' : ''}" href="${g.href}"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></a>`).join('');
     const byId = Object.fromEntries(lessons.map((l) => [l.id, l]));
     const order = (id) => { const i = lessons.findIndex((l) => l.id === id); return i < 0 ? 1e9 : i; };
-    $('#deep-grid').innerHTML = Object.entries(C.deepPages || {}).map(([key, d]) => {
-      const tag = [...d.lessons].sort((a, b) => order(a) - order(b)).map((id) => byId[id] ? lessonRef(byId[id]) : id).join(' · ');
-      return `<a class="card" href="${key}/"><span class="tag">${esc(tag)}</span><b>${nb(d.title)}</b>${DEEP_DESC[key] ? `<span>${nb(DEEP_DESC[key])}</span>` : ''}</a>`;
-    }).join('');
     $('#ref').hidden = false;
+  }
+
+  // «Лабораторії»: every big interactive page as a card with a live screenshot (assets/thumbs/<key>-light|dark.webp,
+  // made with tools/site-check/elshot.mjs), in course order.
+  function renderLabs() {
+    const byId = Object.fromEntries(lessons.map((l) => [l.id, l]));
+    const order = (id) => { const i = lessons.findIndex((l) => l.id === id); return i < 0 ? 1e9 : i; };
+    const list = Object.entries(C.deepPages || {}).sort((a, b) => order(a[1].lesson) - order(b[1].lesson));
+    if (!list.length) return;
+    $('#labs-grid').innerHTML = list.map(([key, d]) => {
+      const tag = [...d.lessons].sort((a, b) => order(a) - order(b)).map((id) => byId[id] ? lessonRef(byId[id]) : id).join(' · ');
+      return `<a class="lcard" href="${key}/"><span class="lthumb" aria-hidden="true">`
+        + `<img class="th-l" src="assets/thumbs/${key}-light.webp" alt="" width="640" height="400" loading="lazy" decoding="async">`
+        + `<img class="th-d" src="assets/thumbs/${key}-dark.webp" alt="" width="640" height="400" loading="lazy" decoding="async"></span>`
+        + `<span class="lbody"><span class="tag">${esc(tag)}</span><b>${nb(d.title)}</b>${DEEP_DESC[key] ? `<span>${nb(DEEP_DESC[key])}</span>` : ''}</span></a>`;
+    }).join('');
+    $('#labs').hidden = false;
   }
 
   function renderProjects() {
@@ -752,7 +793,7 @@ footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--l
     $('#projects').hidden = false;
   }
 
-  const steps = [renderWeek, renderStart, renderTimeline, renderRef, renderProjects];
+  const steps = [renderWeek, renderLabs, renderStart, renderTimeline, renderRef, renderProjects];
   for (const fn of steps) { try { fn(); } catch (e) { console.error('Course map:', e); } }
   countCards();
   if (C.verified) $('#verified').textContent = 'Перевірено ' + ddmmyyyy(C.verified);

@@ -1,0 +1,131 @@
+/* Twilight bench drawing (TwKit.bench) + shared lab bits for lessons/mp1/ and lessons/mp1-review/.
+   Colours come from study.css tokens only. Every SVG label is ≥ 18 units: the 2 × 2 phone layout
+   (viewBox 432 wide in a ≈ 327 px stage) renders it at ≥ 13 px. */
+.tw-svg { display: block; width: 100%; height: auto; font-family: var(--f-body); }
+.tw-svg text:where(:not(.kit-part *)) { font-size: 18px; fill: var(--ink); }
+.tw-frame { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.tw-panel.flash .tw-frame { stroke: var(--accent); stroke-width: 2.5; }
+.tw-svg .tw-title { font: 600 15.5px var(--f-mono); letter-spacing: .06em; fill: var(--copper); }
+[data-layout="tall"] .tw-title { font-size: 18px; }
+.tw-line { stroke: var(--line-strong); stroke-width: 1.5; }
+.tw-svg .tw-sky-t { font: 700 19px var(--f-mono); fill: #1b2433; }
+.tw-svg .tw-sky-t.night { fill: #f4ecd0; }
+.tw-svg .tw-pin { font: 600 18px var(--f-mono); fill: var(--muted); }
+.tw-svg .tw-val { font: 600 18px var(--f-mono); font-variant-numeric: tabular-nums; }
+.tw-svg .tw-strong { font-weight: 700; }
+.tw-svg .tw-ref { font-weight: 600; }
+.tw-svg .tw-lbl { fill: var(--muted); }
+.tw-svg .tw-big { font: 700 34px var(--f-mono); font-variant-numeric: tabular-nums; }
+.tw-svg .tw-big.bad, .tw-svg .tw-bad { fill: var(--bad); font-weight: 700; }
+.tw-board { fill: var(--panel-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.tw-gauge { fill: var(--sunk); stroke: var(--line-strong); stroke-width: 1; }
+.tw-dz { fill: color-mix(in srgb, var(--accent) 30%, transparent); }
+.tw-tick { stroke: var(--accent); stroke-width: 2.5; }
+.tw-needle { fill: var(--ink); }
+.tw-codebg { fill: transparent; }
+.tw-svg .tw-code { font: 600 17.5px var(--f-mono); fill: var(--muted); }
+.act .tw-codebg { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 1.5; }
+.tw-svg .act .tw-code { fill: var(--ink); }
+.tw-svg .dim .tw-code { opacity: .6; font-style: italic; }
+.tw-svg .tw-val.hi { fill: var(--lvl-hi, var(--ok)); }
+.tw-svg .tw-val.lo { fill: var(--lvl-lo, var(--hl)); }
+.tw-led { fill: var(--sunk); stroke: var(--line-strong); stroke-width: 1.5; }
+.tw-led.on { fill: #35d06a; stroke: #1b7a3a; }
+.tw-link { opacity: .9; }
+.tw-link.hi { stroke-width: 3.5; }
+.tw-link[data-k="in"] { stroke: var(--ink); }
+.tw-flow { fill: none; stroke: var(--flow); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 2 10; pointer-events: none; }
+.tw-npnglow { fill: color-mix(in srgb, var(--flow) 22%, transparent); }
+.tw-cut { stroke: var(--bad); stroke-width: 3.5; stroke-linecap: round; fill: none; }
+.tw-mech { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.tw-blade { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.tw-pt { fill: var(--ink); }
+.tw-svg .tw-clack { font: 800 20px var(--f-body); fill: var(--hi); }
+.tw-bulb { fill: var(--sunk); stroke: var(--line-strong); stroke-width: 2; }
+.tw-bulb.on { fill: #ffe27a; stroke: #b07800; }
+.tw-fil { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
+.tw-bulb.on + .tw-fil { stroke: #b04a00; }
+.tw-ray { fill: none; stroke: var(--hi); stroke-width: 2.5; stroke-dasharray: 7 5; }
+
+/* lab extras: plot canvas, segmented buttons, button row */
+.lab-stage > canvas.tw-plot, canvas.tw-plot { display: block; width: 100%; height: clamp(190px, 26vw, 230px); margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.lab .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; max-width: 100%; }
+.lab .seg button { min-height: 40px; padding: 6px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.lab .seg button + button { border-left: 1px solid var(--line); }
+.lab .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.lab .btn { min-height: 40px; }
+@media (pointer: coarse) { .lab .seg button, .lab .btn { min-height: 44px; } .lab-range input[type="range"] { min-height: 44px; } }
+.lab-ctl .grp { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.lab-ctl .grp-k { font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lab-ctl + .lab-ctl { border-top: 1px dashed var(--line-2); }
+@media (max-width: 599px) {
+  .lab-ctl { padding: 10px 12px; }
+  .lab-range { flex-wrap: wrap; width: 100%; }
+  .lab-range input[type="range"] { flex: 1 1 140px; width: auto; }
+  .lab-range output { min-width: 3.2em; }
+  .lab-read > div { padding: 6px 10px 8px; }
+  .lab-read { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lab-read > div:nth-child(odd) { border-left: 0; }
+  .lab-read > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+
+/* animated explainers (Study.anim): 480-unit viewBox, labels ≥ 20 units → ≥ 13 px at 375 px */
+.an-svg { display: block; width: 100%; max-width: 760px; height: auto; margin-inline: auto; font-family: var(--f-body); }
+.an-svg text:where(:not(.kit-part *)) { font-size: 20px; fill: var(--ink); }
+.an-svg .an-t { font: 650 22px var(--f-display); fill: var(--copper); }
+.an-svg .an-m { fill: var(--muted); }
+.an-svg .an-s { font-weight: 600; }
+.an-svg .an-mono { font-family: var(--f-mono); font-size: 19.5px; }
+.an-svg .an-big { font: 700 32px var(--f-mono); font-variant-numeric: tabular-nums; }
+.an-svg .an-huge { font: 700 46px var(--f-mono); font-variant-numeric: tabular-nums; }
+.an-svg .an-pin { font: 600 20px var(--f-mono); fill: var(--muted); }
+.an-svg .an-ok { fill: var(--ok); } .an-svg .an-bad { fill: var(--bad); }
+.an-frame { fill: none; stroke: var(--line-strong); stroke-width: 1.5; }
+.an-fill-sig { fill: var(--nsig); }
+.an-arr { fill: none; stroke: var(--muted); stroke-width: 3; marker-end: url(#an-ah); }
+.an-chip { fill: var(--panel-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.an-band { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+.an-axis { stroke: var(--ink); stroke-width: 2.5; }
+.an-tick { stroke: var(--accent); stroke-width: 3; }
+.an-dotc { fill: var(--ink); } .an-dotc.on { fill: var(--ok); }
+.an-code-bg { fill: var(--sunk); stroke: var(--line); }
+.an-code-bg.on { fill: color-mix(in srgb, var(--accent) 20%, var(--panel)); stroke: var(--accent); stroke-width: 2; }
+.an-qglow { fill: color-mix(in srgb, var(--flow) 25%, transparent); }
+.an-flow { fill: none; stroke: var(--flow); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 2 12; }
+.an-mech { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 5; }
+.an-blade { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+.an-pt { fill: var(--ink); }
+.an-svg .an-clack { font: 800 26px var(--f-body); fill: var(--hi); }
+.an-bulb { fill: var(--sunk); stroke: var(--line-strong); stroke-width: 2.5; }
+.an-bulb.on { fill: #ffe27a; stroke: #b07800; }
+.an-fil { fill: none; stroke: var(--muted); stroke-width: 2.5; stroke-linejoin: round; }
+.an-step { fill: var(--sunk); stroke: var(--line-strong); stroke-width: 1.5; }
+.an-step.done { fill: color-mix(in srgb, var(--accent) 45%, var(--panel)); stroke: var(--accent); }
+.an-step.cur { fill: var(--accent); stroke: var(--accent); }
+.an-svg .an-step.cur + text { fill: var(--accent-ink); font-weight: 600; }
+
+/* REAL bench (TwKit.real, window.Kit parts). Hardware keeps its own colours; only the labels around it follow
+   the theme. Font sizes are in Kit units (0,1 мм): «wide» renders at ≈ 0,55 px/unit, «tall» at ≈ 0,3 px/unit. */
+.tw-kit { display: block; width: 100%; height: auto; font-family: var(--f-body); }
+.tw-kit[hidden], .tw-svg[hidden] { display: none; }
+.tw-kit .tw-kov text { font: 600 var(--tw-fs, 28px) var(--f-mono); fill: var(--ink); }
+.tw-kit .tw-tag-bg { fill: var(--sheet, var(--panel)); stroke: var(--line-strong); stroke-width: 2; opacity: .94; }
+.tw-kit .tw-tag.hi text { fill: var(--lvl-hi, var(--ok)); }
+.tw-kit .tw-tag.lo text { fill: var(--lvl-lo, var(--hl)); }
+.tw-kit .tw-tag-clock text { font-size: calc(var(--tw-fs, 28px) * 1.2); font-weight: 700; }
+.tw-kit .tw-tag-ev text { fill: var(--hi); font-family: var(--f-body); font-weight: 800; }
+.tw-kit .tw-tag-bad text, .tw-kit .tw-kov text.tw-kbad { fill: var(--bad); font-weight: 700; }
+.tw-kit .tw-kov .tw-kref { font-family: var(--f-body); font-weight: 700; paint-order: stroke; stroke: var(--sheet, var(--panel)); stroke-width: 7px; stroke-linejoin: round; }
+.tw-kframe { fill: none; stroke: var(--line-strong); stroke-width: 3; }
+.tw-ghost path { fill: none; stroke: var(--bad); stroke-width: 6; stroke-dasharray: 14 12; stroke-linecap: round; }
+.tw-ghost path.tw-x { stroke-dasharray: none; stroke-width: 10; }
+.tw-ring { fill: none; stroke: var(--bad); stroke-width: 7; stroke-dasharray: 12 8; }
+.tw-beam { fill: none; stroke: #ffd21a; stroke-width: 10; stroke-dasharray: 22 16; stroke-linecap: round; opacity: .9; }
+.tw-edge { fill: none; stroke: var(--line-strong); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.tw-halo { fill: none; stroke: var(--accent); stroke-width: 34; stroke-linecap: round; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.kit-wire.net-on .tw-halo { opacity: .55; }
+.tw-kflow { fill: none; stroke: #fff6a8; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 3 36; pointer-events: none;
+  animation: tw-kflow 1.1s linear infinite; filter: drop-shadow(0 0 3px #ffd21a); }
+@keyframes tw-kflow { to { stroke-dashoffset: -39; } }
+@media (prefers-reduced-motion: reduce) { .tw-kflow { animation: none; stroke-dasharray: 3 20; } }
+.lab .seg.tw-view { margin: 0 0 10px; }

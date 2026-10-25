@@ -41,71 +41,55 @@
 /* ---- W1-1a virtual multimeter */
 .mm-top { display: grid; gap: 10px; margin-bottom: 10px; }
 .mm-grid { display: grid; gap: 12px; align-items: start; }
-@media (min-width: 760px) { .mm-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
 .mm-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); padding: 6px; min-width: 0; }
+/* the circuit is drawn with Kit parts in Kit units (1 = 0.1 mm): labels are sized for ≥ 13 px at 375 px */
+.mm-circ { overflow: hidden; }
 .mm-circ .pt { cursor: pointer; }
-.mm-circ .pt circle.ring { fill: var(--panel); stroke: var(--accent); stroke-width: 2.5; }
-.mm-circ .pt:hover circle.ring, .mm-circ .pt:focus-visible circle.ring { fill: var(--accent); }
-.mm-circ .pt text { fill: var(--accent); font: 700 16px var(--f-mono); }
+/* the probe points and their letters sit on the breadboard, which stays light in both themes: fixed colours */
+.mm-circ .pt circle.ring { fill: #fbfaf5; stroke: #17634d; stroke-width: 4; }
+.mm-circ .pt:hover circle.ring, .mm-circ .pt:focus-visible circle.ring { fill: #17634d; }
+.mm-circ .pt text { fill: #17634d; font: 700 18px var(--f-mono); paint-order: stroke; stroke: #f4f2ea; stroke-width: 6px; stroke-linejoin: round; }
 .mm-circ .pt:focus { outline: none; }
-.mm-circ .pt:focus-visible circle.hit { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 3 3; }
+.mm-circ .pt:focus-visible circle.hit { stroke: var(--accent); stroke-width: 5; stroke-dasharray: 8 8; }
 .mm-circ .hit { fill: transparent; }
-.mm-circ .cut { cursor: pointer; }
-.mm-circ .cut rect { fill: var(--panel); stroke: var(--line); }
-.mm-circ .cut:hover rect, .mm-circ .cut:focus-visible rect { stroke: var(--accent); stroke-width: 2; }
-.mm-circ .cut[aria-pressed="true"] rect { fill: color-mix(in srgb, var(--hi) 22%, var(--panel)); stroke: var(--hi-ink); }
-.mm-circ .cut text { fill: var(--ink); font: 600 15px var(--f-body); }
-.mm-circ .cut:focus { outline: none; }
-.mm-circ .bridge { stroke: var(--ink); }
+.mm-cuts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 4px 4px; }
+.mm-cuts .cut[aria-pressed="true"] { background: color-mix(in srgb, var(--hi) 22%, var(--panel)); border-color: var(--hi-ink); }
+.mm-circ .ghost { fill: none; stroke: var(--muted); stroke-width: 6; stroke-dasharray: 14 12; stroke-linecap: round; }
 .mm-circ .probe { cursor: grab; touch-action: none; }
-.mm-circ .probe.sel .pbody { stroke: var(--accent); stroke-width: 3; }
+.mm-circ .probe .psel { fill: none; stroke: var(--accent); stroke-width: 7; opacity: 0; }
+.mm-circ .probe.sel .psel { opacity: 1; }
 .mm-circ .probe:focus { outline: none; }
-.mm-circ .probe:focus-visible .pbody { stroke: var(--accent); stroke-width: 3; }
-.mm-circ .cable { fill: none; stroke-width: 3; stroke-linecap: round; }
-.mm-circ .park { fill: none; stroke: var(--line); stroke-dasharray: 4 4; }
-.mm-circ .lbl { fill: var(--muted); font: 500 15px var(--f-mono); }
+.mm-circ .probe:focus-visible .psel { opacity: 1; stroke-dasharray: 10 8; }
+.mm-circ .park { fill: none; stroke: var(--line-strong); stroke-width: 4; stroke-dasharray: 12 10; }
+.mm-circ .lbl { fill: var(--muted); font: 500 16px var(--f-mono); }
 .mm-circ .lbl-ink { fill: var(--ink); font: 600 16px var(--f-body); }
+.mm-circ .on-bb { fill: #2b2620; paint-order: stroke; stroke: #f4f2ea; stroke-width: 5px; stroke-linejoin: round; } /* printed on the (always light) breadboard */
+@media (max-width: 759px) {
+  /* a phone shows the whole scene at ~0.3 px per unit: bigger letters, and the parts' names stay in the selects */
+  .mm-circ .lbl { font-size: 36px; } .mm-circ .lbl-ink { font-size: 38px; } .mm-circ .pt text { font-size: 30px; } .mm-circ .on-bb { display: none; }
+}
+.mm-circ .schem-flow { stroke-width: 2.2; }
 .led-glow { transition: opacity .25s; }
-.led-dead .led-sym { color: var(--muted); }
 .smoke circle { fill: #8c949a; opacity: 0; }
 .smoke.go circle { animation: smoke 1.6s ease-out forwards; }
 .smoke.go circle:nth-child(2) { animation-delay: .15s; }
 .smoke.go circle:nth-child(3) { animation-delay: .3s; }
 @keyframes smoke { 0% { opacity: .75; transform: translate(0, 0) scale(.6); } 100% { opacity: 0; transform: translate(6px, -46px) scale(2.2); } }
 .smoke circle { transform-box: fill-box; transform-origin: center; }
-.mm-meter .knob-ptr { transition: transform .25s ease; transform-origin: 150px 268px; }
-.mm-meter .pos { cursor: pointer; }
-.mm-meter .pos text { fill: #e6ecf0; font: 600 15px var(--f-body); }
-.mm-meter .pos.on text { fill: #ffc04d; }
-.mm-meter .pos .hit { fill: transparent; }
-.mm-meter .pos:focus { outline: none; }
-.mm-meter .pos:focus-visible .hit, .mm-meter .jack:focus-visible .hit, .mm-meter .selbtn:focus-visible rect { stroke: #ffc04d; stroke-width: 2.5; }
-.mm-meter .jack { cursor: pointer; }
-.mm-meter .jack:focus, .mm-meter .selbtn:focus { outline: none; }
-.mm-meter .jack .hit { fill: transparent; }
+.mm-meter { overflow: hidden; }
 .mm-meter .selbtn { cursor: pointer; }
-.mm-meter .lcd-d { font: 600 50px var(--f-mono); fill: #1d2619; }
-.mm-meter .lcd-u { font: 600 22px var(--f-mono); fill: #1d2619; }
-.mm-meter .ann { font: 600 14px var(--f-mono); fill: #1d2619; opacity: .14; }
-.mm-meter .ann.on { opacity: 1; }
-.mm-meter .lcd-flash { opacity: 0; fill: #fff6d0; }
-.mm-meter .lcd-flash.go { animation: flash .6s ease-out; }
-@keyframes flash { 0% { opacity: .95; } 100% { opacity: 0; } }
-.mm-meter .fil { stroke: #b07a2a; stroke-width: 2; fill: none; }
-.mm-meter .blown .fil { stroke: #3a2a1a; }
-.mm-meter .blown .glass { fill: #3d3a36; }
-.mm-meter .fuse-glow { opacity: 0; fill: #ff8a1f; }
-.mm-meter .fuse-glow.go { animation: fuseglow .9s ease-out; }
-@keyframes fuseglow { 0% { opacity: 0; } 30% { opacity: .95; } 100% { opacity: 0; } }
-/* stacked under the circuit: full card width on phones, so the 13-unit dial labels render at ≥ 12.5 px */
-@media (max-width: 759px) { #mm-meter { max-width: 320px; margin-inline: auto; } }
-/* Cause and effect together: circuit, probe selects right under it, then the meter (spanning both rows on desktop). */
+.mm-meter .selbtn:focus { outline: none; }
+.mm-meter .selbtn rect { fill: transparent; stroke: #ffc04d; stroke-width: 8; opacity: 0; }
+.mm-meter .selbtn:hover rect, .mm-meter .selbtn:focus-visible rect { opacity: 1; }
+/* Desktop: the circuit (a wide breadboard photo) on top, the meter under it next to the probe selects. */
 @media (min-width: 760px) {
-  .mm-grid { grid-template-areas: "circ meter" "probes meter"; }
+  .mm-grid { grid-template-columns: minmax(0, 380px) minmax(0, 1fr); grid-template-areas: "circ circ" "meter probes"; }
   .mm-grid > :nth-child(1) { grid-area: circ; }
-  .mm-grid > .mm-probes { grid-area: probes; }
+  .mm-grid > .mm-probes { grid-area: probes; align-self: start; }
   .mm-grid > :nth-child(4) { grid-area: meter; }
 }
+/* phones: the meter under the circuit, wide enough that its 3 mm dial print renders at ≈ 13 px */
+@media (max-width: 759px) { #mm-meter { max-width: 400px; margin-inline: auto; } }
 .mm-lcd { display: none; }
 @media (max-width: 560px) {
   .mm-lcd {
@@ -149,7 +133,9 @@
   padding: 2px 6px; }
 .cc-pal button[aria-pressed="true"] { outline: 3px solid var(--accent); outline-offset: 1px; }
 .cc-svg .band { cursor: pointer; }
-.cc-svg .band.cur { stroke: var(--accent); stroke-width: 3; }
+.cc-svg .band.cur { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 6 4; }
+.cc-svg .band:focus { outline: none; }
+.cc-svg .band:focus-visible { stroke: var(--accent); stroke-width: 3; }
 .cc-svg text { fill: var(--muted); font: 500 15px var(--f-mono); }
 .cc-out { font: 600 18px var(--f-mono); }
 .cc-drill { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -157,10 +143,14 @@
 @media (pointer: coarse) { .seg button, .cc-drill input, .rope-ctl input[type="range"] { min-height: 44px; } } /* desktop keeps the compact size above */
 
 /* ---- W1-1d breadboard */
-.bbx-metal { stroke: #c9a032; stroke-width: 3; stroke-linecap: round; opacity: .85; pointer-events: none; }
+.bbx-metal { stroke: #c9a032; stroke-width: 13; stroke-linecap: round; opacity: .9; pointer-events: none; }
+.kit-strip { fill: currentColor; stroke: none; opacity: 0; transition: opacity .15s; }
+.kit-strip.net-on, .nets-focus .kit-strip.net-on { opacity: .35; }
+.nets-focus .kit-strip:not(.net-on) { opacity: 0; }
+.kit-tag { fill: var(--ink); font: 600 26px var(--f-body); paint-order: stroke; stroke: var(--panel-2); stroke-width: 6px; stroke-linejoin: round; }
 .bbx-part { cursor: pointer; }
 .bbx-part:focus { outline: none; }
-.bbx-part:focus-visible .bbx-hl, .bbx-part.picked .bbx-hl { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 4 3; }
+.bbx-part:focus-visible .bbx-hl, .bbx-part.picked .bbx-hl { stroke: var(--accent); stroke-width: 6; stroke-dasharray: 12 8; }
 .bbx-hl { fill: transparent; stroke: transparent; }
 .probe-lead { fill: none; stroke-width: 3; stroke-linecap: round; }
 .pl-red { stroke: #d0312d; }
@@ -168,12 +158,72 @@
 .mbox rect { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
 .mbox text { fill: var(--ink); font: 700 15px var(--f-mono); }
 
+/* ---- lab (#bench): circuit + meter side by side, stacked on phones */
+.bx-grid { display: grid; gap: 10px 18px; align-items: center; }
+@media (min-width: 700px) { .bx-grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); } }
+.bx-grid > svg { display: block; width: 100%; height: auto; }
+.bx-meter { max-width: 270px; margin-inline: auto; overflow: hidden; }
+@media (max-width: 699px) { .bx-meter { max-width: 230px; } }
+/* Kit UT136C+ overlays (L11Kit.meter in bench.js): dial positions and jacks are buttons; the hardware keeps its colours */
+.l11-pos, .l11-jack { cursor: pointer; }
+.l11-pos .hit, .l11-jack .hit { fill: transparent; }
+.l11-ring { fill: none; stroke: #ffc04d; stroke-width: 8; opacity: 0; transition: opacity .2s; }
+.l11-pos.on .l11-ring { opacity: 1; }
+.l11-pos:focus, .l11-jack:focus { outline: none; }
+.l11-pos:focus-visible .l11-ring, .l11-jack:focus-visible .l11-ring { opacity: 1; stroke-dasharray: 14 10; }
+.l11-pos:hover .l11-ring, .l11-jack:hover .l11-ring { opacity: .7; }
+.bx-lead { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.bx-red { stroke: #d0312d; } .bx-blk { stroke: var(--ink); }
+.bx-red-f { fill: #d0312d; } .bx-blk-f { fill: var(--ink); }
+.bx-tip { stroke: var(--sheet); stroke-width: 2; }
+.bx-mring { fill: var(--panel); stroke: var(--ink); stroke-width: 2.5; }
+.bx-mlet { fill: var(--ink); font: 700 17px var(--f-body); }
+.bx-tag { fill: var(--ink); font: 600 15px var(--f-body); }
+.bx-ann { font: 600 13px var(--f-mono); fill: #1d2619; opacity: .07; }
+.bx-ann.on { opacity: 1; }
+.bx-unit { font: 700 22px var(--f-mono); fill: #1d2619; }
+.bx-jl { fill: #e6ecf0; font: 600 13px var(--f-mono); }
+.bx-knob { transform-origin: 125px 240px; transition: transform .3s var(--ease); }
+.bx-pos { cursor: pointer; }
+.bx-pos text { fill: #e6ecf0; font: 700 16px var(--f-body); }
+.bx-pos.on text { fill: #ffc04d; }
+.bx-pos .hit { fill: transparent; }
+.bx-pos:focus { outline: none; }
+.bx-pos:focus-visible .hit { stroke: #ffc04d; stroke-width: 2.5; }
+.bx-c { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.bx-k { font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.bx-fix { border-color: var(--bad); }
+.bx-more { margin: 0 18px 8px; }
+#bx-stage { cursor: default; }
+#bx-anim .anim-stage > svg { max-width: 760px; margin-inline: auto; }
+@media (max-width: 600px) { #bx-anim .sch-ref, #bx-anim .bx-tag { font-size: 18px; } #bx-anim .sch-val { font-size: 17px; } }
+@media (max-width: 699px) {
+  .bx-circ .sch-ref, .bx-circ text[style] { font-size: 18px !important; }
+  .bx-circ .sch-val { font-size: 16px; }
+  .bx-circ .bx-mlet { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .bx-knob { transition: none; } }
+/* ---- idea-card interactives */
+.ix { margin: 12px 0; }
+.idea > figure.ix { position: static; } /* interactive figures are tall: no sticky offset over the «Головне» line */
+.ix svg { display: block; width: 100%; height: auto; max-width: 440px; margin-inline: auto; }
+/* printed on the breadboard, which stays light in both themes */
+.ixb-lbl { fill: #5c564b; font: 500 26px var(--f-mono); paint-order: stroke; stroke: #f4f2ea; stroke-width: 6px; stroke-linejoin: round; }
+.ixb-ref { fill: #231d16; font: 600 28px var(--f-body); paint-order: stroke; stroke: #f4f2ea; stroke-width: 6px; stroke-linejoin: round; }
+#ix-v svg, #ix-a svg { max-width: 540px; }
+.ix-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; margin: 8px 0 4px; }
+.ix figcaption { text-align: center; }
+.ix-out { font: 500 15px/1.5 var(--f-body); color: var(--ink); }
+.ix-badge rect { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+.ix-badge text { fill: var(--ink); font: 600 14px var(--f-mono); }
+.ix-lcd rect { fill: #c5d2b9; stroke: #8a967f; }
+.ix-lcd text { fill: #1d2619; font: 700 15px var(--f-mono); }
+
 /* ---- idea figures */
 .fig-lbl { fill: var(--ink); font: 600 14px var(--f-body); }
 .fig-sub { fill: var(--muted); font: 500 13px var(--f-mono); }
 @media (prefers-reduced-motion: reduce) {
-  .smoke.go circle, .lcd-flash.go, .fuse-glow.go { animation: none; }
-  .mm-meter .knob-ptr { transition: none; }
+  .smoke.go circle { animation: none; }
 }
 </style>
 </head>
@@ -198,6 +248,128 @@
     </div>
   </header>
 
+  <!-- ============================================================ lab: a multimeter on a live circuit (bench.js) -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія: мультиметр на живому колі</h2><p>Поверніть перемикач, прикладіть щупи й подивіться, що покаже прилад. Помиляйтеся сміливо: запобіжник тут безкоштовний.</p></header>
+    <div class="lab-stage" id="bx-stage">
+      <div class="bx-grid">
+        <svg class="bx-circ" id="bx-circ" viewBox="0 -18 380 268" role="img" aria-label="Коло: джерело G1, вимикач S1, резистор R1, місце розриву і світлодіод LED1 послідовно. Схемний символ мультиметра з червоним і чорним щупами стоїть там, куди прикладено щупи; точки показують струм.">
+          <defs>
+            <radialGradient id="bx-gl"><stop offset="0" stop-color="#ff4a3d" stop-opacity=".95"/><stop offset=".45" stop-color="#ff4a3d" stop-opacity=".45"/><stop offset="1" stop-color="#ff4a3d" stop-opacity="0"/></radialGradient>
+            <radialGradient id="bx-ht"><stop offset="0" stop-color="#ff8a1f" stop-opacity=".9"/><stop offset="1" stop-color="#ff8a1f" stop-opacity="0"/></radialGradient>
+          </defs>
+          <ellipse id="bx-heat" cx="180" cy="50" rx="46" ry="26" fill="url(#bx-ht)" opacity="0"/>
+          <circle id="bx-glow" cx="320" cy="130" r="50" fill="url(#bx-gl)" opacity="0"/>
+          <!-- source -->
+          <use class="sch-sym net-5v" href="#vsrc" x="60" y="110" transform="rotate(90 60 110)"/>
+          <text class="sch-ref" x="84" y="136">G1</text>
+          <text class="sch-val" id="bx-vlbl" x="84" y="155">5 В</text>
+          <path class="sch-w net-5v" d="M60 110V50H92"/>
+          <!-- switch S1 -->
+          <circle cx="92" cy="50" r="3.5" fill="var(--ink)"/><circle cx="132" cy="50" r="3.5" fill="var(--ink)"/>
+          <line id="bx-lever" class="sch-w" x1="92" y1="50" x2="128" y2="28"/>
+          <text class="sch-ref" x="112" y="78" text-anchor="middle">S1</text>
+          <path class="sch-w" d="M132 50H150"/>
+          <!-- R1 -->
+          <use class="sch-sym" href="#res" x="150" y="50"/>
+          <text class="sch-ref" x="180" y="78" text-anchor="middle">R1</text>
+          <text class="sch-val" id="bx-rlbl" x="180" y="96" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M210 50H232"/>
+          <!-- the break: a jumper that the series probes replace -->
+          <path id="bx-jump" class="sch-w" d="M232 50H278"/>
+          <g id="bx-gapmark" hidden><circle cx="232" cy="50" r="3.5" fill="var(--ink)"/><circle cx="278" cy="50" r="3.5" fill="var(--ink)"/><text class="sch-val" x="255" y="38" text-anchor="middle">розрив</text></g>
+          <path class="sch-w" d="M278 50H320V100"/>
+          <!-- load: LED1 or a plain link -->
+          <g id="bx-ledg"><use class="sch-sym" id="bx-ledsym" href="#led" x="320" y="100" transform="rotate(90 320 100)"/>
+            <text class="sch-ref" x="306" y="182" text-anchor="end">LED1</text><text class="sch-val" x="306" y="200" text-anchor="end">червоний</text></g>
+          <g id="bx-dead" hidden><path d="M311 121l18 18M329 121l-18 18" stroke="var(--bad)" stroke-width="3.5" stroke-linecap="round"/><text x="306" y="218" text-anchor="end" fill="var(--bad)" style="font:700 15px var(--f-body)">згорів</text></g>
+          <g id="bx-linkg" hidden><path class="sch-w" d="M320 100V160"/><text class="sch-val" x="306" y="190" text-anchor="end">перемичка</text></g>
+          <path class="sch-w net-gnd" d="M320 160V230H60V170"/>
+          <text class="sch-val" x="190" y="248" text-anchor="middle">GND</text>
+          <!-- current dots, probes, effects -->
+          <path id="bx-path" d="M60 110V50H320V230H60Z" fill="none" stroke="none"/>
+          <g id="bx-dots" fill="var(--flow)"></g>
+          <g id="bx-probes">
+            <path id="bx-lr" class="bx-lead bx-red" d=""/>
+            <path id="bx-lb" class="bx-lead bx-blk" d=""/>
+            <g id="bx-msym"><circle r="17" class="bx-mring"/><text id="bx-mlet" class="bx-mlet" y="6" text-anchor="middle">V</text></g>
+            <circle id="bx-tr" r="5" class="bx-tip bx-red-f"/><circle id="bx-tb" r="5" class="bx-tip bx-blk-f"/>
+          </g>
+          <g id="bx-fx"></g>
+        </svg>
+        <svg class="bx-meter" id="bx-meter" viewBox="-10 -10 900 1950" role="group" aria-label="Мультиметр UNI-T UT136C+: рідкокристалічний дисплей, рентген-вікно запобіжника F1, поворотний перемикач OFF, V, mA, Ω і гнізда 10A, COM, VΩmA з червоним і чорним щупами."></svg>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="bx-sw" aria-checked="false">Вимикач S1</button>
+      <div class="bx-c"><span class="bx-k" id="bx-mode-k">Режим</span>
+        <div class="seg" role="group" aria-labelledby="bx-mode-k" id="bx-mode">
+          <button type="button" data-v="off" aria-pressed="true">OFF</button>
+          <button type="button" data-v="v" aria-pressed="false">V⎓</button>
+          <button type="button" data-v="a" aria-pressed="false">mA⎓</button>
+          <button type="button" data-v="ohm" aria-pressed="false">Ω</button>
+        </div></div>
+      <div class="bx-c"><span class="bx-k" id="bx-probe-k">Щупи</span>
+        <div class="seg" role="group" aria-labelledby="bx-probe-k" id="bx-probe">
+          <button type="button" data-v="r" aria-pressed="true">на R1</button>
+          <button type="button" data-v="led" aria-pressed="false">на LED1</button>
+          <button type="button" data-v="gap" aria-pressed="false">у розрив</button>
+          <button type="button" data-v="src" aria-pressed="false">на джерело</button>
+        </div></div>
+    </div>
+    <div class="lab-ctl">
+      <div class="bx-c"><span class="bx-k" id="bx-load-k">Навантаження</span>
+        <div class="seg" role="group" aria-labelledby="bx-load-k" id="bx-load">
+          <button type="button" data-v="led" aria-pressed="true">R1 + LED1</button>
+          <button type="button" data-v="r" aria-pressed="false">лише R1</button>
+        </div></div>
+      <label class="lab-range">G1 <input type="range" id="bx-v" min="3" max="24" step="1" value="10" aria-label="Напруга джерела G1"><output id="bx-vout">5 В</output></label>
+      <label class="lab-range">R1 <input type="range" id="bx-r" min="0" max="12" step="1" value="2" aria-label="Опір R1"><output id="bx-rout">220 Ом</output></label>
+      <button type="button" class="btn sm bx-fix" id="bx-fuse-fix" hidden>Замінити запобіжник</button>
+      <button type="button" class="btn sm bx-fix" id="bx-led-fix" hidden>Новий LED</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Дисплей</b><output id="bx-o-disp">—</output></div>
+      <div><b>Струм у колі</b><output id="bx-o-i">0 мА</output></div>
+      <div><b>U на R1</b><output id="bx-o-ur">0 В</output></div>
+      <div><b>P на R1</b><output id="bx-o-pr">0 мВт</output></div>
+    </div>
+    <p class="lab-note" id="bx-note" aria-live="polite">Перемикач на OFF: прилад вимкнений. Оберіть V⎓, mA⎓ або Ω.</p>
+    <details class="more bx-more"><summary>Як влаштована модель</summary>
+      <p>Вольтметр — 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>; запобіжник F1 гнізда VΩmA — 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>, межа mA — 400&nbsp;мА<sup class="cite" data-fact="ut136-ma-range"></sup>. Шунт амперметра 2&nbsp;Ом — <b>припущення</b>: інструкція його не наводить<sup class="cite" data-fact="ut136-ammeter-burden"></sup>. Червоний LED: 1,9&nbsp;В при 10&nbsp;мА<sup class="cite" data-fact="led-red-3mm-vf"></sup>, абсолютний максимум 30&nbsp;мА<sup class="cite" data-fact="led-red-3mm-abs-max"></sup>; у моделі він «згорає», коли струм у кілька разів більший (понад 100&nbsp;мА). Резистор розрахований на 0,25&nbsp;Вт<sup class="cite" data-fact="res-axial-quarter-watt"></sup>. Дисплей показує крапку, як справжній прилад; у тексті ми пишемо кому.</p>
+    </details>
+    <a class="lab-more" href="#w-meter">Повна лабораторія: мультиметр із місіями й перетягуванням щупів →</a>
+  </section>
+
+  <figure class="anim wide" id="bx-anim" aria-labelledby="bx-anim-h">
+    <header class="anim-head"><h3 id="bx-anim-h">Анімація: як мультиметр вмикають для V і для A</h3></header>
+    <div class="anim-stage">
+      <svg viewBox="0 -14 520 266" role="img" aria-label="Коло 5 вольт, резистор R1 220 ом і червоний світлодіод, праворуч мультиметр UT136C+. Покроково: вольтметр паралельно R1, розрив кола, амперметр у розриві, помилкове підключення амперметра до джерела і згорілий запобіжник.">
+        <defs><radialGradient id="ma-gl"><stop offset="0" stop-color="#ff4a3d" stop-opacity=".95"/><stop offset=".45" stop-color="#ff4a3d" stop-opacity=".45"/><stop offset="1" stop-color="#ff4a3d" stop-opacity="0"/></radialGradient></defs>
+        <circle id="ma-glow" cx="330" cy="120" r="46" fill="url(#ma-gl)" opacity="0"/>
+        <use class="sch-sym net-5v" href="#vsrc" x="60" y="100" transform="rotate(90 60 100)"/>
+        <text class="sch-ref" x="84" y="126">G1</text><text class="sch-val" x="84" y="145">5 В</text>
+        <path class="sch-w net-5v" d="M60 100V44H120"/>
+        <use class="sch-sym" href="#res" x="120" y="44"/>
+        <text class="sch-ref" x="150" y="72" text-anchor="middle">R1</text><text class="sch-val" x="150" y="90" text-anchor="middle">220 Ом</text>
+        <path class="sch-w" d="M180 44H232M278 44H330V90"/>
+        <path id="ma-jump" class="sch-w" d="M232 44H278"/>
+        <circle cx="232" cy="44" r="3.5" fill="var(--ink)"/><circle cx="278" cy="44" r="3.5" fill="var(--ink)"/>
+        <use class="sch-sym" href="#led" x="330" y="90" transform="rotate(90 330 90)"/>
+        <text class="sch-ref" x="314" y="116" text-anchor="end">LED1</text>
+        <path class="sch-w net-gnd" d="M330 150V214H60V160"/>
+        <path id="ma-path" d="M60 100V44H330V214H60Z" fill="none" stroke="none"/>
+        <g id="ma-dots" fill="var(--flow)"></g>
+        <path id="ma-lr" class="bx-lead bx-red" d=""/>
+        <path id="ma-lb" class="bx-lead bx-blk" d=""/>
+        <g id="ma-m"><circle r="17" class="bx-mring"/><text id="ma-mlet" class="bx-mlet" y="6" text-anchor="middle">V</text></g>
+        <g id="ma-meter"></g>
+        <text id="ma-tag" class="bx-tag" x="195" y="244" text-anchor="middle"></text>
+        <g id="ma-fx"></g>
+      </svg>
+    </div>
+  </figure>
+
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
     <h2><span class="n">01</span> Навіщо це</h2>
@@ -209,7 +381,9 @@
       <div>V(після R1 → GND) = 4,98 В&nbsp;<span class="r c">→ розрив десь після R1</span></div>
       <div>V(анод LED → GND) = 0,00 В&nbsp;<span class="r bad">→ розрив між R1 і анодом LED</span></div>
     </div>
-    <p class="small muted">Наприкінці уроку ви зможете прочитати цей «лог» самі: де струму немає, на резисторі падіння нуль, а напруга «стрибає» саме на розриві. Якби останній рядок показав кілька вольт, розрив був би далі: у самому LED або між ним і GND.</p>
+    <details class="more"><summary>Детальніше: як читати цей «лог»</summary>
+    <p >Наприкінці уроку ви зможете прочитати цей «лог» самі: де струму немає, на резисторі падіння нуль, а напруга «стрибає» саме на розриві. Якби останній рядок показав кілька вольт, розрив був би далі: у самому LED або між ним і GND.</p>
+    </details>
   </section>
 
   <!-- ============================================================ 02 goals -->
@@ -281,80 +455,138 @@
     <article class="idea">
       <h3>Коло — замкнена петля, і струм у ній усюди однаковий</h3>
       <p>Уявіть мотузку-петлю: батарейка її тягне, а резистор стискає руками й гальмує. Мотузка рухається вся одразу й однаково швидко в кожній точці.</p>
+      <figure class="ix" id="ix-loop">
+        <svg viewBox="0 -14 300 190" role="img" aria-label="Петля: джерело 5 вольт, резистор R1 і світлодіод LED1. Амперметр A1 стоїть перед резистором, A2 — після світлодіода; обидва показують той самий струм.">
+          <defs><radialGradient id="ixl-g"><stop offset="0" stop-color="#ff4a3d" stop-opacity=".9"/><stop offset="1" stop-color="#ff4a3d" stop-opacity="0"/></radialGradient></defs>
+          <circle id="ixl-glow" cx="240" cy="80" r="36" fill="url(#ixl-g)" opacity="0"/>
+          <use class="sch-sym net-5v" href="#vsrc" x="30" y="50" transform="rotate(90 30 50)"/>
+          <text class="sch-val" x="44" y="86">5 В</text>
+          <path class="sch-w net-5v" d="M30 50V24H110"/>
+          <use class="sch-sym" href="#res" x="110" y="24"/>
+          <text class="sch-ref" x="140" y="48" text-anchor="middle">R1</text>
+          <path class="sch-w" d="M170 24H240V50"/>
+          <use class="sch-sym" href="#led" x="240" y="50" transform="rotate(90 240 50)"/>
+          <text class="sch-ref" x="226" y="86" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" d="M240 110V136H30V110"/>
+          <path id="ixl-path" d="M30 80V24H240V136H30Z" fill="none" stroke="none"/>
+          <g id="ixl-dots" fill="var(--flow)"></g>
+          <g class="ix-badge" transform="translate(70 -8)"><rect x="-30" y="-2" width="60" height="22" rx="5"/><text id="ixl-a1" y="14" text-anchor="middle">A1 —</text></g>
+          <g class="ix-badge" transform="translate(140 158)"><rect x="-38" y="-6" width="76" height="22" rx="5"/><text id="ixl-a2" y="10" text-anchor="middle">A2 —</text></g>
+        </svg>
+        <div class="ix-ctl">
+          <button type="button" class="sw" id="ixl-sw" aria-checked="false">Замкнути коло</button>
+          <div class="seg" role="group" aria-label="Опір R1" id="ixl-r">
+            <button type="button" data-v="220" aria-pressed="true">220 Ом</button>
+            <button type="button" data-v="1000" aria-pressed="false">1 кОм</button>
+          </div>
+        </div>
+        <figcaption class="ix-out" id="ixl-out" aria-live="polite">Коло розімкнене: обидва амперметри показують 0.</figcaption>
+      </figure>
+      <details class="more"><summary>Детальніше</summary>
       <p>Так і заряди в колі без розгалужень: скільки пройшло крізь резистор, стільки ж і крізь LED. Витрачається енергія (руки гріються), а не мотузка. Тягне = напруга, тримає = опір, швидкість = струм; живу мотузку побачите в розділі 05.</p>
+      </details>
       <p class="key"><b>Головне</b>У послідовному колі струм однаковий у всіх точках; між деталями ділиться напруга, а не струм.</p>
     </article>
 
     <article class="idea">
       <h3>Напругу міряють між двома точками, не розриваючи коло</h3>
       <p>Вольтметр порівнює дві точки, тож щупи просто прикладають до обох виводів деталі, паралельно їй. Чорний щуп — у COM, червоний — у VΩmA<sup class="cite" data-fact="ut136-jacks"></sup>.</p>
-      <p>Усередині вольтметра ≈ 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>: крізь нього йде мізерний струм, і коло майже не помічає приладу.</p>
-      <figure>
-        <svg class="svgfig" viewBox="0 0 260 172" role="img" aria-label="Вольтметр підключено паралельно резистору R1: червоний щуп на лівий вивід, чорний COM на правий; коло не розірване.">
-          <path class="sch-w" d="M20 110H70M130 110H160M220 110H240"/>
+      <figure class="ix" id="ix-v">
+        <svg viewBox="0 0 362 176" role="img" aria-label="Вольтметр паралельно ділянці кола (праворуч мультиметр UT136C+ у режимі V): щупи на виводах обраної деталі, коло не розірване. Показ: на R1 3,1 вольта, на LED1 1,9 вольта, на обох разом 5 вольт.">
+          <path class="sch-w net-5v" d="M14 110H70"/><text class="sch-val" x="14" y="132">+5 В</text>
+          <path class="sch-w" d="M130 110H160"/>
+          <path class="sch-w net-gnd" d="M220 110H256"/><text class="sch-val" x="256" y="132" text-anchor="end">GND</text>
           <use class="sch-sym" href="#res" x="70" y="110"/>
           <use class="sch-sym" href="#led" x="160" y="110"/>
           <text class="fig-lbl" x="100" y="140" text-anchor="middle">R1</text>
           <text class="fig-lbl" x="190" y="140" text-anchor="middle">LED1</text>
-          <path class="probe-lead pl-red" d="M70 110V56H85"/>
-          <path class="probe-lead pl-blk" d="M130 110V56H115"/>
-          <use class="sch-sym" href="#meter-v" x="70" y="56"/>
-          <text class="fig-sub" x="40" y="44" text-anchor="middle">VΩmA</text>
-          <text class="fig-sub" x="160" y="44" text-anchor="middle">COM</text>
-          <text class="fig-sub" x="130" y="164" text-anchor="middle">≈10 МОм — майже 0 струму</text>
+          <path id="ixv-lr" class="probe-lead pl-red" d=""/>
+          <path id="ixv-lb" class="probe-lead pl-blk" d=""/>
+          <g id="ixv-m"><circle r="16" class="bx-mring"/><text class="bx-mlet" y="6" text-anchor="middle">V</text></g>
+          <g id="ixv-meter"></g>
+          <text class="fig-sub" x="135" y="168" text-anchor="middle">≈10 МОм — майже 0 струму</text>
         </svg>
-        <figcaption>Вольтметр «дивиться збоку»: коло не розривають.</figcaption>
+        <div class="ix-ctl"><div class="seg" role="group" aria-label="Куди прикласти щупи" id="ixv-at">
+          <button type="button" data-v="r" aria-pressed="true">на R1</button>
+          <button type="button" data-v="led" aria-pressed="false">на LED1</button>
+          <button type="button" data-v="both" aria-pressed="false">на обидві</button>
+        </div></div>
+        <figcaption class="ix-out" id="ixv-out" aria-live="polite"></figcaption>
       </figure>
+      <details class="more"><summary>Детальніше</summary>
+      <p>Усередині вольтметра ≈ 10&nbsp;МОм<sup class="cite" data-fact="ut136-input-impedance"></sup>: крізь нього йде мізерний струм, і коло майже не помічає приладу.</p>
+      </details>
       <p class="key"><b>Головне</b>Вольтметр — паралельно, бо напруга існує лише між двома точками.</p>
     </article>
 
     <article class="idea">
       <h3>Щоб виміряти струм, амперметр стає частиною петлі</h3>
       <p>Струм рахують, пропускаючи його крізь прилад: коло розривають і «латають» розрив амперметром, послідовно. Його опір ≈ 0, щоб не гальмувати струм.</p>
-      <p>Звідси небезпека: паралельно амперметр — це «дріт» в обхід деталі. Якщо струм більше ніщо не обмежує (щупи на «+» і GND), згоряє запобіжник 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>.</p>
-      <figure>
-        <svg class="svgfig" viewBox="0 0 260 150" role="img" aria-label="Коло розірване між R1 і LED1; амперметр вставлено в розрив, весь струм петлі проходить крізь нього.">
-          <path class="sch-w" d="M10 60H30M90 60H110"/>
-          <use class="sch-sym" href="#res" x="30" y="60"/>
-          <text class="fig-lbl" x="60" y="44" text-anchor="middle">R1</text>
-          <path class="sch-w" d="M170 60H190"/>
-          <use class="sch-sym" href="#led" x="190" y="60"/>
-          <text class="fig-lbl" x="214" y="92" text-anchor="middle">LED1</text>
-          <path class="probe-lead pl-red" d="M110 60V100H115"/>
-          <path class="probe-lead pl-blk" d="M170 60V100H165"/>
-          <use class="sch-sym" href="#meter-a" x="110" y="100"/>
-          <text class="fig-sub" x="140" y="56" text-anchor="middle">розрив</text>
-          <text class="fig-lbl" x="140" y="140" text-anchor="middle">амперметр ≈ 0 Ом</text>
-          <path d="M14 55l7 5-7 5z" fill="var(--flow)"/>
+      <figure class="ix" id="ix-a">
+        <svg viewBox="0 0 392 178" role="img" aria-label="Коло 5 вольт, R1 220 ом і LED1 з амперметром; праворуч мультиметр UT136C+ у режимі mA. У розриві: 14 міліампер, LED світить. Паралельно LED: LED гасне, 23 міліампера. На джерелі: коротке замикання, запобіжник згорає.">
+          <defs><radialGradient id="ixa-g"><stop offset="0" stop-color="#ff4a3d" stop-opacity=".9"/><stop offset="1" stop-color="#ff4a3d" stop-opacity="0"/></radialGradient></defs>
+          <circle id="ixa-glow" cx="240" cy="80" r="36" fill="url(#ixa-g)" opacity="0"/>
+          <use class="sch-sym net-5v" href="#vsrc" x="50" y="60" transform="rotate(90 50 60)"/>
+          <text class="sch-val" x="64" y="96">5 В</text>
+          <path class="sch-w net-5v" d="M50 60V30H70"/>
+          <use class="sch-sym" href="#res" x="70" y="30"/>
+          <text class="sch-ref" x="100" y="54" text-anchor="middle">R1</text>
+          <path class="sch-w" d="M130 30H150M190 30H240V50"/>
+          <path id="ixa-jump" class="sch-w" d="M150 30H190"/>
+          <circle cx="150" cy="30" r="3" fill="var(--ink)"/><circle cx="190" cy="30" r="3" fill="var(--ink)"/>
+          <use class="sch-sym" href="#led" x="240" y="50" transform="rotate(90 240 50)"/>
+          <text class="sch-ref" x="226" y="86" text-anchor="end">LED1</text>
+          <path class="sch-w net-gnd" d="M240 110V150H50V120"/>
+          <path id="ixa-lr" class="probe-lead pl-red" d=""/>
+          <path id="ixa-lb" class="probe-lead pl-blk" d=""/>
+          <g id="ixa-m"><circle r="16" class="bx-mring"/><text class="bx-mlet" y="6" text-anchor="middle">A</text></g>
+          <g id="ixa-x" hidden><path d="M-9 -9l18 18M9 -9l-18 18" stroke="var(--bad)" stroke-width="3.5" stroke-linecap="round"/></g>
+          <g id="ixa-meter"></g>
+          <text class="fig-lbl" id="ixa-tag" x="150" y="172" text-anchor="middle"></text>
+          <g id="ixa-fx"></g>
         </svg>
-        <figcaption>Розірвали → вставили прилад → весь струм іде крізь нього.</figcaption>
+        <div class="ix-ctl"><div class="seg" role="group" aria-label="Куди ввімкнути амперметр" id="ixa-at">
+          <button type="button" data-v="gap" aria-pressed="true">у розрив ✓</button>
+          <button type="button" data-v="led" aria-pressed="false">паралельно LED ✗</button>
+          <button type="button" data-v="src" aria-pressed="false">на джерело ✗</button>
+        </div></div>
+        <figcaption class="ix-out" id="ixa-out" aria-live="polite"></figcaption>
       </figure>
+      <details class="more"><summary>Детальніше</summary>
+      <p>Звідси небезпека: паралельно амперметр — це «дріт» в обхід деталі. Якщо струм більше ніщо не обмежує (щупи на «+» і GND), згоряє запобіжник 0,5&nbsp;А<sup class="cite" data-fact="ut136-fuse-ma"></sup>.</p>
+      </details>
       <p class="key"><b>Головне</b>Амперметр — послідовно, у розрив. Паралельно він — коротке замикання ділянки.</p>
     </article>
 
     <article class="idea">
       <h3>Закон Ома і баланс напруг пояснюють кожен показ</h3>
       <p>На кожній деталі «падає» частина напруги, а разом — рівно напруга джерела: V<sub>R</sub> + V<sub>LED</sub> = V<sub>джерела</sub> (другий закон Кірхгофа). Червоний LED забирає ≈ 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup> — це його <b>пряма напруга</b> V<sub>F</sub>; решта лягає на резистор.</p>
-      <p>Струм дає закон Ома I = U<sub>R</sub> / R: при 5&nbsp;В і 220&nbsp;Ом це (5 − 1,9) / 220 ≈ 14&nbsp;мА. Більший R — менший струм.</p>
-      <figure>
-        <svg class="svgfig" viewBox="0 0 260 156" role="img" aria-label="Сходинки потенціалу: на плюсі джерела 5 вольт; схил на резисторі R1 — падіння 3,1 вольта; рівна ділянка дроту між R1 і LED на рівні 1,9 вольта; схил на світлодіоді — падіння 1,9 вольта; далі 0 вольт. Разом 3,1 плюс 1,9 дорівнює 5 вольт.">
-          <path d="M30 128H244" stroke="var(--line)" stroke-width="1.5"/>
-          <path d="M30 24H105L135 92H180L205 128H244" fill="none" stroke="var(--n5)" stroke-width="3" stroke-linejoin="round"/>
-          <text class="fig-sub" x="30" y="16">+5 В</text>
-          <text class="fig-sub" x="157" y="84" text-anchor="middle">1,9 В</text>
-          <text class="fig-sub" x="236" y="146" text-anchor="middle">0 В</text>
-          <path d="M88 92H135M180 92H222" stroke="var(--muted)" stroke-dasharray="3 3"/>
-          <path d="M83 24H93M88 24V92M83 92H93" stroke="var(--ink)" stroke-width="1.5" fill="none"/>
-          <text class="fig-lbl" x="80" y="56" text-anchor="end">R1</text>
-          <text class="fig-lbl" x="80" y="73" text-anchor="end">3,1 В</text>
-          <path d="M213 92H221M217 92V128M213 128H221" stroke="var(--ink)" stroke-width="1.5" fill="none"/>
-          <text class="fig-lbl" x="224" y="106">LED</text>
-          <text class="fig-lbl" x="224" y="122">1,9 В</text>
-          <text class="fig-sub" x="157" y="112" text-anchor="middle">дріт</text>
-          <text class="fig-sub" x="110" y="150" text-anchor="middle">3,1 + 1,9 = 5 В</text>
+      <figure class="ix" id="ix-o">
+        <svg id="ixo-svg" viewBox="0 0 280 172" role="img" aria-label="Сходинки потенціалу: від плюса джерела через спуск на резисторі R1, рівний дріт, спуск на світлодіоді до 0 вольт.">
+          <path d="M30 140H262" stroke="var(--line)" stroke-width="1.5"/>
+          <path id="ixo-st" d="" fill="none" stroke="var(--n5)" stroke-width="3" stroke-linejoin="round"/>
+          <path id="ixo-dash" d="" stroke="var(--muted)" stroke-dasharray="3 3" fill="none"/>
+          <path id="ixo-br" d="" stroke="var(--ink)" stroke-width="1.5" fill="none"/>
+          <path id="ixo-bl" d="" stroke="var(--ink)" stroke-width="1.5" fill="none"/>
+          <text class="fig-sub" id="ixo-top" x="30" y="16"></text>
+          <text class="fig-lbl" id="ixo-r1" x="80" text-anchor="end">R1</text>
+          
+          <text class="fig-lbl" id="ixo-l1" x="232">LED</text>
+          <text class="fig-lbl" id="ixo-l2" x="232"></text>
+          <text class="fig-sub" x="160" y="134" text-anchor="middle">дріт</text>
+          <text class="fig-sub" x="252" y="158" text-anchor="middle">0 В</text>
+          <circle id="ixo-q" r="6" fill="var(--flow)" stroke="var(--sheet)" stroke-width="2"/>
         </svg>
-        <figcaption>Потенціал «спускається» сходинками: схили — це деталі (там падає напруга), рівні ділянки — дроти (там напруга та сама). Що забрав резистор, те не дісталося LED.</figcaption>
+        <div class="ix-ctl">
+          <div class="seg" role="group" aria-label="Напруга джерела" id="ixo-vs"><button type="button" data-v="5" aria-pressed="true">5 В</button><button type="button" data-v="3.3" aria-pressed="false">3,3 В</button></div>
+          <div class="seg" role="group" aria-label="Колір LED" id="ixo-c"><button type="button" data-v="1.9" aria-pressed="true">червоний 1,9 В</button><button type="button" data-v="2.2" aria-pressed="false">зелений 2,2 В</button></div>
+        </div>
+        <figcaption class="ix-out" id="ixo-out" aria-live="polite"></figcaption>
       </figure>
+      <p class="small muted">Потенціал «спускається» сходинками: схили — деталі (там падає напруга), рівні ділянки — дроти. Що забрав резистор, те не дісталося LED. Зелений LED — 2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>; струм — для R1 = 220&nbsp;Ом.</p>
+      <details class="more"><summary>Детальніше</summary>
+      <p>Струм дає закон Ома I = U<sub>R</sub> / R: при 5&nbsp;В і 220&nbsp;Ом це (5 − 1,9) / 220 ≈ 14&nbsp;мА. Більший R — менший струм.</p>
+      </details>
       <p class="key"><b>Головне</b>I = U / R, а сума падінь напруги в петлі дорівнює напрузі джерела.</p>
     </article>
 
@@ -362,31 +594,17 @@
       <h3>Опір міряють тільки без живлення; макетка з'єднує п'ятірками</h3>
       <p>Омметр сам подає малий струм і з нього рахує опір, тож чужа напруга збиває показ: живлення вимикають<sup class="cite" data-fact="ut136-ohm-notes"></sup>. «OL» — більше за діапазон, тобто розрив.</p>
       <p>У макетці 5 отворів стовпчика (a–e або f–j) з'єднані смужкою, канавка їх розділяє<sup class="cite" data-fact="breadboard-strips"></sup>. Дві ніжки в одній смужці — деталь закорочена.</p>
-      <p>Шини «+» і «−» уздовж країв — це довгі горизонтальні смужки на весь ряд. На частині плат вони розірвані посередині<sup class="cite" data-fact="breadboard-strips"></sup>: перевірте продзвонкою, перш ніж живити другу половину.</p>
-      <figure>
-        <svg class="svgfig" viewBox="0 0 260 150" role="img" aria-label="Фрагмент макетки: вертикальні смужки по 5 отворів з'єднані; канавка посередині; резистор з обома ніжками в одній смужці закорочений.">
-          <rect x="10" y="10" width="240" height="130" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
-          <rect x="16" y="68" width="228" height="14" rx="3" fill="color-mix(in srgb, var(--ink) 9%, var(--panel-2))"/>
-          <g fill="color-mix(in srgb, var(--ink) 55%, var(--panel-2))">
-            <rect x="37" y="18" width="5" height="5"/><rect x="37" y="28" width="5" height="5"/><rect x="37" y="38" width="5" height="5"/><rect x="37" y="48" width="5" height="5"/><rect x="37" y="58" width="5" height="5"/>
-            <rect x="57" y="18" width="5" height="5"/><rect x="57" y="28" width="5" height="5"/><rect x="57" y="38" width="5" height="5"/><rect x="57" y="48" width="5" height="5"/><rect x="57" y="58" width="5" height="5"/>
-            <rect x="37" y="88" width="5" height="5"/><rect x="37" y="98" width="5" height="5"/><rect x="37" y="108" width="5" height="5"/><rect x="37" y="118" width="5" height="5"/><rect x="37" y="128" width="5" height="5"/>
-            <rect x="57" y="88" width="5" height="5"/><rect x="57" y="98" width="5" height="5"/><rect x="57" y="108" width="5" height="5"/><rect x="57" y="118" width="5" height="5"/><rect x="57" y="128" width="5" height="5"/>
-          </g>
-          <path d="M39.5 18V63M59.5 18V63M39.5 88V133M59.5 88V133" stroke="#c9a032" stroke-width="3" stroke-linecap="round" opacity=".85"/>
-          <text class="fig-sub" x="74" y="30">смужка</text>
-          <text class="fig-sub" x="74" y="46">5 отворів</text>
-          <text class="fig-sub" x="74" y="80">канавка</text>
-          <path d="M186 20V60" stroke="#8d979e" stroke-width="2"/>
-          <rect x="180" y="28" width="12" height="24" rx="4" fill="#dcc394" stroke="#9c855a"/>
-          <path d="M186 20V60" stroke="none"/>
-          <rect x="183.5" y="17.5" width="5" height="5" fill="color-mix(in srgb, var(--ink) 55%, var(--panel-2))"/>
-          <rect x="183.5" y="57.5" width="5" height="5" fill="color-mix(in srgb, var(--ink) 55%, var(--panel-2))"/>
-          <text class="fig-lbl" x="200" y="104" text-anchor="middle">✗ R в одній</text>
-          <text class="fig-lbl" x="200" y="122" text-anchor="middle">смужці</text>
-        </svg>
-        <figcaption>Металева смужка під п'ятьма отворами — це один вузол кола.</figcaption>
+      <figure class="ix" id="ix-bb">
+        <svg id="ixb-svg" viewBox="0 88 500 336" style="overflow:hidden" role="img" aria-label="Фрагмент макетки WB-102: вертикальні смужки по 5 отворів, канавка посередині. Резистор R1 стоїть або через канавку (мультиметр у режимі Ω показує 220 ом), або обома ніжками в одній смужці (мультиметр показує майже нуль і пищить: деталь закорочена)."></svg>
+        <div class="ix-ctl">
+          <button type="button" class="sw" id="ixb-sw" aria-checked="false">Смужки всередині</button>
+          <div class="seg" role="group" aria-label="Як стоїть резистор" id="ixb-at"><button type="button" data-v="ok" aria-pressed="true">через канавку ✓</button><button type="button" data-v="bad" aria-pressed="false">в одній смужці ✗</button></div>
+        </div>
+        <figcaption class="ix-out" id="ixb-out" aria-live="polite"></figcaption>
       </figure>
+      <details class="more"><summary>Детальніше: шини живлення</summary>
+      <p>Шини «+» і «−» уздовж країв — це довгі горизонтальні смужки на весь ряд. На частині плат вони розірвані посередині<sup class="cite" data-fact="breadboard-strips"></sup>: перевірте продзвонкою, перш ніж живити другу половину.</p>
+      </details>
       <p class="key"><b>Головне</b>Ω — лише на знеструмленій схемі; одна смужка макетки = один вузол.</p>
     </article>
 
@@ -481,33 +699,12 @@
         </div>
         <div class="mm-grid">
           <div class="mm-card">
-            <svg class="svgfig mm-circ" id="mm-circ" viewBox="0 -40 340 376" role="group" aria-label="Коло: джерело MB-102, резистор R1, світлодіод LED1. Точки для щупів A–F, три місця, де коло можна розірвати.">
-              <g id="mm-wires"></g>
-              <use class="sch-sym" href="#vsrc" x="40" y="110" transform="rotate(90 40 110)"/>
-              <text class="lbl-ink" x="62" y="146" id="mm-vs-lbl">5 В</text>
-              <text class="lbl" x="62" y="164">MB-102</text>
-              <use class="sch-sym" href="#res" x="140" y="50"/>
-              <text class="lbl-ink" x="170" y="34" text-anchor="middle">R1</text>
-              <text class="lbl" x="170" y="80" text-anchor="middle" id="mm-r-lbl">220 Ом</text>
-              <circle class="led-glow" id="mm-glow" cx="290" cy="140" r="24" fill="#ff3b2f" opacity="0"/>
-              <g id="mm-led"><use class="sch-sym led-sym" href="#led" x="290" y="110" transform="rotate(90 290 110)"/></g>
-              <text class="lbl-ink" x="258" y="132" text-anchor="end">LED1</text>
-              <text class="lbl" x="258" y="150" text-anchor="end">червоний</text>
-              <g id="mm-crack" hidden>
-                <circle cx="290" cy="140" r="17" fill="color-mix(in srgb, var(--muted) 45%, var(--panel))" stroke="var(--bad)" stroke-width="2.5"/>
-                <path d="M282 132l16 16M298 132l-16 16" stroke="var(--bad)" stroke-width="3.5" stroke-linecap="round"/>
-                <text x="318" y="176" text-anchor="middle" fill="var(--bad)" style="font:700 15px var(--f-body)">згорів</text>
-              </g>
-              <g class="smoke" id="mm-led-smoke" transform="translate(296 116)"><circle r="5"/><circle r="4" cx="4"/><circle r="5" cx="-3"/></g>
-              <use class="sch-sym" href="#gnd" x="140" y="250"/>
-              <text class="lbl" x="152" y="276">GND</text>
-              <g id="mm-cuts"></g>
-              <g id="mm-flowg"></g>
-              <g id="mm-pts"></g>
-              <rect class="park" x="40" y="292" width="140" height="34" rx="8"/>
-              <text class="lbl" x="110" y="314" text-anchor="middle">щупи тут</text>
-              <g id="mm-probes"></g>
-            </svg>
+            <svg class="svgfig mm-circ" id="mm-circ" viewBox="-115 -40 1040 632" role="group" aria-label="Макетка: модуль живлення MB-102 у шинах на лівому краю. Нижня половина: короткий червоний дріт з шини плюс у стовпчик 15, резистор R1 зі стовпчика 15 у 19, жовтий дріт з 19 у 22, червоний світлодіод LED1 анодом у 22 і катодом у 23, короткий чорний дріт з 23 на шину мінус. Точки для щупів A–F, щупи праворуч на стоянці, три дроти, які можна вийняти кнопками під макеткою, щоб розірвати коло."></svg>
+            <div class="mm-cuts" id="mm-cuts" role="group" aria-label="Розірвати коло: вийняти дріт">
+              <button type="button" class="btn sm cut" aria-pressed="false" aria-label="Розірвати коло між A–B: вийняти червоний дріт">✂ A–B</button>
+              <button type="button" class="btn sm cut" aria-pressed="false" aria-label="Розірвати коло між C–D: вийняти жовтий дріт">✂ C–D</button>
+              <button type="button" class="btn sm cut" aria-pressed="false" aria-label="Розірвати коло між E–F: вийняти чорний дріт">✂ E–F</button>
+            </div>
           </div>
           <div class="mm-probes">
             <label>Червоний щуп
@@ -520,42 +717,7 @@
           <!-- phone only: a compact copy of the display, sticky while the meter is in view (the meter itself is announced via #mm-status) -->
           <div class="mm-lcd" aria-hidden="true"><span class="mm-lcd-mode" id="mm-lcd-mode"></span><span class="mm-lcd-val" id="mm-lcd-val"></span></div>
           <div class="mm-card" style="background:transparent;border:0;padding:0">
-            <svg class="svgfig mm-meter" id="mm-meter" viewBox="0 0 300 460" role="group" aria-label="Мультиметр: дисплей, перемикач режимів, гнізда 10A, COM і VΩmA.">
-              <rect x="6" y="6" width="288" height="448" rx="30" fill="#e48a1c"/>
-              <rect x="18" y="18" width="264" height="424" rx="22" fill="#2b3237"/>
-              <rect x="34" y="32" width="232" height="108" rx="8" fill="#c5d2b9" stroke="#8a967f"/>
-              <rect class="lcd-flash" id="mm-flash" x="34" y="32" width="232" height="108" rx="8"/>
-              <text class="ann" id="ann-auto" x="44" y="52">AUTO</text>
-              <text class="ann" id="ann-dc" x="94" y="52">DC</text>
-              <text class="ann" id="ann-ac" x="122" y="52">AC</text>
-              <text class="ann" id="ann-beep" x="150" y="52">•)))</text>
-              <text class="ann" id="ann-dio" x="190" y="52">→|</text>
-              <text class="ann" id="ann-neg" x="44" y="112" style="font-size:30px">−</text>
-              <text class="lcd-d" id="mm-digits" x="214" y="112" text-anchor="end"></text>
-              <text class="lcd-u" id="mm-unit" x="258" y="112" text-anchor="end"></text>
-              <!-- fuse window (inside view) -->
-              <g id="mm-fuse">
-                <circle class="fuse-glow" id="mm-fuse-glow" cx="64" cy="168" r="22"/>
-                <rect x="34" y="161" width="8" height="14" rx="1" fill="#b9bec2"/>
-                <rect x="86" y="161" width="8" height="14" rx="1" fill="#b9bec2"/>
-                <rect class="glass" x="42" y="160" width="44" height="16" rx="3" fill="#cfe3ec" fill-opacity=".55" stroke="#9fb3bd"/>
-                <path class="fil" id="mm-fil" d="M42 168H86"/>
-                <text x="64" y="194" text-anchor="middle" fill="#e6ecf0" style="font:600 13px var(--f-mono)">F1 0,5A</text>
-              </g>
-              <g class="smoke" id="mm-fuse-smoke" transform="translate(64 160)"><circle r="5"/><circle r="4" cx="5"/><circle r="5" cx="-4"/></g>
-              <g class="selbtn" id="mm-select" role="button" tabindex="0" aria-label="Кнопка SELECT: перемкнути діод / продзвонку">
-                <rect x="198" y="156" width="74" height="26" rx="13" fill="#3e474d" stroke="#11161a"/>
-                <text x="235" y="174" text-anchor="middle" fill="#e6ecf0" style="font:600 13px var(--f-mono)">SELECT</text>
-              </g>
-              <circle cx="150" cy="268" r="50" fill="#20262a"/>
-              <g class="knob-ptr" id="mm-knob">
-                <circle cx="150" cy="268" r="44" fill="#3b444b" stroke="#11161a" stroke-width="2"/>
-                <rect x="144" y="226" width="12" height="84" rx="6" fill="#1b2024"/>
-                <path d="M150 226l-7 12h14z" fill="#ffc04d"/>
-              </g>
-              <g id="mm-dial"></g>
-              <g id="mm-jacks"></g>
-            </svg>
+            <svg class="svgfig mm-meter" id="mm-meter" viewBox="60 70 760 1870" role="group" aria-label="Мультиметр UNI-T UT136C+: дисплей, кнопка SELECT, поворотний перемикач режимів, гнізда 10A, COM і VΩmA, рентген-вікно запобіжника F1."></svg>
           </div>
         </div>
         <div class="note mm-status" id="mm-status" aria-live="polite"></div>
@@ -638,7 +800,7 @@
             <button type="button" data-m="drill" aria-pressed="false">Тренування</button>
           </div>
         </div>
-        <svg class="svgfig cc-svg" id="cc-svg" viewBox="0 0 340 110" role="group" aria-label="Резистор з кольоровими смужками"></svg>
+        <svg class="svgfig cc-svg" id="cc-svg" viewBox="0 -12 340 140" role="group" aria-label="Резистор з кольоровими смужками"></svg>
         <div class="cc-pal" id="cc-pal" role="group" aria-label="Колір смужки"></div>
         <p class="cc-out" id="cc-out" aria-live="polite"></p>
         <div class="cc-drill" id="cc-drill" hidden>
@@ -725,7 +887,7 @@
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg class="svgfig" id="bb-s1" viewBox="0 0 290 290" role="img" aria-label="Макетка S1: шина плюс 5 вольт з'єднана дротом зі стовпчиком 3, резистор R1 зі стовпчика 3 у стовпчик 9, світлодіод анодом у 9, катодом у 10, дріт зі стовпчика 10 на шину мінус. Для амперметра світлодіод переставлено в стовпчики 14–15, а щупи замикають розрив між 9 і 14."></svg>
+        <svg class="svgfig" id="bb-s1" viewBox="-115 -40 905 640" role="img" aria-label="Макетка S1: модуль живлення MB-102 у шинах на лівому краю, нижня шина плюс — 5 вольт. Короткий червоний дріт з шини плюс у стовпчик 19, резистор R1 зі стовпчика 19 у стовпчик 23, червоний світлодіод анодом у 23, катодом у 24, короткий чорний дріт зі стовпчика 24 на шину мінус. Для вольтметра щупи згори торкаються виводів R1; для амперметра світлодіод переставлено в стовпчики 26–27, а щупи замикають розрив між 23 і 26."></svg>
       </div>
       <figcaption id="s1-cap">Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах. Шини живить модуль MB-102, перемичка на 5&nbsp;В<sup class="cite" data-fact="mb102-module"></sup>.</figcaption>
     </figure>
@@ -738,7 +900,7 @@
           <button type="button" class="btn sm" id="bbx-metal" aria-pressed="false">Показати смужки всередині</button>
           <button type="button" class="btn sm" id="bbx-fix" aria-pressed="false">Показати виправлення</button>
         </div>
-        <svg class="svgfig" id="bbx-svg" viewBox="0 0 230 222" role="group" aria-label="Макетка із задачею: резистор R1 лежить обома ніжками в шині плюс, дріт з шини плюс у стовпчик 9, світлодіод анодом у 9, катодом у 10, дріт зі стовпчика 10 на шину мінус. Торкніться деталі, що стоїть неправильно."></svg>
+        <svg class="svgfig" id="bbx-svg" viewBox="-115 -40 905 640" role="group" aria-label="Макетка із задачею: модуль живлення MB-102 у шинах на лівому краю; резистор R1 лежить обома ніжками в нижній шині плюс (стовпчики 15 і 19), червоний дріт з шини плюс у стовпчик 23, світлодіод анодом у 23, катодом у 24, чорний дріт зі стовпчика 24 на шину мінус. Торкніться деталі, що стоїть неправильно."></svg>
         <p class="out" id="bbx-out" aria-live="polite">Торкніться деталі, що стоїть неправильно. Підказка: кнопка «Показати смужки всередині».</p>
       </div>
     </div>
@@ -753,7 +915,7 @@
       <li>Перевірте вихід модуля MB-102 вольтметром ще <b>до</b> того, як ставити деталі: перемичка на 5&nbsp;В<sup class="cite" data-fact="mb102-module"></sup>.</li>
       <li>Без живлення виміряйте омметром кожен резистор і запишіть справжнє значення.</li>
       <li>Зберіть S1 з 220&nbsp;Ом (<a href="#circuit">схема й макетка — розділ 08</a>). <b>Полярність LED:</b> довша ніжка (анод, «+») — у стовпчик R1, коротша (катод, з боку пласкої грані корпусу) — у стовпчик, з якого дріт іде на шину «−». Навпаки LED просто не світитиме. Порахуйте прогноз струму (Vs − 1,9) / R і впишіть у таблицю.</li>
-      <li>Розірвіть коло між R1 і LED: витягніть анод LED у вільний стовпчик (на схемі S1-A — стовпчики 14–15). Червоний щуп — у гніздо VΩmA, перемикач на mA. Потім <b>червоний щуп — у стовпчик правого виводу R1 (9), чорний — у стовпчик, куди ви переставили анод (14)</b>. Прилад замкнув розрив — LED світить, на дисплеї струм.</li>
+      <li>Розірвіть коло між R1 і LED: витягніть анод LED у вільний стовпчик (на схемі S1-A — стовпчики 26–27). Червоний щуп — у гніздо VΩmA, перемикач на mA. Потім <b>червоний щуп — у стовпчик правого виводу R1 (9), чорний — у стовпчик, куди ви переставили анод (14)</b>. Прилад замкнув розрив — LED світить, на дисплеї струм.</li>
       <li>Поверніть LED на місце, перемикач на V. Виміряйте V<sub>R</sub>, V<sub>LED</sub> і V<sub>джерела</sub>.</li>
       <li>Повторіть для 1&nbsp;кОм і 10&nbsp;кОм. Для 10&nbsp;кОм струм лише ≈ 0,3&nbsp;мА: перемкніть на <b>µA</b> (той самий VΩmA). На mA прилад покаже «0.31» — похибка ±(1&nbsp;% + 3 одиниці) там означає ±0,03&nbsp;мА, тобто ≈ ±10&nbsp;%; на µA роздільність 1&nbsp;мкА, і похибка ≈ ±2&nbsp;%<sup class="cite" data-fact="ut136-dca-accuracy"></sup>.</li>
       <li>Після вимірювань: перемикач на V або OFF. Наступне вимірювання з помилковим режимом — найчастіша причина згорілих запобіжників.</li>
@@ -776,8 +938,10 @@
         <tr><th>10 кОм</th><td data-col="vr"></td><td data-col="vled"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td></tr>
       </tbody>
     </table>
+    <details class="more"><summary>Детальніше: точність приладу і чому прогноз не збігся</summary>
     <p class="small muted">Стовпчик «V<sub>R</sub> + V<sub>LED</sub>» заповнюється сам, коли ви вписали обидва доданки. Чого чекати від приладу: V<sub>R</sub> і V<sub>LED</sub> (до 4&nbsp;В) він міряє на діапазоні 4&nbsp;В з похибкою ±(0,5&nbsp;% + 2)<sup class="cite" data-fact="ut136-dcv-accuracy"></sup>, а V<sub>джерела</sub> ≈ 5&nbsp;В — на діапазоні 40&nbsp;В, ±(0,7&nbsp;% + 3) ≈ ±0,07&nbsp;В<sup class="cite" data-fact="ut136-dcv-40v-range"></sup>. Разом це ≈ ±0,1&nbsp;В, тобто ±2&nbsp;%. Струм: ±(1&nbsp;% + 3 одиниці), де «одиниця» — остання цифра дисплея (0,01&nbsp;мА на діапазоні 40&nbsp;мА)<sup class="cite" data-fact="ut136-dca-accuracy"></sup>.</p>
     <p class="small muted"><b>Підказка для «Чому так?»:</b> виміряний струм зазвичай трохи більший за прогноз, і що менший струм, то більша різниця. Причина: V<sub>F</sub> = 1,9&nbsp;В даташит дає для 10&nbsp;мА, а при 0,3&nbsp;мА вона лише ≈ 1,6–1,7&nbsp;В<sup class="cite" data-fact="led-red-vf-low-current"></sup>. Тому для 10&nbsp;кОм різниця 5–10&nbsp;% — це не ваша помилка.</p>
+    </details>
     <p><b>Розширення: що якщо…</b> поміняти місцями R1 і LED (LED ближче до «+»)? Спершу запишіть прогноз струму, потім виміряйте. А якщо замість червоного взяти зелений LED (≈ 2,2&nbsp;В<sup class="cite" data-fact="led-green-3mm-vf"></sup>)?</p>
   </section>
 
@@ -924,6 +1088,8 @@
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script src="bench.js" defer></script>
 <script>
 /* Page widgets of lesson 1-1. Inline scripts ignore `defer`, so everything waits for study:ready. */
 document.addEventListener('study:ready', () => {
@@ -983,15 +1149,6 @@ document.addEventListener('study:ready', () => {
   /* =================================================================== W1-1a virtual multimeter */
   (function meter() {
     const circ = $('#mm-circ'), mtr = $('#mm-meter');
-    // Probe points (nodes n0..n5) and where they sit on the drawing.
-    const PTS = [
-      { n: 'A', x: 70, y: 50, d: 'A: «+» джерела' }, { n: 'B', x: 122, y: 50, d: 'B: лівий вивід R1' },
-      { n: 'C', x: 218, y: 50, d: 'C: правий вивід R1' }, { n: 'D', x: 272, y: 50, d: 'D: анод LED1' },
-      { n: 'E', x: 272, y: 250, d: 'E: катод LED1' }, { n: 'F', x: 218, y: 250, d: 'F: GND (мінус джерела)' },
-    ];
-    const CUTS = [ // break k joins nodes [a,b]; the gap is drawn at gx
-      { a: 0, b: 1, x: 96, y: 50, lab: 'A–B' }, { a: 2, b: 3, x: 245, y: 50, lab: 'C–D' }, { a: 4, b: 5, x: 245, y: 250, lab: 'E–F' },
-    ];
     const R_TRUE = { 220: 218.7, 1000: 1004, 10000: 9958 };
     const VS_TRUE = { 5: 4.98, 3.3: 3.29 };
     const RS = 15;                         // LED series resistance of the model, Ом
@@ -1008,56 +1165,99 @@ document.addEventListener('study:ready', () => {
     let lastV = {};      // 'vr' / 'vled' / 'vs' → value for the KVL line
     let flick = null, busy = false;
 
-    /* ---------- circuit drawing */
-    const wiresG = $('#mm-wires'), flowG = $('#mm-flowg');
-    const W = (d, extra = {}) => el('path', { class: 'sch-w', d, ...extra }, wiresG);
-    // Fixed wires (around the cut gaps)
-    W('M40 110V50H86'); W('M106 50H140'); W('M200 50H235'); W('M255 50H290V110');
-    W('M290 170V250H255'); W('M235 250H40V170');
-    const bridges = CUTS.map((c) => W(`M${c.x - 10} ${c.y}H${c.x + 10}`, { class: 'sch-w bridge' }));
-    // Flow overlays: invisible paths with their own currents
-    const FP = (d) => el('path', { d, fill: 'none', stroke: 'none' }, flowG);
+    /* ---------- the real circuit (Kit parts, Kit units 1 = 0.1 mm): the left end of the WB-102 with the MB102 in its rails,
+       laid out on the hole grid in the lower half (bottom rails: «+» inner, «−» outer), the parts use the strips:
+       red jumper j15 → «+» (break A–B), R1 f15–f19, yellow jumper j19 → j22 (break C–D), LED1 anode f22 / cathode f23,
+       black jumper j23 → «−» (break E–F). (Rail holes come in fives: columns 3–7, 9–13, 15–19, 21–25.) The probes come from above, where the board is empty. */
+    const K = window.Kit, P = K.P;
+    const { bb: board, pm, at } = L11Kit.board(circ, { to: 26 });
+    const H = (c, r) => board.hole(c, r);
+    const wiresG = el('g', {}, circ);
+    const COLS = { r1: 15, r2: 19, la: 22, lk: 23 };
+    let res = null;
+    const resG = el('g', {}, circ);
+    const mkRes = () => { if (res) res.remove(); const p = H(COLS.r1, 'f'); res = K.part('resistor', { parent: resG, ohms: st.r, span: COLS.r2 - COLS.r1, x: p.x, y: p.y, title: `R1 ${fmt.si(st.r, 'Ом')}` }); };
+    const ledAt = H(COLS.la, 'f');
+    const ledG = el('g', {}, circ);
+    const led = K.part('led', { parent: ledG, color: 'red', x: ledAt.x, y: ledAt.y, leg: 40, title: 'LED1, червоний' });
+    const smoke = el('g', { class: 'smoke', id: 'mm-led-smoke', transform: `translate(${ledAt.x + 12} ${ledAt.y - 120}) scale(3.4)` }, circ);
+    for (const [r, cx] of [[5, 0], [4, 4], [5, -3]]) el('circle', { r, cx }, smoke);
+    // jumpers = the three places where the loop can be broken (pull the wire out); a → b in the direction of the current
+    const JUMP = [
+      { a: at('bottom+15'), b: at('j15'), col: 'red' },
+      { a: at('j19'), b: at('j22'), col: 'yellow' },
+      { a: at('j23'), b: at('bottom-23'), col: 'black' },
+    ];
+    const ghosts = [], bridges = JUMP.map((j) => {
+      const w = K.route(wiresG, [j.a, j.b], j.col);
+      ghosts.push(el('path', { class: 'ghost', d: w.path.getAttribute('d'), style: 'display:none' }, wiresG));
+      return w;
+    });
+    // Probe points (nodes n0..n5) on the real parts: the «+» rail, both R1 legs, both LED legs, the «−» rail.
+    // Letters sit under their points: the probes come from above, so a letter is never under a probe.
+    const r1a = H(COLS.r1, 'f'), r1b = H(COLS.r2, 'f'), LY = H(1, 'g').y + 38 - r1a.y; // letters: one baseline under R1 and LED1
+    const PTS = [
+      { n: 'A', ...at('bottom+13'), d: 'A: «+» джерела', lx: 0, ly: 34 },
+      { n: 'B', x: r1a.x + 9, y: r1a.y, d: 'B: лівий вивід R1', lx: 0, ly: LY },
+      { n: 'C', x: r1b.x - 9, y: r1b.y, d: 'C: правий вивід R1', lx: 0, ly: LY },
+      { n: 'D', x: ledAt.x, y: ledAt.y - 14, d: 'D: анод LED1', lx: -4, ly: LY + 14 },
+      { n: 'E', x: ledAt.x + P, y: ledAt.y - 14, d: 'E: катод LED1', lx: 4, ly: LY + 14 },
+      { n: 'F', ...at('bottom-25'), d: 'F: GND (мінус джерела)', lx: 0, ly: 34 },
+    ];
+    // which way a probe leans on each point when it is alone there: away from the circuit; on A it stands upright
+    // (leaning left it would lie over the MB-102, leaning right over the red jumper)
+    const LEAN = [0, -1, 1, -1, 1, 1];
+    const CUTS = [ // break k joins nodes [a,b]; its toggle is a button under the picture (#mm-cuts)
+      { a: 0, b: 1, lab: 'A–B' }, { a: 2, b: 3, lab: 'C–D' }, { a: 4, b: 5, lab: 'E–F' },
+    ];
+    // labels: on the board in the free rows under the parts (printed dark: the board is light in both themes), MB-102 under the module
+    const T = (x, y, txt, cls, anchor = 'middle', id) => { const t = el('text', { x, y, class: cls, 'text-anchor': anchor, id }, circ); t.textContent = txt; return t; };
+    const pmX = pm.pins['T+'].x + P / 2, below = 21 * P;
+    T(pmX - 5, below + 44, 'MB-102', 'lbl', 'end');
+    const vsLbl = T(pmX + 5, below + 44, '5 В', 'lbl-ink', 'start', 'mm-vs-lbl');
+    const rx = (r1a.x + r1b.x) / 2, ry = H(COLS.r1, 'i').y + 12;
+    T(rx - 5, ry, 'R1', 'lbl-ink on-bb', 'end');
+    const rLbl = T(rx + 5, ry, '220 Ом', 'lbl on-bb', 'start', 'mm-r-lbl');
+    T(ledAt.x + P / 2, ry, 'LED1', 'lbl-ink on-bb', 'middle');
+    // current flow: the paths live in a ×3 group so the shared 12-unit dash pattern reads at this scale
+    const flowG = el('g', { transform: 'scale(3)' }, circ);
+    const sample = (pathEl, n = 28) => { const L = pathEl.getTotalLength(); return Array.from({ length: n + 1 }, (_, i) => pathEl.getPointAtLength(L * i / n)); };
+    const FP = (pts) => el('path', { d: 'M' + pts.map((q) => `${(q.x / 3).toFixed(1)} ${(q.y / 3).toFixed(1)}`).join('L'), fill: 'none', stroke: 'none' }, flowG);
+    const wpts = (k) => [JUMP[k].a, ...sample(bridges[k].path), JUMP[k].b];
+    const ledTop = { x: ledAt.x + P / 2, y: ledAt.y - 120 };
     const fl = {
-      src: FP('M40 110V50H70'), w01: FP('M70 50H122'), r: FP('M122 50H218'), w23: FP('M218 50H272'),
-      led: FP('M272 50H290V250H272'), w45: FP('M272 250H218'), ret: FP('M218 250H40V170'),
+      src: FP([pm.pins['B+'], PTS[0]]), w01: FP([PTS[0], ...wpts(0), PTS[1]]), r: FP([PTS[1], PTS[2]]),
+      w23: FP([PTS[2], ...wpts(1), PTS[3]]), led: FP([PTS[3], { x: ledAt.x, y: ledTop.y + 30 }, { x: ledAt.x + P, y: ledTop.y + 30 }, PTS[4]]),
+      w45: FP([PTS[4], ...wpts(2), PTS[5]]), ret: FP([PTS[5], pm.pins['B-']]),
     };
     let meterPath = null;
-    // Cut toggles
-    const cutsG = $('#mm-cuts');
-    const cutBtns = CUTS.map((c, k) => {
-      const g = el('g', { class: 'cut', role: 'button', tabindex: '0', 'aria-pressed': 'false', 'aria-label': `Розірвати коло між ${c.lab}` }, cutsG);
-      const yy = c.y === 50 ? c.y + 14 : c.y + 10;
-      el('rect', { x: c.x - 22, y: yy, width: 44, height: 32, rx: 7 }, g);
-      const t = el('text', { x: c.x, y: yy + 21, 'text-anchor': 'middle' }, g);
-      t.textContent = '✂';
-      keyClick(g, () => { st.cut[k] = !st.cut[k]; update(); });
-      return g;
-    });
+    // break toggles: the ✂ buttons under the picture (real buttons: big enough for a finger on a phone)
+    const cutBtns = $$('#mm-cuts .cut');
+    cutBtns.forEach((b, k) => b.addEventListener('click', () => { st.cut[k] = !st.cut[k]; update(); }));
     // Points
-    const ptsG = $('#mm-pts');
+    const ptsG = el('g', {}, circ);
     PTS.forEach((p, i) => {
       const g = el('g', { class: 'pt', role: 'button', tabindex: '0', 'aria-label': `Точка ${p.d}: поставити сюди вибраний щуп` }, ptsG);
-      el('circle', { class: 'hit', cx: p.x, cy: p.y, r: 20 }, g);
-      el('circle', { class: 'ring', cx: p.x, cy: p.y, r: 6 }, g);
-      const top = p.y === 50;
-      const t = el('text', { x: top ? p.x : p.x + (p.n === 'F' ? -16 : 16), y: top ? p.y - 12 : p.y + 24, 'text-anchor': 'middle' }, g);
+      el('circle', { class: 'hit', cx: p.x, cy: p.y, r: 22 }, g);
+      el('circle', { class: 'ring', cx: p.x, cy: p.y, r: 9 }, g);
+      const t = el('text', { x: p.x + p.lx, y: p.y + p.ly, 'text-anchor': 'middle' }, g);
       t.textContent = p.n;
       keyClick(g, () => { place(st.sel, i); st.sel = st.sel === 'red' ? 'blk' : 'red'; markSel(); });
     });
 
-    /* ---------- probes */
-    const probesG = $('#mm-probes');
-    const PARK = { red: { x: 80, y: 318 }, blk: { x: 140, y: 318 } };
+    /* ---------- probes: Kit test leads, tip down on the point, handle leaving the top of the picture; parked to the right */
+    const probesG = el('g', {}, circ);
+    const PARK = { red: { x: 805, y: 470 }, blk: { x: 865, y: 470 } };
+    el('rect', { class: 'park', x: 770, y: 400, width: 130, height: 100, rx: 16 }, probesG);
+    el('text', { class: 'lbl', x: 835, y: below + 10, 'text-anchor': 'middle' }, probesG).textContent = 'щупи тут';
     const probe = {};
     for (const k of ['red', 'blk']) {
-      const col = k === 'red' ? '#d0312d' : '#3a4248';
-      const cab = el('path', { class: 'cable', stroke: k === 'red' ? col : '#6b767e' }, probesG);
       const g = el('g', { class: 'probe', tabindex: '0', role: 'button', 'aria-label': k === 'red' ? 'Червоний щуп: перетягніть на точку' : 'Чорний щуп COM: перетягніть на точку' }, probesG);
       const inner = el('g', {}, g);
-      el('path', { d: 'M0 0L0 -12', stroke: '#c5ccd1', 'stroke-width': 3, 'stroke-linecap': 'round' }, inner);
-      el('rect', { class: 'pbody', x: -6, y: -54, width: 12, height: 42, rx: 4, fill: col, stroke: k === 'red' ? '#7a1512' : '#8a949b', 'stroke-width': 1.5 }, inner);
-      el('rect', { x: -9, y: -24, width: 18, height: 5, rx: 2, fill: col, stroke: k === 'red' ? '#7a1512' : '#8a949b' }, inner);
-      probe[k] = { g, inner, cab, x: PARK[k].x, y: PARK[k].y };
+      K.part('probe', { parent: inner, color: k === 'red' ? 'red' : 'black', shadow: false, scale: 0.6 });
+      el('circle', { class: 'psel', cx: 0, cy: 0, r: 18 }, inner);
+      el('rect', { class: 'hit', x: -36, y: -10, width: 72, height: 620, fill: 'transparent' }, inner);
+      probe[k] = { g, inner, x: PARK[k].x, y: PARK[k].y };
       // drag
       let drag = false, moved = false;
       const toSvg = (e) => { const pt = circ.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(circ.getScreenCTM().inverse()); };
@@ -1065,13 +1265,13 @@ document.addEventListener('study:ready', () => {
       g.addEventListener('pointermove', (e) => {
         if (!drag) return;
         const p = toSvg(e); moved = true;
-        probe[k].x = Math.max(8, Math.min(332, p.x)); probe[k].y = Math.max(16, Math.min(332, p.y));
+        probe[k].x = Math.max(-100, Math.min(910, p.x)); probe[k].y = Math.max(-40, Math.min(560, p.y));
         drawProbe(k);
       });
       const end = () => {
         if (!drag) return; drag = false;
         if (!moved) return;
-        let best = null, bd = 30;
+        let best = null, bd = 50;
         PTS.forEach((p, i) => { const d = Math.hypot(p.x - probe[k].x, p.y - probe[k].y); if (d < bd) { bd = d; best = i; } });
         place(k, best);
       };
@@ -1079,22 +1279,25 @@ document.addEventListener('study:ready', () => {
       g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); st.sel = k; markSel(); } });
     }
     function markSel() { for (const k of ['red', 'blk']) probe[k].g.classList.toggle('sel', st.sel === k); }
+    // A probe leans away from the other one (left one left, right one right), so the two never cross; alone, it leans
+    // away from the circuit (both on one point: both that way, one over the other). Parked: upright.
+    function leanOf(k) {
+      const i = st[k], j = st[k === 'red' ? 'blk' : 'red'];
+      if (i == null) return 0;
+      if (i === 0 || j == null) return 20 * LEAN[i];
+      const dx = PTS[i].x - PTS[j].x;
+      return dx < 0 ? -20 : dx > 0 ? 20 : 20 * LEAN[i];
+    }
     function drawProbe(k) {
-      const p = probe[k], tilt = k === 'red' ? -22 : 22;
-      p.inner.setAttribute('transform', `translate(${p.x} ${p.y}) rotate(${tilt})`);
-      const a = tilt * Math.PI / 180;
-      const topX = p.x + 54 * Math.sin(a), topY = p.y - 54 * Math.cos(a);
-      const f = (v) => v.toFixed(1);
-      const ey = k === 'red' ? -34 : -26;
-      p.cab.setAttribute('d', p.y < 150
-        ? `M${f(topX)} ${f(topY)}C${f(topX)} ${ey} ${f(Math.max(topX + 30, 300))} ${ey} 340 ${ey}`
-        : `M${f(topX)} ${f(topY)}C${f(topX + 10)} ${f(topY - 24)} 326 ${k === 'red' ? 282 : 296} 340 ${k === 'red' ? 300 : 316}`);
+      const p = probe[k];
+      // rot 180 = tip down, handle up; the lean turns the handle out
+      p.inner.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${180 + leanOf(k)})`);
     }
     function place(k, i) {
       st[k] = i == null ? null : i;
       const p = i == null ? PARK[k] : PTS[i];
       probe[k].x = p.x; probe[k].y = p.y;
-      drawProbe(k);
+      drawProbe('red'); drawProbe('blk');
       $(k === 'red' ? '#mm-red' : '#mm-blk').value = i == null ? '' : String(i);
       update();
     }
@@ -1106,38 +1309,25 @@ document.addEventListener('study:ready', () => {
       s.addEventListener('change', () => place(k, s.value === '' ? null : +s.value));
     }
 
-    /* ---------- meter drawing: dial + jacks */
+    /* ---------- the meter: Kit UT136C+ (L11Kit.meter) — dial positions, jacks, SELECT */
     const DIAL = [
-      { k: 'off', t: 'OFF' }, { k: 'vdc', t: 'V', dc: true }, { k: 'vac', t: 'V~' }, { k: 'ohm', t: 'Ω' },
-      { k: 'dio', t: '→| •)))' }, { k: 'ua', t: 'µA' }, { k: 'ma', t: 'mA' }, { k: 'a', t: 'A' },
+      { k: 'off', kit: 'OFF' }, { k: 'vdc', kit: 'V' }, { k: 'vac', kit: 'V~' }, { k: 'ohm', kit: 'Ω', dx: 6, r: 36 },
+      { k: 'dio', kit: 'Ω', dx: -62, r: 36 }, { k: 'ua', kit: 'µA' }, { k: 'ma', kit: 'mA' }, { k: 'a', kit: 'A' },
     ];
     const DIAL_UK = { off: 'вимкнено', vdc: 'постійна напруга V', vac: 'змінна напруга V~', ohm: 'опір Ω', dio: 'діод / продзвонка', ua: 'мікроампери µA', ma: 'міліампери mA', a: 'ампери A' };
-    const dialG = $('#mm-dial');
-    const posEls = DIAL.map((d, i) => {
-      const ang = (-90 + i * 45) * Math.PI / 180;
-      const x = 150 + 80 * Math.cos(ang), y = 268 + 80 * Math.sin(ang);
-      const g = el('g', { class: 'pos', role: 'button', tabindex: '0', 'aria-label': `Перемикач: ${DIAL_UK[d.k]}` }, dialG);
-      el('circle', { class: 'hit', cx: x, cy: y, r: d.k === 'dio' ? 30 : 19 }, g);
-      const t = el('text', { x, y: y + 5, 'text-anchor': 'middle' }, g);
-      t.textContent = d.t;
-      if (d.dc) el('path', { d: `M${x + 9} ${y - 6}h12M${x + 9} ${y}h3M${x + 14} ${y}h2M${x + 18} ${y}h3`, stroke: '#e6ecf0', 'stroke-width': 2 }, g);
-      keyClick(g, () => { st.dial = d.k; update(); });
-      return g;
+    const MK = L11Kit.meter(mtr, {
+      fuseView: true, cables: true, onDial: (v) => { st.dial = v; update(); },
+      dial: DIAL.map((d) => ({ v: d.k, kit: d.kit, dx: d.dx, r: d.r, label: `Перемикач: ${DIAL_UK[d.k]}` })),
+      jacks: { A: 'Перевставити червоний щуп у гніздо 10A', V: 'Перевставити червоний щуп у гніздо VΩmA' },
+      onJack: (j) => { st.jack = j === 'A' ? '10a' : 'vma'; update(); },
     });
-    const JACKS = [{ k: '10a', x: 66, t: '10A' }, { k: 'com', x: 150, t: 'COM' }, { k: 'vma', x: 234, t: 'VΩmA' }];
-    const jacksG = $('#mm-jacks');
-    const plug = {};
-    JACKS.forEach((j) => {
-      const g = el('g', { class: 'jack', ...(j.k !== 'com' ? { role: 'button', tabindex: '0', 'aria-label': `Перевставити червоний щуп у гніздо ${j.t}` } : {}) }, jacksG);
-      el('circle', { class: 'hit', cx: j.x, cy: 408, r: 26 }, g);
-      el('text', { x: j.x, y: 380, 'text-anchor': 'middle', fill: '#e6ecf0', style: 'font:600 14px var(--f-mono)' }, g).textContent = j.t;
-      el('circle', { cx: j.x, cy: 408, r: 14, fill: '#0d1012', stroke: j.k === 'com' ? '#9aa3a9' : '#d0312d', 'stroke-width': 3 }, g);
-      plug[j.k] = el('circle', { cx: j.x, cy: 408, r: 9, fill: j.k === 'com' ? '#1b1f22' : '#d0312d', stroke: '#e6ecf0', 'stroke-width': 1.5 }, g);
-      if (j.k !== 'com') keyClick(g, () => { st.jack = j.k; update(); });
-    });
-    el('text', { x: 66, y: 437, 'text-anchor': 'middle', fill: '#c3cbd1', style: 'font:500 13px var(--f-mono)' }, jacksG).textContent = 'A ≤10A';
-    el('text', { x: 234, y: 437, 'text-anchor': 'middle', fill: '#c3cbd1', style: 'font:500 13px var(--f-mono)' }, jacksG).textContent = 'mA ≤400mA';
-    keyClick($('#mm-select'), () => { st.sub = st.sub === 'diode' ? 'cont' : 'diode'; update(); });
+    {
+      const ov = MK.g.querySelector('.l11-ov');
+      const g = el('g', { class: 'selbtn', id: 'mm-select', role: 'button', tabindex: '0', 'aria-label': 'Кнопка SELECT: перемкнути діод / продзвонку' }, ov);
+      el('rect', { x: 126, y: 600, width: 156, height: 148, rx: 14 }, g);
+      el('rect', { x: 126, y: 600, width: 156, height: 148, fill: 'transparent', style: 'stroke:none;opacity:1' }, g);
+      keyClick(g, () => { st.sub = st.sub === 'diode' ? 'cont' : 'diode'; update(); });
+    }
 
     /* ---------- controls */
     segBind('#mm-pwr', (d) => { st.power = d.v === '1'; lastBreakI = {}; lastV = {}; update(); });
@@ -1150,7 +1340,7 @@ document.addEventListener('study:ready', () => {
         $(k === 'red' ? '#mm-red' : '#mm-blk').value = '';
       }
     }
-    $('#mm-fix-fuse').addEventListener('click', () => { st.fuseOk = true; $('#mm-fuse').classList.remove('blown'); parkBoth(); update({ fixed: 'fuse' }); });
+    $('#mm-fix-fuse').addEventListener('click', () => { st.fuseOk = true; parkBoth(); update({ fixed: 'fuse' }); });
     $('#mm-fix-led').addEventListener('click', () => { st.ledOk = true; parkBoth(); update({ fixed: 'led' }); });
 
     /* ---------- solver: nodal analysis. Nodes 0..5 = A..F (5 = GND), 6 = inside the LED (junction | Rs).
@@ -1270,14 +1460,12 @@ document.addEventListener('study:ready', () => {
       if (reduced()) return;
       s.classList.remove('go'); void s.getBBox(); s.classList.add('go');
     }
-    function flash() { const f = $('#mm-flash'); if (reduced()) return; f.classList.remove('go'); void f.getBBox(); f.classList.add('go'); }
     function blowFuse(i, pair) {
       busy = true;
       showLCD({ txt: 'OL', unit: st.dial === 'ua' ? 'µA' : 'mA' }, st.dial);
-      const g = $('#mm-fuse-glow');
-      if (!reduced()) { g.classList.remove('go'); void g.getBBox(); g.classList.add('go'); }
+      MK.blow();
       setTimeout(() => {
-        st.fuseOk = false; $('#mm-fuse').classList.add('blown'); puff('#mm-fuse-smoke'); flash();
+        st.fuseOk = false; MK.flash();
         busy = false;
         done.add('fuse'); saveMiss();
         update({ blown: i, pair });
@@ -1287,16 +1475,14 @@ document.addEventListener('study:ready', () => {
       busy = true;
       setTimeout(() => { st.ledOk = false; puff('#mm-led-smoke'); busy = false; update({ burnt: i }); }, reduced() ? 0 : 500);
     }
+    const KD = Object.fromEntries(DIAL.map((d) => [d.k, d.kit]));
     function showLCD(r, dial) {
       const on = dial !== 'off';
-      $('#mm-digits').textContent = on ? r.txt : '';
-      $('#mm-unit').textContent = on ? (r.unit || '') : '';
-      $('#ann-neg').classList.toggle('on', on && !!r.neg);
-      $('#ann-auto').classList.toggle('on', on && dial !== 'dio');
-      $('#ann-dc').classList.toggle('on', on && ['vdc', 'ua', 'ma', 'a'].includes(dial));
-      $('#ann-ac').classList.toggle('on', on && dial === 'vac');
-      $('#ann-beep').classList.toggle('on', on && dial === 'dio' && st.sub === 'cont');
-      $('#ann-dio').classList.toggle('on', on && dial === 'dio' && st.sub === 'diode');
+      MK.set({
+        v: dial, dial: KD[dial], display: on ? `${r.neg ? '-' : ''}${r.txt || ''}` : '', unit: on ? (r.unit || '') : '',
+        ac: dial === 'vac', dc: ['vdc', 'ua', 'ma', 'a'].includes(dial), auto: dial !== 'dio',
+        beep: dial === 'dio' && st.sub === 'cont', dio: dial === 'dio' && st.sub === 'diode', fuse: st.fuseOk ? 'ok' : 'blown',
+      });
       // phone strip (≤ 560 px): the same reading next to the probes
       $('#mm-lcd-mode').textContent = dial === 'dio' ? (st.sub === 'cont' ? 'продзвонка' : 'діод') : DIAL_UK[dial];
       $('#mm-lcd-val').textContent = on ? `${r.neg ? '−' : ''}${r.txt || ''} ${r.unit || ''}`.trim() || '—' : '—';
@@ -1308,9 +1494,9 @@ document.addEventListener('study:ready', () => {
       F(fl.src, c.iSrc); F(fl.w01, c.iw[0]); F(fl.r, c.iR); F(fl.w23, c.iw[1]); F(fl.led, c.iLed); F(fl.w45, c.iw[2]); F(fl.ret, c.iSrc);
       if (meterPath) { if (meterPath._flow) meterPath._flow.remove(); meterPath.remove(); meterPath = null; }
       if (meter && ON(st) && st.red !== st.blk && Math.abs(c.iM) > 2e-6) {
-        const a = PTS[st.red], b = PTS[st.blk];
-        const mx = (a.x + b.x) / 2 + (a.y === b.y ? 0 : 40), my = (a.y + b.y) / 2 + (a.y === b.y ? (a.y < 150 ? -36 : 36) : 0);
-        meterPath = el('path', { d: `M${a.x} ${a.y}Q${mx} ${my} ${b.x} ${b.y}`, fill: 'none', stroke: 'var(--hi-ink)', 'stroke-width': 1.5, 'stroke-dasharray': '2 4', opacity: '.8' }, flowG);
+        const a = PTS[st.red], b = PTS[st.blk], q = (v) => (v / 3).toFixed(1);
+        const mx = (a.x + b.x) / 2, my = Math.min(a.y, b.y) - 160;
+        meterPath = el('path', { d: `M${q(a.x)} ${q(a.y)}Q${q(mx)} ${q(my)} ${q(b.x)} ${q(b.y)}`, fill: 'none', stroke: 'var(--hi-ink)', 'stroke-width': 1.5, 'stroke-dasharray': '2 4', opacity: '.8' }, flowG);
         F(meterPath, c.iM);
       }
     }
@@ -1447,22 +1633,18 @@ document.addEventListener('study:ready', () => {
       saveMiss();
     }
     function draw(c, meter, r) {
-      // knob, plugs, cuts, LED
-      const i = DIAL.findIndex((d) => d.k === st.dial);
-      $('#mm-knob').style.transform = `rotate(${i * 45}deg)`;
-      posEls.forEach((g, k) => g.classList.toggle('on', k === i));
-      plug['10a'].style.display = st.jack === '10a' ? '' : 'none';
-      plug.vma.style.display = st.jack === 'vma' ? '' : 'none';
+      // jumpers, LED, MB102, R1, plugs
+      MK.plug(st.jack === '10a' ? 'A' : 'V');
       cutBtns.forEach((g, k) => { g.setAttribute('aria-pressed', String(st.cut[k])); });
-      bridges.forEach((b, k) => { b.style.display = st.cut[k] ? 'none' : ''; });
-      const glow = $('#mm-glow');
-      glow.setAttribute('opacity', String(st.ledOk ? Math.min(0.85, Math.sqrt(c.iLed / 0.015) * 0.7) : 0));
-      $('#mm-led').classList.toggle('led-dead', !st.ledOk);
-      $('#mm-crack').hidden = st.ledOk;
+      bridges.forEach((b, k) => { b.style.display = st.cut[k] ? 'none' : ''; ghosts[k].style.display = st.cut[k] ? '' : 'none'; });
+      led.set({ on: st.ledOk ? Math.min(1, Math.sqrt(c.iLed / 0.015) * 0.85) : 0, burnt: !st.ledOk });
+      pm.set({ on: st.power, top: st.vs === 5 ? '5V' : '3.3V', bottom: st.vs === 5 ? '5V' : '3.3V' });
+      if (!res || res.dataset.ohms !== String(st.r)) { mkRes(); res.dataset.ohms = String(st.r); }
+      res.set({ heat: Math.min(1, Math.abs(c.iR) ** 2 * R_TRUE[st.r] / 0.25) });
       $('#mm-fix-fuse').hidden = st.fuseOk;
       $('#mm-fix-led').hidden = st.ledOk;
-      $('#mm-vs-lbl').textContent = st.power ? fmt.si(st.vs, 'В') : 'вимк.';
-      $('#mm-r-lbl').textContent = fmt.si(st.r, 'Ом');
+      vsLbl.textContent = st.power ? fmt.si(st.vs, 'В') : 'вимк.';
+      rLbl.textContent = fmt.si(st.r, 'Ом');
       showLCD(r, st.dial);
       setFlows(c, meter);
       $$('#mm-miss li').forEach((li) => li.classList.toggle('done', done.has(li.dataset.m)));
@@ -1498,17 +1680,21 @@ document.addEventListener('study:ready', () => {
     const darkText = (c) => ['white', 'yellow', 'gold', 'silver', 'grey', 'orange'].includes(c);
     function render() {
       svg.textContent = '';
-      el('path', { d: 'M8 55H70M270 55H332', stroke: '#8d979e', 'stroke-width': 4, 'stroke-linecap': 'round' }, svg);
-      el('rect', { x: 66, y: 28, width: 208, height: 54, rx: 22, fill: '#dcc394', stroke: '#9c855a', 'stroke-width': 2 }, svg);
-      const xs = n === 5 ? [100, 128, 156, 184, 238] : [104, 136, 168, 236];
+      // a real Kit resistor at ×3,1 (4 bands: beige body, 5 bands: blue 1 % body), its bands painted with the chosen colours
+      const rg = el('g', { transform: 'translate(12 58) scale(3.1)' }, svg);
+      const R = window.Kit.part('resistor', { parent: rg, bands: n, ohms: n === 5 ? 4700 : 220 });
+      const rects = L11Kit.bandRects(R);
+      const xs = [];
       bands.forEach((c, i) => {
-        const r = el('rect', { class: `band${i === cur && mode === 'build' ? ' cur' : ''}`, x: xs[i] - 8, y: 28, width: 16, height: 54, fill: S.BAND_HEX[c],
+        const r = rects[i]; r.setAttribute('fill', window.Kit.COLORS[c]);
+        const bx = +r.getAttribute('x'), bw = +r.getAttribute('width');
+        const x = 12 + (bx + bw / 2) * 3.1; xs.push(x);
+        const h = el('rect', { class: `band${i === cur && mode === 'build' ? ' cur' : ''}`, x: x - 13, y: 12, width: 26, height: 92, rx: 6, fill: 'transparent',
           role: 'button', tabindex: mode === 'build' ? '0' : '-1', 'aria-label': `Смужка ${i + 1}: ${S.BAND_UK[c]}` }, svg);
-        keyClick(r, () => { if (mode !== 'build') return; cur = i; render(); });
-        el('text', { x: xs[i], y: 102, 'text-anchor': 'middle' }, svg).textContent = String(i + 1);
+        keyClick(h, () => { if (mode !== 'build') return; cur = i; render(); });
+        el('text', { x, y: 122, 'text-anchor': 'middle' }, svg).textContent = String(i + 1);
       });
-      el('text', { x: 205, y: 20, 'text-anchor': 'middle' }, svg).textContent = 'ширший проміжок';
-      el('path', { d: `M${xs[n - 2] + 10} 24H${xs[n - 1] - 10}`, stroke: 'var(--muted)', 'stroke-width': 1.5 }, svg);
+      el('text', { x: (xs[n - 2] + xs[n - 1]) / 2, y: 8, 'text-anchor': 'middle' }, svg).textContent = 'ширший проміжок';
       // palette
       pal.textContent = '';
       if (mode === 'build') {
@@ -1572,39 +1758,66 @@ document.addEventListener('study:ready', () => {
     render();
   })();
 
+  /* =================================================================== real breadboards (Kit parts) for 08 */
+  const K = window.Kit, P = K.P;
+  // The left end of the WB-102 with the MB102 in its rails (L11Kit.board); the circuit lives in the lower half on the bottom
+  // rails («+» inner, «−» outer), so the LED stands up into the empty upper half and the probes come from above.
+  // S1 columns: red jumper j19 → «+», R1 h19–h23, LED1 anode f23 / cathode f24, black jumper j24 → «−» (rail holes come in
+  // fives: 15–19, 21–25, 27–31). The module covers columns 1–10; the free columns 11–18 keep the probes off the module.
+  const S1C = { r1: 19, r2: 23, la: 23, lk: 24, la2: 26, lk2: 27 };
+  const kitBoard = (svg) => L11Kit.board(svg, { to: 29, pmTitle: 'Модуль живлення MB-102, перемичка нижніх шин на 5 В' });
+  // Net overlay for Schem.link: a transparent strip (5 holes f–j) or the visible part of a bottom rail that lights up with its net.
+  function strip(parent, bb, col, net, cls) {
+    const a = bb.hole(col, 'f'), e = bb.hole(col, 'j');
+    return el('rect', { class: `kit-strip ${cls}`, 'data-net': net, x: a.x - 11, y: a.y - 11, width: 22, height: e.y - a.y + 22, rx: 6 }, parent);
+  }
+  function railStrip(parent, bb, sign, net, cls) {
+    const a = bb.rail('bottom', sign, 11), b = bb.rail('bottom', sign, 29);
+    return el('rect', { class: `kit-strip ${cls}`, 'data-net': net, x: a.x - 11, y: a.y - 11, width: b.x - a.x + 22, height: 22, rx: 6 }, parent);
+  }
+  // a flat jumper on the hole grid (Kit.route), optionally tagged with its net
+  const jumper = (parent, pts, colour, net, cls) => {
+    const w = K.route(parent, pts, colour);
+    if (net) { w.setAttribute('data-net', net); w.classList.add(cls); }
+    return w;
+  };
+  // a test lead from above, tip on p, handle leaning left by `lean` degrees (away from the LED, which stands to the right)
+  const probeAt = (parent, p, colour, lean = 25) => K.part('probe', { parent, color: colour, x: p.x, y: p.y, rot: 180 - lean, scale: 0.6 });
+  const ledAt = (g, c) => { const p = g.bb.hole(c, 'f'); return K.part('led', { parent: g.g, color: 'red', x: p.x, y: p.y, leg: 40, title: 'LED1' }); };
+  const underBoard = 21 * P + 46; // label baseline under the board
+  const tagAt = (g, x, t, cls = 'kit-tag') => { const n = el('text', { x, y: underBoard, class: cls, 'text-anchor': 'middle' }, g); n.textContent = t; return n; };
+
   /* =================================================================== S1 dual figure (schematic + breadboard) */
   (function dualS1() {
     const svg = $('#bb-s1'), fig = $('#dual-s1');
-    const bb = S.breadboard(svg, { cols: 24, rails: true, x: 4, y: 64, colLabels: 'bottom' });
-    bb.markRail('top', '+', 'v5', 'net-5v');
-    bb.markRail('top', '-', 'gnd', 'net-gnd');
-    bb.mark(3, 'top', 'v5', 'net-5v');
-    bb.mark(9, 'top', 'mid', 'net-sig');
-    S.part(svg, 'jumper', { from: bb.rail('top', '+', 2), to: bb.hole(3, 'a'), net: 'v5', cls: 'net-5v', lift: 0, title: 'Шина +5 В → стовпчик 3' });
-    S.part(svg, 'res', { from: bb.hole(3, 'c'), to: bb.hole(9, 'c'), ohms: 220, label: 'R1' });
-    const gPlain = S.svg('g', { 'data-show': 'plain v' }, svg), gA = S.svg('g', { 'data-show': 'a' }, svg), gV = S.svg('g', { 'data-show': 'v' }, svg);
-    S.part(svg, 'led', { anode: bb.hole(9, 'e'), cathode: bb.hole(10, 'e'), color: 'red', label: 'LED1', parent: gPlain });
-    S.part(svg, 'jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 10), net: 'gnd', cls: 'net-gnd', lift: 0, parent: gPlain });
-    S.part(svg, 'led', { anode: bb.hole(14, 'e'), cathode: bb.hole(15, 'e'), color: 'red', label: 'LED1', parent: gA });
-    S.part(svg, 'jumper', { from: bb.hole(15, 'a'), to: bb.rail('top', '-', 15), net: 'gnd', cls: 'net-gnd', lift: 0, parent: gA });
-    const mbox = (g, x, t) => {
-      const m = S.svg('g', { class: 'mbox' }, g);
-      S.svg('rect', { x: x - 20, y: 4, width: 40, height: 28, rx: 6 }, m);
-      S.svg('text', { x, y: 24, 'text-anchor': 'middle' }, m).textContent = t;
-    };
-    const lead = (g, from, to, cls) => S.svg('path', { class: `probe-lead ${cls}`, d: `M${from.x} ${from.y}Q${from.x} ${to.y + 6} ${to.x} ${to.y}` }, g);
-    // ammeter: red at column 9 (row b), black (COM) at column 14 (row b)
-    mbox(gA, 115, 'mA');
-    lead(gA, bb.hole(9, 'b'), { x: 104, y: 32 }, 'pl-red');
-    lead(gA, bb.hole(14, 'b'), { x: 126, y: 32 }, 'pl-blk');
-    // voltmeter across R1: columns 3 and 9
-    mbox(gV, 60, 'V');
-    lead(gV, bb.hole(3, 'b'), { x: 49, y: 32 }, 'pl-red');
-    lead(gV, bb.hole(9, 'b'), { x: 71, y: 32 }, 'pl-blk');
+    const { bb, pm } = kitBoard(svg);
+    pm.set({ on: true, top: 'OFF', bottom: '5V' });
+    const C = S1C, H = (c, r) => bb.hole(c, r);
+    tagAt(svg, pm.pins['B+'].x + P / 2, 'MB-102 · 5 В');
+    const marks = el('g', {}, svg);
+    railStrip(marks, bb, '+', 'v5', 'net-5v'); railStrip(marks, bb, '-', 'gnd', 'net-gnd');
+    strip(marks, bb, C.r1, 'v5', 'net-5v'); strip(marks, bb, C.r2, 'mid', 'net-sig');
+    jumper(svg, [bb.at('bottom+' + C.r1), bb.at('j' + C.r1)], 'red', 'v5', 'net-5v').setAttribute('aria-label', `Шина +5 В → стовпчик ${C.r1}`);
+    const r0 = H(C.r1, 'h');
+    K.part('resistor', { parent: svg, ohms: 220, span: C.r2 - C.r1, x: r0.x, y: r0.y, title: 'R1 220 Ом' });
+    const gPlain = el('g', { 'data-show': 'plain v' }, svg), gA = el('g', { 'data-show': 'a' }, svg), gV = el('g', { 'data-show': 'v' }, svg);
+    strip(gPlain, bb, C.lk, 'gnd', 'net-gnd');
+    ledAt({ bb, g: gPlain }, C.la);
+    jumper(gPlain, [bb.at('j' + C.lk), bb.at('bottom-' + C.lk)], 'black', 'gnd', 'net-gnd');
+    // S1-A: LED1 moved two columns on (anode 26, cathode 27); the gap 23 → 26 is closed by the ammeter
+    strip(gA, bb, C.la2, 'led_a', 'net-sig2'); strip(gA, bb, C.lk2, 'gnd', 'net-gnd');
+    ledAt({ bb, g: gA }, C.la2);
+    jumper(gA, [bb.at('j' + C.lk2), bb.at('bottom-' + C.lk2)], 'black', 'gnd', 'net-gnd');
+    // probes from above, both leaning left (parallel, away from the LED): tips on R1's leads, or in the free hole h26
+    const lead = (c, dx) => ({ x: H(c, 'h').x + dx, y: H(c, 'h').y });
+    probeAt(gA, lead(C.r2, -14), 'red', 30); probeAt(gA, H(C.la2, 'h'), 'black', 30);
+    probeAt(gV, lead(C.r1, 14), 'red'); probeAt(gV, lead(C.r2, -14), 'black');
+    const mid = (H(C.r1, 'h').x + H(C.lk2, 'h').x) / 2;
+    tagAt(gA, mid, `mA: у розрив ${C.r2}–${C.la2}`); tagAt(gV, mid, `V: на R1 (${C.r1} і ${C.r2})`);
     const CAP = {
-      plain: 'S1: R1 і LED1 у різних стовпчиках, петля замикається через шину мінус.',
-      v: 'S1-V: вольтметр на R1 — щупи у стовпчики 3 і 9, коло не розривали.',
-      a: 'S1-A: LED1 переставлено в стовпчики 14–15, між 9 і 14 розрив, його замикає амперметр: червоний щуп у 9, COM у 14.',
+      plain: `S1: R1 і LED1 стоять у різних стовпчиках і з'єднані через смужку ${C.r2}, петля замикається через шину мінус.`,
+      v: `S1-V: вольтметр на R1 — щупи на виводах R1 (стовпчики ${C.r1} і ${C.r2}), коло не розривали.`,
+      a: `S1-A: LED1 переставлено в стовпчики ${C.la2}–${C.lk2}, між ${C.r2} і ${C.la2} розрив, його замикає амперметр: червоний щуп у ${C.r2}, COM у ${C.la2}.`,
     };
     const show = (m) => {
       $$('[data-show]', fig).forEach((g) => { g.style.display = g.dataset.show.split(' ').includes(m) ? '' : 'none'; });
@@ -1620,45 +1833,50 @@ document.addEventListener('study:ready', () => {
   /* =================================================================== W1-1d breadboard: find the short */
   (function bbShort() {
     const svg = $('#bbx-svg');
-    const metal = S.svg('g', { style: 'display:none' }, svg);
-    const bb = S.breadboard(svg, { cols: 19, rails: true, x: 4, y: 0, colLabels: 'bottom' });
-    svg.append(metal); // above the board, below the parts
-    for (let c = 1; c <= 19; c++) for (const side of ['top', 'bottom']) {
-      const p = bb.strip(c, side);
-      S.svg('path', { class: 'bbx-metal', d: `M${p[0].x} ${p[0].y}V${p[4].y}` }, metal);
+    const { bb, pm, layer } = kitBoard(svg);
+    pm.set({ on: true, top: 'OFF', bottom: '5V' });
+    const C = S1C, H = (c, r) => bb.hole(c, r);
+    tagAt(svg, pm.pins['B+'].x + P / 2, 'MB-102 · 5 В');
+    // the metal under the holes: a strip per column (f–j) and the two bottom rails
+    const metal = el('g', { style: 'display:none', 'pointer-events': 'none' }, layer);
+    for (let c = 11; c <= 30; c++) {
+      const p = H(c, 'f'), q = H(c, 'j');
+      el('path', { class: 'bbx-metal', d: `M${p.x} ${p.y - 8}V${q.y + 8}` }, metal);
     }
-    for (const side of ['top', 'bottom']) for (const sg of ['+', '-']) {
-      const a = bb.rail(side, sg, 1), b = bb.rail(side, sg, 19);
-      S.svg('path', { class: 'bbx-metal', d: `M${a.x} ${a.y}H${b.x}` }, metal);
+    for (const sg of ['+', '-']) {
+      const a = bb.rail('bottom', sg, 11), b = bb.rail('bottom', sg, 31);
+      el('path', { class: 'bbx-metal', d: `M${a.x - 8} ${a.y}H${b.x + 8}` }, metal);
     }
-    const bad = S.svg('g', {}, svg), good = S.svg('g', { style: 'display:none' }, svg);
+    const bad = el('g', {}, svg), good = el('g', { style: 'display:none' }, svg);
     const pick = (g, label, txt, ok) => {
       g.classList.add('bbx-part');
       g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', label);
       const b = g.getBBox();
-      const hl = S.svg('rect', { class: 'bbx-hl', x: b.x - 4, y: b.y - 4, width: b.width + 8, height: b.height + 8, rx: 4 }, g);
+      const hl = el('rect', { class: 'bbx-hl', x: b.x - 8, y: b.y - 8, width: b.width + 16, height: b.height + 16, rx: 8 }, g);
       g.insertBefore(hl, g.firstChild);
       keyClick(g, () => {
         $$('.bbx-part', svg).forEach((x) => x.classList.toggle('picked', x === g));
         $('#bbx-out').innerHTML = (ok ? '<b>Знайшли!</b> ' : '<b>Ні, ця деталь у порядку.</b> ') + txt;
       });
     };
-    const part = (kind, o, parent) => S.part(svg, kind, { ...o, parent });
-    const wrap = (parent) => S.svg('g', {}, parent);
+    const wrap = (parent) => el('g', {}, parent);
     let g;
-    g = wrap(bad); part('res', { from: bb.rail('top', '+', 2), to: bb.rail('top', '+', 7), ohms: 220, label: 'R1' }, g);
+    // the faulty board: R1 lies with both legs in the «+» rail (columns 15 and 19), a red jumper takes «+» straight to the LED
+    const r15 = bb.rail('bottom', '+', 15);
+    g = wrap(bad); K.part('resistor', { parent: g, ohms: 220, span: 4, x: r15.x, y: r15.y, title: 'R1 220 Ом' });
     pick(g, 'Резистор R1', 'Обидві ніжки R1 стоять у шині «+». Шина з\'єднує їх напряму, тож R1 закорочений і нічого не обмежує. LED отримує 5 В через дріт без жодного опору: струм у сотні мА при максимумі 30 мА — LED згоряє за мить. Продзвонка між ніжками R1 пищала б.', true);
-    g = wrap(bad); part('jumper', { from: bb.rail('top', '+', 9), to: bb.hole(9, 'a'), net: 'v5', cls: 'net-5v', lift: 0 }, g);
-    pick(g, 'Дріт з шини плюс у стовпчик 9', 'Дріт подає «+» на стовпчик 9 — сам по собі він правильний. Але між «+» і LED тепер немає резистора: подивіться, куди встромлено R1.', false);
-    g = wrap(bad); part('led', { anode: bb.hole(9, 'e'), cathode: bb.hole(10, 'e'), color: 'red', label: 'LED1' }, g);
-    pick(g, 'Світлодіод LED1', 'LED1 у стовпчиках 9 і 10 — різні смужки, довга ніжка (анод) до «+». Він підключений правильно; біда в тому, що перед ним.', false);
-    g = wrap(bad); part('jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 11), net: 'gnd', cls: 'net-gnd', lift: 0 }, g);
-    pick(g, 'Дріт зі стовпчика 10 на шину мінус', 'Дріт зі стовпчика 10 на шину «−» замикає петлю на GND — так і треба.', false);
-    // corrected layout
-    part('jumper', { from: bb.rail('top', '+', 3), to: bb.hole(3, 'a'), net: 'v5', cls: 'net-5v', lift: 0 }, good);
-    part('res', { from: bb.hole(3, 'c'), to: bb.hole(9, 'c'), ohms: 220, label: 'R1' }, good);
-    part('led', { anode: bb.hole(9, 'e'), cathode: bb.hole(10, 'e'), color: 'red', label: 'LED1' }, good);
-    part('jumper', { from: bb.hole(10, 'a'), to: bb.rail('top', '-', 10), net: 'gnd', cls: 'net-gnd', lift: 0 }, good);
+    g = wrap(bad); jumper(g, [bb.at('bottom+' + C.la), bb.at('j' + C.la)], 'red');
+    pick(g, `Дріт з шини плюс у стовпчик ${C.la}`, `Дріт подає «+» на стовпчик ${C.la} — сам по собі він правильний. Але між «+» і LED тепер немає резистора: подивіться, куди встромлено R1.`, false);
+    g = wrap(bad); ledAt({ bb, g }, C.la).set({ burnt: true });
+    pick(g, 'Світлодіод LED1', `LED1 у стовпчиках ${C.la} і ${C.lk} — різні смужки, довга ніжка (анод) до «+». Він підключений правильно; біда в тому, що перед ним.`, false);
+    g = wrap(bad); jumper(g, [bb.at('j' + C.lk), bb.at('bottom-' + C.lk)], 'black');
+    pick(g, `Дріт зі стовпчика ${C.lk} на шину мінус`, `Дріт зі стовпчика ${C.lk} на шину «−» замикає петлю на GND — так і треба.`, false);
+    // corrected layout = S1
+    jumper(good, [bb.at('bottom+' + C.r1), bb.at('j' + C.r1)], 'red');
+    const r0 = H(C.r1, 'h');
+    K.part('resistor', { parent: good, ohms: 220, span: C.r2 - C.r1, x: r0.x, y: r0.y, title: 'R1 220 Ом' });
+    ledAt({ bb, g: good }, C.la).set({ on: 0.6 });
+    jumper(good, [bb.at('j' + C.lk), bb.at('bottom-' + C.lk)], 'black');
     $('#bbx-metal').addEventListener('click', (e) => {
       const on = metal.style.display === 'none';
       metal.style.display = on ? '' : 'none';
@@ -1670,7 +1888,7 @@ document.addEventListener('study:ready', () => {
       good.style.display = on ? '' : 'none'; bad.style.display = on ? 'none' : '';
       e.currentTarget.setAttribute('aria-pressed', String(on));
       e.currentTarget.textContent = on ? 'Показати помилку' : 'Показати виправлення';
-      $('#bbx-out').textContent = on ? 'Виправлено: дріт з «+» у стовпчик 3, R1 — зі стовпчика 3 у 9 (різні смужки), LED1 — у 9 і 10. Петля: +5 В → 3 → R1 → 9 → LED1 → 10 → GND.' : 'Знайдіть деталь, що стоїть неправильно.';
+      $('#bbx-out').textContent = on ? `Виправлено: дріт з «+» у стовпчик ${C.r1}, R1 — зі стовпчика ${C.r1} у ${C.r2} (різні смужки), LED1 — у ${C.la} і ${C.lk}. Петля: +5 В → ${C.r1} → R1 → ${C.r2} → LED1 → ${C.lk} → GND.` : 'Знайдіть деталь, що стоїть неправильно.';
     });
   })();
 

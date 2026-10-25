@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../site-nav.css">
 <script src="../site-theme.js"></script>
+<script src="../assets/kit.js" defer></script>
 <meta name="description" content="Домашнє завдання модуля 1.6: фоторезистор у подільнику напруги, analogRead() і analogReadMilliVolts() на ESP32-S3, похибка обчислення — з живою макеткою, кодом, блок-схемою, АЦП зсередини та Serial-монітором.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -195,6 +196,12 @@ section.sec { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--l
 .res-body { fill: #d8c49a; stroke: #6b5a3b; stroke-width: 1; }
 .part-t { fill: var(--ink); font: 600 12.5px var(--f-body); paint-order: stroke; stroke: var(--bb); stroke-width: 3px; text-anchor: middle; }
 .flowp { fill: none; stroke: var(--flow); stroke-width: 5; stroke-linecap: round; stroke-dasharray: .1 13; opacity: .95; }
+/* bench drawn with assets/kit.js: 0.1 mm units, so strokes and labels are ~2.4× the schematic's */
+#benchSvg .flowp { stroke-width: 12; stroke-dasharray: .1 31; }
+.kchip rect { fill: var(--panel); stroke: var(--line); stroke-width: 2; }
+.kchip text { fill: var(--ink); font: 600 27px var(--f-body); }
+/* phones: the drawing scrolls sideways; dozens of drop-shadow layers there make Chrome paint a black tile, so wires go flat */
+@media (max-width: 760px) { #benchSvg .kit-wire { filter: none; } }
 .node-strip { fill: var(--hi); }
 .vlabel rect { fill: var(--panel); stroke: var(--hi); stroke-width: 1.5; }
 .vlabel text { fill: var(--ink); font: 600 12.5px var(--f-mono); text-anchor: middle; }
@@ -836,6 +843,7 @@ void loop() {
 </pre>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
 'use strict';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1064,123 +1072,132 @@ function highlight(line) {
 }
 
 /* =====================================================================
-   Bench SVG: YD-ESP32-S3 on a full breadboard (full-size breadboard geometry)
+   Bench: the real kit, drawn by assets/kit.js — YD-ESP32-S3 on a WB-102 breadboard, GL5528, 10 кОм, UT136C+.
+   Units: 0.1 mm (Kit.P = 25.4 = one breadboard pitch). The lamp, the palm and the labels are page-local overlays.
+   Tidy layout (docs/kit «Tidy layout»): the board sits IN the breadboard — left header (3V3 … GND) in row i, right header
+   (GND … GND) in row b, columns 4–25 — so rows j and a stay free. The divider uses the strips: column 30 (f–j) is the
+   middle point, the LDR stands in 30/31, R2 bridges the trench 30f → 30c. Every jumper is a Kit.route on the hole grid.
+   WB-102 rails are split between columns 31 and 33: everything here stays on the left halves, so no rail bridge.
    ===================================================================== */
-const P = 13.6, X0 = 34;
-const cx = r => +(X0 + (r - 1) * P).toFixed(2);
-const LY = { a: 250, b: 263.6, c: 277.2, d: 290.8, e: 304.4, f: 340, g: 353.6, h: 367.2, i: 380.8, j: 394.4 };
-const RY = { tn: 206, tp: 220, bp: 424, bn: 438 };
-const J1 = ['3V3.1', '3V3.2', 'RST', '4', '5', '6', '7', '15', '16', '17', '18', '8', '3', '46', '9', '10', '11', '12', '13', '14', '5V', 'GND.1'];
-const J3 = ['GND.2', 'TX', 'RX', '1', '2', '42', '41', '40', '39', '38', '37', '36', '35', '0', '45', '48', '47', '21', '20', '19', 'GND.3', 'GND.4'];
-const LDR_X = cx(30.5), LDR_Y = LY.c;
-const COL = { red: '#d93a2f', black: '#2b2f33', orange: '#f08a1c' };
-
-function wire(d, color, asm, extra = '') {
-  return `<g data-asm="${asm}" ${extra}><path class="jw-o" d="${d}"/><path class="jw" d="${d}" stroke="${color}"/></g>`;
+const VB = { x: -30, y: -770, w: 1712, h: 1420 };
+const S = 2.4;                       // overlay scale (lamp, palm, value label) relative to the old 920-unit drawing
+const COLS = { v33: 4, gpio: 7, node: 30, plus: 31 };   // board header starts at column 4: 3V3 = L1, GPIO4 = L4, GND = R1
+let LDR_X = 0, LDR_Y = 0;
+const BENCH = {};                    // live Kit parts: esp, ldr, res, mm
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
 }
-function benchSVG() {
-  const sq = (x, y) => `M${(x - 1.7).toFixed(1)} ${(y - 1.7).toFixed(1)}h3.4v3.4h-3.4z`;
-  let holes = '';
-  for (let r = 1; r <= 63; r++) for (const L of 'abcdefghij') holes += sq(cx(r), LY[L]);
-  for (let r = 3; r <= 61; r++) if ((r - 3) % 6 !== 5) for (const y of Object.values(RY)) holes += sq(cx(r), y);
-  let nums = '';
-  for (let r = 1; r <= 63; r++) if (r === 1 || r % 5 === 0) nums += `<text class="bb-num" x="${cx(r)}" y="242">${r}</text><text class="bb-num" x="${cx(r)}" y="412">${r}</text>`;
-  const letters = 'abcde'.split('').map(L => `<text class="bb-num" x="18" y="${LY[L] + 2.5}">${L}</text>`).join('') + 'fghij'.split('').map(L => `<text class="bb-num" x="18" y="${LY[L] + 2.5}">${L}</text>`).join('');
-  const lab = n => n.replace(/\.\d$/, '');
-  const key = new Set(['3V3.1', '4', 'GND.1']);
-  let pins = '';
-  // pins in use get a big label; the other header numbers are small, hidden on phones (3V3.2 sits under the big «3V3»)
-  J1.forEach((p, i) => { const x = cx(22 - i), k = key.has(p); pins += `<rect class="hdr-pin${k ? ' key' : ''}" x="${x - 3}" y="${LY.b - 3}" width="6" height="6"/>${p === '3V3.2' ? '' : `<text class="pcb-t ${k ? 'pin-key' : 'pin-other'}" x="${x}" y="${LY.b + (k ? 15 : 12)}">${lab(p)}</text>`}`; });
-  J3.forEach((p, i) => { const x = cx(22 - i); pins += `<rect class="hdr-pin" x="${x - 3}" y="${LY.i - 3}" width="6" height="6"/><text class="pcb-t pin-other" x="${x}" y="${LY.i - 7}">${lab(p)}</text>`; });
-  let zig = 'M296 286';
-  for (let k = 0; k < 7; k++) zig += ` h22 v5 h-22 v5`;
-  const rx = cx(35);
-  const flowD = `M${cx(22)} ${LY.b} V${RY.tp} H${cx(29)} V${LY.c} H${cx(32)} V${LY.e} H${cx(38)} V${RY.tn} H${cx(1)} V${LY.b}`;
-  const arc = `M${cx(19)} ${LY.a} V182 Q${cx(19)} 172 ${cx(19) + 10} 172 H${cx(32) - 10} Q${cx(32)} 172 ${cx(32)} 182 V${LY.a}`;
-  return `<svg viewBox="0 0 920 462" role="img" aria-labelledby="benchT">
-  <title id="benchT">Макетна плата: YD-ESP32-S3, фоторезистор, резистор 10 кОм, мультиметр</title>
+// a label chip in theme colours (reads on both page themes; hardware colours stay fixed)
+function chip(parent, x, y, s, anchor = 'middle') {
+  const g = svgEl('g', { class: 'kchip' }, parent);
+  const t = svgEl('text', { x, y, 'text-anchor': anchor, 'dominant-baseline': 'central' }, g);
+  t.textContent = s;
+  const w = s.length * 15.5 + 22, x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w + 11 : x - 11;
+  g.insertBefore(svgEl('rect', { x: x0.toFixed(1), y: y - 19, width: w.toFixed(1), height: 38, rx: 9 }), t);
+  return g;
+}
+const xy = p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+
+function buildBench(host) {
+  const K = window.Kit, P = K.P;
+  host.innerHTML = `<svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-labelledby="benchT">
+  <title id="benchT">Макетна плата: YD-ESP32-S3 стоїть у макетці (стовпчики 4–25); 3V3 — помаранчевим на нижню шину «+», GND — чорним на верхню «−»; фоторезистор GL5528 у стовпчиках 30–31, резистор 10 кОм через канавку 30f–30c, жовтий дріт від GPIO4 до стовпчика 30; усе на лівих половинах шин; мультиметр UNI-T UT136C+ щупами на ніжках резистора</title>
   <defs>
     <radialGradient id="glow"><stop offset="0" stop-color="#fff6c4" stop-opacity=".95"/><stop offset=".35" stop-color="#ffe680" stop-opacity=".45"/><stop offset="1" stop-color="#ffd84d" stop-opacity="0"/></radialGradient>
-    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
   </defs>
-  <rect class="bb-body" x="6" y="190" width="908" height="262" rx="8"/>
-  <rect class="bb-chan" x="6" y="317" width="908" height="10"/>
-  <line class="rail-n" x1="28" x2="900" y1="198" y2="198"/><line class="rail-p" x1="28" x2="900" y1="228" y2="228"/>
-  <line class="rail-p" x1="28" x2="900" y1="416" y2="416"/><line class="rail-n" x1="28" x2="900" y1="446" y2="446"/>
-  <text class="rail-t" x="10" y="${RY.tn + 4}" fill="var(--rail-n)">−</text><text class="rail-t" x="10" y="${RY.tp + 4}" fill="var(--rail-p)">+</text>
-  <text class="rail-t" x="10" y="${RY.bp + 4}" fill="var(--rail-p)">+</text><text class="rail-t" x="10" y="${RY.bn + 4}" fill="var(--rail-n)">−</text>
-  <path class="bb-holes" d="${holes}"/>
-  ${nums}${letters}
-  <rect id="nodeStrip" class="node-strip" x="${cx(32) - 5.5}" y="${LY.a - 6}" width="11" height="${LY.e - LY.a + 12}" rx="3" opacity="0"/>
-  <g data-asm="1" class="board">
-    <rect class="usb" x="12" y="284" width="20" height="24" rx="3"/><rect class="usb" x="12" y="336" width="20" height="24" rx="3"/>
-    <rect class="pcb" x="25" y="${LY.b - 8}" width="304" height="${LY.i - LY.b + 16}" rx="6"/>
-    ${pins}
-    <rect class="shield" x="150" y="281" width="142" height="82" rx="3"/>
-    <text class="shield-t" x="221" y="318">ESP32-S3</text><text class="shield-t" x="221" y="333" style="font-size:9px;font-weight:500">WROOM-1 · N16R8</text>
-    <path d="${zig}" fill="none" stroke="#c9a03a" stroke-width="1.6"/>
-    <rect x="52" y="292" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t pin-other" x="59" y="311">BOOT</text>
-    <rect x="52" y="334" width="14" height="10" rx="2" fill="#2d3740" stroke="#8a96a0"/><text class="pcb-t pin-other" x="59" y="353">RST</text>
-    <circle cx="100" cy="300" r="4" fill="#3a8fe0" opacity=".85"/><text class="pcb-t pin-other" x="100" y="314">RGB</text>
-    <text class="pcb-big" x="144" y="338" text-anchor="end">YD-ESP32-S3</text>
-  </g>
-  ${wire(`M${cx(22)} ${LY.a} V${RY.tp}`, COL.red, 2)}
-  ${wire(`M${cx(1)} ${LY.a} V${RY.tn}`, COL.black, 2)}
-  <g data-asm="4">
-    <path class="leg" d="M${cx(32)} ${LY.e} H${rx - 22} M${rx + 22} ${LY.e} H${cx(38)}"/>
-    <rect class="res-body" x="${rx - 22}" y="${LY.e - 6.5}" width="44" height="13" rx="5"/>
-    <rect x="${rx - 14}" y="${LY.e - 6.5}" width="4" height="13" fill="#7a4a1d"/><rect x="${rx - 6}" y="${LY.e - 6.5}" width="4" height="13" fill="#141414"/>
-    <rect x="${rx + 2}" y="${LY.e - 6.5}" width="4" height="13" fill="#f07a10"/><rect x="${rx + 13}" y="${LY.e - 6.5}" width="3" height="13" fill="#c9a23a"/>
-    <text class="part-t" x="${rx}" y="${LY.e + 21}">10 кОм</text>
-  </g>
-  ${wire(`M${cx(38)} ${LY.a} V${RY.tn}`, COL.black, 4)}
-  <g data-asm="3">
-    <path class="leg" d="M${cx(29)} ${LY.c} H${LDR_X - 15} M${LDR_X + 15} ${LY.c} H${cx(32)}"/>
-    <circle class="ldr-rim" cx="${LDR_X}" cy="${LDR_Y}" r="16"/>
-    <circle id="ldrFace" cx="${LDR_X}" cy="${LDR_Y}" r="13" fill="#d9cfb2"/>
-    <path class="ldr-track" d="M${LDR_X - 9} ${LDR_Y - 7} h18 M${LDR_X - 9} ${LDR_Y - 3.5} h18 M${LDR_X - 9} ${LDR_Y} h18 M${LDR_X - 9} ${LDR_Y + 3.5} h18 M${LDR_X - 9} ${LDR_Y + 7} h18"/>
-    <text class="part-t" x="${LDR_X}" y="${LDR_Y - 21}">LDR</text>
-  </g>
-  ${wire(`M${cx(29)} ${LY.a} V${RY.tp}`, COL.red, 3)}
-  ${wire(arc, COL.orange, 5)}
-  <path id="flowBench" class="flowp" d="${flowD}" data-asm="4"/>
-  <rect id="darkOv" class="dark-ov" x="0" y="0" width="920" height="462" opacity="0"/>
-  <circle id="spot" class="glow-spot" cx="${LDR_X}" cy="${LDR_Y}" r="46" fill="url(#glow)" opacity="0"/>
-  <circle id="lampGlow" class="glow-spot" r="120" fill="url(#glow)" opacity="0"/>
-  <g id="hand" class="hand off" aria-hidden="true">
-    <ellipse cx="${LDR_X}" cy="${LDR_Y + 4}" rx="30" ry="25"/>
-    <rect x="${LDR_X - 30}" y="${LDR_Y - 52}" width="12" height="40" rx="6"/><rect x="${LDR_X - 16}" y="${LDR_Y - 62}" width="12" height="50" rx="6"/>
-    <rect x="${LDR_X - 2}" y="${LDR_Y - 60}" width="12" height="48" rx="6"/><rect x="${LDR_X + 12}" y="${LDR_Y - 50}" width="12" height="40" rx="6"/>
-    <rect x="${LDR_X + 22}" y="${LDR_Y - 14}" width="30" height="12" rx="6" transform="rotate(-25 ${LDR_X + 22} ${LDR_Y - 8})"/>
-  </g>
-  <g data-asm="5" id="vlabel" class="vlabel" transform="translate(${(cx(19) + cx(32)) / 2} 150)">
-    <rect x="-58" y="-17" width="116" height="30" rx="7"/>
-    <text id="vlabelT" y="-1">GPIO4 = —</text><text class="s" y="9">середня точка → АЦП</text>
-  </g>
-  <g data-asm="6">
-    <path class="probe" d="M836 168 C 836 236, 520 196, ${cx(32)} ${LY.b}" stroke="${COL.red}"/>
-    <path class="probe" d="M784 168 C 784 216, 690 186, ${cx(45)} ${RY.tn}" stroke="${COL.black}"/>
-    <circle cx="${cx(32)}" cy="${LY.b}" r="3.2" fill="${COL.red}"/><circle cx="${cx(45)}" cy="${RY.tn}" r="3.2" fill="${COL.black}"/>
-    <rect class="meter-body" x="730" y="14" width="160" height="156" rx="12"/>
-    <rect class="meter-lcd" x="744" y="26" width="132" height="50" rx="4"/>
-    <text id="meterVal" class="meter-val" x="846" y="60">0.000</text><text class="meter-u" x="850" y="60">V</text>
-    <text class="meter-u" x="750" y="38">DC</text>
-    <circle cx="810" cy="114" r="22" fill="#2d2d2d"/><line x1="810" y1="114" x2="796" y2="98" stroke="#eee" stroke-width="3" stroke-linecap="round"/>
-    <text class="meter-t" x="770" y="100">V⎓</text>
-    <circle cx="784" cy="160" r="6" fill="#1c1c1c"/><circle cx="836" cy="160" r="6" fill="#b71c1c"/>
-    <text class="meter-t" x="784" y="150">COM</text><text class="meter-t" x="836" y="150">V</text>
+  <g id="bbLayer"></g><g id="stripLayer"></g><g id="partLayer"></g>
+  <path id="flowBench" class="flowp" data-asm="4"/>
+  <rect id="darkOv" class="dark-ov" x="${VB.x}" y="${VB.y}" width="${VB.w}" height="${VB.h}" opacity="0"/>
+  <circle id="spot" class="glow-spot" r="${46 * S}" fill="url(#glow)" opacity="0"/>
+  <circle id="lampGlow" class="glow-spot" r="${120 * S}" fill="url(#glow)" opacity="0"/>
+  <g id="handAt"><g id="hand" class="hand off" aria-hidden="true">
+    <ellipse cx="0" cy="4" rx="30" ry="25"/>
+    <rect x="-30" y="-52" width="12" height="40" rx="6"/><rect x="-16" y="-62" width="12" height="50" rx="6"/>
+    <rect x="-2" y="-60" width="12" height="48" rx="6"/><rect x="12" y="-50" width="12" height="40" rx="6"/>
+    <rect x="22" y="-14" width="30" height="12" rx="6" transform="rotate(-25 22 -8)"/>
+  </g></g>
+  <g id="labelLayer"></g>
+  <g data-asm="5" id="vlabel" class="vlabel">
+    <rect x="-66" y="-20" width="132" height="38" rx="7"/>
+    <text id="vlabelT" y="-4">GPIO4 = —</text><text class="s" y="12">середня точка → АЦП</text>
   </g>
   <g id="lamp" class="lamp" tabindex="0" role="slider" aria-label="Ліхтарик: тягніть ближче до LDR або стрілками" aria-valuemin="-1" aria-valuemax="5">
-    <circle class="lamp-ring" r="30"/>
-    <g id="lampRot">
-      <rect class="lamp-body" x="-8" y="10" width="16" height="34" rx="4"/>
-      <path class="lamp-head" d="M-13 -6 L13 -6 L9 12 L-9 12 Z"/>
-      <ellipse id="lampLens" class="lamp-lens" cx="0" cy="-6" rx="13" ry="4" fill="#fff6c4"/>
-      <rect x="-3" y="22" width="6" height="8" rx="1.5" fill="#d94b3a"/>
+    <g transform="scale(${S})">
+      <circle class="lamp-ring" r="30"/>
+      <g id="lampRot">
+        <rect class="lamp-body" x="-8" y="10" width="16" height="34" rx="4"/>
+        <path class="lamp-head" d="M-13 -6 L13 -6 L9 12 L-9 12 Z"/>
+        <ellipse id="lampLens" class="lamp-lens" cx="0" cy="-6" rx="13" ry="4" fill="#fff6c4"/>
+        <rect x="-3" y="22" width="6" height="8" rx="1.5" fill="#d94b3a"/>
+      </g>
+      <text class="lamp-t" y="58">ліхтарик</text>
     </g>
-    <text class="lamp-t" y="58">ліхтарик</text>
   </g>
 </svg>`;
+  const svg = host.querySelector('svg');
+  const layer = id => svg.querySelector('#' + id);
+  const grp = asm => svgEl('g', { 'data-asm': asm }, layer('partLayer'));
+  const bb = K.part('breadboard', { parent: layer('bbLayer'), title: 'Макетна плата WB-102' });
+  const at = n => bb.at(n);
+  const N = COLS.node, Q = COLS.plus;
+  // 1 · the board IN the breadboard: left header (3V3 … GND) in row i from column 4, right header in row b
+  const g1 = grp(1), p0 = bb.hole(COLS.v33, 'i');
+  BENCH.esp = K.part('esp32s3', { parent: g1, x: p0.x, y: p0.y, rot: -90, title: 'YD-ESP32-S3' });
+  // 2 · power: 3V3 (j4) → bottom «+», GND (R1, a4) → top «−» (left rail halves)
+  const g2 = grp(2);
+  const v33 = at('j' + COLS.v33), railP = at('bottom+' + COLS.v33);
+  K.route(g2, [v33, railP], 'orange');
+  const gndA = at('a' + COLS.v33), railG = at('top-' + COLS.v33);
+  K.route(g2, [gndA, railG], 'black');
+  // 3 · LDR: legs in 30i (middle point) and 31i; column 31 → bottom «+»
+  const g3 = grp(3), l0 = at('i' + N), LEG = 4;
+  BENCH.ldr = K.part('ldr', { parent: g3, x: l0.x, y: l0.y, leg: LEG, title: 'Фоторезистор GL5528' });
+  const ldrJ = at('j' + Q), railPl = at('bottom+' + Q);
+  K.route(g3, [ldrJ, railPl], 'orange');
+  LDR_X = l0.x + P / 2; LDR_Y = l0.y - LEG - 30;
+  // 4 · R2 10 kΩ bridges the trench: 30f (middle point) → 30c; 30a → top «−»
+  const g4 = grp(4), r0 = at('f' + N), r1 = at('c' + N);
+  BENCH.res = K.part('resistor', { parent: g4, x: r0.x, y: r0.y, rot: -90, ohms: 10000, span: 5, title: 'Резистор 10 кОм' });
+  const rA = at('a' + N), railNr = at('top-' + N);
+  K.route(g4, [rA, railNr], 'black');
+  // 5 · GPIO4 (j7) → middle point (j30): down to the lane between row j and the bottom rails, along it, up
+  const g5 = grp(5), gpioJ = at('j' + COLS.gpio), nodeJ = at('j' + N);
+  const laneY = bb.hole(1, 'j').y + P * 1.15;
+  K.route(g5, [gpioJ, { x: gpioJ.x, y: laneY }, { x: nodeJ.x, y: laneY }, nodeJ], 'yellow');
+  // 6 · UT136C+ on V⎓ above the breadboard; the tips sit on R2's bare legs: red on the lower one (middle point, 30f),
+  // black on the upper one (30c, GND through the black jumper). Each lead leaves on its own side, so they never cross.
+  const g6 = grp(6);
+  BENCH.mm = K.part('multimeter', { parent: g6, x: r0.x - 132, y: -745, scale: 0.3, title: 'Мультиметр UNI-T UT136C+' });
+  const tipR = { x: r0.x + 2, y: r0.y - 0.42 * P }, tipB = { x: r1.x - 2, y: r1.y + 0.42 * P };
+  const pr = K.part('probe', { parent: g6, color: 'red', x: tipR.x, y: tipR.y, rot: 215, scale: 0.4, shadow: false });
+  const pb = K.part('probe', { parent: g6, color: 'black', x: tipB.x, y: tipB.y, rot: 145, scale: 0.4, shadow: false });
+  K.wire(g6, pr.pins.end, BENCH.mm.pins.V, 'red', { width: 11, ends: ['none', 'banana'], lift: 30 });
+  K.wire(g6, pb.pins.end, BENCH.mm.pins.COM, '#26272a', { width: 11, ends: ['none', 'banana'], lift: -30 });
+  BENCH.esp.set({ highlight: ['3V3', 'GPIO4', 'GND2'] });
+  BENCH.mm.set({ dial: 'V', display: '0.000', unit: 'V' });
+  // the middle-point column (30 f…j) glows with the voltage
+  const st = at('f' + N);
+  svgEl('rect', { id: 'nodeStrip', class: 'node-strip', x: st.x - 15, y: st.y - 16, width: 30, height: 4 * P + 32, rx: 8, opacity: 0 }, layer('stripLayer'));
+  // current: 3V3 → «+» → LDR → middle point → R2 → «−» → GND (R1)
+  const pin3 = at('i' + COLS.v33), pinG = at('b' + COLS.v33), ldrTop = LDR_Y + 12;
+  svg.querySelector('#flowBench').setAttribute('d', 'M' + [
+    pin3, v33, railP, railPl, ldrJ, { x: ldrJ.x, y: ldrTop }, { x: l0.x, y: ldrTop }, r0, r1, rA, railNr, railG, gndA, pinG,
+  ].map(xy).join(' L'));
+  // labels outside the hardware or beside the parts (theme colours)
+  const lab = layer('labelLayer'), bbBottom = bb.size.h;
+  chip(lab, LDR_X + 1.9 * P, LDR_Y + 0.95 * P, 'LDR', 'start');
+  chip(lab, r0.x + 1.9 * P, r0.y + 0.3 * P, 'R2 10 кОм', 'start');
+  chip(lab, v33.x + 10, bbBottom + 34, '3V3', 'end');
+  chip(lab, gpioJ.x - 10, bbBottom + 34, 'GPIO4', 'start');
+  chip(lab, gndA.x, -34, 'GND');
+  // value label under the yellow wire's lane; the palm and the light spot sit on the LDR
+  svg.querySelector('#vlabel').setAttribute('transform', `translate(${((gpioJ.x + nodeJ.x) / 2 + 4 * P).toFixed(1)} ${(bbBottom + 60).toFixed(1)}) scale(${S})`);
+  svg.querySelector('#handAt').setAttribute('transform', `translate(${LDR_X} ${LDR_Y}) scale(${S})`);
+  svg.querySelector('#spot').setAttribute('cx', LDR_X); svg.querySelector('#spot').setAttribute('cy', LDR_Y);
 }
 
 function schemSVG() {
@@ -1364,7 +1381,7 @@ function onTrace(id) {
 }
 
 // ---------- build static DOM ----------
-$('#benchSvg').innerHTML = benchSVG();
+buildBench($('#benchSvg'));
 $('#schemSvg').innerHTML = schemSVG();
 $('#sarSvg').innerHTML = sarSVG();
 buildFlow();
@@ -1374,7 +1391,7 @@ const LN = $$('.ln', codeBox);
 sarRender('Натисніть «Захопити напругу» або «Пуск»: АЦП візьме поточну напругу з GPIO4 (зі стенда вище). У покроковому режимі програми це відбувається само на кожному analogRead().');
 
 // ---------- light / lamp ----------
-const lamp = { dir: [0.32, -0.95], x: 0, y: 0 };
+const lamp = { dir: [0.92, -0.4], x: 0, y: 0 };
 function luxDesc(lx) {
   return lx < 1 ? 'темрява, ніч' : lx < 10 ? 'сутінки' : lx < 100 ? 'тьмяна кімната' : lx < 1000 ? 'кімната / офіс' : lx < 10000 ? 'хмарний день' : 'пряме сонце';
 }
@@ -1384,11 +1401,11 @@ function fmtLux(lx) { return lx < 10 ? fmt(lx, 1) : lx < 1000 ? fmt(lx, 0) : lx 
 function fmtR(r) { return r >= 1e6 ? fmt((r / 1e6), 2) + ' МОм' : r >= 1000 ? fmt((r / 1000), r >= 1e5 ? 0 : r >= 1e4 ? 1 : 2) + ' кОм' : fmt(r, 0) + ' Ом'; }
 function placeLamp() {
   let x, y;
-  if (M.light <= 0) { x = 120; y = 70; }
+  if (M.light <= 0) { x = VB.x + 150 * S; y = VB.y + 75 * S; }
   else {
-    const d = 40 + (5 - M.light) / 5 * 220;
+    const d = (40 + (5 - M.light) / 5 * 220) * S;
     x = LDR_X + lamp.dir[0] * d; y = LDR_Y + lamp.dir[1] * d;
-    x = clamp(x, 30, 700); y = clamp(y, 20, 440);
+    x = clamp(x, VB.x + 80, VB.x + VB.w - 110); y = clamp(y, VB.y + 80, VB.y + VB.h - 160);
   }
   lamp.x = x; lamp.y = y;
   const ang = Math.atan2(LDR_Y - y, LDR_X - x) * 180 / Math.PI - 90 + 180;
@@ -1413,9 +1430,9 @@ function updateStatic() {
   $('#stI').textContent = fmt(i, i < 10 ? 1 : 0) + ' мкА';
   $('#stU').textContent = fmt((u / 1000), 3) + ' В';
   $('#vlabelT').textContent = `GPIO4 = ${fmt((u / 1000), 2)} В`;
-  $('#meterVal').textContent = (u / 1000).toFixed(3);
+  BENCH.mm.set({ display: (u / 1000).toFixed(3) });
   const b = clamp((M.light + 1) / 6, 0, 1);
-  $('#ldrFace').setAttribute('fill', `color-mix(in srgb, #fff3a8 ${(b * 100).toFixed(0)}%, #8f8468)`);
+  BENCH.ldr.set({ light: M.palm ? 0.05 : b });
   $('#darkOv').setAttribute('opacity', (0.42 * (1 - clamp((M.light + 1) / 3.5, 0, 1))).toFixed(3));
   $('#spot').setAttribute('opacity', (M.palm ? 0 : clamp(M.light / 5, 0, 1) * 0.95).toFixed(2));
   $('#lampGlow').setAttribute('cx', lamp.x); $('#lampGlow').setAttribute('cy', lamp.y);
@@ -1443,14 +1460,14 @@ $$('[data-preset]').forEach(b => b.addEventListener('click', () => {
   g.addEventListener('pointermove', e => {
     if (!drag) return;
     const p = toSvg(e);
-    const x = clamp(p.x, 20, 900), y = clamp(p.y, 14, 450);
+    const x = clamp(p.x, VB.x + 50, VB.x + VB.w - 50), y = clamp(p.y, VB.y + 40, VB.y + VB.h - 40);
     const dx = x - LDR_X, dy = y - LDR_Y, d = Math.hypot(dx, dy) || 1;
     lamp.dir = [dx / d, dy / d];
     lamp.x = x; lamp.y = y;
     const ang = Math.atan2(-dy, -dx) * 180 / Math.PI + 90;
     g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
     $('#lampRot').setAttribute('transform', `rotate(${(ang + 180).toFixed(1)})`);
-    setLight(5 - 5 * clamp((d - 40) / 220, 0, 1.2), { fromDrag: true });
+    setLight(5 - 5 * clamp((d / S - 40) / 220, 0, 1.2), { fromDrag: true });
   });
   const up = () => { drag = false; };
   g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
@@ -1462,12 +1479,12 @@ $$('[data-preset]').forEach(b => b.addEventListener('click', () => {
 
 // ---------- assembly mode ----------
 const ASM = [
-  'Ставимо плату на макетку: гребінка J1 — у ряд <b>b</b>, J3 — у ряд <b>i</b>. Кожні п’ять отворів a–e в одному стовпчику з’єднані між собою всередині макетки.',
-  'Живлення на шини: <b>3V3</b> (стовпчик 22) — червоним дротом на «+», <b>GND</b> (стовпчик 1) — чорним на «−».',
-  '<b>LDR</b>: ніжки в стовпчики 29 і 32. Стовпчик 29 червоною перемичкою — до «+». Полярності немає: LDR — звичайний резистор, тільки «світлочутливий».',
-  '<b>10 кОм</b> (коричневий-чорний-помаранчевий): стовпчики 32 → 38, стовпчик 38 — чорним до «−». Подільник замкнувся, і тепер тече струм.',
-  'Середня точка (стовпчик 32) — помаранчевим дротом до <b>GPIO4</b> (стовпчик 19). Саме тут АЦП «підглядає» за напругою.',
-  'Перевірка мультиметром: червоний щуп — у стовпчик 32, чорний — на «−». Закрийте LDR долонею — напруга має впасти. Тепер можна підключати USB-C і прошивати.',
+  'Ставимо плату в макетку: гребінка з 3V3 … GND — у ряд <b>i</b> (стовпчики 4–25, 3V3 у стовпчику 4), друга гребінка — у ряд <b>b</b>. Вільними лишаються ряди <b>j</b> і <b>a</b>: через них і підключаємося до пінів. Кожні п’ять отворів f–j (і a–e) в одному стовпчику з’єднані між собою всередині макетки.',
+  'Живлення на шини: <b>3V3</b> (j4) — помаранчевим дротом на нижню «+», <b>GND</b> (a4, пін GND правої гребінки) — чорним на верхню «−». Шини WB-102 розірвані посередині (між стовпчиками 31 і 33), тож уся схема стоїть на лівих половинах.',
+  '<b>LDR</b>: ніжки в отвори 30i і 31i. Стовпчик 31 помаранчевою перемичкою (j31) — до нижньої «+». Полярності немає: LDR — звичайний резистор, тільки «світлочутливий».',
+  '<b>10 кОм</b> (коричневий-чорний-помаранчевий) стоїть через канавку: 30f → 30c. Стовпчик 30 зверху (a30) — чорним до верхньої «−». Подільник замкнувся, і тепер тече струм.',
+  'Середня точка (стовпчик 30, отвори f–j) — жовтим дротом до <b>GPIO4</b> (j7): униз, уздовж смужки під рядом j, угору в j30. Саме тут АЦП «підглядає» за напругою.',
+  'Перевірка мультиметром UT136C+ на V⎓: червоний щуп — на нижню ніжку резистора (середня точка), чорний — на верхню (GND). Закрийте LDR долонею — напруга має впасти. Тепер можна підключати USB-C і прошивати.',
 ];
 function setAsm(n) {
   app.asm = n;
@@ -1753,7 +1770,7 @@ function frame(now) {
   heatAll();
   if (!REDUCED) {
     flowOff -= dt / 1000 * (6 + M.iua() * 0.5);
-    flowBench.style.strokeDashoffset = flowOff.toFixed(1);
+    flowBench.style.strokeDashoffset = (flowOff * S).toFixed(1);
     flowSch.style.strokeDashoffset = (flowOff * 0.6).toFixed(1);
   }
   flowBench.style.opacity = (0.35 + 0.65 * Math.min(1, M.iua() / 120)).toFixed(2);
@@ -1769,6 +1786,7 @@ window.addEventListener('resize', () => drawErr());
 setLight(1.5);
 renderStep(false);
 requestAnimationFrame(frame);
+});
 </script>
 <script src="../assets/course.js" defer></script><script src="../assets/site-nav.js" defer></script>
 </body>

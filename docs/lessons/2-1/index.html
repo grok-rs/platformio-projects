@@ -119,6 +119,77 @@
 @media (prefers-reduced-motion: reduce) {
   .heap .hb.new, .cell.flash { animation: none; }
 }
+/* ================= lab bench (#bench): memory map, heap, ISR ================= */
+.ml-tabs { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.ml-pane[hidden] { display: none; }
+.ml-grid { display: grid; gap: 14px; align-items: start; }
+@media (min-width: 880px) { .ml-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); } }
+.decls { display: grid; gap: 6px; }
+.decls .dh { margin: 4px 0 0; font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .04em; }
+.decl { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 9px;
+  background: var(--panel); color: var(--ink); font: 500 13.5px/1.35 var(--f-mono); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.decl::before { content: "+"; flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line-strong); font-weight: 700; color: var(--muted); }
+.decl[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+.decl[aria-pressed="true"]::before { content: "✓"; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.decl:hover { border-color: var(--accent); }
+.decl.ping { box-shadow: 0 0 0 3px color-mix(in srgb, var(--hi) 45%, transparent); }
+@media (pointer: coarse) { .decl { min-height: 44px; } }
+.mm2 { display: grid; gap: 10px; }
+.mm2-reg { border: 2px solid var(--c); border-radius: 12px; padding: 8px 10px 10px; background: color-mix(in srgb, var(--c) 7%, var(--panel)); }
+.mm2-reg.flash { --c: var(--nsig2); } .mm2-reg.sram { --c: var(--n5); } .mm2-reg.psram { --c: var(--nsig3); }
+.mm2-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; margin-bottom: 6px; }
+.mm2-h b { font: 700 15px var(--f-body); color: var(--ink); }
+.mm2-h span { font: 500 13px var(--f-mono); color: var(--muted); }
+.mm2-row { display: grid; grid-template-columns: 8.6em minmax(0, 1fr); gap: 8px; align-items: center; min-height: 36px; padding: 3px 0; border-top: 1px dashed color-mix(in srgb, var(--c) 35%, var(--line)); }
+.mm2-row .sec { font: 600 13px/1.25 var(--f-mono); color: var(--muted); }
+.mm2-row .tok { display: flex; flex-wrap: wrap; gap: 5px; min-height: 28px; align-items: center; }
+.tk { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 7px; border: 1.5px solid var(--c); background: var(--panel);
+  font: 600 13px var(--f-mono); color: var(--ink); transition: transform .45s var(--ease), opacity .45s var(--ease), box-shadow .6s; }
+.tk small { font: 500 13px var(--f-mono); color: var(--muted); }
+.tk.enter { transform: translateX(-26px) scale(.9); opacity: 0; }
+.tk.new { box-shadow: 0 0 0 4px color-mix(in srgb, var(--hi) 45%, transparent); }
+.tk.bad { border-color: var(--bad); color: var(--bad); }
+.stk { position: relative; height: 26px; border-radius: 6px; background: var(--sunk); border: 1px solid var(--line); overflow: hidden; }
+.stk i { position: absolute; inset: 0 auto 0 0; width: 0; background: color-mix(in srgb, var(--n5) 55%, var(--panel)); transition: width .45s var(--ease); }
+.stk i.over { background: var(--bad); width: 100% !important; }
+.stk span { position: relative; display: block; padding: 0 8px; font: 600 13px/26px var(--f-mono); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .tk, .stk i { transition: none; } }
+/* heap strip */
+.hp { display: flex; height: 54px; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; background: var(--panel-2); }
+.hp i { flex: 1 1 0; min-width: 0; border-right: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); }
+.hp i.f { background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--ok) 18%, transparent) 4px 6px); }
+.hp i.s { background: color-mix(in srgb, var(--hi) 60%, var(--panel)); }
+.hp i.k { background: color-mix(in srgb, var(--accent) 55%, var(--panel)); }
+.hp i.u { background: color-mix(in srgb, var(--nsig2) 55%, var(--panel)); }
+.hp i.x { background: color-mix(in srgb, var(--ink) 30%, var(--panel)); }
+.hp-scale { display: flex; justify-content: space-between; font: 13px var(--f-mono); color: var(--muted); margin-top: 3px; }
+.hp-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; font: 500 13px var(--f-mono); color: var(--muted); }
+.hp-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line-strong); }
+#hp-graph { display: block; width: 100%; height: 130px; margin-top: 4px; border-left: 1.5px solid var(--line-strong); border-bottom: 1.5px solid var(--line-strong); }
+#hp-graph text { font: 500 13px var(--f-mono); }
+/* ISR pane */
+#vr-svg { display: block; width: 100%; max-width: 620px; height: auto; margin: 0 auto; }
+#vr-svg text { font-size: 14px; }
+#vr-svg .mono { font-family: var(--f-mono); }
+/* animated explainer: call stack */
+.st-stage { display: grid; gap: 14px; align-items: start; }
+@media (min-width: 700px) { .st-stage { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
+.st-code { margin: 0; padding: 8px 0; font: 14px/1.6 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+.st-code span { display: block; padding: 0 10px; white-space: pre; border-left: 3px solid transparent; transition: background-color .25s; }
+.st-code span.on { background: color-mix(in srgb, var(--hi) 22%, transparent); border-left-color: var(--hi); }
+.st-col { position: relative; height: 270px; border: 2px solid var(--ink); border-radius: 8px; background: var(--sunk); overflow: visible; }
+.st-col .cap { position: absolute; left: 8px; top: -24px; font: 600 13px var(--f-mono); color: var(--muted); }
+.st-fr { position: absolute; left: 6px; right: 6px; border-radius: 6px; border: 1.5px solid var(--c, var(--accent)); background: color-mix(in srgb, var(--c, var(--accent)) 18%, var(--panel));
+  font: 600 13px/1.3 var(--f-mono); color: var(--ink); padding: 4px 8px; overflow: hidden; }
+.st-fr small { display: block; font: 500 13px var(--f-mono); color: var(--muted); }
+.st-sp { position: absolute; right: -2px; transform: translate(100%, -50%); font: 700 13px var(--f-mono); color: var(--hi-ink); white-space: nowrap; }
+.st-wrap { padding-right: 46px; padding-top: 26px; }
+.st-note { margin: 8px 0 0; font: 500 14px var(--f-body); color: var(--muted); }
+/* idea-card mini demos */
+.mini { margin: 10px 0 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--sheet); }
+.mini .mini-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; }
+.mini .mini-out { margin: 6px 0 0; font-size: 15px; color: var(--ink); }
+.dim-row { opacity: .3; transition: opacity .3s; }
 </style>
 </head>
 <body data-lesson="2-1">
@@ -141,6 +212,147 @@
       <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
     </div>
   </header>
+
+  <!-- ============================================================ lab: where declarations land, heap churn, ISR flag -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія пам'яті</h2><p>Додавайте рядки коду й дивіться, куди вони лягають; ламайте купу <code>String</code>-склейками; ловіть прапорець з переривання.</p></header>
+    <div class="ml-tabs">
+      <div class="seg" role="group" aria-label="Розділ лабораторії" id="ml-tab">
+        <button type="button" data-v="map" aria-pressed="true">Карта пам'яті</button>
+        <button type="button" data-v="heap" aria-pressed="false">Купа і String</button>
+        <button type="button" data-v="isr" aria-pressed="false">ISR і volatile</button>
+      </div>
+    </div>
+
+    <!-- ---------------- pane 1: memory map -->
+    <div class="ml-pane" id="ml-map">
+      <div class="lab-stage">
+        <div class="ml-grid">
+          <div class="decls" role="group" aria-label="Рядки скетчу: натисніть, щоб додати або прибрати">
+            <p class="dh">// глобальні</p>
+            <button type="button" class="decl" data-d="pin" aria-pressed="false">constexpr uint8_t kLedPin = 15;</button>
+            <button type="button" class="decl" data-d="gamma" aria-pressed="false">constexpr uint8_t kGamma[4] = {0, 18, 92, 255};</button>
+            <button type="button" class="decl" data-d="calib" aria-pressed="false">const int kCalib = readCalib();</button>
+            <button type="button" class="decl" data-d="count" aria-pressed="false">uint32_t g_count = 7;</button>
+            <button type="button" class="decl" data-d="buf" aria-pressed="false">uint8_t g_buf[1024];</button>
+            <p class="dh">// усередині loop()</p>
+            <button type="button" class="decl" data-d="last" aria-pressed="false">static uint32_t lastMs = 0;</button>
+            <button type="button" class="decl" data-d="frame" aria-pressed="false">uint8_t frame[1024];</button>
+            <button type="button" class="decl" data-d="big" aria-pressed="false">uint8_t big[10240];</button>
+            <button type="button" class="decl" data-d="m2k" aria-pressed="false">p = malloc(2000);</button>
+            <button type="button" class="decl" data-d="m16k" aria-pressed="false">q = malloc(16384);</button>
+            <button type="button" class="decl" data-d="str" aria-pressed="false">String s = "t=" + String(t);</button>
+          </div>
+          <div class="mm2" role="img" aria-label="Карта пам'яті ESP32-S3: Flash, внутрішня SRAM і PSRAM з секціями; додані рядки коду з'являються в секції, де вони живуть." id="mm2">
+            <div class="mm2-reg flash"><div class="mm2-h"><b>Flash</b><span>16 МБ · не стирається</span></div>
+              <div class="mm2-row" data-sec="text"><span class="sec">.text<br>код</span><div class="tok"></div></div>
+              <div class="mm2-row" data-sec="rodata"><span class="sec">.rodata<br>константи</span><div class="tok"></div></div>
+              <div class="mm2-row" data-sec="init"><span class="sec">образ .data</span><div class="tok"></div></div>
+            </div>
+            <div class="mm2-reg sram"><div class="mm2-h"><b>SRAM всередині чипа</b><span>512 КБ · дефіцит</span></div>
+              <div class="mm2-row" data-sec="data"><span class="sec">.data</span><div class="tok"></div></div>
+              <div class="mm2-row" data-sec="bss"><span class="sec">.bss<br>обнулено</span><div class="tok"></div></div>
+              <div class="mm2-row" data-sec="heap"><span class="sec">купа</span><div class="tok"></div></div>
+              <div class="mm2-row" data-sec="stack"><span class="sec">стек loopTask</span><div><div class="stk"><i id="mm2-stk"></i><span id="mm2-stkt">0 з 8192 Б</span></div><div class="tok" style="margin-top:5px"></div></div></div>
+            </div>
+            <div class="mm2-reg psram"><div class="mm2-h"><b>PSRAM</b><span>8 МБ · через кеш</span></div>
+              <div class="mm2-row" data-sec="psram"><span class="sec">malloc<br>&gt; 4096 Б</span><div class="tok"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lab-ctl">
+        <button type="button" class="btn sm" id="mm2-all">Додати все, крім big</button>
+        <button type="button" class="btn sm ghost" id="mm2-clr">Очистити скетч</button>
+      </div>
+      <div class="lab-read">
+        <div><b>RAM статично</b><output id="mr-ram">0 Б</output></div>
+        <div><b>Стек loop()</b><output id="mr-stk">0 Б</output></div>
+        <div><b>Купа SRAM</b><output id="mr-heap">0 Б</output></div>
+        <div><b>PSRAM</b><output id="mr-ps">0 Б</output></div>
+        <div><b>Flash дані</b><output id="mr-fl">0 Б</output></div>
+      </div>
+      <p class="lab-note" id="mm2-note" aria-live="polite">Натисніть рядок коду ліворуч — він «прилетить» у ту частину пам'яті, де житиме.</p>
+    </div>
+
+    <!-- ---------------- pane 2: heap churn -->
+    <div class="ml-pane" id="ml-heap" hidden>
+      <div class="lab-stage">
+        <div class="hp" id="hp" role="img" aria-label="Купа 16 КБ з 64 клітинок по 256 байт"></div>
+        <div class="hp-scale"><span>0</span><span>купа 16 КБ, клітинка = 256 Б (схематично)</span><span>16 КБ</span></div>
+        <p class="hp-legend" aria-hidden="true"><span><i style="background:color-mix(in srgb, var(--ink) 30%, var(--panel))"></i>setup()</span><span><i style="background:color-mix(in srgb, var(--hi) 60%, var(--panel))"></i>тимчасовий String</span><span><i style="background:color-mix(in srgb, var(--accent) 55%, var(--panel))"></i>String, що лишився жити</span><span><i style="background:color-mix(in srgb, var(--nsig2) 55%, var(--panel))"></i>ваш буфер 3 КБ</span><span><i class="f" style="background:repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--ok) 30%, transparent) 3px 5px)"></i>вільно</span></p>
+        <p class="hp-legend" aria-hidden="true" style="margin-top:12px"><span style="color:var(--ok)">━ вільно всього</span><span style="color:var(--bad)">╍ найбільший суцільний шматок</span><span style="color:var(--nsig2)">┄ 3 КБ</span><span>проходи loop() →</span></p>
+        <svg id="hp-graph" viewBox="0 0 520 120" preserveAspectRatio="none" role="img" aria-label="Графік: зелена лінія — вільно всього, червона пунктирна — найбільший суцільний шматок, по горизонталі — проходи loop().">
+          <g id="hp-gr"></g>
+          <polyline id="hp-lf" fill="none" stroke="var(--ok)" stroke-width="2.5" vector-effect="non-scaling-stroke" points=""/>
+          <polyline id="hp-lm" fill="none" stroke="var(--bad)" stroke-width="2.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" points=""/>
+        </svg>
+      </div>
+      <div class="lab-ctl">
+        <button type="button" class="sw" id="hp-sw" aria-checked="false">String-склейки в loop()</button>
+        <button type="button" class="btn sm primary" id="hp-ask">malloc(3 КБ)</button>
+        <button type="button" class="btn sm ghost" id="hp-reset">Перезавантажити плату</button>
+      </div>
+      <div class="lab-read">
+        <div><b>Проходів</b><output id="hr-n">0</output></div>
+        <div><b>Вільно всього</b><output id="hr-free">—</output></div>
+        <div><b>Найбільший шматок</b><output id="hr-max">—</output></div>
+        <div><b>malloc(3 КБ)</b><output id="hr-ask">—</output></div>
+      </div>
+      <p class="lab-note" id="hp-note" aria-live="polite">Увімкніть «String-склейки»: кожен прохід loop() створює і знищує тимчасові рядки, а частина з них лишається жити.</p>
+    </div>
+
+    <!-- ---------------- pane 3: ISR + volatile -->
+    <div class="ml-pane" id="ml-isr" hidden>
+      <div class="lab-stage" id="vr-stage">
+        <svg id="vr-svg" viewBox="0 0 400 250" role="img" aria-label="Цикл while (!flag) крутиться; поруч регістр процесора a8 і змінна flag у RAM. Тактова кнопка з набору вгорі: її натискання запускає переривання, і воно записує 1 у RAM. Стрілка показує, чи цикл перечитує RAM на кожному оберті.">
+          <circle cx="78" cy="104" r="56" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="8 6"/>
+          <text x="78" y="98" text-anchor="middle" class="mono" fill="var(--ink)">while</text>
+          <text x="78" y="116" text-anchor="middle" class="mono" fill="var(--ink)">(!flag)</text>
+          <circle id="vr-dot" cx="78" cy="48" r="7" fill="var(--hi)"/>
+          <text id="vr-laps" x="78" y="184" text-anchor="middle" fill="var(--muted)">обертів: 0</text>
+          <rect x="164" y="74" width="84" height="60" rx="8" fill="var(--panel)" stroke="var(--nsig2)" stroke-width="2"/>
+          <text x="206" y="96" text-anchor="middle" fill="var(--muted)">регістр</text>
+          <text id="vr-reg" x="206" y="120" text-anchor="middle" class="mono" fill="var(--ink)" font-weight="700">a8 = —</text>
+          <rect id="vr-ramb" x="300" y="74" width="92" height="60" rx="8" fill="var(--panel)" stroke="var(--n5)" stroke-width="2"/>
+          <text x="346" y="96" text-anchor="middle" fill="var(--muted)">RAM</text>
+          <text id="vr-ram" x="346" y="120" text-anchor="middle" class="mono" fill="var(--ink)" font-weight="700">flag = 0</text>
+          <path id="vr-rd" d="M298 104H254" stroke="var(--ok)" stroke-width="3" opacity=".15"/><path id="vr-rdh" d="M256 98l-10 6 10 6z" fill="var(--ok)" opacity=".15"/>
+          <text id="vr-rdt" x="276" y="150" text-anchor="middle" fill="var(--muted)">читання</text>
+          <path d="M138 104H162" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 4"/>
+          <g id="vr-btnhalo" opacity="0"><circle cx="276" cy="36" r="22" fill="var(--hi)" opacity=".4"/></g>
+          <g id="vr-kit"></g>
+          <g id="vr-bolt" opacity="0"><path d="M352 14l-14 26h12l-8 26 22-32h-12l10-20z" fill="var(--hi)"/><text x="330" y="28" text-anchor="end" fill="var(--hi-ink)" font-weight="700">ISR</text></g>
+          <rect id="vr-exitb" x="10" y="204" width="136" height="36" rx="8" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.5"/>
+          <text id="vr-exit" x="78" y="227" text-anchor="middle" fill="var(--muted)">далі: обробка</text>
+          <text id="vr-asm1" x="164" y="178" class="mono" fill="var(--ink)"></text>
+          <text id="vr-asm2" x="164" y="198" class="mono" fill="var(--ink)"></text>
+          <text id="vr-asm3" x="164" y="218" class="mono" fill="var(--ink)"></text>
+          <text id="vr-asm4" x="164" y="238" class="mono" fill="var(--muted)"></text>
+        </svg>
+      </div>
+      <div class="lab-ctl">
+        <button type="button" class="sw" id="vr-vol" aria-checked="false">volatile bool flag</button>
+        <button type="button" class="sw" id="vr-opt" aria-checked="true">Оптимізація -Os</button>
+        <button type="button" class="btn sm primary" id="vr-isr">⚡ Переривання: flag = true</button>
+        <button type="button" class="btn sm ghost" id="vr-reset">Скинути</button>
+      </div>
+      <p class="lab-note" id="vr-note" aria-live="polite">Цикл чекає на прапорець. Натисніть «Переривання».</p>
+      <p class="small muted" style="margin:0 18px 10px">Інструкції — як у GCC 8.4 з <code>-Os</code> для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-volatile-loop"></sup>; наше ядро збирає саме з <code>-Os</code><sup class="cite" data-fact="core-optimization-os"></sup>. Детальний покроковий асемблер — у розділі 05.</p>
+    </div>
+    <p class="small muted" style="margin:0 18px 8px">Розміщення — за компіляцією для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-placement"></sup><sup class="cite" data-fact="xtensa-gcc-constexpr-immediate"></sup>; стек <code>loop()</code> — 8192&nbsp;Б<sup class="cite" data-fact="core-loop-task"></sup>; <code>malloc</code> понад 4096&nbsp;Б іде спершу в PSRAM<sup class="cite" data-fact="core-spiram-malloc-alwaysinternal"></sup><sup class="cite" data-fact="idf-malloc-psram-first"></sup>. Купа на вкладці «Купа і String» — схема, не вимір.</p>
+    <a class="lab-more" href="#circuit">Повна карта пам'яті ESP32-S3 — розділ 08 →</a>
+  </section>
+
+  <figure class="anim wide" id="st-anim" aria-labelledby="st-anim-h">
+    <header class="anim-head"><h3 id="st-anim-h">Анімація: стек росте й тане з кожним викликом</h3></header>
+    <div class="anim-stage">
+      <div class="st-stage">
+        <pre class="st-code" id="st-code" aria-label="Код: loop викликає readSensor, а та — filter"><span>void loop() {</span><span>  uint32_t now = millis();</span><span>  int v = readSensor();</span><span>}</span><span>int readSensor() {</span><span>  uint8_t buf[64];</span><span>  return filter(buf);</span><span>}</span><span>int filter(const uint8_t* b) {</span><span>  int sum = 0;  // …</span><span>  return sum;</span><span>}</span></pre>
+        <div class="st-wrap"><div class="st-col" id="st-col" role="img" aria-label="Стек задачі loopTask, 8 КБ: кадри функцій додаються згори вниз і зникають при поверненні."><span class="cap">стек loopTask · 8 КБ</span></div></div>
+      </div>
+    </div>
+  </figure>
 
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
@@ -202,23 +414,32 @@
       <h3>У плати три різні «склади» пам'яті</h3>
       <p><b>Flash</b> — велика, переживає вимкнення, але писати в неї під час роботи незручно: тут код і константи. <b>SRAM</b> усередині чипа — швидка й невелика, стирається при вимкненні. У ній живуть глобальні змінні, <b>купа</b> (heap: пам'ять, яку програма просить уже під час роботи через <code>malloc</code> чи <code>new</code>) і <b>стеки</b> (stack: місце для локальних змінних функції, поки вона виконується). <b>PSRAM</b> — окрема мікросхема оперативної пам'яті в модулі: багато місця для великих буферів, але доступ іде через зовнішню шину й кеш.</p>
       <p>Числа для нашого модуля: SRAM 512&nbsp;КБ<sup class="cite" data-fact="s3-sram"></sup>, Flash 16&nbsp;МБ і PSRAM 8&nbsp;МБ<sup class="cite" data-fact="wroom-n16r8-memory"></sup>. SRAM у 32 рази менша за Flash, і саме її з'їдають погані звички.</p>
-      <figure>
+      <figure class="mini" id="m-mem">
         <svg class="fig-svg" viewBox="0 0 300 236" role="img" aria-label="Три склади пам'яті: Flash 16 МБ (код і константи, зберігається без живлення), SRAM 512 КБ (змінні, купа, стеки, швидка), PSRAM 8 МБ (великі буфери, через кеш).">
-          <rect x="4" y="4" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--nsig2) 14%, var(--panel))" stroke="var(--nsig2)" stroke-width="2"/>
+          <rect id="im-flash" x="4" y="4" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--nsig2) 14%, var(--panel))" stroke="var(--nsig2)" stroke-width="2" style="transition:stroke-width .3s"/>
           <text x="16" y="27" fill="var(--ink)" font-size="16" font-weight="600">Flash 16 МБ</text>
           <text x="284" y="27" text-anchor="end" fill="var(--muted)" font-size="15">не стирається</text>
           <text x="16" y="49" fill="var(--ink)" font-size="15">код, константи</text>
-          <rect x="4" y="68" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--n5) 12%, var(--panel))" stroke="var(--n5)" stroke-width="2"/>
+          <rect id="im-sram" x="4" y="68" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--n5) 12%, var(--panel))" stroke="var(--n5)" stroke-width="2" style="transition:stroke-width .3s"/>
           <text x="16" y="91" fill="var(--ink)" font-size="16" font-weight="600">SRAM 512 КБ</text>
           <text x="284" y="91" text-anchor="end" fill="var(--muted)" font-size="15">найшвидша</text>
           <text x="16" y="113" fill="var(--ink)" font-size="15">змінні, купа, стеки · дефіцит</text>
-          <rect x="4" y="132" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--nsig3) 12%, var(--panel))" stroke="var(--nsig3)" stroke-width="2"/>
+          <rect id="im-psram" x="4" y="132" width="292" height="56" rx="8" fill="color-mix(in srgb, var(--nsig3) 12%, var(--panel))" stroke="var(--nsig3)" stroke-width="2" style="transition:stroke-width .3s"/>
           <text x="16" y="155" fill="var(--ink)" font-size="16" font-weight="600">PSRAM 8 МБ</text>
           <text x="284" y="155" text-anchor="end" fill="var(--muted)" font-size="15">через шину й кеш</text>
           <text x="16" y="177" fill="var(--ink)" font-size="15">великі буфери</text>
           <text x="150" y="210" text-anchor="middle" fill="var(--muted)" font-size="15">не в масштабі: Flash у 32 рази</text>
           <text x="150" y="229" text-anchor="middle" fill="var(--muted)" font-size="15">більша за SRAM</text>
+          <g id="im-ptr" opacity="0"><path id="im-arrow" d="M0 0" stroke="var(--hi)" stroke-width="3" fill="none"/><text id="im-lbl" x="296" y="0" text-anchor="end" fill="var(--hi-ink)" font-size="15" font-weight="700"></text></g>
         </svg>
+        <div class="mini-ctl"><div class="seg" role="group" aria-label="Що зберігаємо" id="im-what">
+          <button type="button" data-v="flash|код loop()" aria-pressed="false">код</button>
+          <button type="button" data-v="flash|таблиця kGamma" aria-pressed="false">constexpr-таблиця</button>
+          <button type="button" data-v="sram|g_count" aria-pressed="false">лічильник</button>
+          <button type="button" data-v="sram|локальна now" aria-pressed="false">локальна змінна</button>
+          <button type="button" data-v="psram|malloc(16384)" aria-pressed="false">буфер 16 КБ</button>
+        </div></div>
+        <p class="mini-out" id="im-out" aria-live="polite">Оберіть, що зберігаємо, — і побачите, на який «склад» воно потрапить.</p>
         <figcaption>Три назви, які трапляться далі: <code>.rodata</code> — константи у Flash; <code>.data</code> — змінні з початковим значенням (RAM); <code>.bss</code> — змінні, які обнуляються при старті (RAM). Детальна карта — у <a href="#circuit">розділі 08</a>.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Що відоме до запуску, хай живе у Flash; SRAM — для того, що справді змінюється.</p>
@@ -227,14 +448,16 @@
     <article class="idea" id="idea-heap">
       <h3>Купа кришиться: «вільно» ще не означає «можна виділити»</h3>
       <p>Уявіть парковку вздовж бордюру, куди приїжджають і від'їжджають машини різної довжини. Через день вільних метрів багато, але вони розкидані дрібними проміжками між машинами, і автобус уже не стане. Це <b>фрагментація</b>: <code>malloc()</code> потрібен суцільний шматок, а не сума дірок.</p>
-      <p>Друга біда — час: пошук місця триває щоразу по-різному. Тому правило таке: усе, що потрібно, виділіть один раз у <code>setup()</code>, а в <code>loop()</code> працюйте зі статичними буферами і стеком.</p>
-      <figure>
+      <details class="more"><summary>Детальніше: друга біда — непередбачуваний час</summary>
+        <p>Друга біда — час: пошук місця триває щоразу по-різному. Тому правило таке: усе, що потрібно, виділіть один раз у <code>setup()</code>, а в <code>loop()</code> працюйте зі статичними буферами і стеком.</p>
+      </details>
+      <figure class="mini" id="m-heap">
         <svg class="fig-svg" viewBox="0 0 300 176" role="img" aria-label="Парковка вздовж бордюру: між машинами три проміжки по 4, 5 і 3 метри, разом 12 метрів вільно, але автобус завдовжки 12 метрів не стає в жоден проміжок.">
-          <rect x="70" y="8" width="160" height="26" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 3"/>
-          <text x="150" y="26" text-anchor="middle" fill="var(--bad)" font-size="15" font-weight="600">автобус 12 м ✕</text>
+          <g id="ih-bus"><rect id="ih-busr" x="70" y="8" width="120" height="26" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 3"/>
+          <text id="ih-bust" x="130" y="26" text-anchor="middle" fill="var(--bad)" font-size="15" font-weight="600">автобус 12 м ✕</text></g>
           <rect x="4" y="46" width="292" height="44" rx="5" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2"/>
           <g fill="color-mix(in srgb, var(--accent) 26%, var(--panel))" stroke="var(--accent)" stroke-width="1.5">
-            <rect x="8" y="51" width="56" height="34" rx="8"/><rect x="108" y="51" width="44" height="34" rx="8"/><rect x="204" y="51" width="50" height="34" rx="8"/>
+            <rect x="8" y="51" width="56" height="34" rx="8"/><rect id="ih-car" x="108" y="51" width="44" height="34" rx="8"/><rect x="204" y="51" width="50" height="34" rx="8"/>
           </g>
           <g fill="none" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="4 3">
             <rect x="66" y="51" width="40" height="34" rx="3"/><rect x="154" y="51" width="48" height="34" rx="3"/><rect x="256" y="51" width="36" height="34" rx="3"/>
@@ -242,11 +465,13 @@
           <text x="86" y="73" text-anchor="middle" fill="var(--ok)" font-size="15">4 м</text>
           <text x="178" y="73" text-anchor="middle" fill="var(--ok)" font-size="15">5 м</text>
           <text x="274" y="73" text-anchor="middle" fill="var(--ok)" font-size="15">3 м</text>
-          <text x="4" y="112" fill="var(--ok)" font-size="15">вільно 12 м, але поспіль —</text>
-          <text x="4" y="130" fill="var(--ok)" font-size="15">максимум 5 м</text>
+          <text id="ih-t1" x="4" y="112" fill="var(--ok)" font-size="15">вільно 12 м, але поспіль —</text>
+          <text id="ih-t2" x="4" y="130" fill="var(--ok)" font-size="15">максимум 5 м</text>
           <text x="4" y="152" fill="var(--muted)" font-size="15">машини — зайняті блоки,</text>
           <text x="4" y="170" fill="var(--muted)" font-size="15">проміжки — дірки</text>
         </svg>
+        <div class="mini-ctl"><button type="button" class="sw" id="ih-sw" aria-checked="false">Середня машина поїхала (free)</button></div>
+        <p class="mini-out" id="ih-out" aria-live="polite">Автобус не стає: жодна дірка не має 12 м поспіль.</p>
         <figcaption>Як це виглядає в купі, ви спрогнозуєте й побачите в розділі 05.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Купа корисна при старті; у циклі вона з часом кришиться, тож у <code>loop()</code> — без <code>new</code>, <code>malloc</code> і <code>String</code>-склейок.</p>
@@ -261,9 +486,11 @@ if (now - lastMs &gt;= kBlinkMs) {
   lastMs = now;
   toggleLed();
 }</code></pre>
-      <p class="small">На ESP32 <code>loop()</code> крутиться всередині задачі FreeRTOS<sup class="cite" data-fact="core-loop-task"></sup>, а <code>delay()</code> присипляє лише її<sup class="cite" data-fact="core-delay"></sup>: переривання і Wi-Fi живуть далі, але ваш цикл стоїть. Лічильник <code>millis()</code> переповнюється раз на ≈ 49,7&nbsp;доби<sup class="cite" data-fact="core-millis"></sup>; віднімання беззнакових чисел це переживає, а порівняння <code>now &gt;= lastMs + kBlinkMs</code> — ні.</p>
-      <figure>
-        <svg class="fig-svg" viewBox="0 0 306 170" role="img" aria-label="Суперцикл: коло з трьома зупинками — прочитати входи, оновити стан, керувати виходами. Збоку блок delay, позначений як сон, під час якого кнопку ніхто не перевіряє.">
+      <details class="more"><summary>Детальніше: FreeRTOS, delay() і переповнення millis()</summary>
+        <p class="small">На ESP32 <code>loop()</code> крутиться всередині задачі FreeRTOS<sup class="cite" data-fact="core-loop-task"></sup>, а <code>delay()</code> присипляє лише її<sup class="cite" data-fact="core-delay"></sup>: переривання і Wi-Fi живуть далі, але ваш цикл стоїть. Лічильник <code>millis()</code> переповнюється раз на ≈ 49,7&nbsp;доби<sup class="cite" data-fact="core-millis"></sup>; віднімання беззнакових чисел це переживає, а порівняння <code>now &gt;= lastMs + kBlinkMs</code> — ні.</p>
+      </details>
+      <figure class="mini" id="m-loop">
+        <svg class="fig-svg" viewBox="0 0 306 170" role="img" aria-label="Суперцикл: коло з трьома зупинками — прочитати входи, оновити стан, керувати виходами. Збоку блок delay, позначений як сон, під час якого кнопку ніхто не перевіряє. Справа внизу — тактова кнопка з набору.">
           <circle cx="110" cy="88" r="58" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="8 5"/>
           <path d="M162 70 l8 -12 l4 14 z" fill="var(--accent)"/>
           <rect x="62" y="14" width="96" height="28" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
@@ -273,12 +500,20 @@ if (now - lastMs &gt;= kBlinkMs) {
           <rect x="4" y="112" width="96" height="28" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
           <text x="52" y="131" text-anchor="middle" fill="var(--ink)" font-size="14">3 виходи</text>
           <text x="110" y="92" text-anchor="middle" fill="var(--muted)" font-size="14.5">мкс на прохід</text>
-          <rect x="220" y="40" width="82" height="52" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2"/>
+          <g id="il-delay"><rect x="220" y="40" width="82" height="52" rx="6" fill="color-mix(in srgb, var(--bad) 10%, var(--panel))" stroke="var(--bad)" stroke-width="2"/>
           <text x="261" y="62" text-anchor="middle" fill="var(--bad)" font-size="14" font-weight="600">delay</text>
-          <text x="261" y="80" text-anchor="middle" fill="var(--bad)" font-size="14.5">zzz 500 мс</text>
+          <text x="261" y="80" text-anchor="middle" fill="var(--bad)" font-size="14.5">zzz 500 мс</text></g>
           <text x="300" y="112" text-anchor="end" fill="var(--muted)" font-size="14.5">кнопку ніхто</text>
           <text x="300" y="128" text-anchor="end" fill="var(--muted)" font-size="14.5">не перевіряє</text>
+          <circle id="il-dot" cx="110" cy="30" r="9" fill="var(--hi)" stroke="var(--panel)" stroke-width="2"/>
+          <g id="il-btn" opacity="0"><circle cx="281" cy="152" r="17" fill="var(--hi)" opacity=".45"/></g>
+          <g id="il-kit"></g>
         </svg>
+        <div class="mini-ctl">
+          <button type="button" class="sw" id="il-sw" aria-checked="true">delay(500) у циклі</button>
+          <button type="button" class="btn sm primary" id="il-press">Натиснути кнопку</button>
+        </div>
+        <p class="mini-out" id="il-out" aria-live="polite">Натискайте кнопку в різні моменти. Час уповільнено: справжній прохід без delay — мікросекунди.</p>
       </figure>
       <p class="key"><b>Головне</b>Кожна функція в суперциклі робить крок і одразу повертається; чекання замінює перевірка <code>millis()</code>.</p>
     </article>
@@ -287,24 +522,31 @@ if (now - lastMs &gt;= kBlinkMs) {
       <h3><code>volatile</code> означає «перечитуй щоразу» — і нічого більше</h3>
       <p><b>Переривання</b> — сигнал від заліза (скажімо, натиснули кнопку), за яким процесор на мить кидає ваш код і виконує коротку функцію-обробник, <b>ISR</b> (interrupt service routine). Детально — в <a href="../2-4/">уроці 2.4</a>; тут важливо одне: ISR може змінити змінну «за спиною» у <code>loop()</code>.</p>
       <p>Компілятор економить: якщо в циклі змінну ніхто не змінює, він прочитає її один раз у регістр процесора і далі дивитиметься лише туди. Але прапорець може змінити <b>переривання</b>, а регістр периферії — саме <b>залізо</b>. <code>volatile</code> забороняє цю економію: кожне звернення в коді — справжнє читання чи запис пам'яті.</p>
-      <p>Чого він <b>не</b> дає: атомарності. <code>counter++</code> над <code>volatile</code> — це три окремі інструкції «прочитати, додати, записати»<sup class="cite" data-fact="xtensa-gcc-volatile-increment"></sup>, і переривання може вклинитися між ними. Для цього — коротка критична секція (на кілька інструкцій забороняє перериванням втручатися)<sup class="cite" data-fact="idf-critical-section"></sup> або <code>std::atomic</code>.</p>
-      <figure>
+      <details class="more"><summary>Детальніше: чого volatile не дає (атомарність)</summary>
+        <p>Чого він <b>не</b> дає: атомарності. <code>counter++</code> над <code>volatile</code> — це три окремі інструкції «прочитати, додати, записати»<sup class="cite" data-fact="xtensa-gcc-volatile-increment"></sup>, і переривання може вклинитися між ними. Для цього — коротка критична секція (на кілька інструкцій забороняє перериванням втручатися)<sup class="cite" data-fact="idf-critical-section"></sup> або <code>std::atomic</code>.</p>
+      </details>
+      <figure class="mini" id="m-vol">
         <svg class="fig-svg" viewBox="0 0 300 150" role="img" aria-label="Схема: переривання записує flag у пам'ять RAM. Цикл без volatile читає копію в регістрі a8 і не бачить зміни; з volatile цикл щоразу читає пам'ять.">
           <rect x="8" y="50" width="96" height="54" rx="8" fill="var(--panel)" stroke="var(--n5)" stroke-width="2"/>
           <text x="56" y="72" text-anchor="middle" fill="var(--ink)" font-size="14">RAM</text>
-          <text x="56" y="93" text-anchor="middle" fill="var(--ink)" font-size="15" class="mono">flag = 1</text>
+          <text id="iv-ram" x="56" y="93" text-anchor="middle" fill="var(--ink)" font-size="15" class="mono">flag = 0</text>
           <rect x="196" y="50" width="96" height="54" rx="8" fill="var(--panel)" stroke="var(--nsig2)" stroke-width="2"/>
           <text x="244" y="72" text-anchor="middle" fill="var(--ink)" font-size="14">регістр</text>
-          <text x="244" y="93" text-anchor="middle" fill="var(--ink)" font-size="15" class="mono">a8 = 0</text>
-          <text x="244" y="120" text-anchor="middle" fill="var(--muted)" font-size="14.5">стара копія</text>
-          <path d="M56 8 V44" stroke="var(--hi)" stroke-width="2.5"/><path d="M50 36 l6 10 l6 -10 z" fill="var(--hi)"/>
+          <text id="iv-reg" x="244" y="93" text-anchor="middle" fill="var(--ink)" font-size="15" class="mono">a8 = 0</text>
+          <text id="iv-st" x="244" y="120" text-anchor="middle" fill="var(--muted)" font-size="14.5">копія</text>
+          <g id="iv-isr" opacity=".35"><path d="M56 8 V44" stroke="var(--hi)" stroke-width="2.5"/><path d="M50 36 l6 10 l6 -10 z" fill="var(--hi)"/></g>
           <text x="64" y="22" fill="var(--hi-ink)" font-size="14">ISR пише</text>
           <path d="M108 66 H190" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 4"/>
           <text x="150" y="60" text-anchor="middle" fill="var(--muted)" font-size="14.5">1 раз</text>
-          <path d="M190 94 C160 140 120 140 108 98" fill="none" stroke="var(--ok)" stroke-width="2.5"/>
-          <path d="M104 106 l2 -12 l9 8 z" fill="var(--ok)"/>
+          <g id="iv-every" opacity=".25"><path id="iv-ev" d="M108 98 C120 140 160 140 190 94" fill="none" stroke="var(--ok)" stroke-width="3" stroke-dasharray="6 6"/>
+          <path d="M194 86 l-1 12 l-9 -6 z" fill="var(--ok)"/></g>
           <text x="150" y="146" text-anchor="middle" fill="var(--ok)" font-size="14.5">з volatile: щоразу</text>
         </svg>
+        <div class="mini-ctl">
+          <button type="button" class="sw" id="iv-sw" aria-checked="false">volatile</button>
+          <button type="button" class="btn sm primary" id="iv-go">⚡ ISR: flag = 1</button>
+        </div>
+        <p class="mini-out" id="iv-out" aria-live="polite">Цикл крутиться і дивиться в a8. Натисніть ISR.</p>
       </figure>
       <p class="key"><b>Головне</b><code>volatile</code> — для регістрів заліза і прапорців з ISR; він не робить операцію атомарною і не синхронізує задачі.</p>
     </article>
@@ -312,24 +554,33 @@ if (now - lastMs &gt;= kBlinkMs) {
     <article class="idea" id="idea-const">
       <h3><code>const</code> — «я не змінюю»; <code>constexpr</code> — «відомо ще під час компіляції»</h3>
       <p><code>const</code> — обіцянка коду не змінювати значення. Де воно ляже, вирішує інше: чи відоме значення компілятору. <code>const int kCalib = readCalib();</code> — константа, але її значення з'являється лише після старту, тож вона живе в RAM<sup class="cite" data-fact="xtensa-gcc-placement"></sup>. <code>constexpr</code> вимагає, щоб значення було відоме компілятору: таблиця ляже у Flash<sup class="cite" data-fact="idf-const-in-flash"></sup>, а одне число часто взагалі стає частиною інструкції<sup class="cite" data-fact="xtensa-gcc-constexpr-immediate"></sup>.</p>
-      <p><code>static</code> усередині функції — змінна, що пам'ятає значення між викликами: вона лежить у RAM поруч із глобальними, а не на стеку.</p>
+      <details class="more"><summary>Детальніше: static і «магічні числа»</summary>
+        <p><code>static</code> усередині функції — змінна, що пам'ятає значення між викликами: вона лежить у RAM поруч із глобальними, а не на стеку.</p>
       <p><b>Магічне число</b> — голе число в коді без імені, як <code>15</code> у <code>digitalWrite(15, HIGH)</code>: незрозуміло, що воно означає, і легко забути виправити його в усіх місцях. <code>constexpr uint8_t kLedPin = 15;</code> дає йому ім'я і не коштує жодного байта.</p>
-      <figure class="const-fig">
+      </details>
+      <figure class="const-fig mini" id="m-const">
         <svg class="fig-svg" viewBox="0 0 340 184" role="img" aria-label="Куди потрапляють три оголошення: constexpr kBlinkMs = 500 — ніде, число вшите в інструкцію; constexpr-таблиця kGamma — у Flash, секція .rodata; const kCalib = readCalib() — у RAM, секція .bss, бо значення з'являється лише після старту.">
           <text x="4" y="18" fill="var(--muted)" font-size="14.5">оголошення</text><text x="336" y="18" text-anchor="end" fill="var(--muted)" font-size="14.5">де живе</text>
-          <rect x="4" y="28" width="332" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
+          <g id="ic-r0"><rect x="4" y="28" width="332" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
           <text x="12" y="47" fill="var(--ink)" font-size="15" class="mono">constexpr kBlinkMs = 500</text>
           <text x="12" y="65" fill="var(--muted)" font-size="14.5">відоме компілятору, одне число</text>
-          <text x="328" y="56" text-anchor="end" fill="var(--accent)" font-size="14.5" font-weight="600">в інструкції</text>
-          <rect x="4" y="80" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--nsig2) 10%, var(--panel))" stroke="var(--nsig2)" stroke-width="1.5"/>
+          <text x="328" y="56" text-anchor="end" fill="var(--accent)" font-size="14.5" font-weight="600">в інструкції</text></g>
+          <g id="ic-r1"><rect x="4" y="80" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--nsig2) 10%, var(--panel))" stroke="var(--nsig2)" stroke-width="1.5"/>
           <text x="12" y="99" fill="var(--ink)" font-size="15" class="mono">constexpr kGamma[4]</text>
           <text x="12" y="117" fill="var(--muted)" font-size="14.5">відома таблиця</text>
-          <text x="328" y="108" text-anchor="end" fill="var(--nsig2)" font-size="14.5" font-weight="600">Flash .rodata</text>
-          <rect x="4" y="132" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--n5) 10%, var(--panel))" stroke="var(--n5)" stroke-width="1.5"/>
+          <text x="328" y="108" text-anchor="end" fill="var(--nsig2)" font-size="14.5" font-weight="600">Flash .rodata</text></g>
+          <g id="ic-r2"><rect x="4" y="132" width="332" height="44" rx="6" fill="color-mix(in srgb, var(--n5) 10%, var(--panel))" stroke="var(--n5)" stroke-width="1.5"/>
           <text x="12" y="151" fill="var(--ink)" font-size="15" class="mono">const kCalib = readCalib()</text>
           <text x="12" y="169" fill="var(--muted)" font-size="14.5">значення — після старту</text>
-          <text x="328" y="160" text-anchor="end" fill="var(--n5)" font-size="14.5" font-weight="600">RAM .bss</text>
+          <text x="328" y="160" text-anchor="end" fill="var(--n5)" font-size="14.5" font-weight="600">RAM .bss</text></g>
         </svg>
+        <div class="mini-ctl"><div class="seg" role="group" aria-label="Оголошення" id="ic-pick">
+          <button type="button" data-v="0" aria-pressed="false">kBlinkMs</button>
+          <button type="button" data-v="1" aria-pressed="false">kGamma</button>
+          <button type="button" data-v="2" aria-pressed="false">kCalib</button>
+          <button type="button" data-v="all" aria-pressed="true">усі</button>
+        </div></div>
+        <p class="mini-out" id="ic-out" aria-live="polite">Оберіть оголошення, щоб побачити, чому воно лягає саме туди.</p>
         <figcaption>Перевірено компіляцією для ESP32-S3<sup class="cite" data-fact="xtensa-gcc-placement"></sup>.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Пишіть <code>constexpr</code> для всього, що відоме наперед (піни, інтервали, таблиці); <code>const</code> — для «один раз обчислив і не чіпаю».</p>
@@ -925,6 +1176,7 @@ void loop() {
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -944,6 +1196,377 @@ document.addEventListener('study:ready', () => {
     return n;
   };
   const kb = (n) => `${fmt.num(n, 0)} КБ`;
+  // The 6×6 tactile button of our kit (assets/kit.js), inset into a page-unit SVG; box is fixed (the pane may be hidden).
+  const kitButton = (host, x, y, size, title) => {
+    const v = svgEl('svg', { x, y, width: size, height: size, viewBox: '-14 -14 80 105', overflow: 'visible', preserveAspectRatio: 'xMidYMid meet' }, host);
+    return window.Kit.part('button', { parent: v, title });
+  };
+
+  /* ================================================================ LAB: memory lab (three panes) */
+  const pressSeg = (box, btn) => $$('button', box).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  const bytes = (n) => (n >= 1024 && n % 256 === 0 ? `${fmt.num(n / 1024, n % 1024 ? 2 : 0)} КБ` : `${fmt.num(n, 0)} Б`);
+  $$('#ml-tab button').forEach((b) => b.addEventListener('click', () => {
+    pressSeg($('#ml-tab'), b);
+    ['map', 'heap', 'isr'].forEach((k) => { $('#ml-' + k).hidden = k !== b.dataset.v; });
+  }));
+
+  /* ---- pane 1: where does each declaration land */
+  (() => {
+    // sec: section row; n: bytes; tok: token label; note: why (placement facts: xtensa-gcc-placement / -constexpr-immediate)
+    const D = {
+      pin: { sec: 'text', n: 0, tok: 'movi 15', note: 'constexpr kLedPin не створює змінної взагалі: число 15 вшите прямо в інструкцію (movi). У RAM — 0 байт.' },
+      gamma: { sec: 'rodata', n: 4, tok: 'kGamma', note: 'Таблиця відома компілятору — лягає у Flash, секція .rodata. RAM не витрачено.' },
+      calib: { sec: 'bss', n: 4, tok: 'kCalib', note: 'const, але значення з\'являється лише після старту (readCalib()): місце в RAM, секція .bss. const ≠ «у Flash».' },
+      count: { sec: 'data', n: 4, tok: 'g_count', also: ['init', 'стартове 7'], note: 'Змінна з початковим значенням — .data у RAM. Саме число 7 лежить у Flash і копіюється в RAM при старті.' },
+      buf: { sec: 'bss', n: 1024, tok: 'g_buf', note: 'Глобальний масив без ініціалізатора — .bss: 1 КБ RAM зайнято назавжди, з першої миті.' },
+      last: { sec: 'bss', n: 4, tok: 'lastMs', note: 'static усередині функції живе не на стеку, а поруч із глобальними (.bss) і пам\'ятає значення між викликами loop().' },
+      frame: { sec: 'stack', n: 1024, tok: 'frame', note: 'Локальний масив — на стеку loop(): з\'являється при вході у функцію і зникає при виході. Стек loop() — лише 8192 Б.' },
+      big: { sec: 'stack', n: 10240, tok: 'big', note: 'Локальний масив на 10 КБ не влазить у стек loop() на 8 КБ: переповнення стека, плата впаде. Великі буфери — глобальні або з купи в setup().' },
+      m2k: { sec: 'heap', n: 2000, tok: 'p', note: 'malloc до 4096 Б у нашій збірці завжди бере внутрішню SRAM (купу).' },
+      m16k: { sec: 'psram', n: 16384, tok: 'q', note: 'malloc понад 4096 Б спершу пробує PSRAM: 16 КБ лягають у зовнішні 8 МБ. ESP.getFreeHeap() їх не покаже.' },
+      str: { sec: 'heap', n: 0, tok: 'String ×N', note: 'Кожна склейка String у loop() — нові виділення в купі на кожному проході. Подивіться, що з цього виходить, на вкладці «Купа і String».' },
+    };
+    const on = new Set();
+    const row = (sec) => $(`#mm2 [data-sec="${sec}"] .tok`);
+    function token(sec, label, n, id, bad) {
+      const t = document.createElement('span');
+      t.className = 'tk enter new' + (bad ? ' bad' : ''); t.dataset.id = id;
+      t.innerHTML = `${label}${n ? ` <small>${bytes(n)}</small>` : ''}`;
+      row(sec).appendChild(t);
+      requestAnimationFrame(() => requestAnimationFrame(() => t.classList.remove('enter')));
+      setTimeout(() => t.classList.remove('new'), 1200);
+    }
+    function totals() {
+      let ram = 0, stk = 0, heap = 0, ps = 0, fl = 0;
+      on.forEach((k) => {
+        const d = D[k];
+        if (d.sec === 'data' || d.sec === 'bss') ram += d.n;
+        if (d.sec === 'stack') stk += d.n;
+        if (d.sec === 'heap') heap += d.n;
+        if (d.sec === 'psram') ps += d.n;
+        if (d.sec === 'rodata') fl += d.n;
+        if (d.also) fl += d.n;
+      });
+      $('#mr-ram').textContent = bytes(ram); $('#mr-heap').textContent = bytes(heap) + (on.has('str') ? ' + String' : '');
+      $('#mr-ps').textContent = bytes(ps); $('#mr-fl').textContent = bytes(fl);
+      const over = stk > 8192;
+      $('#mr-stk').textContent = over ? `${bytes(stk)}!` : bytes(stk);
+      $('#mr-stk').className = over ? 'bad' : '';
+      const bar = $('#mm2-stk'); bar.style.width = Math.min(100, stk / 8192 * 100) + '%'; bar.classList.toggle('over', over);
+      $('#mm2-stkt').textContent = over ? `переповнення: ${fmt.num(stk, 0)} > 8192 Б` : `${fmt.num(stk, 0)} з 8192 Б`;
+    }
+    function toggle(k, force) {
+      const b = $(`.decl[data-d="${k}"]`), d = D[k];
+      const want = force ?? !on.has(k);
+      if (want === on.has(k)) return;
+      b.setAttribute('aria-pressed', String(want));
+      if (want) {
+        on.add(k); token(d.sec, d.tok, d.n, k, k === 'big');
+        if (d.also) token(d.also[0], d.also[1], 0, k);
+        $('#mm2-note').textContent = d.note;
+      } else {
+        on.delete(k); $$(`#mm2 .tk[data-id="${k}"]`).forEach((t) => t.remove());
+        $('#mm2-note').textContent = 'Рядок прибрано зі скетчу — і його місце в пам\'яті звільнилось.';
+      }
+      totals();
+    }
+    $$('.decl').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.d)));
+    $('#mm2-all').addEventListener('click', () => { Object.keys(D).forEach((k) => toggle(k, k !== 'big')); $('#mm2-note').textContent = 'Увесь скетч розкладено: зверніть увагу, скільки рядків узагалі не займають RAM.'; });
+    $('#mm2-clr').addEventListener('click', () => { Object.keys(D).forEach((k) => toggle(k, false)); $('#mm2-note').textContent = 'Скетч порожній.'; });
+    totals();
+  })();
+
+  /* ---- pane 2: heap churn with String concatenation (schematic first-fit heap) */
+  (() => {
+    const N = 64, CELL = 256;
+    let cells, n, hist, seed, kept, timer, askState, uid = 0, lastAsk = 0;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const strip = $('#hp'); strip.innerHTML = '<i></i>'.repeat(N);
+    const is = $$('i', strip);
+    function reset() {
+      cells = new Array(N).fill(0); n = 0; hist = []; seed = 7; kept = []; timer = 0; askState = '—';
+      for (let i = 0; i < 6; i++) cells[i] = 'x0'; // buffers taken in setup()
+      $('#hr-ask').textContent = '—'; $('#hr-ask').className = '';
+      sample(); paint();
+    }
+    const freeRuns = () => { const r = []; let s = -1; for (let i = 0; i <= N; i++) { if (i < N && !cells[i]) { if (s < 0) s = i; } else if (s >= 0) { r.push([s, i - s]); s = -1; } } return r; };
+    // your malloc: first fit; Strings: any hole that fits (a schematic stand-in for a real allocator's choices)
+    function alloc(len, tag) {
+      const runs = freeRuns().filter(([, l]) => l >= len); if (!runs.length) return null;
+      let at;
+      if (tag === 'u') at = runs[0][0];
+      else { const [st, l] = runs[Math.floor(rnd() * runs.length)]; at = st + Math.floor(rnd() * (l - len + 1)); }
+      const id = tag + (++uid); for (let i = at; i < at + len; i++) cells[i] = id; return id;
+    }
+    const free = (id) => { for (let i = 0; i < N; i++) if (cells[i] === id) cells[i] = 0; };
+    function stats() { const r = freeRuns(); return { tot: r.reduce((a, [, l]) => a + l, 0), max: r.reduce((a, [, l]) => Math.max(a, l), 0) }; }
+    function sample() { const s = stats(); hist.push(s); if (hist.length > 120) hist.shift(); }
+    function paint() {
+      is.forEach((c, i) => { const v = cells[i]; c.className = !v ? 'f' : v[0]; });
+      const s = stats();
+      $('#hr-n').textContent = fmt.num(n, 0);
+      $('#hr-free').textContent = bytes(s.tot * CELL);
+      $('#hr-max').textContent = bytes(s.max * CELL);
+      $('#hr-max').className = s.max < 12 ? 'bad' : '';
+      // graph
+      const X = (i) => 2 + i / 119 * 516, Y = (c) => 114 - c / (N - 6) * 104;
+      $('#hp-lf').setAttribute('points', hist.map((h, i) => `${X(i).toFixed(1)},${Y(h.tot).toFixed(1)}`).join(' '));
+      $('#hp-lm').setAttribute('points', hist.map((h, i) => `${X(i).toFixed(1)},${Y(h.max).toFixed(1)}`).join(' '));
+    }
+    $('#hp-gr').innerHTML = `<path d="M0 ${114 - 12 / 58 * 104}H520" stroke="var(--nsig2)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" fill="none"/>`;
+    // one pass of loop(): String a = "t=" + String(t); a += …;  — temporaries, and every 4th result is kept in a history list
+    function pass() {
+      n++;
+      const a = alloc(1 + Math.floor(rnd() * 2), 's');
+      const b = alloc(2 + Math.floor(rnd() * 3), 's');
+      if (a) free(a);
+      if (n % 3 === 0) { const k = alloc(1, 'k'); if (k) kept.push(k); if (kept.length > 12) free(kept.shift()); }
+      if (b) free(b);
+      if (!a || !b) $('#hp-note').textContent = 'String не зміг виділити пам\'ять: рядок порожній, дані тихо втрачено. Так і «зависла» метеостанція з розділу 01.';
+    }
+    const sim = Study.sim($('#ml-heap .lab-stage'), (dt) => {
+      if (!dt || $('#hp-sw').getAttribute('aria-checked') !== 'true') return;
+      timer += dt;
+      while (timer > 0.1) { timer -= 0.1; pass(); sample(); }
+      paint();
+      const s = stats();
+      if (s.max < 12 && performance.now() - lastAsk > 4000 && !/втрачено/.test($('#hp-note').textContent)) $('#hp-note').textContent = `Вільно ще ${bytes(s.tot * CELL)}, але найбільший суцільний шматок — лише ${bytes(s.max * CELL)}. Спробуйте malloc(3 КБ).`;
+    });
+    $('#hp-sw').addEventListener('switch', (e) => {
+      $('#hp-note').textContent = e.detail.on ? 'Пішло: жовті тимчасові рядки з\'являються й зникають, а зелені лишаються жити і розсікають купу.' : 'Склейки вимкнено: у циклі — статичний буфер і snprintf, купа більше не змінюється.';
+      if (e.detail.on) sim.play();
+    });
+    $('#hp-ask').addEventListener('click', () => {
+      lastAsk = performance.now();
+      const id = alloc(12, 'u');
+      const o = $('#hr-ask');
+      if (id) { o.textContent = 'вказівник ✓'; o.className = 'ok'; $('#hp-note').textContent = 'Знайшовся суцільний шматок на 3 КБ — malloc повернув вказівник (синій блок). Він тепер теж займає купу.'; }
+      else { const s = stats(); o.textContent = 'NULL'; o.className = 'bad'; $('#hp-note').textContent = `malloc(3 КБ) повернув NULL: вільно ${bytes(s.tot * CELL)}, але поспіль лише ${bytes(s.max * CELL)}. Зайняті блоки ніхто не посуне.`; }
+      sample(); paint();
+    });
+    $('#hp-reset').addEventListener('click', () => { reset(); $('#hp-note').textContent = 'Після перезавантаження купа знову ціла — тому такий баг і «лікується» перезапуском, а потім повертається.'; });
+    reset();
+  })();
+
+  /* ---- pane 3: the loop that waits for a flag set by an ISR */
+  (() => {
+    let vol = false, opt = true, ram = 0, reg = null, laps = 0, ang = 0, exited = false, lastRead = -9, isrT = 9, lapsAfter = 0;
+    const reads = () => vol || !opt;
+    const ASM = {
+      opt: ['l8ui  a8, flag    ; читає 1 раз', 'bnez  a8, .L5', '.L4: j .L4        ; стрибок на себе', 'цикл не дивиться в RAM'],
+      vol: ['.L7: memw', 'l8ui  a8, flag    ; щоразу', 'beqz  a8, .L7', 'читання на кожному оберті'],
+      o0: ['.L2: l8ui a8, flag ; щоразу', 'beqz  a8, .L2', '', '-O0: кожне читання як написано'],
+    };
+    function asm() {
+      const L = vol ? ASM.vol : opt ? ASM.opt : ASM.o0;
+      [1, 2, 3, 4].forEach((k) => { $('#vr-asm' + k).textContent = L[k - 1]; });
+    }
+    function reset() { ram = 0; reg = null; laps = 0; ang = 0; exited = false; isrT = 9; lapsAfter = 0; draw(); $('#vr-note').textContent = 'Цикл чекає на прапорець. Натисніть «Переривання».'; }
+    function draw() {
+      $('#vr-ram').textContent = `flag = ${ram}`; $('#vr-reg').textContent = `a8 = ${reg ?? '—'}`;
+      $('#vr-laps').textContent = `обертів: ${laps}`;
+      const a = ang * Math.PI / 180;
+      $('#vr-dot').setAttribute('cx', exited ? 78 : (78 + 56 * Math.sin(a)).toFixed(1));
+      $('#vr-dot').setAttribute('cy', exited ? 222 : (104 - 56 * Math.cos(a)).toFixed(1));
+      $('#vr-exitb').setAttribute('stroke', exited ? 'var(--ok)' : 'var(--line-strong)');
+      $('#vr-exit').setAttribute('fill', exited ? 'var(--ok)' : 'var(--muted)');
+      $('#vr-exit').textContent = exited ? 'вийшли ✓ обробка' : 'далі: обробка';
+      const rd = Math.max(0.15, 1 - lastRead * 2.2);
+      $('#vr-rd').setAttribute('opacity', rd.toFixed(2)); $('#vr-rdh').setAttribute('opacity', rd.toFixed(2));
+      $('#vr-rdt').textContent = reads() ? 'читання щоразу' : laps > 0 ? 'більше не читає' : 'читання';
+      $('#vr-bolt').setAttribute('opacity', Math.max(0, 1 - isrT / 0.8).toFixed(2));
+      const pr = isrT < 0.45;
+      if (vrBtn.state.pressed !== pr) { vrBtn.set({ pressed: pr }); $('#vr-btnhalo').setAttribute('opacity', pr ? 1 : 0); }
+      $('#vr-ramb').setAttribute('stroke-width', isrT < 0.8 ? 4 : 2);
+    }
+    const vrBtn = kitButton($('#vr-kit'), 254, 12, 44, 'Тактова кнопка з набору: її натискання викликає переривання');
+    const sim = Study.sim($('#vr-stage'), (dt) => {
+      isrT += dt; lastRead += dt;
+      if (!exited) {
+        const prev = ang; ang = (ang + dt * 200) % 360;
+        if (dt && ang < prev) { // one lap done → the loop checks
+          laps++;
+          if (reads() || laps === 1) { reg = ram; lastRead = 0; }
+          if (reg === 1) { exited = true; $('#vr-note').textContent = vol ? 'З volatile цикл перечитав RAM, побачив flag = 1 і вийшов.' : 'Без оптимізації кожне читання лишається в коді: цикл побачив прапорець. Але наше ядро збирає з -Os…'; }
+          else if (ram === 1) {
+            lapsAfter++;
+            if (lapsAfter >= 2) $('#vr-note').textContent = `У RAM уже flag = 1, а цикл дивиться в стару копію a8 = 0: ${lapsAfter} обертів «не помічає». Він крутитиметься вічно. Увімкніть volatile.`;
+          }
+        }
+      }
+      draw();
+    });
+    $('#vr-isr').addEventListener('click', () => { ram = 1; isrT = 0; lapsAfter = 0; if (!exited) $('#vr-note').textContent = 'ISR записав flag = 1 у RAM. Дивіться, чи цикл це побачить…'; sim.play(); sim.draw(); });
+    $('#vr-reset').addEventListener('click', () => { reset(); sim.play(); });
+    $('#vr-vol').addEventListener('switch', (e) => { vol = e.detail.on; asm(); reset(); });
+    $('#vr-opt').addEventListener('switch', (e) => { opt = e.detail.on; asm(); reset(); });
+    asm(); reset();
+  })();
+
+
+  /* ================================================================ 04 idea cards: small live demos */
+  const tween = (dur, fn) => {
+    if (reduced()) { fn(1); return; }
+    const t0 = performance.now();
+    const step = (now) => { const p = Math.min(1, (now - t0) / 1000 / dur); fn(p); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  };
+  /* idea-mem: which store does it go to */
+  (() => {
+    const Y = { flash: 32, sram: 96, psram: 160 };
+    const WHY = {
+      flash: 'Відоме ще до запуску й не змінюється — лежить у Flash і не займає SRAM.',
+      sram: 'Змінюється під час роботи — потрібна SRAM: швидка, але її лише 512 КБ.',
+      psram: 'Великий буфер з купи (понад 4096 Б) у нашій збірці лягає в PSRAM на 8 МБ.',
+    };
+    $$('#im-what button').forEach((b) => b.addEventListener('click', () => {
+      pressSeg($('#im-what'), b);
+      const [k, name] = b.dataset.v.split('|');
+      ['flash', 'sram', 'psram'].forEach((r) => $('#im-' + r).setAttribute('stroke-width', r === k ? 5 : 2));
+      $('#im-ptr').setAttribute('opacity', 1);
+      $('#im-lbl').setAttribute('y', Y[k] + 18); $('#im-lbl').textContent = '← ' + name;
+      $('#im-arrow').setAttribute('d', 'M0 0');
+      $('#im-out').textContent = `${name}: ${WHY[k]}`;
+    }));
+  })();
+  /* idea-heap: free the middle car — only then the bus parks */
+  (() => {
+    $('#ih-sw').addEventListener('switch', (e) => {
+      const on = e.detail.on;
+      tween(0.8, (p) => {
+        const q = on ? p : 1 - p;
+        $('#ih-car').setAttribute('opacity', (1 - q).toFixed(2));
+        $('#ih-car').setAttribute('transform', `translate(0 ${(-q * 20).toFixed(1)})`);
+        const by = q > 0.5 ? (q - 0.5) * 2 : 0;
+        $('#ih-bus').setAttribute('transform', `translate(${(-2 * by).toFixed(1)} ${(46 * by).toFixed(1)})`);
+      });
+      $('#ih-busr').setAttribute('stroke', on ? 'var(--ok)' : 'var(--bad)');
+      $('#ih-bust').setAttribute('fill', on ? 'var(--ok)' : 'var(--bad)');
+      $('#ih-bust').textContent = on ? 'автобус 12 м ✓' : 'автобус 12 м ✕';
+      $('#ih-t1').textContent = on ? 'сусід поїхав: 4 + 4,4 + 5 м' : 'вільно 12 м, але поспіль —';
+      $('#ih-t2').textContent = on ? 'поспіль 13,4 м — влазить' : 'максимум 5 м';
+      $('#ih-out').textContent = on ? 'Дві дірки злилися в одну лише тому, що звільнився блок між ними. Самі блоки в купі ніхто не пересуває.' : 'Автобус не стає: жодна дірка не має 12 м поспіль.';
+    });
+  })();
+  /* idea-loop: the watchman, with and without a nap */
+  (() => {
+    let useDelay = true, ang = 0, sleep = 0, pressT = -9, caught = 0, missed = 0, t = 0, pending = false;
+    const dot = $('#il-dot');
+    const LAP = 0.5, NAP = 1.5, WIN = 0.6;
+    const ilBtn = kitButton($('#il-kit'), 262, 134, 38, 'Тактова кнопка з набору');
+    const sim = Study.sim($('#m-loop svg'), (dt) => {
+      t += dt;
+      if (sleep > 0) { sleep -= dt; dot.setAttribute('cx', 230); dot.setAttribute('cy', 52); }
+      else {
+        const prev = ang; ang = (ang + dt / LAP * 360) % 360;
+        if (ang < prev) { // reached «1 входи»: the button is read here
+          if (pending && t - pressT <= WIN) { caught++; pending = false; report(); }
+          if (useDelay) sleep = NAP;
+        }
+        const a = ang * Math.PI / 180;
+        dot.setAttribute('cx', (110 + 58 * Math.sin(a)).toFixed(1)); dot.setAttribute('cy', (88 - 58 * Math.cos(a)).toFixed(1));
+      }
+      if (pending && t - pressT > WIN) { missed++; pending = false; report(); }
+      $('#il-btn').setAttribute('opacity', t - pressT < WIN ? 1 : 0);
+      const pr = t - pressT < 0.25;
+      if (ilBtn.state.pressed !== pr) ilBtn.set({ pressed: pr });
+    });
+    function report() { $('#il-out').textContent = `Помічено натискань: ${caught}, пропущено: ${missed}. ${useDelay ? 'Поки вахтер спить у delay(), кнопку ніхто не читає.' : 'Без delay() цикл обертається так швидко, що бачить кожне натискання.'}`; }
+    $('#il-sw').addEventListener('switch', (e) => { useDelay = e.detail.on; sleep = 0; caught = missed = 0; $('#il-delay').setAttribute('opacity', useDelay ? 1 : 0.25); report(); });
+    $('#il-press').addEventListener('click', () => { if (pending) { missed++; } pressT = t; pending = true; sim.play(); });
+  })();
+  /* idea-volatile: does the loop re-read RAM? */
+  (() => {
+    let vol = false, off = 0, busy = false;
+    const sim = Study.sim($('#m-vol svg'), (dt) => {
+      off -= dt * 40;
+      $('#iv-ev').setAttribute('stroke-dashoffset', off.toFixed(1));
+    });
+    function show() {
+      $('#iv-every').setAttribute('opacity', vol ? 1 : 0.25);
+      $('#iv-st').textContent = vol ? 'перечитується щоразу' : 'копія з першого читання';
+    }
+    $('#iv-sw').addEventListener('switch', (e) => { vol = e.detail.on; $('#iv-ram').textContent = 'flag = 0'; $('#iv-reg').textContent = 'a8 = 0'; $('#iv-out').textContent = vol ? 'З volatile цикл на кожному оберті читає RAM (зелена стрілка біжить).' : 'Без volatile компілятор прочитав flag один раз — далі цикл дивиться лише в a8.'; show(); });
+    $('#iv-go').addEventListener('click', () => {
+      if (busy) return; busy = true;
+      $('#iv-ram').textContent = 'flag = 0'; $('#iv-reg').textContent = 'a8 = 0';
+      tween(1.6, (p) => {
+        $('#iv-isr').setAttribute('opacity', p < 0.4 ? 1 : 0.35);
+        if (p > 0.25) $('#iv-ram').textContent = 'flag = 1';
+        if (p > 0.7 && vol) $('#iv-reg').textContent = 'a8 = 1';
+        if (p >= 1) {
+          busy = false;
+          $('#iv-out').textContent = vol ? 'ISR записав 1 у RAM, наступне читання принесло її в a8 — цикл вийшов.' : 'У RAM уже 1, а в a8 так і лишився 0: цикл не бачить прапорця і крутиться вічно.';
+        }
+      });
+      sim.play();
+    });
+    show();
+  })();
+  /* idea-const: why each line lands where it does */
+  (() => {
+    const T = [
+      'constexpr kBlinkMs = 500 — одне число, відоме компілятору: змінної немає, 500 вшито в інструкцію. 0 байт RAM.',
+      'constexpr kGamma[4] — таблиця, відома компілятору: лежить у Flash, секція .rodata. RAM не витрачено.',
+      'const kCalib = readCalib() — обіцянка не змінювати, але значення з\'являється лише після старту: місце в RAM (.bss).',
+    ];
+    $$('#ic-pick button').forEach((b) => b.addEventListener('click', () => {
+      pressSeg($('#ic-pick'), b);
+      const v = b.dataset.v;
+      [0, 1, 2].forEach((k) => $('#ic-r' + k).classList.toggle('dim-row', v !== 'all' && +v !== k));
+      $('#ic-out').textContent = v === 'all' ? 'Оберіть оголошення, щоб побачити, чому воно лягає саме туди.' : T[+v];
+    }));
+  })();
+
+  /* ================================================================ ANIM: the call stack grows and shrinks */
+  (() => {
+    const col = $('#st-col'), lines = $$('#st-code span');
+    const H = 270, PX = 24; // column height; px per frame unit (illustrative sizes, not to scale)
+    const FR = [
+      { id: 'loop', t: 'loop()', s: 'now, адреса повернення', u: 2.4, c: 'var(--accent)' },
+      { id: 'rs', t: 'readSensor()', s: 'buf[64], адреса повернення', u: 3.6, c: 'var(--nsig2)' },
+      { id: 'fl', t: 'filter()', s: 'sum, b', u: 2, c: 'var(--hi)' },
+      { id: 'big', t: 'uint8_t big[10240]', s: '10 КБ > 8 КБ стека!', u: 14, c: 'var(--bad)' },
+    ];
+    const els = {};
+    FR.forEach((f) => {
+      const d = document.createElement('div'); d.className = 'st-fr'; d.style.setProperty('--c', f.c);
+      d.innerHTML = `${f.t}<small>${f.s}</small>`; d.style.opacity = 0; col.appendChild(d); els[f.id] = d;
+    });
+    const sp = document.createElement('span'); sp.className = 'st-sp'; sp.textContent = '← SP'; col.appendChild(sp);
+    function lay(vis) { // vis: {id: 0..1}
+      let y = 4;
+      FR.forEach((f) => {
+        const v = vis[f.id] || 0, h = f.u * PX;
+        const e = els[f.id];
+        e.style.top = y + 'px'; e.style.height = (h * Math.min(1, v)) + 'px'; e.style.opacity = v > 0.02 ? Math.min(1, v * 1.5) : 0;
+        y += h * Math.min(1, v) + (v > 0.02 ? 3 : 0);
+      });
+      sp.style.top = Math.min(y, H + 60) + 'px';
+      sp.style.color = y > H ? 'var(--bad)' : '';
+    }
+    const hl = (k) => lines.forEach((l, i) => l.classList.toggle('on', [].concat(k).includes(i)));
+    const ease = (p) => 1 - Math.pow(1 - Math.min(1, p * 1.6), 3);
+    Study.anim($('#st-anim'), {
+      steps: [
+        { title: 'loop()', dur: 3.5, cap: 'Ядро викликає <code>loop()</code>. На стеку задачі loopTask (8&nbsp;КБ) з\'являється її <b>кадр</b>: локальна <code>now</code> і адреса, куди повернутися.' },
+        { title: 'Виклик readSensor()', dur: 4, cap: '<code>loop()</code> кличе <code>readSensor()</code>: новий кадр лягає <b>поверх</b> попереднього. Локальний <code>buf[64]</code> живе саме тут. Покажчик стека (SP) зсувається.' },
+        { title: 'Виклик filter()', dur: 3.5, cap: 'Ще глибше: <code>filter()</code> отримує свій кадр. Що глибший ланцюжок викликів і що більші локальні масиви, то більше стека зайнято.' },
+        { title: 'filter() повертає', dur: 3.5, cap: '<code>return sum</code>: кадр <code>filter()</code> просто зникає — SP повертається назад. Нічого звільняти не треба, і фрагментації тут не буває.' },
+        { title: 'readSensor() повертає', dur: 3.5, cap: 'Те саме з <code>readSensor()</code>: її <code>buf[64]</code> більше не існує. Тому не можна повертати вказівник на локальний масив.' },
+        { title: 'А якщо big[10240]?', dur: 4.5, cap: 'Локальний масив на 10&nbsp;КБ не влазить у 8&nbsp;КБ стека loop(): кадр вилазить за межу — <b>переповнення стека</b>, і плата падає. Великі буфери — глобальні або з купи в <code>setup()</code>.' },
+      ],
+      draw(i, p) {
+        const e = ease(p);
+        if (i === 0) { lay({ loop: e }); hl([0, 1]); }
+        else if (i === 1) { lay({ loop: 1, rs: e }); hl([2, 4, 5]); }
+        else if (i === 2) { lay({ loop: 1, rs: 1, fl: e }); hl([6, 8, 9]); }
+        else if (i === 3) { lay({ loop: 1, rs: 1, fl: 1 - e }); hl([10]); }
+        else if (i === 4) { lay({ loop: 1, rs: 1 - e }); hl([6]); }
+        else { lay({ loop: 1, big: e }); hl([]); }
+      },
+    });
+  })();
 
   /* ================= 04 life stepper: const / constexpr / static / volatile over time ================= */
   const LIFE = [

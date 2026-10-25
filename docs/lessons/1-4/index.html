@@ -56,20 +56,20 @@
 .px-board .usb { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
 .px-board .pin { cursor: pointer; outline: none; }
 .px-board .pin .hit { fill: transparent; }
-.px-board .pin .shape { stroke: var(--panel); stroke-width: 1.5; transition: opacity .15s; }
-.px-board .pin .lbl { fill: var(--ink); font: 600 14px var(--f-mono); }
+.px-board .pin .shape { stroke: var(--panel); stroke-width: 2.5; transition: opacity .15s; }
+.px-board .pin .lbl { fill: var(--ink); font: 600 18px var(--f-mono); } /* Kit units: ≥ 14 px at the 560 px minimum width */
 .px-board .v-ok .shape { fill: var(--ok); }
 .px-board .v-care .shape { fill: var(--hi); }
 .px-board .v-no .shape { fill: var(--bad); }
 .px-board .v-power .shape { fill: var(--muted); }
-.px-board .pin .ring { fill: none; stroke: var(--accent); stroke-width: 2.5; opacity: 0; }
+.px-board .pin .ring { fill: none; stroke: var(--accent); stroke-width: 4; opacity: 0; }
 .px-board .pin.sel .ring, .px-board .pin:focus-visible .ring { opacity: 1; }
 .px-board.filtering .pin:not(.match) .shape, .px-board.filtering .pin:not(.match) .lbl { opacity: .22; }
-.px-board.filtering .pin.match .ring { opacity: 1; stroke: var(--ink); stroke-dasharray: 3 2; }
+.px-board.filtering .pin.match .ring { opacity: 1; stroke: var(--ink); stroke-dasharray: 5 3; }
 .px-board .pin .neu { display: none; fill: var(--muted); }
 .px-board.drilling .pin .shape { display: none; }
 .px-board.drilling .pin .neu { display: inline; }
-.px-board .pin.found .ring { opacity: 1; stroke: var(--ok); stroke-width: 3; stroke-dasharray: none; }
+.px-board .pin.found .ring { opacity: 1; stroke: var(--ok); stroke-width: 5; stroke-dasharray: none; }
 .px-board.drilling .pin.found .neu { fill: var(--ok); }
 .px-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 @media (max-width: 599px) { .px-scroll .px-board { min-width: 560px; } }
@@ -120,6 +120,92 @@
 ol.fixes > li { margin-bottom: 8px; }
 .tline { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tline td, .tline th { border-top: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+
+/* ---- lab: pinout bench on the Kit board (assets/kit.js): hardware colours are fixed, labels follow the theme. */
+.pb-filters { border-top: 0; border-bottom: 1px solid var(--line); }
+.pb-filters .sw { font-size: 14px; }
+.pb-sw { display: inline-block; width: 10px; height: 10px; margin: 0 6px 0 2px; border-radius: 2px; background: var(--c); vertical-align: 0; }
+.pb-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .pb-grid { grid-template-columns: minmax(0, 1fr) 250px; align-items: start; } .pb-grid > .pb-card { order: 2; } }
+@media (max-width: 899px) { .pb-card { position: sticky; top: 64px; z-index: 2; max-height: 36vh; overflow: auto; box-shadow: var(--shadow); } .pb-card .cls { display: none; } }
+.pb-wrap { min-width: 0; }
+#pb-board { display: block; width: 100%; height: auto; margin: 0 auto; }
+#pb-board.vert { max-width: 420px; }
+.pb-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-height: 96px; font-size: 15px; }
+.pb-card h4 { margin: 0 0 4px; font: 650 20px var(--f-mono); }
+.pb-card p { margin: 6px 0; }
+.pb-card .verdict { display: inline-block; font: 600 13px var(--f-mono); letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; border: 1.5px solid currentColor; margin: 0 6px 4px 0; }
+.pb-card .vd-ok { color: var(--ok); } .pb-card .vd-care { color: var(--hi-ink); } .pb-card .vd-no { color: var(--bad); } .pb-card .vd-power, .pb-card .vd-absent { color: var(--muted); }
+.pb-card .cls { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 6px; padding: 0; list-style: none; }
+.pb-card .cls li { font-size: 13px; padding: 1px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); margin: 0; }
+.pb-card .src { font-size: 13px; color: var(--muted); }
+.pb-card .use { margin-top: 8px; min-height: 40px; }
+.pb-src { margin: 8px 0 0; }
+/* Kit (assets/kit.js): the board keeps its real colours (purple PCB) in both themes; labels around it follow the theme */
+.pb-mem { fill: #f4f1ea; fill-opacity: .55; stroke: #4c5358; stroke-width: 2.5; stroke-dasharray: 7 5; }
+.pb-mem-t { fill: #2a2f33; font: 700 17px var(--f-mono); }
+.pb-pin { cursor: pointer; outline: none; }
+.pb-pin .hit { fill: transparent; }
+.pb-pin .mk { fill: var(--c, transparent); stroke: #fff; stroke-width: 0; opacity: 0; }
+.pb-pin .ring { fill: none; stroke: var(--accent); stroke-width: 5; opacity: 0; }
+.pb-pin .lbl { fill: var(--ink); font: 600 20px var(--f-mono); } /* Kit units: ≥ 15 px on screen in both layouts */
+.pb-pin:hover .ring { opacity: .5; }
+.pb-pin.sel .ring, .pb-pin:focus-visible .ring { opacity: 1; }
+.pb-pin:focus-visible .ring { stroke: var(--focus, var(--accent)); stroke-dasharray: 6 4; }
+#pb-board.filtering .pb-pin:not(.match) .lbl { opacity: .35; }
+.pb-pin.match .mk { opacity: .9; stroke-width: 3; }
+.pb-pin.match .lbl { fill: var(--c); font-weight: 800; }
+.pb-pin.match.tinted .lbl { fill: var(--ink); }
+.pb-trace { fill: none; stroke: var(--c); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity .25s; }
+.pb-trace.on { opacity: .9; }
+.pb-hl { fill: var(--c); opacity: 0; }
+.pb-hl.on { opacity: .55; }
+@media (prefers-reduced-motion: reduce) { .pb-trace { transition: none; } }
+/* input demo */
+.pb-in { padding: 12px 18px; border-top: 1px solid var(--line); background: var(--sheet, var(--panel)); }
+.pb-in-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 820px) { .pb-in-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; } }
+#pb-sch, #pa-svg { display: block; width: 100%; height: auto; max-width: 460px; margin: 0 auto; }
+.pb-sch-col { display: grid; gap: 8px; align-content: start; min-width: 0; }
+#pb-btn { display: block; width: 100%; max-width: 380px; height: auto; margin: 0 auto; }
+.kit-scene { overflow: hidden; }
+#pb-btn .kit-button { cursor: pointer; }
+.kit-scene .kit-lbl { fill: var(--ink); font: 600 calc(var(--k, 2) * 13px) var(--f-mono); paint-order: stroke; stroke: var(--panel); stroke-width: calc(var(--k, 2) * 3px); stroke-linejoin: round; }
+.kit-scene .kit-lbl.sig { fill: var(--nsig-ink); }
+.kit-scene .kit-lbl.mid { dominant-baseline: central; } .kit-scene .kit-lbl.end { text-anchor: end; } .kit-scene .kit-lbl.start { text-anchor: start; }
+.kit-scene .kit-lead { fill: none; stroke: var(--muted); stroke-width: calc(var(--k, 2) * 1.2px); stroke-dasharray: calc(var(--k, 2) * 3px) calc(var(--k, 2) * 2px); }
+.kit-scene .schem-flow { vector-effect: non-scaling-stroke; }
+.kit-scene .kit-strip { fill: transparent; }
+.kit-scene .kit-strip.net-on { fill: currentColor; fill-opacity: .35; }
+.kit-scene g[data-net].net-on { filter: drop-shadow(0 0 calc(var(--k, 2) * 3px) currentColor) drop-shadow(0 0 calc(var(--k, 2) * 3px) currentColor); }
+#bb-btn .kit-button { cursor: pointer; }
+#pa-svg { max-width: 640px; }
+#pa-svg .pb-t { font-size: 17.5px; }
+.pb-chip { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
+.pb-t { fill: var(--ink); font: 500 16px var(--f-mono); }
+.pb-t.mut { fill: var(--muted); } .pb-t.n33 { fill: var(--n33-ink, var(--n33)); } .pb-t.sig { fill: var(--nsig-ink, var(--nsig)); font-weight: 700; }
+.pb-t.hi { fill: var(--hi-ink); font-weight: 600; }
+.pb-big { fill: var(--ink); font: 700 28px var(--f-mono); }
+.pb-buf { fill: none; stroke: var(--ink); stroke-width: 2; }
+.pb-node { fill: none; stroke: var(--lvl-z); stroke-width: 3.5; stroke-linecap: round; }
+.pb-dot { fill: var(--ink); }
+.pb-pad { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.pb-key { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+.pb-key.off { stroke: var(--muted); stroke-dasharray: 3 3; }
+.pb-guide { fill: none; stroke: none; }
+.pb-e { fill: var(--flow); }
+.pb-scope canvas { display: block; width: 100%; height: 240px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.pb-scope .small { margin: 6px 0 0; }
+.pb-code { margin: 0; padding: 8px 18px; border-top: 1px solid var(--line); font-size: 15px; }
+#bench .lab-ctl .seg button { min-height: 44px; }
+@media (max-width: 599px) { #bench .lab-ctl > .seg { width: 100%; display: grid; grid-template-columns: 1fr; } #bench .lab-ctl > .seg button + button { border-left: 0; border-top: 1px solid var(--line); } }
+/* idea widgets */
+.mini-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.mini-ctl .seg button { min-height: 44px; }
+.mini-ctl input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--accent); min-height: 32px; }
+.mini-out { font: 600 16px var(--f-mono); }
+/* idea figures here carry controls and are taller than the folded text: keep them in flow, so they never slide over «Головне» */
+@media (min-width: 820px) { #ideas .idea:has(> figure) > figure { position: static; } }
 </style>
 </head>
 <body data-lesson="1-4">
@@ -143,13 +229,141 @@ ol.fixes > li { margin-bottom: 8px; }
     </div>
   </header>
 
+  <!-- ============================================================ lab: clickable pinout + a button on the chosen pin (motion via Study.sim only) -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія: розпіновка і вхід</h2><p>Клацніть будь-який вивід. Вмикайте групи, щоб побачити, що вже зайняла плата і чим. Потім під'єднайте кнопку до вільного піна.</p></header>
+    <div class="lab-ctl pb-filters" role="group" aria-label="Підсвітити групи виводів">
+      <button type="button" class="sw" data-f="free" aria-checked="false"><i class="pb-sw" style="--c:var(--ok)"></i>Вільні</button>
+      <button type="button" class="sw" data-f="strapping" aria-checked="false"><i class="pb-sw" style="--c:var(--hi)"></i>Strapping 0·3·45·46</button>
+      <button type="button" class="sw" data-f="mem" aria-checked="false"><i class="pb-sw" style="--c:var(--bad)"></i>Пам'ять: flash 26–32, PSRAM 35–37</button>
+      <button type="button" class="sw" data-f="usb" aria-checked="false"><i class="pb-sw" style="--c:var(--nsig2)"></i>USB 19·20</button>
+      <button type="button" class="sw" data-f="uart" aria-checked="false"><i class="pb-sw" style="--c:var(--copper, var(--n33))"></i>UART0 43·44</button>
+      <button type="button" class="sw" data-f="led" aria-checked="false"><i class="pb-sw" style="--c:var(--teach)"></i>RGB LED 48</button>
+    </div>
+    <div class="lab-stage" id="pb-stage">
+      <div class="pb-grid">
+        <div class="pb-card" id="pb-card" aria-live="polite"><p class="muted">Завантажую розпіновку…</p></div>
+        <div class="pb-wrap"><svg id="pb-board" class="kit-scene" role="group" aria-label="Плата YD-ESP32-S3 N16R8 згори, як у нашому наборі: модуль WROOM-1 з flash і PSRAM та антеною, два роз'єми USB-C (USB і COM), кнопки BOOT і RST, RGB-світлодіод, дві гребінки по 22 виводи. Лежачи: модуль ліворуч, гребінка P2 вгорі, P1 внизу; на вузькому екрані плата стоїть: P1 ліворуч, P2 праворуч. Кожен вивід можна вибрати стрілками і Enter."></svg></div>
+      </div>
+      <p class="small muted pb-src">Порядок виводів — за таблицями P1/P2 виробника плати<sup class="cite" data-fact="yd-header-pinout"></sup>; плата намальована такою, як у нашому наборі. Дані: <a href="../../data/pins-s3.json">pins-s3.json</a>.</p>
+    </div>
+    <div class="pb-in" id="pb-in">
+      <div class="pb-in-grid">
+        <div class="pb-sch-col">
+        <svg id="pb-sch" viewBox="0 0 360 236" role="img" aria-label="Схема входу: усередині чипа вхідний буфер, вбудовані підтяжки вгору і вниз по 45 кілоом, кожна через свій ключ; зовні кнопка SW1 від виводу до землі.">
+          <rect class="pb-chip" x="6" y="6" width="210" height="222" rx="8"/>
+          <text class="pb-t mut" x="16" y="28">ESP32-S3</text>
+          <!-- pull-up branch -->
+          <path class="sch-w net-3v3" d="M150 34V42"/>
+          <use class="sch-sym net-3v3" href="#vcc" x="150" y="34"/>
+          <text class="pb-t n33" x="160" y="26">3V3</text>
+          <use class="sch-sym" href="#res" x="150" y="42" transform="rotate(90 150 42)"/>
+          <text class="pb-t" x="138" y="70" text-anchor="end">R<tspan baseline-shift="sub" font-size="75%">PU</tspan> 45 кОм</text>
+          <path class="sch-w" d="M150 102V108"/>
+          <path class="pb-key" id="pb-kpu" d="M150 108L150 128"/>
+          <circle class="pb-dot" cx="150" cy="108" r="3"/>
+          <!-- node -->
+          <path class="pb-node" id="pb-node" d="M78 130H290"/>
+          <circle class="pb-dot" cx="150" cy="130" r="3.5"/>
+          <!-- pull-down branch -->
+          <path class="pb-key" id="pb-kpd" d="M150 132L150 152"/>
+          <circle class="pb-dot" cx="150" cy="152" r="3"/>
+          <path class="sch-w" d="M150 152V158"/>
+          <use class="sch-sym" href="#res" x="150" y="158" transform="rotate(90 150 158)"/>
+          <text class="pb-t" x="138" y="196" text-anchor="end">R<tspan baseline-shift="sub" font-size="75%">PD</tspan> 45 кОм</text>
+          <use class="sch-sym net-gnd" href="#gnd" x="150" y="218"/>
+          <!-- input buffer -->
+          <path class="pb-buf" d="M78 116V144L50 130Z"/>
+          <text class="pb-big" id="pb-big" x="28" y="139" text-anchor="middle">?</text>
+          <text class="pb-t mut" x="16" y="172">digitalRead</text>
+          <!-- pin pad and the outside world -->
+          <rect class="pb-pad" x="210" y="124" width="12" height="12"/>
+          <text class="pb-t sig" id="pb-sch-pin" x="232" y="118">GPIO7</text>
+          <text class="pb-t" id="pb-sch-v" x="232" y="156">—</text>
+          <circle class="pb-dot" cx="290" cy="130" r="3"/><circle class="pb-dot" cx="290" cy="186" r="3"/>
+          <g id="pb-sw-bar"><path class="sch-w" d="M300 128V188"/><path class="sch-w" d="M300 158H318"/></g>
+          <text class="pb-t" x="324" y="164">SW1</text>
+          <path class="sch-w net-gnd" d="M290 189V204"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="290" y="204"/>
+          <g id="pb-flow"></g>
+          <path id="pb-path-pu" class="pb-guide" d="M150 30V130H290V204"/>
+          <path id="pb-path-in" class="pb-guide" d="M150 130H290V204"/>
+        </svg>
+        <svg id="pb-btn" class="kit-scene" viewBox="-170 106 500 414" role="img" aria-label="Кнопка SW1 на макетці: тактова кнопка 6 на 6 міліметрів через центральний канал; жовтий дріт від лівих ніжок (j3) іде прямо вниз і рівно ліворуч до вибраного піна, чорний від правих ніжок (j5) — прямо вниз на шину мінус (GND). Клацніть кнопку, щоб натиснути."></svg>
+        </div>
+        <div class="pb-scope">
+          <canvas id="pb-cv" width="520" height="250" aria-label="Графік напруги на вибраному піні за останні 3 секунди із зонами LOW, не визначено і HIGH, і під ним — що повертає digitalRead."></canvas>
+          <p class="small muted">Угорі — напруга на піні, смуги: LOW / «не знаю» / HIGH<sup class="cite" data-fact="s3-vil"></sup><sup class="cite" data-fact="s3-vih"></sup>. Унизу — що повертає <code>digitalRead</code>.</p>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <div class="seg" role="group" aria-label="Режим входу" id="pb-mode">
+        <button type="button" data-m="in" aria-pressed="true">INPUT</button>
+        <button type="button" data-m="pu" aria-pressed="false">INPUT_PULLUP</button>
+        <button type="button" data-m="pd" aria-pressed="false">INPUT_PULLDOWN</button>
+      </div>
+      <button type="button" class="sw" id="pb-press" aria-checked="false">Кнопка SW1 натиснута</button>
+      <button type="button" class="sw" id="pb-hand" aria-checked="false">Рука біля дроту</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Напруга на піні</b><output id="pb-v">—</output></div>
+      <div><b>digitalRead()</b><output id="pb-d">—</output></div>
+      <div><b>Струм підтяжки</b><output id="pb-i">0</output></div>
+      <div><b>Одиниць зі 100</b><output id="pb-n">—</output></div>
+    </div>
+    <p class="pb-code"><code id="pb-code">pinMode(7, INPUT);</code></p>
+    <p class="lab-note" id="pb-note" aria-live="polite">INPUT без підтяжки: пін ні до чого не притягнутий і «плаває» — digitalRead віддає то 0, то 1.</p>
+    <a class="lab-more" href="../../pull-resistors/">Повна лабораторія: підтяжка входу →</a>
+  </section>
+
+  <figure class="anim wide" id="pu-anim" aria-labelledby="pu-anim-h">
+    <header class="anim-head"><h3 id="pu-anim-h">Анімація: як працює підтяжка</h3></header>
+    <div class="anim-stage">
+      <svg id="pa-svg" viewBox="4 0 380 250" role="img" aria-label="Вхід GPIO7: зверху 3,3 вольта через резистор підтяжки 45 кілоом до вузла входу, від вузла кнопка до землі. Ліворуч вхідний буфер показує, що читає digitalRead.">
+        <!-- input buffer and reading -->
+        <path class="pb-buf" d="M120 106V134L92 120Z"/>
+        <text class="pb-big" id="pa-big" x="60" y="130" text-anchor="middle">?</text>
+        <text class="pb-t mut" x="18" y="166">digitalRead</text>
+        <text class="pb-t mut" id="pa-leak" x="18" y="92" opacity="0">у вхід ≤ 50 нА</text>
+        <!-- pull-up -->
+        <g id="pa-pu">
+          <use class="sch-sym net-3v3" href="#vcc" x="230" y="30"/>
+          <text class="pb-t n33" x="242" y="22">3,3 В</text>
+          <path class="sch-w net-3v3" d="M230 30V38"/>
+          <use class="sch-sym" id="pa-res" href="#res" x="230" y="38" transform="rotate(90 230 38)"/>
+          <text class="pb-t" x="246" y="66">R<tspan baseline-shift="sub" font-size="75%">PU</tspan> 45 кОм</text>
+          <text class="pb-t hi" id="pa-ur" x="246" y="88"></text>
+          <path class="sch-w" d="M230 98V120"/>
+        </g>
+        <!-- node -->
+        <path class="pb-node" id="pa-node" d="M120 120H330"/>
+        <circle class="pb-dot" cx="230" cy="120" r="4"/>
+        <text class="pb-t sig" x="134" y="112">GPIO7</text>
+        <text class="pb-t" id="pa-v" x="134" y="146">—</text>
+        <!-- button to GND -->
+        <circle class="pb-dot" cx="330" cy="120" r="3"/><circle class="pb-dot" cx="330" cy="176" r="3"/>
+        <path class="sch-w" d="M330 120V123M330 173V176"/>
+        <g id="pa-bar"><path class="sch-w" d="M342 118V178"/><path class="sch-w" d="M342 148H362"/></g>
+        <text class="pb-t" x="350" y="200">SW1</text>
+        <path class="sch-w net-gnd" d="M330 179V206"/>
+        <use class="sch-sym net-gnd" href="#gnd" x="330" y="206"/>
+        <path id="pa-path" class="pb-guide" d="M230 22V120H330V206"/>
+        <g id="pa-flow"></g>
+        <text class="pb-t" id="pa-i" x="18" y="236"></text>
+      </svg>
+    </div>
+  </figure>
+
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
     <h2><span class="n">01</span> Навіщо це</h2>
     <p>Ви підключили кнопку, прошили плату і відкрили монітор порту. Кнопку ніхто не чіпає, а програма вперто «бачить» натискання. Код правильний. Винна електрика: вхід ні до чого не притягнутий і ловить завади з повітря.</p>
     <pre class="serial" aria-label="Приклад виводу в монітор порту: випадкові нулі й одиниці без натискань"><span class="c">// кнопку не натискали, рука просто поруч</span>
 кнопка: <span class="one">1</span> <span class="zero">0</span> <span class="zero">0</span> <span class="one">1</span> <span class="one">1</span> <span class="zero">0</span> <span class="one">1</span> <span class="zero">0</span> <span class="one">1</span> <span class="one">1</span> <span class="zero">0</span> <span class="zero">0</span> <span class="one">1</span></pre>
+    <details class="more"><summary>Детальніше: друга пастка</summary>
     <p>Друга пастка — вибрати «не той» пін: програма не стартує після скидання, бо кнопка тримає GPIO0 у LOW (і чип іде в режим прошивки), або плата зависає, бо GPIO35 на N16R8 зайнятий пам’яттю. Після уроку ви знатимете, як це передбачити, а не виловлювати вечорами.</p>
+    </details>
   </section>
 
   <!-- ============================================================ 02 goals -->
@@ -192,37 +406,29 @@ ol.fixes > li { margin-bottom: 8px; }
     <article class="idea">
       <h3>Вихід — два ключі, вхід — обидва вимкнені</h3>
       <p>У режимі <code>OUTPUT</code> пін має два електронні ключі: один з’єднує його з 3,3&nbsp;В (HIGH), другий — із землею (LOW). Завжди замкнений рівно один, тому вихід сам «тримає» рівень. Це називають двотактним виходом (push-pull).</p>
+      <details class="more"><summary>Детальніше: Hi-Z</summary>
       <p>У режимі <code>INPUT</code> обидва ключі розімкнені. Пін нічого не задає, лише «дивиться» на напругу, і струм у нього майже не тече — до 50&nbsp;нА<sup class="cite" data-fact="s3-input-leak"></sup>. Такий стан називають високим імпедансом (Hi-Z).</p>
+      </details>
       <figure>
-        <svg class="fig-svg" viewBox="0 0 320 204" role="img" aria-label="Два стани виводу. Зліва OUTPUT HIGH: верхній ключ до 3,3 вольта замкнений, нижній до землі розімкнений, пін тримає HIGH. Справа INPUT: обидва ключі розімкнені, пін лише слухає, стан Hi-Z, струм до 50 наноампер.">
-          <text class="t-hd" x="80" y="18" text-anchor="middle">OUTPUT · HIGH</text>
-          <text class="t-hd" x="240" y="18" text-anchor="middle">INPUT · Hi-Z</text>
-          <path d="M160 30V196" stroke="var(--line)" stroke-dasharray="3 4"/>
-          <g>
-            <path class="w net-3v3" d="M40 44H80M60 44V62"/><text class="t-mono net-3v3" x="86" y="50">3,3 В</text>
-            <circle cx="60" cy="65" r="3" fill="var(--ink)"/><circle cx="60" cy="92" r="3" fill="var(--ink)"/>
-            <path class="w-acc" d="M60 65V92"/><text class="t-mut" x="72" y="84">увімк.</text>
-            <path class="w" d="M60 95V129"/><circle cx="60" cy="112" r="4" fill="var(--nsig)"/>
-            <path class="w net-sig" d="M60 112H150"/><text class="t-mono net-sig" x="150" y="104" text-anchor="end">пін</text>
-            <g class="fig-badge"><rect x="98" y="120" width="54" height="24" rx="5"/><text x="125" y="137" text-anchor="middle">HIGH</text></g>
-            <circle cx="60" cy="132" r="3" fill="var(--ink)"/><circle cx="60" cy="159" r="3" fill="var(--ink)"/>
-            <path class="w" d="M60 132L76 154"/><text class="t-mut" x="84" y="164">вимк.</text>
-            <path class="w net-gnd" d="M60 162V178M48 178H72M53 184H67M57 190H63"/>
-          </g>
-          <g>
-            <path class="w net-3v3" d="M200 44H240M220 44V62"/><text class="t-mono net-3v3" x="246" y="50">3,3 В</text>
-            <circle cx="220" cy="65" r="3" fill="var(--ink)"/><circle cx="220" cy="92" r="3" fill="var(--ink)"/>
-            <path class="w" d="M220 65L236 87"/><text class="t-mut" x="244" y="84">вимк.</text>
-            <path class="w" d="M220 95V129"/><circle cx="220" cy="112" r="4" fill="var(--nsig)"/>
-            <path class="w net-sig" d="M220 112H310" style="stroke-dasharray:6 5"/><text class="t-mono net-sig" x="310" y="104" text-anchor="end">пін</text>
-            <g class="fig-badge"><rect x="256" y="120" width="54" height="24" rx="5"/><text x="283" y="137" text-anchor="middle">Hi-Z</text></g>
-            <circle cx="220" cy="132" r="3" fill="var(--ink)"/><circle cx="220" cy="159" r="3" fill="var(--ink)"/>
-            <path class="w" d="M220 132L236 154"/><text class="t-mut" x="244" y="164">вимк.</text>
-            <path class="w net-gnd" d="M220 162V178M208 178H232M213 184H227M217 190H223"/>
-            <text class="t-mut" x="312" y="190" text-anchor="end">≤ 50 нА</text>
-          </g>
+        <svg class="fig-svg" id="io-svg" viewBox="0 0 320 206" role="img" aria-label="Вивід зсередини: верхній ключ з'єднує пін з 3,3 вольта, нижній — із землею. У режимі OUTPUT HIGH замкнений верхній, у OUTPUT LOW — нижній, у INPUT обидва розімкнені, пін лише слухає.">
+          <path class="w net-3v3" d="M40 24H100M100 24V40"/><text class="t-mono net-3v3" x="40" y="16">3,3 В</text>
+          <circle cx="100" cy="42" r="3.5" fill="var(--ink)"/><circle cx="100" cy="76" r="3.5" fill="var(--ink)"/>
+          <path class="w-acc" id="io-khi" d="M100 42V76"/>
+          <path class="w" d="M100 78V136"/><circle cx="100" cy="106" r="5" fill="var(--nsig)"/>
+          <path class="w net-sig" id="io-node" d="M100 106H230"/><text class="t-mono net-sig" x="236" y="111">пін</text>
+          <circle cx="100" cy="138" r="3.5" fill="var(--ink)"/><circle cx="100" cy="172" r="3.5" fill="var(--ink)"/>
+          <path class="w" id="io-klo" d="M100 138L118 166"/>
+          <path class="w net-gnd" d="M100 174V186M88 186H112M93 192H107M97 198H103"/>
+          <text class="t-mut" id="io-thi" x="124" y="64">увімк.</text><text class="t-mut" id="io-tlo" x="124" y="160">вимк.</text>
+          <g class="fig-badge"><rect x="152" y="120" width="96" height="28" rx="6"/><text id="io-badge" x="200" y="140" text-anchor="middle">HIGH</text></g>
+          <text class="t-mut" id="io-leak" x="236" y="180" text-anchor="middle" opacity="0">≤ 50 нА</text>
         </svg>
-        <figcaption>OUTPUT задає рівень, INPUT його лише вимірює.</figcaption>
+        <div class="mini-ctl"><div class="seg" role="group" aria-label="Режим виводу" id="io-seg">
+          <button type="button" data-m="hi" aria-pressed="true">OUTPUT HIGH</button>
+          <button type="button" data-m="lo" aria-pressed="false">LOW</button>
+          <button type="button" data-m="in" aria-pressed="false">INPUT</button>
+        </div></div>
+        <figcaption id="io-cap" aria-live="polite">OUTPUT задає рівень, INPUT його лише вимірює.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Вихід сам тримає 0 або 1. Вхід нічого не тримає — рівень на ньому мусить задати хтось інший.</p>
     </article>
@@ -230,7 +436,9 @@ ol.fixes > li { margin-bottom: 8px; }
     <article class="idea">
       <h3>Між «0» і «1» є зона «не знаю»</h3>
       <p>Вхід порівнює напругу з двома порогами. VDD — це напруга живлення чипа, у нас 3,3&nbsp;В. Від 0,75·VDD (≈2,48&nbsp;В) і вище — гарантовано HIGH<sup class="cite" data-fact="s3-vih"></sup>, до 0,25·VDD (0,825&nbsp;В, округлимо вниз до 0,82&nbsp;В) — гарантовано LOW<sup class="cite" data-fact="s3-vil"></sup>. Між ними даташит не обіцяє нічого: один чип прочитає 1, інший 0, а той самий — то так, то так.</p>
+      <details class="more"><summary>Детальніше: межа згори</summary>
       <p>Згори теж є межа: на вхід не можна подавати більше ніж VDD&nbsp;+&nbsp;0,3&nbsp;В ≈ 3,6&nbsp;В<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>. П’ять вольт від Arduino-датчика — це вже пошкодження, а не «надійна одиниця».</p>
+      </details>
       <figure>
         <svg class="fig-svg" viewBox="0 0 320 124" role="img" aria-label="Шкала напруги на вході від 0 до 5 вольт. До 0,82 вольта — гарантований LOW. Від 0,82 до 2,48 — не визначено. Від 2,48 до 3,3 — гарантований HIGH; від 3,3 до 3,6 — ще одиниця, але це вже край. Вище 3,6 вольта — пошкодження.">
           <defs><pattern id="hatch14" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="var(--muted)" stroke-width="1.5" opacity=".5"/></pattern></defs>
@@ -248,11 +456,13 @@ ol.fixes > li { margin-bottom: 8px; }
           <text class="t-mut" x="208" y="26" text-anchor="end">HIGH</text>
           <text class="t-mut" x="226" y="26">3,6</text>
           <path d="M221.6 30V68" stroke="var(--bad)" stroke-width="2"/>
+          <g id="th-mk"><path d="M0 30L-7 18H7Z" fill="var(--ink)"/><path d="M0 30V66" stroke="var(--ink)" stroke-width="2.5"/></g>
           <g class="t-mut" text-anchor="middle">
             <text x="24" y="84">0</text><text x="66.5" y="84">0,82</text><text x="158.9" y="84">2,48</text><text x="204.8" y="84">3,3</text><text x="300" y="84" text-anchor="end">5 В</text>
             <text x="66.5" y="108" font-size="18">V<tspan baseline-shift="sub" font-size="16">IL</tspan></text><text x="158.9" y="108" font-size="18">V<tspan baseline-shift="sub" font-size="16">IH</tspan></text>
           </g>
         </svg>
+        <div class="mini-ctl"><label for="th-v" class="small">Напруга на вході</label><input type="range" id="th-v" min="0" max="5" step="0.05" value="1.6"><span class="mini-out" id="th-out" aria-live="polite">1,60 В → ?</span></div>
         <figcaption>Пороги входу при VDD = 3,3&nbsp;В. Блідо-червона смужка 3,3–3,6&nbsp;В — ще «1», але вже на межі дозволеного. Синій і червоний тут — шкала рівнів, а не колір дроту.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Чіткий сигнал — це або нижче 0,82&nbsp;В, або вище 2,48&nbsp;В. Усе між ними — лотерея, усе вище 3,6&nbsp;В — шкода.</p>
@@ -261,7 +471,9 @@ ol.fixes > li { margin-bottom: 8px; }
     <article class="idea">
       <h3>Підтяжка тримає рівень, кнопка його перемагає</h3>
       <p>Вхід ні до чого не притягнутий — антена: найменша завада зсуває його напругу в зону «не знаю». Ліки — резистор підтяжки (підтягувальний резистор, pull-up) від входу до 3,3&nbsp;В. Поки кнопка відпущена, струму майже немає, тож на резисторі нічого не падає і пін бачить 3,3&nbsp;В. Натиснута кнопка з’єднує пін із землею: тепер це LOW.</p>
+      <details class="more"><summary>Детальніше: мотузка-петля і 45 кОм</summary>
       <p>Згадайте мотузку-петлю: доки кнопка розімкнена, петля перерізана біля кнопки. Людина (джерело) тягне, мотузка натягнута аж до розрізу, але не рухається: «натяг» (напруга) є, руху (струму) немає. Натиснули — петля замкнулась: 3,3&nbsp;В → резистор → кнопка → GND. У сам вхід струм не заходить. Вбудована підтяжка ESP32-S3 — ≈45&nbsp;кОм<sup class="cite" data-fact="s3-pullup"></sup>; вмикається <code>INPUT_PULLUP</code>.</p>
+      </details>
       <figure>
         <svg class="fig-svg" viewBox="0 0 320 222" role="img" aria-label="Підтяжка: два стани. Зліва кнопка відпущена: струму немає, на GPIO7 3,3 вольта, читається 1. Справа кнопка натиснута, її контакт замикає обидва виводи: струм іде від 3,3 вольта через резистор 45 кілоом і кнопку на землю, на GPIO7 0 вольт, читається 0.">
           <text class="t-hd" x="80" y="16" text-anchor="middle">відпущено</text>
@@ -288,6 +500,7 @@ ol.fixes > li { margin-bottom: 8px; }
           <use href="#gnd" x="276" y="194" class="sch-sym net-gnd"/>
           <path id="i3-loop" class="guide" d="M276 30V194"/>
         </svg>
+        <div class="mini-ctl"><button type="button" class="sw" id="i3-sw" aria-checked="false">Показати струм</button></div>
         <figcaption>Рухомі точки (струм) біжать лише в замкненій петлі. Вхід лише «дивиться» на вузол між резистором і кнопкою.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>INPUT_PULLUP + кнопка до GND: відпущено → 1, натиснуто → 0. Струм тече через резистор і кнопку, а не в пін.</p>
@@ -296,7 +509,9 @@ ol.fixes > li { margin-bottom: 8px; }
     <article class="idea">
       <h3>Майже будь-який сигнал — на майже будь-який пін, але не всі піни вільні</h3>
       <p>Усередині ESP32-S3 стоїть комутатор — матриця GPIO. Вона виводить UART, ШІМ, I²C та інші цифрові сигнали на майже будь-який з 45 GPIO<sup class="cite" data-fact="s3-gpio-matrix"></sup><sup class="cite" data-fact="s3-gpio-count"></sup>. Тому на схемах різних проєктів кнопка «живе» на різних пінах.</p>
-      <p>Але частину пінів уже зайняла плата: пам’ять, USB, завантажувач. <b>Strapping-піни</b> (GPIO0, 3, 45, 46) чип читає в мить скидання, щоб вирішити, як стартувати<sup class="cite" data-fact="s3-strapping-pins"></sup>. <b>PSRAM</b> — додаткова оперативна пам’ять модуля N16R8; її шина займає GPIO35–37<sup class="cite" data-fact="wroom-octal-psram-pins"></sup>. Усе це видно на розпіновці нижче — перш ніж щось підключати, гляньте туди.</p>
+      <details class="more"><summary>Детальніше: хто займає піни</summary>
+      <p>Але частину пінів уже зайняла плата: пам’ять, USB, завантажувач. <b>Strapping-піни</b> (GPIO0, 3, 45, 46) чип читає в мить скидання, щоб вирішити, як стартувати<sup class="cite" data-fact="s3-strapping-pins"></sup>. <b>PSRAM</b> — додаткова оперативна пам’ять модуля N16R8; її шина займає GPIO35–37<sup class="cite" data-fact="wroom-octal-psram-pins"></sup>. Усе це видно в лабораторії вгорі сторінки — перш ніж щось підключати, гляньте туди.</p>
+      </details>
       <figure>
         <svg class="fig-svg" viewBox="0 0 320 178" role="img" aria-label="Матриця GPIO: сигнали UART, ШІМ та I2C зліва з'єднуються через матрицю з будь-якими вільними пінами праворуч, наприклад GPIO4, GPIO21, GPIO38. GPIO35 перекреслено: на N16R8 він зайнятий пам'яттю.">
           <g class="t-mono">
@@ -307,12 +522,19 @@ ol.fixes > li { margin-bottom: 8px; }
           <rect x="110" y="12" width="96" height="136" rx="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
           <path d="M126 12V148M142 12V148M158 12V148M174 12V148M190 12V148M110 31H206M110 56H206M110 81H206M110 106H206M110 131H206" stroke="var(--line)" stroke-width="1"/>
           <text class="t-mut" x="158" y="170" text-anchor="middle">матриця GPIO</text>
-          <path class="w-acc" d="M68 31H126V56H206M68 75H158V106H206M68 119H190V31H206" fill="none"/>
+          <path class="w-acc" id="mx-0" d="M68 31H126V56H206" fill="none"/>
+          <path class="w-acc" id="mx-1" d="M68 75H158V106H206" fill="none"/>
+          <path class="w-acc" id="mx-2" d="M68 119H190V31H206" fill="none"/>
           <g class="t-mono">
             <text x="212" y="36">GPIO38</text><text x="212" y="61">GPIO4</text><text x="212" y="111">GPIO21</text>
             <text x="212" y="136" fill="var(--bad)">GPIO35 ✕</text>
           </g>
         </svg>
+        <div class="mini-ctl">
+          <div class="seg" role="group" aria-label="Сигнал" id="mx-sig"><button type="button" data-s="0" aria-pressed="true">UART</button><button type="button" data-s="1" aria-pressed="false">ШІМ</button><button type="button" data-s="2" aria-pressed="false">I²C</button></div>
+          <div class="seg" role="group" aria-label="На який пін" id="mx-pin"><button type="button" data-p="31" aria-pressed="false">38</button><button type="button" data-p="56" aria-pressed="true">4</button><button type="button" data-p="106" aria-pressed="false">21</button><button type="button" data-p="131" aria-pressed="false">35</button></div>
+        </div>
+        <p class="small" id="mx-out" aria-live="polite">Виберіть сигнал, потім пін: матриця переведе його куди скажете.</p>
         <figcaption>Матриця дає свободу вибору, а розпіновка плати каже, з чого вибирати.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Пін вибирають двічі: що вміє чип (матриця) і що вже зайняла плата (розпіновка).</p>
@@ -335,8 +557,10 @@ ol.fixes > li { margin-bottom: 8px; }
           <text class="t-ink" x="128" y="20" text-anchor="middle">Recommended</text>
           <text class="t-ink" x="254" y="20" text-anchor="middle">Abs max</text>
           <text class="t-ink" x="254" y="48" text-anchor="middle">шкода</text>
+          <g id="ds-mk"><path d="M0 30L-7 18H7Z" fill="var(--ink)"/><path d="M0 30V58" stroke="var(--ink)" stroke-width="2.5"/></g>
           <g class="t-mut" text-anchor="middle"><text x="66" y="80">3,0</text><text x="135" y="80">3,3 typ</text><text x="204" y="80">3,6 В</text></g>
         </svg>
+        <div class="mini-ctl"><label for="ds-v" class="small">Живлення</label><input type="range" id="ds-v" min="2.8" max="4" step="0.05" value="3.3"><span class="mini-out" id="ds-out" aria-live="polite">3,30 В</span></div>
         <figcaption>Живлення ESP32-S3: рекомендована зона впирається просто в абсолютний максимум 3,6&nbsp;В<sup class="cite" data-fact="s3-abs-max-vdd"></sup>.</figcaption>
       </figure>
       <p class="key"><b>Головне</b>Absolute Max — заборона, Recommended — робоча зона, min/max — гарантія. «Typ» — не обіцянка.</p>
@@ -474,7 +698,7 @@ ol.fixes > li { margin-bottom: 8px; }
         </div>
         <div class="px-grid">
           <div>
-            <div class="px-scroll"><svg class="px-board" id="px-board" viewBox="6 0 348 206" role="group" aria-label="Плата YD-ESP32-S3 згори: гребінка P1 вгорі, P2 внизу, роз'єми USB зліва, антена модуля справа. Кожен вивід можна вибрати."></svg></div>
+            <div class="px-scroll"><svg class="px-board kit-scene" id="px-board" viewBox="-95 -345 680 435" role="group" aria-label="Плата YD-ESP32-S3 згори, як у нашому наборі: модуль з антеною ліворуч, роз'єми USB-C праворуч, гребінка P2 вгорі, P1 внизу. Кожен вивід можна вибрати."></svg></div>
             <p class="px-scroll-hint">↔ Плату можна прокрутити вбік.</p>
             <div class="px-legend" aria-hidden="true"><span class="l-ok">вільний</span><span class="l-care">з умовою</span><span class="l-no">не чіпати</span><span class="l-pw">живлення</span></div>
             <div class="px-hidden"><span>Не виведені на гребінку:</span>
@@ -494,7 +718,7 @@ ol.fixes > li { margin-bottom: 8px; }
             </div>
           </div>
         </div>
-        <p class="small muted">Порядок виводів — за таблицями P1/P2 виробника плати<sup class="cite" data-fact="yd-header-pinout"></sup>; розташування роз’ємів і антени схематичне. Дані: <a href="../../data/pins-s3.json">pins-s3.json</a>.</p>
+        <p class="small muted">Порядок виводів — за таблицями P1/P2 виробника плати<sup class="cite" data-fact="yd-header-pinout"></sup>; плата намальована такою, як у нашому наборі. Дані: <a href="../../data/pins-s3.json">pins-s3.json</a>.</p>
       </div>
     </div>
   </section>
@@ -605,7 +829,8 @@ ol.fixes > li { margin-bottom: 8px; }
   <!-- ============================================================ 08 circuit -->
   <section class="hs" id="circuit">
     <h2><span class="n">08</span> Схема і макетка</h2>
-    <p>Схема уроку: кнопка SW1 на GPIO7 з <code>INPUT_PULLUP</code> і світлодіод на GPIO15, який світить, поки кнопку натиснуто. Через червоний LED (V<sub>f</sub> ≈ 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>) і 220&nbsp;Ом піде ≈6&nbsp;мА. Спершу спробуйте зібрати за схемою; макетка — підказка. Колір дроту позначає вузол, а не рівень: поточний рівень підписано біля дроту — <b>HIGH</b> або <b>LOW</b>. Натисніть SW1 і подивіться, як підписи зміняться.</p>
+    <p>Схема уроку: кнопка SW1 на GPIO7 з <code>INPUT_PULLUP</code> і світлодіод на GPIO15, який світить, поки кнопку натиснуто. Натисніть SW1 під схемою і подивіться, як зміняться підписи рівнів.</p>
+    <details class="more"><summary>Детальніше</summary><p>Через червоний LED (V<sub>f</sub> ≈ 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup>) і 220&nbsp;Ом піде ≈6&nbsp;мА. Спершу спробуйте зібрати за схемою; макетка — підказка. Колір дроту позначає вузол, а не рівень: поточний рівень підписано біля дроту — <b>HIGH</b> або <b>LOW</b>.</p></details>
     <figure class="dual wide bb-hint" id="dual-btn" data-nets="gpio7=GPIO7 (кнопка); gpio15=GPIO15 (LED); led_a=Анод LED; gnd=GND">
       <div class="view" data-view="sch">
         <svg viewBox="0 0 330 236" role="img" aria-label="Схема: плата U1 ESP32-S3. Усередині чипа вбудована підтяжка близько 45 кілоом від 3,3 вольта до GPIO7. GPIO7 через кнопку SW1 на землю. GPIO15 через резистор R1 220 ом на анод світлодіода LED1, катод на землю. GND плати на землю. Біля дротів GPIO7 і GPIO15 підписано поточний рівень, HIGH або LOW.">
@@ -646,7 +871,7 @@ ol.fixes > li { margin-bottom: 8px; }
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-btn" viewBox="0 0 282 222" role="img" aria-label="Макетка: GPIO7 у стовпчик 3; тактова кнопка через канал, ліві ніжки в стовпчику 3, праві в стовпчику 5; стовпчик 5 дротом на шину мінус. GPIO15 у стовпчик 8, резистор 220 ом зі стовпчика 8 у 12, світлодіод анодом у 12, катодом у 13, стовпчик 13 на шину мінус, шина мінус на GND плати."></svg>
+        <svg id="bb-btn" class="kit-scene" viewBox="0 -80 1150 680" role="img" aria-label="Макетка з платою YD-ESP32-S3, вставленою в отвори (гребінки в рядах i та b, стовпчики 18–39). Ліворуч від плати: жовта пряма перемичка вздовж вільного ряду j від GPIO7 (j24) до j12; тактова кнопка SW1 через канал, ліві ніжки в стовпчику 12, праві в 14; чорна перемичка вздовж ряду a з a14 на вивід GND плати (a18). Синій дріт від GPIO15 (j25) прямо вниз і вздовж смуги під рядом j до j10; резистор R1 220 ом у ряду h зі стовпчика 10 у 6; світлодіод LED1 анодом у f6, катодом у f5; чорний дріт j5 на шину мінус, а вивід GND плати (j39) — на ту саму шину; її розрив між стовпчиками 31 і 33 закриває коротка чорна перемичка. Дроти не перетинаються."></svg>
       </div>
       <figcaption>Наведіть або торкніться дроту чи кнопки вузла: той самий вузол підсвітиться на обох видах.</figcaption>
     </figure>
@@ -680,7 +905,7 @@ void loop() {
       <li>Зберіть схему з розділу 08 і прошийте скетч. Запишіть прогнози в таблицю.</li>
       <li>Вольтметр між GPIO7 і GND, кнопку відпущено: запишіть напругу.</li>
       <li>Те саме з натиснутою кнопкою.</li>
-      <li>Струм: зніміть перемичку зі стовпчика 5 на шину мінус і поставте мультиметр замість неї (COM — на шину, червоний щуп у гнізді mA — у стовпчик 5). Діапазон 200&nbsp;мкА або 2&nbsp;мА: на 20 чи 200&nbsp;мА 73&nbsp;мкА покажуться як «0,0». Натисніть кнопку й запишіть струм. Потім змініть у скетчі на <code>pinMode(7, INPUT)</code>, перепрошийте, поставте зовнішні 10&nbsp;кОм від GPIO7 до 3,3&nbsp;В і повторіть. (Якщо лишити <code>INPUT_PULLUP</code>, вбудовані 45&nbsp;кОм працюватимуть паралельно, і ви побачите ≈0,40&nbsp;мА замість 0,33.)</li>
+      <li>Струм: зніміть чорну перемичку a14–a18 (від кнопки до виводу GND плати) і поставте мультиметр замість неї (COM — в a18, до GND, червоний щуп у гнізді mA — в a14). Діапазон 200&nbsp;мкА або 2&nbsp;мА: на 20 чи 200&nbsp;мА 73&nbsp;мкА покажуться як «0,0». Натисніть кнопку й запишіть струм. Потім змініть у скетчі на <code>pinMode(7, INPUT)</code>, перепрошийте, поставте зовнішні 10&nbsp;кОм від GPIO7 до 3,3&nbsp;В і повторіть. (Якщо лишити <code>INPUT_PULLUP</code>, вбудовані 45&nbsp;кОм працюватимуть паралельно, і ви побачите ≈0,40&nbsp;мА замість 0,33.)</li>
       <li>Приберіть підтяжку (<code>pinMode(7, INPUT)</code>), від’єднайте кнопку, залиште на GPIO7 лише дріт і запустіть лічильник нижче. Запишіть, скільки одиниць зі 100 — з рукою біля дроту і без.</li>
     </ol>
     <pre><code>void setup() {
@@ -857,6 +1082,7 @@ void loop() {
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -870,8 +1096,441 @@ document.addEventListener('study:ready', () => {
   const volts = (v) => `${fmt.num(v, 2, true)}${NB}В`;
   const amps = (a) => (a <= 0 ? '0' : fmt.si(a, 'А', 2));
 
-  /* ==== idea 3: the closed rope loop of the pressed button ==== */
-  S.flow($('#i3-loop'), { mA: VDD / RPU * 1000, k: FLOW_K });
+  const escH = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pressSeg = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+
+  /* ==== Kit (assets/kit.js): realistic drawings of the parts from OUR kit; 1 unit = 0,1 мм ==== */
+  const K = window.Kit;
+  // Callouts around Kit parts stay 13 px on screen: --k = svg user units per CSS px (see .kit-lbl).
+  const keepText = (svg) => {
+    const upd = () => { const w = svg.getBoundingClientRect().width, vb = svg.viewBox.baseVal; if (w && vb && vb.width) svg.style.setProperty('--k', (vb.width / w).toFixed(3)); };
+    if (window.ResizeObserver) new ResizeObserver(upd).observe(svg);
+    upd();
+  };
+  const callout = (parent, x, y, txt, to, below = false, cls = '') => {
+    if (to) S.svg('path', { class: 'kit-lead', d: `M${to.x} ${to.y}L${x} ${below ? y - 10 : y + 10}` }, parent);
+    const t = S.svg('text', { class: `kit-lbl ${cls}`.trim(), x, y, 'text-anchor': 'middle', 'dominant-baseline': below ? 'hanging' : 'alphabetic' }, parent);
+    t.textContent = txt;
+    return t;
+  };
+  // The Kit YD-ESP32-S3: header P1 = its left header L1…L22, P2 = the right one R1…R22 — the order of data/pins-s3.json.
+  // Lying (vert = false): module left, USB-C right, P2 on top, P1 below. Upright: module up, P1 left, P2 right.
+  function kitBoard(parent, vert) {
+    const esp = K.part('esp32s3', { parent, rot: vert ? 0 : -90, title: 'YD-ESP32-S3 N16R8' });
+    return {
+      esp,
+      at: (hdr, pos) => esp.pins[(hdr === 'P1' ? 'L' : 'R') + pos],
+      out: (hdr) => (vert ? [hdr === 'P1' ? -1 : 1, 0] : [0, hdr === 'P1' ? 1 : -1]), // away from the board
+      P: (x, y) => esp.toParent(x, y), // board coordinates → svg
+    };
+  }
+  // A pin label that reads upright, `d` units out from the pad; fs = font size (to centre rotated glyphs on the pin).
+  function pinLabel(g, q, o, d, txt, cls, fs) {
+    let e;
+    if (o[1]) {
+      const x = +(q.x + fs * 0.36).toFixed(1), y = +(q.y + o[1] * d).toFixed(1);
+      e = S.svg('text', { class: cls, x, y, 'text-anchor': o[1] < 0 ? 'start' : 'end', transform: `rotate(-90 ${x} ${y})` }, g);
+    } else {
+      e = S.svg('text', { class: cls, x: +(q.x + o[0] * d).toFixed(1), y: +(q.y + fs * 0.36).toFixed(1), 'text-anchor': o[0] < 0 ? 'end' : 'start' }, g);
+    }
+    e.textContent = txt;
+    return e;
+  }
+  // A hit area from just inside the pad out over its label (len units long).
+  function pinHit(g, q, o, len) {
+    const w = K.P, a = -16, b = len;
+    const r = o[1] ? { x: q.x - w / 2, y: o[1] < 0 ? q.y - b : q.y + a, width: w, height: b - a }
+      : { x: o[0] < 0 ? q.x - b : q.x + a, y: q.y - w / 2, width: b - a, height: w };
+    return S.svg('rect', Object.assign({ class: 'hit' }, r), g);
+  }
+
+  /* ==== lab: pinout bench + a button on the chosen pin ==== */
+  const bench = (() => {
+    const svgEl = $('#pb-board'), card = $('#pb-card'), wrap = $('.pb-wrap');
+    let PINS = null, vert = null, sel = null;
+    const FACTS = new Map();
+    const active = new Set();
+    // filter → colour (wire) and text colour (≥ 4.5:1), and which pins match
+    const F = {
+      free: { c: 'var(--ok)', ci: 'var(--ok)', match: (p) => p.verdict === 'ok', name: 'Вільні' },
+      strapping: { c: 'var(--hi)', ci: 'var(--hi-ink)', match: (p) => p.classes.includes('strapping'), name: 'Strapping' },
+      mem: { c: 'var(--bad)', ci: 'var(--bad)', match: (p) => p.classes.includes('psram') || p.classes.includes('flash'), name: 'Пам\'ять' },
+      usb: { c: 'var(--nsig2)', ci: 'var(--nsig2)', match: (p) => p.classes.includes('usb'), name: 'USB' },
+      uart: { c: 'var(--copper, var(--n33))', ci: 'var(--copper, var(--n33-ink))', match: (p) => p.classes.includes('uart'), name: 'UART0' },
+      led: { c: 'var(--teach)', ci: 'var(--teach)', match: (p) => p.classes.includes('led'), name: 'RGB LED' },
+    };
+    const ORDER = ['mem', 'usb', 'uart', 'led', 'strapping', 'free'];
+    const pinEls = new Map();
+    const pinName = (p) => (p.gpio == null ? p.label : `GPIO${p.gpio}`);
+    const mk = (t, a, parent) => S.svg(t, a, parent);
+    const curve = (a, b, bend = 0.25) => {
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y;
+      return `M${a.x} ${a.y}Q${(mx - dy * bend).toFixed(1)} ${(my + dx * bend).toFixed(1)} ${b.x} ${b.y}`;
+    };
+    const traces = []; // {f, el}
+    function build() {
+      svgEl.textContent = '';
+      pinEls.clear(); traces.length = 0;
+      svgEl.setAttribute('viewBox', vert ? '-92 -100 440 672' : '-95 -352 680 450');
+      svgEl.classList.toggle('vert', vert);
+      const B = kitBoard(svgEl, vert), P = B.P;
+      // x-ray: the flash and PSRAM chips inside the module can (board coordinates of the can: x 45…208, y −15…165)
+      const box = (x0, y0, x1, y1) => { const a = P(x0, y0), b = P(x1, y1); return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y), rx: 4 }; };
+      const fl = box(58, 2, 202, 76), ps = box(58, 88, 202, 162);
+      const flashHl = mk('rect', Object.assign({ class: 'pb-hl', style: `--c:${F.mem.c}` }, fl), svgEl);
+      const psHl = mk('rect', Object.assign({ class: 'pb-hl', style: `--c:${F.mem.c}` }, ps), svgEl);
+      [fl, ps].forEach((r, k) => {
+        mk('rect', Object.assign({ class: 'pb-mem' }, r), svgEl);
+        const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+        [k ? 'PSRAM' : 'flash', k ? '8 МБ' : '16 МБ'].forEach((t, j) => { mk('text', { class: 'pb-mem-t', x: cx, y: cy + (j ? 20 : -4), 'text-anchor': 'middle' }, svgEl).textContent = t; });
+      });
+      // «why it is taken» traces (shown by the filters), from the part on the board to its pins
+      const pin = (hdr, pos) => { const q = B.at(hdr, pos), o = B.out(hdr); return { x: q.x - o[0] * 14, y: q.y - o[1] * 14 }; };
+      const tr = (f, a, b, bend) => { const e = mk('path', { class: 'pb-trace', d: curve(a, b, bend), style: `--c:${F[f].c}` }, svgEl); traces.push({ f, el: e }); };
+      tr('usb', P(178, 466), pin('P2', 20), 0.25); tr('usb', P(196, 466), pin('P2', 19), -0.25); // native USB: D− GPIO19, D+ GPIO20
+      tr('uart', P(190, 420), P(63, 466), 0.15);                                                  // CH343 ↔ «COM»
+      tr('uart', P(199, 398), pin('P2', 2), 0.12); tr('uart', P(206, 398), pin('P2', 3), 0.1);     // CH343 ↔ TX/RX (GPIO43/44)
+      tr('led', P(92, 369), pin('P2', 16), 0.18);                                                 // WS2812 ↔ GPIO48
+      tr('strapping', P(204, 232), pin('P2', 14), 0.2);                                           // BOOT ↔ GPIO0
+      [11, 12, 13].forEach((pos) => tr('mem', P(202, 125), pin('P2', pos), 0.12));                // PSRAM ↔ GPIO35–37
+      traces.push({ f: 'mem', el: flashHl, cls: 'on' }, { f: 'mem', el: psHl, cls: 'on' });
+      // header pins
+      PINS.pins.forEach((p) => {
+        const q = B.at(p.header, p.pos), o = B.out(p.header);
+        const pg = mk('g', { class: 'pb-pin', tabindex: '-1', role: 'button', 'data-k': `${p.header}-${p.pos}`,
+          'aria-label': `${pinName(p)}, гребінка ${p.header}, вивід ${p.pos}: ${PINS.verdicts[p.verdict] || ''}` }, svgEl);
+        pinHit(pg, q, o, 86);
+        mk('circle', { class: 'mk', cx: q.x, cy: q.y, r: 11 }, pg);
+        mk('circle', { class: 'ring', cx: q.x, cy: q.y, r: 15 }, pg);
+        pinLabel(pg, q, o, 26, p.label, 'lbl', 20);
+        pg._pin = p;
+        pinEls.set(pg.dataset.k, pg);
+        pg.addEventListener('click', () => pick(pg, true));
+        pg.addEventListener('keydown', (e) => keyNav(e, pg));
+      });
+      const k0 = sel ? sel.dataset.k : 'P1-7';
+      const g0 = pinEls.get(k0);
+      if (g0) { g0.setAttribute('tabindex', '0'); if (sel) { g0.classList.add('sel'); sel = g0; } }
+      apply();
+    }
+    function keyNav(e, g) {
+      const p = g._pin;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(g, true); return; }
+      // pin 1 is at the module end: right of it when the board lies, below it when it stands
+      const along = vert ? { ArrowDown: 1, ArrowUp: -1 } : { ArrowRight: 1, ArrowLeft: -1 };
+      const across = vert ? { ArrowLeft: 'P1', ArrowRight: 'P2' } : { ArrowUp: 'P2', ArrowDown: 'P1' };
+      let k = null;
+      if (e.key in along) k = `${p.header}-${Math.min(22, Math.max(1, p.pos + along[e.key]))}`;
+      else if (e.key in across) k = `${across[e.key]}-${p.pos}`;
+      if (!k) return;
+      e.preventDefault();
+      const n = pinEls.get(k);
+      if (n) { g.setAttribute('tabindex', '-1'); n.setAttribute('tabindex', '0'); n.focus(); }
+    }
+    function apply() {
+      svgEl.classList.toggle('filtering', active.size > 0);
+      pinEls.forEach((g) => {
+        const f = ORDER.find((k) => active.has(k) && F[k].match(g._pin));
+        g.classList.toggle('match', !!f);
+        if (f) { g.style.setProperty('--c', F[f].c); g.querySelector('.lbl').style.fill = F[f].ci; } else { g.style.removeProperty('--c'); g.querySelector('.lbl').style.fill = ''; }
+      });
+      traces.forEach((t) => t.el.classList.toggle('on', active.has(t.f)));
+    }
+    const srcLine = (id) => {
+      const f = FACTS.get(id);
+      return f ? `<p class="src">Джерело: <a href="${escH(f.url)}" target="_blank" rel="noopener">${escH(f.source)}</a>, ${escH(f.section)}</p>` : '';
+    };
+    const usable = (p) => p.gpio != null && (p.verdict === 'ok' || p.verdict === 'care') && !p.classes.includes('led');
+    function showCard(p) {
+      const vtxt = PINS.verdicts[p.verdict] || p.verdict;
+      const cls = p.classes.filter((c) => (PINS.classes[c] || c) !== vtxt).map((c) => `<li>${escH(PINS.classes[c] || c)}</li>`).join('');
+      const where = p.header ? `гребінка ${p.header}, вивід ${p.pos} · «${escH(p.label)}»` : 'на гребінку не виведений';
+      const fn = [p.adc, p.touch].filter(Boolean).join(' · ');
+      const use = p.gpio == null ? '' : usable(p) ? `<p class="use small"><b>Кнопку SW1 під'єднано сюди</b> — спробуйте її нижче.</p>`
+        : '<p class="use small"><b>Для кнопки не годиться</b> — візьміть зелений пін.</p>';
+      card.innerHTML = `<h4>${escH(pinName(p))}</h4><p class="small muted" style="margin:0 0 6px">${where}</p>`
+        + `<span class="verdict vd-${p.verdict}">${escH(vtxt)}</span>${cls ? `<ul class="cls">${cls}</ul>` : ''}`
+        + `${fn ? `<p class="small"><b>Аналогові:</b> ${escH(fn)}</p>` : ''}<p>${escH(p.note || '')}</p>${srcLine(p.fact)}${use}`;
+    }
+    function pick(g, user) {
+      if (sel) sel.classList.remove('sel');
+      sel = g; g.classList.add('sel');
+      pinEls.forEach((x) => x.setAttribute('tabindex', x === g ? '0' : '-1'));
+      showCard(g._pin);
+      if (user) demo.setPin(g._pin, usable(g._pin));
+    }
+    function layout() {
+      if (!PINS) return;
+      const v = wrap.clientWidth < 560;
+      if (v !== vert) { vert = v; build(); }
+    }
+    $$('.pb-filters .sw').forEach((b) => b.addEventListener('switch', (e) => {
+      const f = b.dataset.f;
+      if (e.detail.on) active.add(f); else active.delete(f);
+      apply();
+      if (!PINS) return;
+      const on = [...active].map((k) => F[k].name).join(', ');
+      const list = e.detail.on ? PINS.pins.filter(F[f].match).map(pinName).concat(f === 'mem' ? ['GPIO26–32 (усередині модуля)'] : []) : [];
+      $('#pb-note').textContent = e.detail.on ? `${F[f].name}: ${list.join(', ')}.` : (on ? `Підсвічено: ${on}.` : 'Підсвітку вимкнено.');
+    }));
+    Study.fetchJSON('data/facts.json', { quiet: true }).then((f) => {
+      (Array.isArray(f) ? f : f.facts || Object.values(f)).forEach((x) => FACTS.set(x.id, x));
+      if (sel) showCard(sel._pin);
+    }).catch(() => {});
+    Study.fetchJSON('data/pins-s3.json').then((d) => {
+      PINS = d; layout();
+      const g7 = pinEls.get('P1-7'); if (g7) pick(g7, false);
+    }).catch(() => { card.innerHTML = '<p>Не вдалося завантажити розпіновку. Оновіть сторінку.</p>'; });
+    window.addEventListener('resize', layout);
+    return { get pins() { return PINS; } };
+  })();
+
+  /* the button demo on the chosen pin: voltage, digitalRead, current, floating input */
+  const demo = (() => {
+    const st = { mode: 'in', pressed: false, hand: false, gpio: 7 };
+    const hist = [], N = 300, DT = 0.01;
+    let vFloat = 1.6, tS = 0, acc = 0, lastNote = '';
+    const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+    const state = () => {
+      const pull = st.mode === 'pu' ? VDD : st.mode === 'pd' ? 0 : null;
+      if (st.pressed) return { v: 0, i: pull === VDD ? VDD / RPU : 0, fixed: true };
+      if (pull != null) return { v: pull, i: 0, fixed: true };
+      return { v: null, i: 0, fixed: false };
+    };
+    function sample() {
+      tS += DT;
+      const s = state();
+      let v;
+      if (s.fixed) v = s.v + (Math.random() - 0.5) * 0.02;
+      else {
+        // floating: a slow random walk, plus a strong pick-up when a hand is near (slowed down to be visible)
+        vFloat += (1.65 - vFloat) * 0.25 * DT + 0.55 * Math.sqrt(DT) * gauss();
+        v = vFloat + (st.hand ? 1.6 * Math.sin(2 * Math.PI * 3 * tS) + 0.12 * gauss() : 0.25 * Math.sin(2 * Math.PI * 0.7 * tS));
+      }
+      v = Math.max(0, Math.min(3.4, v));
+      const d = v >= VIH ? 1 : v <= VIL ? 0 : (v > 1.6 + (Math.random() - 0.5) * 0.3 ? 1 : 0);
+      hist.push({ v, d }); if (hist.length > N) hist.shift();
+    }
+    for (let k = 0; k < N; k++) sample();
+    function scope() {
+      const cv = $('#pb-cv'), ctx = Study.fitCanvas(cv), t = Study.tokens();
+      const W = ctx.w, H = ctx.h, padL = 46, padR = 8, top = 10, dH = 40, gap = 18;
+      const aH = H - top - dH - gap - 10, y = (v) => top + aH * (1 - v / 3.6);
+      ctx.clearRect(0, 0, W, H);
+      const band = (v0, v1, col, a) => { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillRect(padL, y(v1), W - padL - padR, y(v0) - y(v1)); ctx.globalAlpha = 1; };
+      band(0, VIL, t['lvl-lo'], 0.18); band(VIL, VIH, t['lvl-z'], 0.14); band(VIH, VDD, t['lvl-hi'], 0.18);
+      ctx.font = `13px ${t['f-mono']}`; ctx.fillStyle = t.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      [[VDD, '3,3'], [VIH, '2,48'], [VIL, '0,82'], [0, '0 В']].forEach(([v, s]) => ctx.fillText(s, padL - 6, y(v)));
+      ctx.textAlign = 'left'; ctx.fillText('не знаю', padL + 6, y((VIL + VIH) / 2));
+      const n = hist.length, xs = (i) => padL + (W - padL - padR) * (i + N - n) / (N - 1);
+      ctx.strokeStyle = t.ink; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath();
+      hist.forEach((p, i) => (i ? ctx.lineTo(xs(i), y(p.v)) : ctx.moveTo(xs(i), y(p.v)))); ctx.stroke();
+      const d1 = top + aH + gap + 4, d0 = top + aH + gap + dH;
+      ctx.fillStyle = t.muted; ctx.textAlign = 'right';
+      ctx.fillText('1', padL - 6, d1); ctx.fillText('0', padL - 6, d0);
+      ctx.strokeStyle = t.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+      hist.forEach((p, i) => { const yy = p.d ? d1 : d0; if (i) { ctx.lineTo(xs(i), hist[i - 1].d ? d1 : d0); ctx.lineTo(xs(i), yy); } else ctx.moveTo(xs(i), yy); });
+      ctx.stroke();
+    }
+    // SW1 as it really sits on the breadboard: Kit 6×6 tactile switch across the centre channel (e3/f3 ↔ e5/f5), cropped
+    // from a full WB-102 (its rail holes line up with the columns). Yellow: j3 straight down, then along the strip under
+    // row j off the left edge towards the chosen pin; black: j5 straight down to the − rail. No arcs, nothing crosses.
+    const bsvg = $('#pb-btn');
+    const mb = K.part('breadboard', { parent: bsvg });
+    const e3 = mb.hole(3, 'e');
+    const sw1 = K.part('button', { parent: bsvg, x: e3.x, y: e3.y, title: 'SW1: натиснути' });
+    const laneY = mb.hole(1, 'j').y + K.P * 1.15, j3 = mb.at('j3');
+    K.route(bsvg, [j3, { x: j3.x, y: laneY }, { x: -48, y: laneY }], 'yellow', { ends: ['ring', 'none'] });
+    K.route(bsvg, [mb.at('j5'), mb.at('bottom-5')], 'black');
+    const swLbl = callout(bsvg, -58, laneY, 'GPIO7', null, false, 'sig mid end');
+    callout(bsvg, mb.hole(5, 'j').x + 20, laneY, 'GND', null, false, 'mid start');
+    callout(bsvg, mb.hole(5, 'e').x + 24, (mb.hole(5, 'e').y + mb.hole(5, 'f').y) / 2, 'SW1', null, false, 'mid start');
+    keepText(bsvg);
+    sw1.addEventListener('click', () => $('#pb-press').click());
+    // current dots (pull-up + pressed only)
+    const path = $('#pb-path-pu'), PL = path.getTotalLength(), fg = $('#pb-flow');
+    const dots = Array.from({ length: 9 }, () => S.svg('circle', { class: 'pb-e', r: 4 }, fg));
+    let ph = 0;
+    function paint() {
+      const last = hist[hist.length - 1], s = state();
+      const ones = hist.slice(-100).reduce((a, p) => a + p.d, 0);
+      $('#pb-v').textContent = volts(last.v);
+      $('#pb-d').textContent = last.d ? 'HIGH (1)' : 'LOW (0)';
+      $('#pb-i').textContent = s.i ? `${fmt.num(s.i * 1e6, 0)}${NB}мкА` : '0';
+      $('#pb-n').textContent = String(ones);
+      $('#pb-big').textContent = String(last.d);
+      $('#pb-sch-v').textContent = volts(last.v);
+      const lvl = s.fixed ? (last.v >= VIH ? 'hi' : 'lo') : 'z';
+      const node = $('#pb-node');
+      node.style.stroke = `var(--lvl-${lvl})`; node.style.strokeDasharray = lvl === 'z' ? '7 6' : '';
+      const flow = st.pressed && st.mode === 'pu';
+      dots.forEach((c, k) => { const q = path.getPointAtLength(((ph + k / dots.length) % 1) * PL); c.setAttribute('cx', q.x.toFixed(1)); c.setAttribute('cy', q.y.toFixed(1)); c.style.display = flow ? '' : 'none'; });
+    }
+    function render() {
+      $('#pb-kpu').setAttribute('d', st.mode === 'pu' ? 'M150 108L150 128' : 'M150 108L164 124');
+      $('#pb-kpu').classList.toggle('off', st.mode !== 'pu');
+      $('#pb-kpd').setAttribute('d', st.mode === 'pd' ? 'M150 132L150 152' : 'M150 152L164 136');
+      $('#pb-kpd').classList.toggle('off', st.mode !== 'pd');
+      $('#pb-sw-bar').setAttribute('transform', st.pressed ? 'translate(-10 0)' : '');
+      sw1.set({ pressed: st.pressed });
+      swLbl.textContent = `GPIO${st.gpio}`;
+      const M = { in: 'INPUT', pu: 'INPUT_PULLUP', pd: 'INPUT_PULLDOWN' }[st.mode];
+      $('#pb-code').textContent = `pinMode(${st.gpio}, ${M});  // кнопка SW1 від GPIO${st.gpio} до GND`;
+      $('#pb-sch-pin').textContent = `GPIO${st.gpio}`;
+      const s = state();
+      let msg;
+      if (st.mode === 'in' && !st.pressed) msg = 'INPUT без підтяжки: пін ні до чого не притягнутий і «плаває» — digitalRead віддає то 0, то 1.' + (st.hand ? ' Рука поруч наводить заваду: стрибки ще більші.' : '');
+      else if (st.mode === 'in') msg = 'Натиснута кнопка з\'єднала пін із землею: 0 В, читається 0. Але відпустіть — і він знову попливе.';
+      else if (st.mode === 'pu') msg = st.pressed ? `Натиснуто: струм іде 3,3 В → 45 кОм → кнопка → GND, повз вхід. I = 3,3 В / 45 кОм ≈ ${fmt.num(s.i * 1e6, 0)} мкА, пін 0 В → 0.` : 'Підтяжка тримає пін на 3,3 В: читається 1. Струму майже немає, тож на резисторі нічого не падає.';
+      else msg = st.pressed ? 'INPUT_PULLDOWN і кнопка до GND: обидва тягнуть до нуля — натискання нічого не змінює. Для pull-down кнопку ставлять до 3,3 В.' : 'Підтяжка донизу тримає пін на 0 В: читається 0.';
+      if (msg !== lastNote) { $('#pb-note').textContent = msg; lastNote = msg; }
+      if (!sim.running) { for (let k = 0; k < 40; k++) sample(); }
+      scope(); paint();
+    }
+    const sim = Study.sim($('#pb-in'), (dt) => {
+      acc += dt; ph = (ph + dt * 0.35) % 1;
+      while (acc >= DT) { acc -= DT; sample(); }
+      scope(); paint();
+    });
+    $$('#pb-mode button').forEach((b) => b.addEventListener('click', () => { st.mode = b.dataset.m; pressSeg($('#pb-mode'), b); render(); }));
+    $('#pb-press').addEventListener('switch', (e) => { st.pressed = e.detail.on; render(); });
+    $('#pb-hand').addEventListener('switch', (e) => { st.hand = e.detail.on; render(); });
+    Study.onTheme(() => { scope(); });
+    window.addEventListener('resize', () => scope());
+    render();
+    return {
+      setPin(p, ok) {
+        if (!ok) {
+          lastNote = `${p.gpio == null ? p.label : 'GPIO' + p.gpio} для кнопки не годиться: ${p.note || ''} Кнопка лишається на GPIO${st.gpio}.`;
+          $('#pb-note').textContent = lastNote; return;
+        }
+        st.gpio = p.gpio; render();
+        if (p.verdict === 'care') { lastNote = `Увага, GPIO${p.gpio}: ${p.note}`; $('#pb-note').textContent = lastNote; }
+      },
+    };
+  })();
+  void bench;
+
+  /* ==== animation: how a pull-up works ==== */
+  {
+    const path = $('#pa-path'), PL = path.getTotalLength(), fg = $('#pa-flow');
+    const dots = Array.from({ length: 10 }, () => S.svg('circle', { class: 'pb-e', r: 4.5 }, fg));
+    let wander = 1.5;
+    const node = (lvl) => { const n = $('#pa-node'); n.style.stroke = `var(--lvl-${lvl})`; n.style.strokeDasharray = lvl === 'z' ? '7 6' : ''; };
+    Study.anim($('#pu-anim'), {
+      steps: [
+        { title: 'Вхід сам по собі', cap: 'Вхід без підтяжки ні до чого не притягнутий. Струм у нього мізерний, тож будь-яка завада зсуває напругу — і <code>digitalRead</code> віддає то 0, то 1.', dur: 4 },
+        { title: 'Додаємо підтяжку', cap: 'Резистор 45&nbsp;кОм від входу до 3,3&nbsp;В. Кнопка розімкнена, шляху для струму немає — пін бачить 3,3&nbsp;В і читає <b>1</b>.', dur: 4 },
+        { title: 'Чому 3,3 В', cap: 'У вхід тече до 50&nbsp;нА. На резисторі падає лише U = 50&nbsp;нА × 45&nbsp;кОм ≈ 2,25&nbsp;мВ — тому на піні майже рівно 3,3&nbsp;В.', dur: 4.5 },
+        { title: 'Натискаємо', cap: 'Кнопка з\'єднує вузол із землею: петля замкнулась, струм 3,3&nbsp;В / 45&nbsp;кОм ≈ 73&nbsp;мкА тече через резистор і кнопку. На піні 0&nbsp;В — читається <b>0</b>.', dur: 4.5 },
+        { title: 'Повз вхід', cap: 'Струм іде повз вхід, у землю: уся напруга тепер на резисторі. Сам вхід лише «дивиться» на вузол.', dur: 4 },
+        { title: 'Відпускаємо', cap: 'Відпустили: петля знову розірвана, струм зник, підтяжка повертає пін до 3,3&nbsp;В — знову <b>1</b>. Тому з INPUT_PULLUP натиснуто → 0, відпущено → 1.', dur: 4 },
+      ],
+      draw(i, p, t) {
+        $('#pa-pu').setAttribute('opacity', i === 0 ? 0 : i === 1 ? Math.min(1, p * 2).toFixed(2) : 1);
+        const pressed = i === 3 || i === 4;
+        $('#pa-bar').setAttribute('transform', pressed ? 'translate(-12 0)' : '');
+        let v, d;
+        if (i === 0) { wander = 1.65 + 0.9 * Math.sin(t * 2.3) + 0.5 * Math.sin(t * 5.7 + 1); v = wander; d = v > 1.65 ? 1 : 0; node('z'); }
+        else if (pressed) { v = 0; d = 0; node('lo'); }
+        else { v = 3.3; d = 1; node('hi'); }
+        $('#pa-v').textContent = i === 0 ? `≈ ${fmt.num(v, 1)} В ?` : volts(v);
+        $('#pa-big').textContent = String(d);
+        $('#pa-ur').textContent = i === 2 ? 'U ≈ 2,25 мВ' : pressed ? 'U = 3,3 В' : '';
+        $('#pa-leak').setAttribute('opacity', i === 2 || i === 4 ? 1 : 0);
+        $('#pa-i').textContent = pressed ? 'I = 3,3 В / 45 кОм ≈ 73 мкА' : i > 0 ? 'I ≈ 0: петля розірвана' : '';
+        $('#pa-res').style.color = i === 2 || i === 4 ? 'var(--hi)' : '';
+        dots.forEach((c, k) => {
+          const q = path.getPointAtLength(((t * 0.3 + k / dots.length) % 1) * PL);
+          c.setAttribute('cx', q.x.toFixed(1)); c.setAttribute('cy', q.y.toFixed(1));
+          c.style.display = pressed ? '' : 'none';
+        });
+      },
+    });
+  }
+
+  /* ==== idea 3: the closed rope loop of the pressed button (dots start from a switch, never on their own) ==== */
+  $('#i3-sw').addEventListener('switch', (e) => {
+    const el = $('#i3-loop');
+    if (e.detail.on) S.flow(el, { mA: VDD / RPU * 1000, k: FLOW_K }); else if (el._flow) el._flow.remove();
+  });
+
+  /* ==== idea 1: one pin, three modes ==== */
+  {
+    const set = (m) => {
+      const hi = m === 'hi', lo = m === 'lo';
+      $('#io-khi').setAttribute('d', hi ? 'M100 42V76' : 'M100 42L118 70');
+      $('#io-khi').setAttribute('class', hi ? 'w-acc' : 'w');
+      $('#io-klo').setAttribute('d', lo ? 'M100 138V172' : 'M100 138L118 166');
+      $('#io-klo').setAttribute('class', lo ? 'w-acc' : 'w');
+      $('#io-thi').textContent = hi ? 'увімк.' : 'вимк.';
+      $('#io-tlo').textContent = lo ? 'увімк.' : 'вимк.';
+      $('#io-badge').textContent = hi ? 'HIGH' : lo ? 'LOW' : 'Hi-Z';
+      $('#io-node').style.strokeDasharray = m === 'in' ? '6 5' : '';
+      $('#io-leak').setAttribute('opacity', m === 'in' ? 1 : 0);
+      $('#io-cap').textContent = hi ? 'OUTPUT HIGH: верхній ключ замкнений — пін з\'єднаний з 3,3 В і сам тримає рівень.'
+        : lo ? 'OUTPUT LOW: замкнений нижній ключ — пін з\'єднаний із землею.'
+        : 'INPUT: обидва ключі розімкнені. Пін лише «слухає», струм у нього до 50 нА, рівень мусить задати хтось ззовні.';
+    };
+    $$('#io-seg button').forEach((b) => b.addEventListener('click', () => { pressSeg($('#io-seg'), b); set(b.dataset.m); }));
+    set('hi');
+  }
+
+  /* ==== idea 2: drag the input voltage across the thresholds ==== */
+  {
+    const inp = $('#th-v'), fig = inp.closest('figure');
+    let flick = 0;
+    const X = (v) => 20 + v * 56; // 0…5 В → 20…300
+    const show = () => {
+      const v = +inp.value;
+      $('#th-mk').setAttribute('transform', `translate(${X(v).toFixed(1)} 0)`);
+      const r = v > VDD + 0.3 ? '✕ шкода' : v >= VIH ? '1' : v <= VIL ? '0' : (flick ? '1 ?' : '0 ?');
+      $('#th-out').textContent = `${fmt.num(v, 2, true)}${NB}В → ${r}`;
+    };
+    const sim = Study.sim(fig, (dt, t) => { const nf = Math.sin(t * 9) + Math.sin(t * 23) > 0 ? 1 : 0; if (nf !== flick) { flick = nf; show(); } });
+    sim.pause();
+    inp.addEventListener('input', () => { const v = +inp.value; if (v > VIL && v < VIH) sim.play(); else sim.pause(); show(); });
+    show();
+  }
+
+  /* ==== idea 4: route a signal through the GPIO matrix ==== */
+  {
+    const SIG_Y = [31, 75, 119], COL = [126, 158, 190], NAME = { 31: 'GPIO38', 56: 'GPIO4', 106: 'GPIO21', 131: 'GPIO35' };
+    const SNAME = ['UART', 'ШІМ', 'I²C'];
+    const at = [56, 106, 31]; // pin row of each signal, as drawn at first
+    let cur = 0;
+    const draw = () => {
+      at.forEach((py, k) => {
+        const el = $(`#mx-${k}`);
+        el.setAttribute('d', `M68 ${SIG_Y[k]}H${COL[k]}V${py}H206`);
+        el.style.stroke = py === 131 ? 'var(--bad)' : '';
+        el.style.strokeDasharray = py === 131 ? '6 5' : '';
+        el.style.opacity = k === cur ? 1 : 0.45;
+      });
+      $$('#mx-pin button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.p === at[cur])));
+    };
+    $$('#mx-sig button').forEach((b) => b.addEventListener('click', () => { cur = +b.dataset.s; pressSeg($('#mx-sig'), b); draw(); }));
+    $$('#mx-pin button').forEach((b) => b.addEventListener('click', () => {
+      const py = +b.dataset.p, other = at.indexOf(py);
+      if (other >= 0 && other !== cur) at[other] = at[cur]; // swap: one pin, one signal
+      at[cur] = py; draw();
+      $('#mx-out').textContent = py === 131 ? `${SNAME[cur]} → GPIO35: матриця дозволить, але на N16R8 цей пін зайнятий Octal PSRAM. Плата зависне — беріть інший.`
+        : `${SNAME[cur]} → ${NAME[py]}: вільний пін, матриця під'єднала сигнал.`;
+    }));
+    draw();
+  }
+
+  /* ==== idea 5: supply voltage against Recommended and Absolute Max ==== */
+  {
+    const inp = $('#ds-v');
+    const show = () => {
+      const v = +inp.value;
+      $('#ds-mk').setAttribute('transform', `translate(${(66 + (v - 3) * 230).toFixed(1)} 0)`);
+      const r = v > 3.6 + 1e-9 ? '✕ понад Abs max: шкода' : v < 3.0 - 1e-9 ? 'нижче Recommended: робота не гарантована' : 'Recommended: робота гарантована';
+      $('#ds-out').textContent = `${fmt.num(v, 2, true)}${NB}В — ${r}`;
+    };
+    inp.addEventListener('input', show); show();
+  }
 
   /* ==== 05 W1: what does the pin read? ==== */
   const pr = { mode: 'in', to: 'gnd', pressed: false, hand: false };
@@ -1023,29 +1682,19 @@ document.addEventListener('study:ready', () => {
   const pinName = (p) => (p.gpio == null ? p.label : `GPIO${p.gpio}`);
   function buildBoard() {
     const svg = (t, a, p) => S.svg(t, a, p);
-    svg('rect', { class: 'brd', x: 14, y: 72, width: 336, height: 92, rx: 6 }, board);
-    svg('rect', { class: 'mod', x: 150, y: 96, width: 196, height: 44, rx: 3 }, board);
-    svg('path', { class: 'ant', d: 'M314 102h24v8h-20v8h20v8h-20v8h20' }, board);
-    const mt = svg('text', { class: 'mod-t', x: 230, y: 115, 'text-anchor': 'middle' }, board); mt.textContent = 'ESP32-S3-WROOM-1';
-    const mt2 = svg('text', { class: 'mod-t', x: 230, y: 132, 'text-anchor': 'middle' }, board); mt2.textContent = 'N16R8';
-    svg('rect', { class: 'usb', x: 8, y: 96, width: 18, height: 16, rx: 5 }, board);
-    svg('rect', { class: 'usb', x: 8, y: 124, width: 18, height: 16, rx: 5 }, board);
-    const ut = svg('text', { class: 't-mut', x: 32, y: 123 }, board); ut.textContent = 'USB-C ×2';
-    const pitch = 14.8, xR = 338;
+    const B = kitBoard(board, false); // lying: module left, USB-C right, P2 on top, P1 below
     PINS.pins.forEach((p) => {
-      const x = xR - (p.pos - 1) * pitch, top = p.header === 'P1', y = top ? 84 : 152;
+      const q = B.at(p.header, p.pos), o = B.out(p.header), x = q.x, y = q.y;
       const g = svg('g', { class: `pin v-${p.verdict}`, tabindex: '-1', role: 'button', 'data-k': `${p.header}-${p.pos}`,
         'aria-label': `${pinName(p)}, гребінка ${p.header}, вивід ${p.pos}: ${PINS.verdicts[p.verdict] || ''}` }, board);
-      svg('rect', { class: 'hit', x: x - 7.4, y: top ? 20 : 144, width: 14.8, height: 62 }, g);
-      svg('circle', { class: 'ring', cx: x, cy: y, r: 8.5 }, g);
-      svg('circle', { class: 'neu', cx: x, cy: y, r: 5.5 }, g);
-      if (p.verdict === 'ok') svg('circle', { class: 'shape', cx: x, cy: y, r: 6 }, g);
-      else if (p.verdict === 'care') svg('rect', { class: 'shape', x: x - 5, y: y - 5, width: 10, height: 10, transform: `rotate(45 ${x} ${y})` }, g);
-      else if (p.verdict === 'no') svg('rect', { class: 'shape', x: x - 5.5, y: y - 5.5, width: 11, height: 11 }, g);
-      else svg('rect', { class: 'shape', x: x - 4, y: y - 4, width: 8, height: 8, rx: 1 }, g);
-      const ty = top ? 72 : 164;
-      const t = svg('text', { class: 'lbl', x: x + 5, y: ty, 'text-anchor': top ? 'start' : 'end', transform: `rotate(-90 ${x + 5} ${ty})` }, g);
-      t.textContent = p.label;
+      pinHit(g, q, o, 74);
+      svg('circle', { class: 'ring', cx: x, cy: y, r: 15 }, g);
+      svg('circle', { class: 'neu', cx: x, cy: y, r: 9 }, g);
+      if (p.verdict === 'ok') svg('circle', { class: 'shape', cx: x, cy: y, r: 10 }, g);
+      else if (p.verdict === 'care') svg('rect', { class: 'shape', x: x - 8, y: y - 8, width: 16, height: 16, transform: `rotate(45 ${x} ${y})` }, g);
+      else if (p.verdict === 'no') svg('rect', { class: 'shape', x: x - 9, y: y - 9, width: 18, height: 18 }, g);
+      else svg('rect', { class: 'shape', x: x - 7, y: y - 7, width: 14, height: 14, rx: 2 }, g);
+      pinLabel(g, q, o, 24, p.label, 'lbl', 18);
       g._pin = p;
       pinEls.set(g.dataset.k, g);
       g.addEventListener('click', () => pick(g));
@@ -1059,9 +1708,10 @@ document.addEventListener('study:ready', () => {
     const p = g._pin;
     let k = null;
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(g); return; }
-    if (e.key === 'ArrowLeft') k = `${p.header}-${Math.min(22, p.pos + 1)}`;
-    else if (e.key === 'ArrowRight') k = `${p.header}-${Math.max(1, p.pos - 1)}`;
-    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') k = `${e.key === 'ArrowUp' ? 'P1' : 'P2'}-${p.pos}`;
+    // pin 1 is at the module (left) end; P2 is the top header
+    if (e.key === 'ArrowRight') k = `${p.header}-${Math.min(22, p.pos + 1)}`;
+    else if (e.key === 'ArrowLeft') k = `${p.header}-${Math.max(1, p.pos - 1)}`;
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') k = `${e.key === 'ArrowUp' ? 'P2' : 'P1'}-${p.pos}`;
     if (!k) return;
     e.preventDefault();
     const n = pinEls.get(k);
@@ -1154,30 +1804,59 @@ document.addEventListener('study:ready', () => {
 
   /* ==== 08 dual figure: breadboard + button/LED behaviour ==== */
   const bbSvg = $('#bb-btn');
-  const bg = S.svg('g', {}, bbSvg);
-  S.svg('rect', { x: 2, y: 50, width: 58, height: 96, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, bg);
-  S.svg('text', { class: 'sch-pin', x: 6, y: 42 }, bg).textContent = 'плата';
-  S.svg('text', { class: 'sch-pin net-gnd', 'data-net': 'gnd', x: 8, y: 75 }, bg).textContent = 'G';
-  S.svg('text', { class: 'sch-pin net-sig', 'data-net': 'gpio7', x: 8, y: 105 }, bg).textContent = '7';
-  S.svg('text', { class: 'sch-pin net-sig2', 'data-net': 'gpio15', x: 8, y: 132 }, bg).textContent = '15';
-  const bb = S.breadboard(bbSvg, { cols: 16, rails: true, x: 76, y: 0, colLabels: 'bottom' });
-  bb.mark(3, 'top', 'gpio7', 'net-sig');
-  bb.mark(5, 'top', 'gnd', 'net-gnd');
-  bb.mark(8, 'top', 'gpio15', 'net-sig2');
-  bb.mark(12, 'top', 'led_a', 'net-sig3');
-  bb.mark(13, 'top', 'gnd', 'net-gnd');
-  bb.markRail('top', '-', 'gnd', 'net-gnd');
-  const e3 = bb.hole(3, 'e'), f3 = bb.hole(3, 'f');
-  const j7 = S.part(bbSvg, 'jumper', { from: { x: 50, y: 100 }, to: bb.hole(3, 'a'), net: 'gpio7', cls: 'net-sig', lift: 8, title: 'Дріт GPIO7 → стовпчик 3' });
-  const btnPart = S.part(bbSvg, 'btn4', { x: e3.x, y: e3.y, w: 20, h: f3.y - e3.y, label: 'SW1' });
-  const jSw = S.part(bbSvg, 'jumper', { from: bb.hole(5, 'a'), to: bb.rail('top', '-', 5), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 5 → шина мінус' });
-  const j15 = S.part(bbSvg, 'jumper', { from: { x: 50, y: 127 }, to: bb.hole(8, 'c'), net: 'gpio15', cls: 'net-sig2', lift: 14, title: 'Дріт GPIO15 → стовпчик 8' });
-  S.part(bbSvg, 'res', { from: bb.hole(8, 'a'), to: bb.hole(12, 'a'), ohms: 220, label: 'R1' });
-  const led = S.part(bbSvg, 'led', { anode: bb.hole(12, 'e'), cathode: bb.hole(13, 'e'), color: 'red', label: 'LED1' });
-  const jK = S.part(bbSvg, 'jumper', { from: bb.hole(13, 'b'), to: bb.rail('top', '-', 13), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 13 → шина мінус' });
-  const jG = S.part(bbSvg, 'jumper', { from: { x: 50, y: 70 }, to: bb.rail('top', '-', 1), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → шина мінус' });
-  void btnPart;
-
+  // Our bench, laid out like the real one: the YD-ESP32-S3 sits IN the WB-102 (headers in rows i and b, columns 18–39;
+  // rows j and a stay free) and the parts stand to its left, using the breadboard strips:
+  //   GPIO7 (j24) → yellow flat jumper along the free row j → j12 → SW1 across the channel (legs 12 | 14) →
+  //     black a14 → a18 = GND pin R1 of the board (row a, its own strip);
+  //   GPIO15 (j25) → blue down to the strip under row j → j10 → R1 220 Ом (h10–h6) → red LED (anode f6, cathode f5,
+  //     mirrored) → black j5 → − rail ← black ← GND pin L22 (j39). The WB-102 rails are split between columns 31 and 33:
+  //     a short black bridge bottom-31 → bottom-33 joins the two halves of the − rail.
+  // Straight runs on the hole grid only: nothing crosses, nothing lies over a part.
+  const kdefs = S.svg('defs', {}, bbSvg);
+  const kfade = S.svg('linearGradient', { id: 'bb-btn-cutg', gradientUnits: 'userSpaceOnUse', x1: 1050, x2: 1148, y1: 0, y2: 0 }, kdefs);
+  S.svg('stop', { offset: 0, 'stop-color': '#fff' }, kfade); S.svg('stop', { offset: 1, 'stop-color': '#000' }, kfade);
+  const kmask = S.svg('mask', { id: 'bb-btn-cut', maskUnits: 'userSpaceOnUse', x: -100, y: -100, width: 2000, height: 900 }, kdefs);
+  S.svg('rect', { x: -100, y: -100, width: 2000, height: 900, fill: 'url(#bb-btn-cutg)' }, kmask);
+  const kb = K.part('breadboard', { parent: bbSvg });
+  kb.setAttribute('mask', 'url(#bb-btn-cut)');
+  const C0 = 18, c7 = C0 + 6, c15 = C0 + 7, cG = C0 + 21; // GPIO7 = L7, GPIO15 = L8, GND = L22 (and R1 = GND in row a at C0)
+  const p0 = kb.hole(C0, 'i');
+  const kesp = K.part('esp32s3', { parent: bbSvg, x: p0.x, y: p0.y, rot: -90 });
+  kesp.set({ highlight: ['GPIO7', 'GPIO15', 'GND', 'GND2'] });
+  const e12 = kb.hole(12, 'e');
+  const btnPart = K.part('button', { parent: bbSvg, x: e12.x, y: e12.y, title: 'SW1: натиснути' });
+  const h6 = kb.hole(6, 'h');
+  const kR = K.part('resistor', { parent: bbSvg, ohms: 220, span: 4, x: h6.x, y: h6.y });
+  const l6 = kb.hole(6, 'f');
+  const kLed = K.part('led', { parent: bbSvg, color: 'red', x: l6.x, y: l6.y, leg: 40, mirror: true });
+  const laneY = kb.hole(1, 'j').y + K.P * 1.15;
+  const h15 = kb.at('j' + c15), h10 = kb.at('j10');
+  const j7 = K.route(bbSvg, [kb.at('j' + c7), kb.at('j12')], 'yellow');
+  const jSw = K.route(bbSvg, [kb.at('a14'), kb.at('a' + C0)], 'black');
+  const jL = K.route(bbSvg, [h15, { x: h15.x, y: laneY }, { x: h10.x, y: laneY }, h10], 'blue');
+  const jK = K.route(bbSvg, [kb.at('j5'), kb.at('bottom-5')], 'black');
+  const jG = K.route(bbSvg, [kb.at('j' + cG), kb.at('bottom-' + cG)], 'black');
+  const jBr = K.route(bbSvg, [kb.at('bottom-31'), kb.at('bottom-33')], 'black'); // bridge over the split of the − rail
+  // net tags for Schem.link (wire groups and the strips they plug into, drawn under the parts; colour = the schematic's)
+  const NETC = { gpio7: 'var(--nsig)', gpio15: 'var(--nsig2)', led_a: 'var(--nsig3)', gnd: 'var(--ngnd)' };
+  const tagNet = (el, n, label) => { el.dataset.net = n; el.style.color = NETC[n]; if (label) el.setAttribute('aria-label', label); return el; };
+  const strip = (col, n, top) => {
+    const a = col ? kb.hole(col, top ? 'a' : 'f') : kb.rail('bottom', '-', 2), b = col ? kb.hole(col, top ? 'e' : 'j') : kb.rail('bottom', '-', 62);
+    const r = S.svg('rect', { class: 'kit-strip', x: Math.min(a.x, b.x) - 13, y: a.y - 13, width: Math.abs(b.x - a.x) + 26, height: b.y - a.y + 26, rx: 8 }, bbSvg);
+    bbSvg.insertBefore(r, kesp);
+    tagNet(r, n);
+  };
+  [[c7, 'gpio7'], [12, 'gpio7'], [12, 'gpio7', 1], [14, 'gnd'], [14, 'gnd', 1], [C0, 'gnd', 1], [c15, 'gpio15'], [10, 'gpio15'], [6, 'led_a'], [5, 'gnd'], [cG, 'gnd'], [0, 'gnd']]
+    .forEach(([c, n, top]) => strip(c, n, top));
+  tagNet(j7, 'gpio7', `Дріт GPIO7 (j${c7}) → j12`); tagNet(jSw, 'gnd', `Кнопка (a14) → GND плати (a${C0})`);
+  tagNet(jL, 'gpio15', `Дріт GPIO15 (j${c15}) → j10`); tagNet(jK, 'gnd', 'Катод LED (j5) → шина мінус'); tagNet(jG, 'gnd', `GND плати (j${cG}) → шина мінус`);
+  tagNet(jBr, 'gnd', 'Перемичка через розрив шини мінус: стовпчик 31 → 33');
+  const j15 = jL; // the GPIO15 jumper (kept name for the current flow below)
+  const swX = btnPart.pins['1a'].x + K.P, lc = (kLed.pins.A.x + kLed.pins.K.x) / 2, rc = (kR.pins[1].x + kR.pins[2].x) / 2;
+  callout(bbSvg, swX, -24, 'SW1', { x: swX, y: btnPart.pins['1a'].y - 20 });
+  callout(bbSvg, rc, 548, 'R1', { x: rc, y: kR.pins[1].y + 18 }, true);
+  callout(bbSvg, lc, -24, 'LED1', { x: lc, y: kLed.pins.A.y - 140 });
+  keepText(bbSvg);
   const dual = $('#dual-btn');
   $('#bb-show').addEventListener('click', (e) => {
     const open = dual.classList.toggle('bb-hint') === false;
@@ -1190,10 +1869,11 @@ document.addEventListener('study:ready', () => {
     // the level is a text badge, not a wire colour: net colours keep their meaning (red = +5 V)
     $('#lv7').textContent = swDown ? 'LOW' : 'HIGH';
     $('#lv15').textContent = swDown ? 'HIGH' : 'LOW';
-    led.style.opacity = swDown ? '1' : '.45';
+    kLed.set({ on: swDown ? 1 : 0 });
+    btnPart.set({ pressed: swDown });
     $('#s-swbar').style.display = swDown ? '' : 'none';
-    [[$('#s-g15'), 1], [$('#s-la'), 1], [$('#s-lk'), 1], [j15, 1], [jK, 1]].forEach(([w, dir]) => S.flow(w, { mA: swDown ? ledI : 0, dir }));
-    [[$('#s-g7'), 1], [$('#s-sw'), 1], [j7, 1], [jSw, 1]].forEach(([w, dir]) => S.flow(w, { mA: swDown ? VDD / RPU * 1000 : 0, dir, k: FLOW_K }));
+    [[$('#s-g15'), 1], [$('#s-la'), 1], [$('#s-lk'), 1], [j15.path, 1], [jK.path, 1], [jBr.path, 1], [jG.path, -1]].forEach(([w, dir]) => S.flow(w, { mA: swDown ? ledI : 0, dir }));
+    [[$('#s-g7'), 1], [$('#s-sw'), 1], [j7.path, 1], [jSw.path, 1]].forEach(([w, dir]) => S.flow(w, { mA: swDown ? VDD / RPU * 1000 : 0, dir, k: FLOW_K }));
     $('#sw-out').textContent = swDown
       ? `GPIO7 = 0 В → LED світить: I ≈ (3,3 − 1,9) / 220 ≈ ${fmt.num(ledI, 1)} мА`
       : 'GPIO7 = 3,3 В (підтяжка) → LED не світить';
@@ -1205,6 +1885,7 @@ document.addEventListener('study:ready', () => {
     updateSw();
   });
   void jG;
+  btnPart.addEventListener('click', (e) => { e.stopPropagation(); $('#sw-press').click(); });
   updateSw();
   setTimeout(updateSw, 0); // again after Schem.link has generated the net legend
 });

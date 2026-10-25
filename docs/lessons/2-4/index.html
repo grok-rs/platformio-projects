@@ -66,6 +66,112 @@ pre.code { font-size: 13px; }
 .tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
 .tbl-wrap { overflow-x: auto; }
+
+/* ---------- lab «опитування чи переривання» (#ir) ---------- */
+.ir-top { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+/* the bench is a wide breadboard: it gets the full row, status and code sit side by side under it */
+@media (min-width: 820px) { .ir-side { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }
+.lab-stage > .ir-top > .ir-board { display: block; width: 100%; max-width: 880px; height: auto; margin-inline: auto; touch-action: manipulation; }
+/* Kit bench (assets/kit.js): hardware keeps its real colours; only the pills around it use theme tokens */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.kit-bench .kb-pill.lvl text { font-family: var(--f-mono); }
+.ir-s1 { cursor: pointer; outline: none; }
+.ir-s1 .kb-hit { fill: transparent; }
+.ir-s1 .kb-ring { fill: none; stroke: transparent; stroke-width: 8; }
+.ir-s1:focus-visible .kb-ring { stroke: var(--focus, var(--accent)); }
+.ir-side { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.ir-status { display: grid; gap: 8px 12px; grid-template-columns: minmax(0, 1fr); border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 8px 10px; }
+@media (min-width: 480px) { .ir-status { grid-template-columns: auto minmax(0, 1fr); align-items: center; } .ir-chips { grid-column: 1 / -1; } }
+.ir-corebox { display: flex; gap: 10px; align-items: center; }
+.ir-ringsvg { width: 58px; height: 58px; flex: none; }
+.ir-corebox > div { display: grid; line-height: 1.25; }
+.ir-k { font: 600 13px var(--f-mono); color: var(--muted); }
+.ir-stat { font: 650 17px var(--f-body); color: var(--ink); }
+.ir-sub { font: 500 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ir-big { font: 700 18px var(--f-mono); color: var(--hi-ink); }
+.ir-ring-bg { fill: var(--sheet); stroke: var(--line-2); stroke-width: 7; }
+.ir-isrfill { fill: color-mix(in srgb, var(--hi) 45%, var(--sheet)); opacity: 0; }
+.ir-ring { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; }
+.ir-flag { display: grid; justify-items: center; align-content: center; min-height: 52px; border: 1.5px solid var(--line-strong); border-radius: 8px; background: var(--sheet); padding: 4px 10px; }
+.ir-flag.on { background: color-mix(in srgb, var(--hi) 30%, var(--sheet)); border: 2.5px solid var(--hi); }
+.ir-flagv { font: 700 15px var(--f-mono); color: var(--ink); }
+.ir-bolt { color: var(--hi-ink); opacity: 0; }
+.ir-chips { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px 12px; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+.ir-chips li { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 7px; align-items: center; font: 650 14px var(--f-body); color: var(--ink); }
+.ir-chips li > :last-child { grid-column: 2; }
+.ir-chips small { font: 500 13px var(--f-mono); color: var(--muted); }
+.ir-chips i { grid-row: span 2; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+.ir-chips i.btn-i { border-radius: 3px; background: #26272a; box-shadow: 0 0 0 1px var(--line-strong); }
+.ir-chips i.isr-i { border-radius: 3px; background: var(--hi); }
+/* breadboard view of 08: Kit bench with net overlays on the strips */
+#bb-isr { max-width: 520px; max-height: 520px; }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+.ir-codebox { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); min-width: 0; }
+.ir-code-h { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel-2); font: 600 13px var(--f-mono); color: var(--muted); }
+.ir-nowt { color: var(--ink); font-variant-numeric: tabular-nums; }
+pre.ir-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 6px 0; font-size: 13.5px; line-height: 1.55; overflow-x: auto; background: var(--panel); }
+.ir-code .ln { display: block; padding: 0 10px 0 8px; border-left: 4px solid transparent; white-space: pre; }
+.ir-code .ln.on { background: color-mix(in srgb, var(--accent) 16%, transparent); border-left-color: var(--accent); }
+.ir-code .ln.isr { background: color-mix(in srgb, var(--hi) 26%, transparent); border-left-color: var(--hi); }
+.ir-code .ln.hit { background: color-mix(in srgb, var(--ok) 20%, transparent); border-left-color: var(--ok); }
+.ir-code .ln.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); border-left-color: var(--bad); }
+.ir-code .rem { color: var(--muted); }
+.ir-code b { color: var(--hi-ink); }
+.ir-code .del { text-decoration: line-through; color: var(--bad); }
+.lab-stage > canvas.ir-tl { display: block; width: 100%; height: 200px; margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.ir-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+.ir-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.ir-legend .k-work { background: color-mix(in srgb, var(--accent) 30%, var(--panel)); border: 1px solid var(--accent); }
+.ir-legend .k-isr { background: var(--hi); }
+.ir-legend .k-flag { background: color-mix(in srgb, var(--hi) 35%, var(--panel)); border: 1px dashed var(--hi); }
+.ir-press { user-select: none; -webkit-user-select: none; touch-action: none; min-width: 9.5em; }
+.ir-press[aria-pressed="true"] { background: var(--teach); border-color: var(--teach); color: #fff; }
+#ir .lab-read output.big { font-size: clamp(20px, 2.6vw, 24px); }
+.ir-warn { color: var(--bad); font-weight: 600; }
+.ir-src { font-size: 14px; color: var(--muted); }
+@media (max-width: 560px) { #ir .lab-range input[type="range"] { width: 150px; } }
+
+/* ---------- explainer (#ir-anim) ---------- */
+.anim-stage > .ira-svg { max-width: 560px; margin-inline: auto; }
+.ira-svg text { font-family: var(--f-mono); }
+.ira-code { fill: var(--panel); stroke: var(--line); }
+.ira-ln { fill: var(--ink); font: 500 13px var(--f-mono) !important; white-space: pre; }
+.ira-lnbg { fill: transparent; }
+.ira-lnbg.on { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+.ira-lnbg.isr { fill: color-mix(in srgb, var(--hi) 30%, transparent); }
+.ira-pc { fill: var(--accent); }
+.ira-pc.isr { fill: var(--hi); }
+.ira-sm { fill: var(--muted); font: 500 13px var(--f-mono) !important; }
+.ira-wave { fill: none; stroke: var(--lvl-lo); stroke-width: 2.5; }
+.ira-bolt { fill: var(--hi); }
+.ira-stack { fill: var(--sunk); stroke: var(--line-strong); stroke-dasharray: 4 3; }
+.ira-reg rect { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.ira-reg text { fill: var(--ink); font: 600 13px var(--f-mono) !important; }
+.ira-flag { fill: var(--sheet); stroke: var(--line-strong); }
+.ira-flag.on { fill: color-mix(in srgb, var(--hi) 30%, var(--sheet)); stroke: var(--hi); stroke-width: 2.5; }
+.ira-flagv { fill: var(--ink); font: 700 14px var(--f-mono) !important; }
+
+/* ---------- idea-card interactives ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.idea figure .idea-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: 100%; font-size: 14px; }
+.idea figure .idea-ctl input[type="range"] { width: 100%; }
+.idea-out { margin: 8px 0 0; font-size: 15px; min-height: 1.6em; }
+.idea-out b.ok { color: var(--ok); }
+.rc-box { fill: var(--panel-2); stroke: var(--line); transition: stroke .15s; }
+.rc-box.on { stroke: var(--accent); stroke-width: 2.5; }
+.rc-box.isr { stroke: var(--hi); stroke-width: 2.5; }
+.rc-box.wait { stroke: var(--muted); stroke-dasharray: 4 3; } .idea-out b.bad { color: var(--bad); }
+.idea:has(.idea-ctl) > figure { max-width: 460px; margin-inline: auto; }
+@media (max-width: 819px) { .hub .idea:has(.idea-ctl) figure :is(.svg-t, .svg-m, .svg-b) { font-size: 16px; } }
+@media (min-width: 820px) {
+  .hub .idea:has(.idea-ctl) { display: block; }
+  .hub .idea:has(.idea-ctl) > figure { position: static; margin: 8px auto 14px; }
+  .hub .idea:has(.idea-ctl) > :not(h3, figure, pre, .key) { max-width: 68ch; }
+  .hub .idea:has(.idea-ctl) figure :is(.svg-t, .svg-m) { font-size: 14px; }
+  .hub .idea:has(.idea-ctl) figure .svg-b { font-size: 15px; }
+}
 </style>
 </head>
 <body data-lesson="2-4">
@@ -89,6 +195,93 @@ pre.code { font-size: 13px; }
       <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
     </div>
   </header>
+
+  <!-- ============================================================ lab: polling vs interrupt (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="ir" aria-labelledby="ir-h">
+    <header class="lab-head"><h2 id="ir-h">Лабораторія · опитування чи переривання</h2><p>loop() зайнятий «роботою». Натисніть S1 і подивіться, коли натискання помітять, а потім ламайте: брязкіт, без volatile, довгий ISR.</p></header>
+    <div class="lab-stage ir-stage" id="ir-stage">
+      <div class="ir-top">
+        <svg class="ir-board kit-bench" id="ir-board" viewBox="-58 -410 890 958" role="img" aria-label="Справжня збірка: плата YD-ESP32-S3 вставлена прямо в макетку, деталі стоять на смужках ліворуч від неї. Тактова кнопка S1 стоїть через канавку; жовтий дріт від GPIO7 іде під рядом j до її стовпчика, резистор 10 кОм підтягує цей стовпчик до 3V3 (помаранчевий дріт уздовж ряду j), друга ніжка кнопки чорним дротом на шину мінус, з'єднану з GND плати (розрив шини закриває коротка чорна перемичка). Зелений дріт від GPIO15 іде вздовж нижнього краю макетки до резистора 220 Ом і червоного світлодіода, який перемикає loop, коли обробив натискання. Кнопку S1 можна утримувати.">
+          <g id="ir-s1" class="ir-s1" role="button" tabindex="0" aria-label="Кнопка S1: утримуйте мишею, пальцем або пробілом" aria-pressed="false"></g>
+        </svg>
+        <div class="ir-side">
+          <div class="ir-status">
+            <div class="ir-corebox">
+              <svg class="ir-ringsvg" viewBox="26 48 72 72" aria-hidden="true">
+                <circle class="ir-ring-bg" cx="62" cy="84" r="30"/>
+                <circle class="ir-isrfill" id="ir-isrfill" cx="62" cy="84" r="30"/>
+                <circle class="ir-ring" id="ir-ring" cx="62" cy="84" r="30" transform="rotate(-90 62 84)"/>
+              </svg>
+              <div><span class="ir-k">ядро 1 · <span id="ir-ctx">loop()</span></span><b class="ir-stat" id="ir-stat1">робота</b><span class="ir-sub" id="ir-stat2">ще 300 мс</span></div>
+            </div>
+            <div class="ir-flag" id="ir-flag"><span class="ir-sub" id="ir-flagn">pressed</span><b class="ir-flagv" id="ir-flagv">false</b></div>
+            <ul class="ir-chips">
+              <li><i class="btn-i"></i><span>S1 <small>GPIO7</small> <span class="ir-bolt" id="ir-bolt" aria-hidden="true">⚡</span></span><span class="ir-sub" id="ir-s1t">тримайте</span></li>
+              <li><i class="isr-i"></i><span>ISR</span><span class="ir-big" id="ir-isrn">× 0</span></li>
+              <li><i style="--c:#e8262a"></i><span id="ir-ledn">LED · 0</span><span class="ir-sub">оброблено <small>GPIO15</small></span></li>
+            </ul>
+          </div>
+          <div class="ir-codebox">
+            <div class="ir-code-h"><span>src/main.cpp</span><span id="ir-now" class="ir-nowt"></span></div>
+            <pre class="ir-code" id="ir-code" aria-label="Код прошивки; підсвічено рядок, який зараз виконується"></pre>
+          </div>
+        </div>
+      </div>
+      <canvas id="ir-tl" class="ir-tl" width="900" height="100" role="img" aria-label="Живий таймлайн: рівень GPIO7, що виконує ядро (робота loop, перевірка, ISR), стан прапорця pressed і світлодіод. Новіше праворуч."></canvas>
+      <div class="ir-legend" aria-hidden="true"><span><i class="k-work"></i>робота loop()</span><span>▲ перевірка в loop()</span><span><i class="k-isr"></i>ISR</span><span><i class="k-flag"></i>pressed = true</span><span>✓ оброблено · ✗ пропущено</span></div>
+    </div>
+    <div class="lab-ctl">
+      <div class="seg" role="group" aria-label="Як прошивка дізнається про кнопку" id="ir-mode">
+        <button type="button" data-m="poll" aria-pressed="true">Опитування</button>
+        <button type="button" data-m="isr" aria-pressed="false">Переривання</button>
+      </div>
+      <button type="button" class="btn primary ir-press" id="ir-press" aria-pressed="false">Тримати S1</button>
+      <label class="lab-range">Робота loop() <input type="range" id="ir-w" min="20" max="1000" step="10" value="300" aria-label="Скільки мілісекунд loop() зайнятий між перевірками"><output id="ir-wout">300 мс</output></label>
+      <button type="button" class="sw" id="ir-auto" aria-checked="false">Випадкові натискання</button>
+      <button type="button" class="sw" id="ir-bounce" aria-checked="false">Брязкіт кнопки</button>
+      <button type="button" class="sw" id="ir-vol" aria-checked="true">volatile</button>
+      <button type="button" class="sw" id="ir-long" aria-checked="false">Довгий код в ISR</button>
+      <div class="seg" role="group" aria-label="Швидкість часу" id="ir-speed">
+        <button type="button" data-s="1" aria-pressed="true">×1</button>
+        <button type="button" data-s="0.25" aria-pressed="false">×¼</button>
+      </div>
+      <button type="button" class="btn ghost sm" id="ir-play">❚❚ Пауза</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Реакція</b><output id="ir-lat">—</output></div>
+      <div><b>Натискань</b><output id="ir-real">0</output></div>
+      <div><b>Викликів ISR</b><output id="ir-calls">0</output></div>
+      <div><b>Оброблено</b><output id="ir-done">0</output></div>
+      <div><b>Пропущено</b><output id="ir-miss">0</output></div>
+    </div>
+    <p class="lab-note" id="ir-note" aria-live="polite">Опитування: loop() 300 мс робить свою роботу і лише потім читає GPIO7. Потримайте S1 коротко.</p>
+    <p class="lab-note ir-warn" id="ir-warn" hidden>⚠ Поки йде ISR, loop() стоїть, а інші переривання того ж або нижчого пріоритету чекають. Сторож переривань перезавантажить чип, якщо ISR триває довше за 300&nbsp;мс<sup class="cite" data-fact="core-int-wdt"></sup>. У моделі ISR триває 120&nbsp;мс.</p>
+    <p class="lab-note ir-src">Брязкіт у моделі — за записом нашого стенду 17.10: брязкотіли ≈&nbsp;38&nbsp;% відпускань, медіана ≈&nbsp;0,18&nbsp;мс, максимум 3,56&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>. На такому масштабі пачка фронтів виглядає як одна риска.</p>
+    <a class="lab-more" href="../../bounce-lab/#mcu">Повна лабораторія: що бачить ISR під час брязкоту →</a>
+    <a class="lab-more" href="../../bounce-bench/#isr">Справжні дані стенду: 190 подій →</a>
+  </section>
+
+  <figure class="anim wide" id="ir-anim" aria-labelledby="ir-anim-h">
+    <header class="anim-head"><h3 id="ir-anim-h">Анімація: що робить процесор, коли приходить переривання</h3></header>
+    <div class="anim-stage">
+      <svg class="ira-svg" viewBox="0 0 330 214" role="img" aria-label="Ліворуч код: loop з doWork і перевіркою прапорця pressed, нижче обробник isr, що ставить pressed = true. Стрілка показує, який рядок виконується. Праворуч: рівень GPIO7, стек зі збереженими регістрами, прапорець pressed і світлодіод.">
+        <rect class="ira-code" x="2" y="4" width="196" height="206" rx="8"/>
+        <g id="ira-lines"></g>
+        <path id="ira-pc" class="ira-pc" d="M0 0l-9 -6v12z"/>
+        <text class="ira-sm" x="210" y="20">GPIO7</text>
+        <path id="ira-wave" class="ira-wave" d="M210 32H322"/>
+        <path id="ira-bolt" class="ira-bolt" d="M300 40l-6 11h6l-4 9 11-13h-6l4-7z" opacity="0"/>
+        <text class="ira-sm" x="210" y="82">стек</text>
+        <rect class="ira-stack" x="210" y="88" width="112" height="30" rx="5"/>
+        <g id="ira-regs"></g>
+        <text class="ira-sm" x="210" y="140">pressed</text>
+        <rect class="ira-flag" id="ira-flag" x="210" y="146" width="112" height="26" rx="5"/>
+        <text class="ira-flagv" id="ira-flagv" x="266" y="164" text-anchor="middle">false</text>
+        <g class="ira-kit" id="ira-led"></g>
+        <text class="ira-sm" id="ira-ledt" x="234" y="199">LED</text>
+      </svg>
+    </div>
+  </figure>
 
   <!-- ============================================================ 01 why -->
   <section class="hs" id="why">
@@ -153,18 +346,19 @@ pre.code { font-size: 13px; }
       <p>Опитування (polling): loop() час від часу сам читає вивід. Подія, коротша за паузу між перевірками, може прослизнути непоміченою.</p>
       <p>Переривання (interrupt): блок GPIO стежить за виводом апаратно, без участі програми. Щойно з'явився потрібний фронт, він «смикає» процесор. Порівняйте: можна щохвилини визирати у двері, а можна поставити дзвінок.</p>
       <figure>
-        <svg viewBox="0 0 330 150" role="img" aria-label="Дві доріжки. Опитування: рідкі перевірки, коротке натискання між ними пропущено. Переривання: на фронті натискання одразу спрацьовує ISR.">
+        <svg id="pi" viewBox="0 0 330 156" role="img" aria-label="Дві доріжки по 1 секунді. Опитування: три перевірки; коротке натискання помічене, лише якщо перевірка потрапила всередину. Переривання: ISR одразу на фронті натискання.">
           <text class="svg-b" x="4" y="16">Опитування</text>
-          <path d="M4 50H90V64H110V50H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
-          <g fill="var(--accent)"><rect x="40" y="26" width="5" height="44"/><rect x="160" y="26" width="5" height="44"/><rect x="280" y="26" width="5" height="44"/></g>
-          <text class="svg-m" x="170" y="36">перевірки</text>
-          <path d="M96 80l8 -8M96 72l8 8" stroke="var(--bad)" stroke-width="2.5"/>
-          <text class="svg-t" x="112" y="82" style="fill:var(--bad)">пропущено</text>
-          <text class="svg-b" x="4" y="96">Переривання</text>
-          <path d="M4 124H90V138H110V124H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
-          <rect x="89" y="106" width="5" height="36" fill="var(--hi)"/>
-          <text class="svg-t" x="100" y="117">ISR одразу на фронті</text>
+          <path id="pi-w1" d="M4 50H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
+          <g id="pi-checks" fill="var(--accent)"></g>
+          <text class="svg-t" id="pi-r1" x="326" y="84" text-anchor="end"></text>
+          <text class="svg-b" x="4" y="104">Переривання</text>
+          <path id="pi-w2" d="M4 128H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
+          <rect id="pi-isr" x="0" y="110" width="5" height="36" fill="var(--hi)"/>
+          <text class="svg-t" id="pi-r2" x="326" y="154" text-anchor="end" style="fill:var(--ok)">✓ ISR одразу на фронті</text>
         </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Коли натиснули <input type="range" id="pi-s" min="0" max="930" step="10" value="250" aria-label="Момент натискання, мс від початку"><output id="pi-out">250 мс</output></label>
+        </div>
       </figure>
       <p class="key"><b>Головне</b>Опитування ловить подію лише тоді, коли саме перевіряє. Переривання ловить фронт апаратно, хоч би чим був зайнятий loop().</p>
     </article>
@@ -173,23 +367,19 @@ pre.code { font-size: 13px; }
       <h3>Переривання — пауза на мікросекунди, а не очікування</h3>
       <p>Поки кнопку не натиснули, процесор нічого не чекає і просто виконує loop(). На фронті він за вектором стрибає в системний код: той зберігає регістри, викликає ваш обробник (ISR, Interrupt Service Routine), потім усе відновлює, і loop() продовжує з того самого рядка.</p>
       <figure>
-        <svg viewBox="0 0 330 120" role="img" aria-label="Смуга виконання: loop() працює, на фронті короткий відрізок — зберегти регістри, ISR, відновити, — і loop() продовжується з того самого місця.">
-          <rect x="4" y="30" width="130" height="30" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
-          <text class="svg-t" x="14" y="50">loop() …</text>
-          <rect x="136" y="30" width="18" height="30" fill="var(--muted)" opacity=".5"/>
-          <rect x="156" y="30" width="22" height="30" fill="var(--hi)"/>
-          <rect x="180" y="30" width="18" height="30" fill="var(--muted)" opacity=".5"/>
-          <rect x="200" y="30" width="126" height="30" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
-          <text class="svg-t" x="210" y="50">… loop() далі</text>
-          <path d="M167 26V8" stroke="var(--hi)" stroke-width="2"/>
-          <text class="svg-t" x="176" y="16">ISR</text>
-          <text class="svg-m" x="147" y="88" text-anchor="end">зберегти</text>
-          <path d="M145 64V72" stroke="var(--muted)"/>
-          <text class="svg-m" x="187" y="88">відновити</text>
-          <path d="M189 64V72" stroke="var(--muted)"/>
-          <path d="M120 106H210" stroke="var(--ink)" stroke-width="1.5"/>
-          <text class="svg-t" x="214" y="111">мікросекунди</text>
+        <svg id="us" viewBox="0 0 330 128" role="img" aria-label="Смуга виконання loop(): після натискання в неї вставляються три короткі відрізки — зберегти регістри, ISR, відновити, — і loop() продовжується з того самого місця.">
+          <rect x="4" y="30" width="322" height="30" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+          <g id="us-segs"></g>
+          <path id="us-cur" d="M4 24V66" stroke="var(--ink)" stroke-width="2"/>
+          <text class="svg-t" x="326" y="18" text-anchor="end">loop() …</text>
+          <g id="us-lbl" opacity="0">
+            <path id="us-l1" d="M0 64V72" stroke="var(--muted)"/><text class="svg-m" id="us-t1" x="0" y="88" text-anchor="end">зберегти</text>
+            <path id="us-l2" d="M0 26V8" stroke="var(--hi)" stroke-width="2"/><text class="svg-t" id="us-t2" x="0" y="16">ISR</text>
+            <path id="us-l3" d="M0 64V88" stroke="var(--muted)"/><text class="svg-m" id="us-t3" x="0" y="104">відновити</text>
+          </g>
+          <text class="svg-t" x="4" y="124">у житті — мкс; тут розтягнуто</text>
         </svg>
+        <div class="idea-ctl"><button type="button" class="btn sm" id="us-press">Натиснути S1</button></div>
       </figure>
       <p class="key"><b>Головне</b>Переривання не «зупиняє процесор до натискання». Воно забирає мить у момент події, а решту часу працює ваша програма.</p>
     </article>
@@ -205,21 +395,25 @@ pre.code { font-size: 13px; }
         <li><b>Без <code>Serial</code>, <code>analogRead()</code> і <code>neopixelWrite()</code></b>: усі беруть м'ютекс, тобто можуть чекати<sup class="cite" data-fact="core-serial-not-in-isr"></sup><sup class="cite" data-fact="idf-adc-not-in-isr"></sup><sup class="cite" data-fact="core-neopixel-not-in-isr"></sup>.</li>
       </ol>
       <figure>
-        <svg viewBox="0 0 330 166" role="img" aria-label="Схема прапорця: кнопка дає фронт, ISR за мікросекунди записує pressed = true у змінну volatile; loop() перевіряє прапорець, скидає його й робить довгу роботу: друк, Wi-Fi, АЦП.">
-          <rect x="4" y="8" width="128" height="48" rx="6" fill="var(--panel-2)" stroke="var(--hi)" stroke-width="2"/>
+        <svg id="fl" viewBox="0 0 330 178" role="img" aria-label="Схема прапорця: кнопка дає фронт, ISR за мікросекунди записує pressed = true у змінну volatile; loop() перевіряє прапорець, скидає його й робить довгу роботу: друк, Wi-Fi, АЦП.">
+          <rect id="fl-isr" x="4" y="8" width="128" height="48" rx="6" fill="var(--panel-2)" stroke="var(--hi)" stroke-width="2"/>
           <text class="svg-b" x="12" y="28">ISR</text>
           <text class="svg-m" x="12" y="47">pressed=true</text>
           <rect x="150" y="8" width="150" height="48" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/>
           <text class="svg-m" x="158" y="28">volatile</text>
-          <text class="svg-m" x="158" y="47">bool pressed</text>
+          <text class="svg-m" id="fl-v" x="158" y="47">bool pressed</text>
           <path d="M132 32H146" stroke="var(--ink)" stroke-width="2"/><path d="M148 32l-6 -4v8z" fill="var(--ink)"/>
           <text class="svg-t" x="8" y="76">мікросекунди</text>
           <path d="M225 56V90" stroke="var(--ink)" stroke-width="2"/><path d="M225 94l-4 -7h8z" fill="var(--ink)"/>
-          <rect x="4" y="98" width="322" height="64" rx="6" fill="var(--panel-2)" stroke="var(--accent)" stroke-width="2"/>
+          <rect id="fl-loop" x="4" y="98" width="322" height="64" rx="6" fill="var(--panel-2)" stroke="var(--accent)" stroke-width="2"/>
           <text class="svg-b" x="12" y="118">loop(): скільки треба</text>
           <text class="svg-m" x="12" y="138">if (pressed) { pressed=false;</text>
           <text class="svg-m" x="28" y="155">друк, Wi-Fi, АЦП … }</text>
+          <rect x="4" y="168" width="322" height="6" rx="3" fill="var(--line)"/>
+          <rect id="fl-prog" x="4" y="168" width="0" height="6" rx="3" fill="var(--accent)"/>
         </svg>
+        <div class="idea-ctl"><button type="button" class="btn sm" id="fl-press">Натиснути S1</button></div>
+        <p class="idea-out" id="fl-out" aria-live="polite">loop() крутиться: doWork(), потім перевірка прапорця. Натисніть S1.</p>
       </figure>
       <p class="key"><b>Головне</b>Швидка частина живе в ISR, а повільна в loop(). Між ними лише прапорець.</p>
     </article>
@@ -228,18 +422,26 @@ pre.code { font-size: 13px; }
       <h3><code>volatile</code> — це свіже значення, а не атомарність</h3>
       <p><code>volatile</code> забороняє компілятору тримати змінну в регістрі: кожне читання йде в пам'ять. Але <code>count++</code> чи пара «прочитати й обнулити» складаються з кількох кроків, і ISR може влізти між ними. Тоді одне натискання загубиться. Захист — <b>критична секція</b>: на час двох-трьох рядків вона блокує переривання на цьому ядрі і бере спін-лок проти другого<sup class="cite" data-fact="idf-critical-section"></sup>.</p>
       <figure>
-        <svg viewBox="0 0 330 156" role="img" aria-label="Гонка: loop() читає count = 5; між читанням і обнуленням спрацьовує ISR і записує 6; loop() записує 0, і шосте натискання втрачено.">
+        <svg id="rc" viewBox="0 0 330 158" role="img" aria-label="Гонка по кроках: loop() читає count, ISR збільшує count, loop() обнуляє count. Без захисту натискання губиться, з критичною секцією ISR чекає і нічого не губиться.">
           <text class="svg-b" x="4" y="16">loop()</text>
-          <text class="svg-b" x="200" y="16">ISR</text>
-          <rect x="4" y="26" width="170" height="28" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
-          <text class="svg-m" x="12" y="45">n = count; // 5</text>
-          <rect x="196" y="62" width="130" height="28" rx="4" fill="var(--panel-2)" stroke="var(--hi)" stroke-width="2"/>
-          <text class="svg-m" x="204" y="81">count++ // 6</text>
-          <rect x="4" y="98" width="170" height="28" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
-          <text class="svg-m" x="12" y="117">count = 0;</text>
-          <text class="svg-t" x="4" y="148" style="fill:var(--bad)">натискання №6 втрачено</text>
-          <path d="M174 40L196 70M196 82L174 106" stroke="var(--muted)" stroke-dasharray="3 3" fill="none"/>
+          <text class="svg-b" x="210" y="16">ISR</text>
+          <rect class="rc-box" id="rc-b1" x="4" y="26" width="196" height="28" rx="4"/>
+          <text class="svg-m" id="rc-l1" x="12" y="45">n = count;</text>
+          <rect class="rc-box" id="rc-bi" x="206" y="62" width="120" height="28" rx="4"/>
+          <text class="svg-m" id="rc-li" x="212" y="81">count++</text>
+          <rect class="rc-box" id="rc-b2" x="4" y="98" width="196" height="28" rx="4"/>
+          <text class="svg-m" id="rc-l2" x="12" y="117">count = 0;</text>
+          <text class="svg-b" id="rc-cnt" x="210" y="117">count = 5</text>
+          <path d="M200 40L206 70M206 82L200 106" stroke="var(--muted)" stroke-dasharray="3 3" fill="none"/>
+          <text class="svg-t" id="rc-res" x="4" y="150"></text>
         </svg>
+        <div class="idea-ctl">
+          <div class="seg" role="group" aria-label="Захист" id="rc-mode">
+            <button type="button" data-m="raw" aria-pressed="true">без захисту</button>
+            <button type="button" data-m="crit" aria-pressed="false">критична секція</button>
+          </div>
+          <button type="button" class="btn sm" id="rc-step">Крок ▶</button>
+        </div>
       </figure>
       <pre class="code"><code>portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 // у ISR: portENTER_CRITICAL_ISR / _EXIT_CRITICAL_ISR
@@ -253,13 +455,15 @@ portEXIT_CRITICAL(&amp;mux);</code></pre>
       <h3>Брязкіт: одне натискання — кілька переривань</h3>
       <p>Контакти кнопки кілька разів відскакують, перш ніж зімкнутися. Зазвичай це триває одиниці мілісекунд<sup class="cite" data-fact="bounce-ganssle"></sup>. Переривання реагує на <b>кожен</b> фронт, тож лічильник стрибає на 2, 3, 7… Апаратний фільтр входу S3 відсікає лише наносекундні голки<sup class="cite" data-fact="s3-gpio-input-filter"></sup>, тому мілісекундного брязкоту він не прибере.</p>
       <figure>
-        <svg viewBox="0 0 330 132" role="img" aria-label="Осцилограма натискання з брязкотом: рівень падає, двічі підскакує вгору й знову падає; під кожним спадаючим фронтом мітка ISR, разом три. Уся пачка триває близько мілісекунди.">
-          <path d="M4 30H60V80H70V30H78V80H92V30H98V80H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
-          <text class="svg-m" x="250" y="24">HIGH</text><text class="svg-m" x="250" y="74">LOW</text>
-          <g fill="var(--hi)"><path d="M60 92l-5 9h10z"/><path d="M78 92l-5 9h10z"/><path d="M98 92l-5 9h10z"/></g>
-          <text class="svg-t" x="112" y="100">ISR × 3 на одне натискання</text>
-          <path d="M60 118H100M60 114V122M100 114V122" stroke="var(--ink)"/><text class="svg-m" x="106" y="123">≈ 1 мс</text>
+        <svg id="bz" viewBox="0 0 330 132" role="img" aria-label="Осцилограма одного натискання: рівень падає, кілька разів підскакує вгору й знову падає; під кожним спадаючим фронтом мітка ISR. Кожне натискання — нова випадкова пачка.">
+          <path id="bz-w" d="M4 30H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
+          <text class="svg-m" x="4" y="22">HIGH</text><text class="svg-m" x="4" y="64">LOW</text>
+          <g id="bz-tri" fill="var(--hi)"></g>
+          <text class="svg-t" id="bz-n" x="4" y="108"></text>
+          <path d="M40 118H310" stroke="var(--line)"/><text class="svg-m" x="40" y="130">0</text><text class="svg-m" x="310" y="130" text-anchor="end">4 мс</text>
         </svg>
+        <div class="idea-ctl"><button type="button" class="btn sm" id="bz-press">Натиснути ще раз</button></div>
+        <p class="idea-out small">Модель. На нашому стенді брязкіт тривав до 3,56&nbsp;мс, медіана ≈&nbsp;0,18&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>.</p>
       </figure>
       <p class="key"><b>Головне</b>Переривання не позбавляє брязкоту, а навпаки, робить його видимим. Антибрязкіт однаково потрібен.</p>
     </article>
@@ -268,15 +472,17 @@ portEXIT_CRITICAL(&amp;mux);</code></pre>
       <h3>Антибрязкіт: дочекатися тиші, потім прочитати рівень</h3>
       <p>ISR на <code>CHANGE</code> лише записує час останнього фронту. loop() дивиться: якщо вже N&nbsp;мс не було жодного фронту, брязкіт скінчився, і <code>digitalRead()</code> дає справжній стан кнопки. Змінився стан з HIGH на LOW — це одне натискання. N беруть більшим за найдовший брязкіт, але коротшим за найкоротше натискання: десятки мілісекунд.</p>
       <figure>
-        <svg viewBox="0 0 330 124" role="img" aria-label="Часова діаграма антибрязкоту за тишею: пачка фронтів брязкоту, кожен фронт перезапускає відлік; після останнього фронту минає N мілісекунд тиші, і loop() читає стабільний рівень LOW — зараховано одне натискання.">
-          <path d="M4 24H50V60H58V24H64V60H74V24H80V60H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
-          <text class="svg-m" x="290" y="20">HIGH</text><text class="svg-m" x="290" y="56">LOW</text>
-          <path d="M80 76H230" stroke="var(--hi)" stroke-width="2"/><path d="M80 70V82M230 70V82" stroke="var(--hi)" stroke-width="2"/>
-          <text class="svg-t" x="96" y="96">N мс тиші</text>
-          <rect x="230" y="22" width="5" height="46" fill="var(--accent)"/>
-          <text class="svg-t" x="326" y="119" text-anchor="end">loop(): digitalRead() = LOW → +1</text>
-          <text class="svg-m" x="8" y="96">брязкіт</text>
+        <svg id="db" viewBox="0 0 330 128" role="img" aria-label="Пачка фронтів брязкоту на осі 0–14 мілісекунд. Після кожного фронту відлік тиші N; там, де тиша досягла N, loop() читає рівень. Якщо N коротше за паузи всередині брязкоту, натискання зараховується двічі.">
+          <path id="db-w" d="M4 24H326" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
+          <text class="svg-m" x="4" y="16">HIGH</text><text class="svg-m" x="4" y="60">LOW</text>
+          <g id="db-q"></g>
+          <path d="M30 98H310" stroke="var(--line)"/>
+          <text class="svg-m" x="30" y="112">0</text><text class="svg-m" x="310" y="112" text-anchor="end">14 мс</text>
+          <text class="svg-t" id="db-res" x="4" y="126"></text>
         </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Тиша N <input type="range" id="db-n" min="0.5" max="8" step="0.5" value="1" aria-label="Скільки мілісекунд тиші чекати"><output id="db-out">1 мс</output></label>
+        </div>
       </figure>
       <p class="key"><b>Головне</b>Кожен новий фронт перезапускає відлік тиші. Рівень читаємо лише тоді, коли контакти заспокоїлися.</p>
     </article>
@@ -533,7 +739,7 @@ void setup() {
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-isr" viewBox="0 0 300 222" role="img" aria-label="Макетка: 3V3 на шину плюс, GND на шину мінус. Кнопка SW1 через канавку: ліві ніжки у стовпчику 4, праві у 7. R1 10 кОм зі стовпчика 4 на шину плюс; дріт GPIO7 у стовпчик 4 знизу; стовпчик 7 дротом на мінус. Нижня половина: GPIO15 у стовпчик 11, R2 220 Ом з 11 у 14, LED анодом у 14, катодом у 15, стовпчик 15 дротом на мінус."></svg>
+        <svg id="bb-isr" class="kit-bench" viewBox="-58 -410 890 958" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (3V3 у стовпчику 20, GPIO7 у 26, GPIO15 у 27, GND у 41). Кнопка SW1 через канавку, ніжки у стовпчиках 10 і 12. Жовтий дріт від GPIO7 під рядом j у стовпчик 12; R1 10 кОм у ряду h зі стовпчика 12 у 16, помаранчевий дріт уздовж ряду j з'єднує 16 з 3V3. Стовпчик 10 чорним дротом на нижню шину мінус. Зелений дріт від GPIO15 уздовж нижнього краю макетки у стовпчик 8, R2 220 Ом у ряду h з 8 у 4, червоний світлодіод анодом у 4, катодом у 3, стовпчик 3 чорним дротом на шину мінус. GND плати (стовпчик 41) коротким чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
       </div>
       <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах.</figcaption>
     </figure>
@@ -599,7 +805,8 @@ void loop() {
   <section class="hs" id="lab">
     <h2><span class="n">09</span> Міні-лаба вдома: скільки переривань на одне натискання</h2>
     <p>Потрібно: плата YD-ESP32-S3, тактова кнопка, резистор 10&nbsp;кОм, макетка, дроти. Якщо є логічний аналізатор, підключіть його до GPIO7 (див. <a href="../../bounce-lab/#la">bounce-lab</a>).</p>
-    <div class="note warn">Не вішайте кнопку з підтяжкою на GPIO0, 3, 45 чи 46: їхній рівень зчитується при скиданні. Натиснута кнопка на GPIO0 вмикає режим прошивки<sup class="cite" data-fact="s3-boot-mode-combos"></sup>, а підтяжка 10&nbsp;кОм на GPIO45 перемикає живлення flash на 1,8&nbsp;В, і плата може не запуститися<sup class="cite" data-fact="s3-strap-gpio45"></sup>. GPIO46 теж не можна підтягувати вгору<sup class="cite" data-fact="s3-strap-gpio46"></sup>.</div>
+    <div class="note warn">Не вішайте кнопку з підтяжкою на GPIO0, 3, 45 чи 46: їхній рівень зчитується при скиданні.</div>
+    <details class="more"><summary>Чому саме ці виводи</summary><p>Натиснута кнопка на GPIO0 вмикає режим прошивки<sup class="cite" data-fact="s3-boot-mode-combos"></sup>, а підтяжка 10&nbsp;кОм на GPIO45 перемикає живлення flash на 1,8&nbsp;В, і плата може не запуститися<sup class="cite" data-fact="s3-strap-gpio45"></sup>. GPIO46 теж не можна підтягувати вгору<sup class="cite" data-fact="s3-strap-gpio46"></sup>.</p></details>
     <ol>
       <li>Зберіть кнопку з розділу 08 (LED необов'язковий).</li>
       <li>Залийте скетч «сирий лічильник» (нижче): ISR на <code>FALLING</code> лише рахує, а loop() раз на секунду друкує лічильник.</li>
@@ -679,7 +886,7 @@ void loop() {
         <dt>Мета</dt><dd>loop() блимає LED і раз на 2&nbsp;с «працює» (імітація: <code>delay(2000)</code>). Аварійна кнопка має <b>негайно</b> засвітити червоний сигнал: окремий LED на звичайному GPIO, який вмикає сам ISR одним <code>digitalWrite()</code>. Далі loop() зупиняє блимання, а стан фіксується, поки кнопку не утримають 3&nbsp;с. RGB на GPIO48<sup class="cite" data-fact="yd-rgb-gpio48"></sup> можна додати як індикатор, але лише з loop(): <code>neopixelWrite()</code> бере м'ютекс драйвера RMT, і в ISR його викликати не можна<sup class="cite" data-fact="core-neopixel-not-in-isr"></sup>.</dd>
         <dt>Здати</dt><dd>Посилання на код, 20-секундне відео (тиснете кнопку посеред «роботи»), чек-лист рев'ю за 5 правилами ISR.</dd>
         <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: схема на GPIO7 і відео;</li><li><b>Вимірювач</b>: 20 натискань, таблиця «зловлено / фантомні»;</li><li><b>Доповідач</b>: пост у «Командні виклики»;</li><li><b>Скептик</b>: рев'ю ISR іншої команди за 5 правилами.</li></ul></dd>
-        <dt>Критерії</dt><dd>Кожен 0–2 бали. <b>ISR за 5 правилами:</b> 2 — без порушень, 1 — одне, 0 — два й більше. <b>Пропущені з 20:</b> 2 — жодного, 1 — 1–2, 0 — більше. <b>Фантомні з 20:</b> так само. <b>Скидання утриманням 3&nbsp;с:</b> 2 — завжди, 1 — через раз, 0 — ні.</dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>ISR за 5 правилами:</b> 2 — без порушень, 1 — одне, 0 — два й більше. <b>Пропущені з 20:</b> 2 — жодного, 1 — 1–2, 0 — більше. <b>Фантомні з 20:</b> так само. <b>Скидання утриманням 3&nbsp;с:</b> 2 — завжди, 1 — через раз, 0 — ні.</p></details></dd>
         <dt>Ускладнення</dt><dd>Виміряйте логічним аналізатором затримку від фронту кнопки до зміни виводу LED (див. <a href="../../scope-signals/#la">scope-signals §08</a>).</dd>
         <dt>Термін</dt><dd>до суботи 10:00</dd>
         <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «2.4 Аварійна кнопка · команда …».</dd>
@@ -795,12 +1002,704 @@ void loop() {
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
   const { $, $$, fmt } = Study;
   const S = window.Schem;
   let T = Study.tokens();
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const setCls = (el, c, on) => { if (el && el.classList.contains(c) !== !!on) el.classList.toggle(c, !!on); };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const prng = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  function holdable(el, down, up) {
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } down(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, up));
+    el.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); down(); } });
+    el.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); up(); } });
+    el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+  }
+
+  /* =====================================================================
+     The real bench, drawn with the kit library (assets/kit.js), tidy layout: the YD-ESP32-S3 lies IN a WB-102
+     breadboard (c0 = 20: left header in row i, right header in row b; rows j and a stay free) and every part sits on
+     the strips left of it, so most links are made by placement. Used by the lab (#ir) and by section 08.
+     Board pins (row j under the left header): 3V3 j20, GPIO7 j26, GPIO15 j27, GND j41.
+       S1 across the trench, legs in columns 10 and 12 (each column joined through the switch to the other half).
+       Pull-up: 3V3 j20 → along free row j → j16; R1 10 кОм h16 → h12; GPIO7 j26 → lane under row j → j12 (node).
+       Column 10 (the other side of S1) → bottom «−» rail.
+       GPIO15 j27 → lane along the bottom edge of the board → j8; R2 220 Ом h8 → h4; LED anode f4 / cathode f3
+       (put in mirrored); j3 → bottom «−» rail. GND of the board j41 → bottom «−» rail.
+       The WB-102 rails are split between columns 31 and 33: S1 and the LED (10, 3) use the left half of the «−» rail,
+       the board's GND (41) the right half, so a short black bridge bottom-31 → bottom-33 joins them.
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const NETCOL = { 'net-3v3': 'n33', 'net-gnd': 'ngnd', 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3' };
+  function pill(parent, x, y, txt, w = 0, cls = '') {
+    const g = mk('g', { class: `kb-pill ${cls}`.trim(), 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 17 * txt.length;
+    mk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
+    const t = mk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+    t.textContent = txt;
+    g.text = t;
+    return g;
+  }
+  const BC = { c0: 20, v33: 20, g7: 26, g15: 27, gnd: 41, sw: 10, node: 12, pu: 16, r2: 8, an: 4, ca: 3 };
+  function bench(svg, { nets = false, s1 = null } = {}) {
+    const C = BC;
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const H = (c, r) => bb.hole(c, r);
+    const strips = mk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(C.c0, 'i');
+    const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
+    const out = { bb, esp };
+    const strip = (net, cls, c, half) => {
+      if (!nets) return;
+      const a = H(c, half === 'top' ? 'a' : 'f');
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls, side, sign) => {
+      if (!nets) return;
+      const a = bb.rail(side, sign, 1), b = bb.rail(side, sign, 63);
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    // R1 10 кОм (pull-up) in row h from the 3V3 column to the GPIO7 node; R2 220 Ом in row h; the LED stands in row f, mirrored
+    const r1 = H(C.node, 'h');
+    out.r1 = K.part('resistor', { parent: svg, ohms: 10000, x: r1.x, y: r1.y, title: `R1 10 кОм (коричневий-чорний-помаранчевий): h${C.node} і h${C.pu}` });
+    const r2 = H(C.an, 'h');
+    out.r2 = K.part('resistor', { parent: svg, ohms: 220, x: r2.x, y: r2.y, title: `R2 220 Ом (червоний-червоний-коричневий): h${C.an} і h${C.r2}` });
+    const la = H(C.an, 'f');
+    out.led = K.part('led', { parent: svg, color: 'red', x: la.x, y: la.y, leg: 40, mirror: true, title: `Світлодіод LED1: анод f${C.an}, катод f${C.ca}` });
+    const yL = bb.size.h + 32;            // labels: a row under the breadboard, each under its part
+    out.yL = yL;
+    pill(svg, (H(C.ca, 'a').x + H(C.an, 'a').x) / 2, yL, 'LED1', 80);
+    const sg = s1 || mk('g', {}, svg);
+    if (s1) svg.appendChild(s1);
+    const e = H(C.sw, 'e');
+    if (s1) {
+      mk('rect', { class: 'kb-hit', x: e.x - 50, y: e.y - 70, width: 2 * KP + 100, height: 3 * KP + 140, rx: 20 }, sg);
+      mk('rect', { class: 'kb-ring', x: e.x - 30, y: e.y - 30, width: 2 * KP + 60, height: 3 * KP + 60, rx: 16 }, sg);
+    }
+    out.btn = K.part('button', { parent: sg, x: e.x, y: e.y, title: `Тактова кнопка S1: ніжки в стовпчиках ${C.sw} і ${C.node}` });
+    pill(svg, H(C.sw, 'c').x + KP, yL, s1 ? 'S1' : 'SW1', s1 ? 48 : 64);
+    rail('gnd', 'net-gnd', 'bottom', '-');
+    strip('v33', 'net-3v3', C.v33, 'bottom'); strip('v33', 'net-3v3', C.pu, 'bottom');
+    strip('gpio7', 'net-sig', C.node, 'top'); strip('gpio7', 'net-sig', C.node, 'bottom'); strip('gpio7', 'net-sig', C.g7, 'bottom');
+    strip('gnd', 'net-gnd', C.sw, 'top'); strip('gnd', 'net-gnd', C.sw, 'bottom'); strip('gnd', 'net-gnd', C.gnd, 'bottom');
+    strip('gpio15', 'net-sig2', C.r2, 'bottom'); strip('gpio15', 'net-sig2', C.g15, 'bottom');
+    strip('led_a', 'net-sig3', C.an, 'bottom'); strip('gnd', 'net-gnd', C.ca, 'bottom');
+    // jumpers: Kit.route lines on the hole grid, nothing crosses
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`; }
+      return g;
+    };
+    const J = (c) => bb.at('j' + c);
+    const lane = J(1).y + KP * 1.15;        // the divider strip between row j and the bottom rails
+    const edge = J(1).y + KP * 4.67;        // the free strip along the bottom edge, below the «−» rail
+    const U = (from, to, y) => { const a = J(from), b = J(to); return [a, { x: a.x, y }, { x: b.x, y }, b]; };
+    w([J(C.v33), J(C.pu)], 'orange', 'v33', 'net-3v3');
+    w(U(C.g7, C.node, lane), 'yellow', 'gpio7', 'net-sig');
+    w(U(C.g15, C.r2, edge), 'green', 'gpio15', 'net-sig2');
+    w([J(C.sw), bb.at('bottom-' + C.sw)], 'black', 'gnd', 'net-gnd');
+    w([J(C.ca), bb.at('bottom-' + C.ca)], 'black', 'gnd', 'net-gnd');
+    w([J(C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd');
+    w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');   // over the split of the «−» rail
+    // crop: the left part of the breadboard up to the board's USB end
+    const x0 = 0, x1 = H(C.gnd + 3, 'a').x;
+    svg.setAttribute('viewBox', `${x0 - 20} -20 ${x1 - x0 + 20} ${bb.size.h + 70}`);
+    svg.style.overflow = 'hidden';            // the rest of the 63-column breadboard is cut off by the frame
+    return out;
+  }
+
+  /* =====================================================================
+     LAB «опитування чи переривання» (#ir): a 1-ms model.
+       loop(): doWork() for W ms, then one check (digitalRead in polling, the pressed flag with an ISR).
+       ISR (FALLING): runs on every falling edge, sets pressed = true; it takes microseconds, drawn as a thin spike.
+       «Брязкіт»: release bounce as recorded on our bench (≈ 38 % of releases, extra falling edges within
+       a few ms; facts class-bounce-bench-2026-10-17). At 1-ms resolution the burst falls into one model ms.
+       «volatile» off: the worst case the compiler is allowed — loop() keeps its register copy (false).
+       «Довгий код в ISR»: the ISR runs 120 ms; loop() is frozen and further edges wait (merged into one).
+     ===================================================================== */
+  (() => {
+    const cfg = { mode: 'poll', W: 300, bounce: false, vol: true, long: false, auto: false, speed: 1 };
+    const LONG = 120;
+    let m, rnd = prng(41);
+    const fresh = () => {
+      m = { t: 0, tf: 0, workStart: 0, workEnd: cfg.W, isrUntil: 0, pending: false, flag: false, wasDown: false, led: 0,
+        presses: [], edges: [], isrs: [], works: [{ s: 0, e: cfg.W }], checks: [], flags: [], ledEv: [[0, 0]], phantoms: [],
+        calls: 0, done: 0, miss: 0, real: 0, lat: null, nextAuto: 700, manual: null, flash: {} };
+    };
+    const now = () => performance.now();
+    const level = (t) => (m.presses.some((p) => p.s <= t && (p.e == null || t < p.e)) ? 0 : 1);
+    const quiet = (t) => !m.presses.some((p) => p.s <= t + 1 && (p.e == null || t < p.e + 150));
+    const note = $('#ir-note');
+    const say = (s) => { note.textContent = s; };
+    function newPress(t, e) {
+      const p = { s: t, e, nb: cfg.bounce && rnd() < 0.38 ? 1 + Math.floor(rnd() * 2) : 0 };
+      m.presses.push(p); m.real++; return p;
+    }
+    function setFlag(v, t) {
+      if (v === m.flag) return;
+      m.flag = v;
+      if (v) m.flags.push({ s: t, e: null }); else { const f = m.flags[m.flags.length - 1]; if (f && f.e == null) f.e = t; }
+    }
+    function runIsr(t, p) {
+      m.calls++; m.isrs.push({ t, d: cfg.long ? LONG : 0 }); setFlag(true, t); m.flash.isr = now();
+      if (p && p.isrAt == null) p.isrAt = t;
+      if (cfg.long) { m.isrUntil = t + LONG; m.workEnd += LONG; }
+    }
+    function handled(t) {
+      m.done++; m.led ^= 1; m.ledEv.push([t, m.led]); m.flash.hit = now();
+      const p = m.presses.find((q) => !q.caught && (cfg.mode === 'poll' ? q.s <= t && (q.e == null || t < q.e) : q.isrAt != null));
+      if (p) {
+        p.caught = true; p.at = t; m.lat = t - p.s;
+        say(cfg.mode === 'poll'
+          ? `Помічено через ${m.lat} мс: перевірка після роботи loop() якраз застала кнопку натиснутою.`
+          : cfg.long ? `ISR стартував одразу на фронті, але тривав ${LONG} мс: увесь цей час doWork() стояв. Обробка в loop() — через ${m.lat} мс.`
+            : `ISR спрацював одразу на фронті (за мікросекунди) і поставив прапорець; loop() обробив його через ${m.lat} мс, коли закінчив doWork().`);
+      } else {
+        m.phantoms.push(t);
+        say('Фантом: брязкіт відпускання дав ще спадаючий фронт → ще один виклик ISR → loop() обробив «натискання», якого не було. Потрібен антибрязкіт (картки розділу 04).');
+      }
+    }
+    function tick(t) {
+      if (cfg.auto && t >= m.nextAuto && !m.manual && quiet(t)) {
+        const dur = 40 + Math.round(rnd() * 160);
+        newPress(t, t + dur);
+        m.nextAuto = t + dur + 500 + Math.round(rnd() * 1400);
+      }
+      // edges on GPIO7 in this ms
+      const falls = [];
+      for (const p of m.presses) {
+        if (p.s === t) { falls.push(p); m.edges.push({ t, k: 'fall' }); m.flash.edge = now(); }
+        if (p.e === t) {
+          m.edges.push({ t, k: 'rise', nb: p.nb });
+          for (let i = 0; i < p.nb; i++) falls.push(null);
+          if (p.nb) m.flash.edge = now();
+        }
+      }
+      if (cfg.mode === 'isr') {
+        for (const p of falls) {
+          if (t < m.isrUntil) m.pending = true;
+          else runIsr(t, p);
+        }
+        if (cfg.long && t === m.isrUntil && m.pending) { m.pending = false; runIsr(t, null); }
+      }
+      // loop()
+      if (t >= m.isrUntil && t >= m.workEnd) {
+        m.checks.push(t);
+        if (cfg.mode === 'poll') {
+          const down = level(t) === 0;
+          if (down && !m.wasDown) handled(t);
+          m.wasDown = down;
+        } else if (cfg.vol ? m.flag : false) { setFlag(false, t); handled(t); }
+        else if (!cfg.vol && m.flag && !m.volSaid) { m.volSaid = true; say('ISR поставив pressed = true, але loop() читає свою копію з регістра і бачить false. Без volatile компілятор має право так оптимізувати, і натискання ніколи не обробиться.'); }
+        m.workStart = t; m.workEnd = t + cfg.W; m.works.push({ s: t, e: m.workEnd });
+      }
+      // missed presses
+      for (const p of m.presses) {
+        if (p.done || p.e == null) continue;
+        const limit = cfg.mode === 'poll' ? p.e : p.e + cfg.W + (cfg.long ? LONG : 0) + 2;
+        if (t >= limit) {
+          p.done = true;
+          if (!p.caught && (cfg.mode === 'poll' || !cfg.vol)) {
+            m.miss++; p.missed = true;
+            if (cfg.mode === 'poll') say('✗ Пропущено: кнопку відпустили, поки loop() робив свою роботу. Опитування так і не дізналося про натискання.');
+          }
+        }
+      }
+      if (t % 1000 === 0) {
+        const old = t - 9000;
+        const keep = (a, f) => a.filter(f);
+        m.presses = keep(m.presses, (p) => p.e == null || p.e > old); m.edges = keep(m.edges, (e) => e.t > old);
+        m.isrs = keep(m.isrs, (e) => e.t + e.d > old); m.works = keep(m.works, (w) => w.e > old); m.checks = keep(m.checks, (x) => x > old);
+        m.flags = keep(m.flags, (f) => f.e == null || f.e > old); m.phantoms = keep(m.phantoms, (x) => x > old);
+        let i = 0; while (m.ledEv.length - i > 1 && m.ledEv[i + 1][0] < old) i++; if (i) m.ledEv.splice(0, i);
+      }
+    }
+
+    /* ---- code ---- */
+    const codeEl = $('#ir-code');
+    let lines = [];
+    function renderCode() {
+      const rem = (s) => `<span class="rem">${s}</span>`;
+      const W = `<b>${cfg.W}</b>`;
+      const L = cfg.mode === 'poll' ? [
+        ['', 'void loop() {'],
+        ['work', `  doWork();            ${rem(`// ${W} мс`)}`],
+        ['read', `  bool down = !digitalRead(BTN);`],
+        ['if', '  if (down &amp;&amp; !wasDown) toggle(LED);'],
+        ['', '  wasDown = down;'],
+        ['', '}'],
+      ] : [
+        ['decl', cfg.vol ? 'volatile bool pressed = false;' : `bool pressed = false;  ${rem('// без volatile!')}`],
+        ['isr', 'void IRAM_ATTR onPress() {'],
+        ['isr', '  pressed = true;'],
+        ...(cfg.long ? [['isr', `  longWork();          ${rem('// 120 мс ✗')}`]] : []),
+        ['isr', '}'],
+        ['', 'void loop() {'],
+        ['work', `  doWork();            ${rem(`// ${W} мс`)}`],
+        ['if', '  if (pressed) {'],
+        ['if', '    pressed = false; toggle(LED); }'],
+        ['', '}'],
+      ];
+      codeEl.innerHTML = L.map(([k, h]) => `<span class="ln" data-k="${k}">${h}</span>`).join('');
+      lines = $$('.ln', codeEl);
+    }
+    function markCode() {
+      const tn = now(), inIsr = m.t < m.isrUntil || (m.flash.isr && tn - m.flash.isr < 300);
+      const hit = m.flash.hit && tn - m.flash.hit < 350;
+      for (const el of lines) {
+        const k = el.dataset.k;
+        setCls(el, 'isr', k === 'isr' && inIsr);
+        setCls(el, 'on', k === 'work' && !inIsr);
+        setCls(el, 'hit', (k === 'if' || k === 'read') && hit);
+        setCls(el, 'bad', k === 'decl' && !cfg.vol);
+      }
+    }
+
+    /* ---- board ---- */
+    const RING = 2 * Math.PI * 30, ring = $('#ir-ring'), s1 = $('#ir-s1'), pressBtn = $('#ir-press');
+    const kb = bench($('#ir-board'), { s1 });
+    const kbSeen = { led: null, s1: null, hl: null };
+    function drawBoard() {
+      const tn = now(), inLong = m.t < m.isrUntil, isrFlash = m.flash.isr && tn - m.flash.isr < 260;
+      $('#ir-isrfill').style.opacity = inLong || isrFlash ? '1' : '0';
+      if (inLong) {
+        ring.setAttribute('stroke-dasharray', `${((m.isrUntil - m.t) / LONG * RING).toFixed(1)} ${RING.toFixed(1)}`); ring.style.stroke = 'var(--hi)';
+        setTxt($('#ir-ctx'), 'ISR'); setTxt($('#ir-stat1'), 'ISR!'); setTxt($('#ir-stat2'), `ще ${m.isrUntil - m.t} мс`);
+      } else {
+        const f = Math.max(0, Math.min(1, (m.workEnd - m.t) / cfg.W));
+        ring.setAttribute('stroke-dasharray', `${(f * RING).toFixed(1)} ${RING.toFixed(1)}`); ring.style.stroke = '';
+        setTxt($('#ir-ctx'), isrFlash ? 'ISR' : 'loop()'); setTxt($('#ir-stat1'), isrFlash ? 'ISR: мкс' : 'робота');
+        setTxt($('#ir-stat2'), `ще ${Math.max(0, m.workEnd - m.t)} мс`);
+      }
+      setCls($('#ir-flag'), 'on', m.flag);
+      setTxt($('#ir-flagn'), cfg.mode === 'poll' ? 'прапорця' : !cfg.vol && m.flag ? 'loop: false' : 'pressed');
+      setTxt($('#ir-flagv'), cfg.mode === 'poll' ? 'немає' : String(m.flag));
+      const edge = m.flash.edge && tn - m.flash.edge < 300;
+      $('#ir-bolt').style.opacity = edge ? '1' : '0';
+      // the board's GPIO7 pin glows on the edge the hardware caught
+      const hl = edge ? 'GPIO7' : null;
+      if (kbSeen.hl !== hl) { kbSeen.hl = hl; kb.esp.set({ highlight: hl }); }
+      const down = level(m.t) === 0;
+      if (kbSeen.s1 !== down) { kbSeen.s1 = down; kb.btn.set({ pressed: down }); }
+      s1.setAttribute('aria-pressed', String(down)); pressBtn.setAttribute('aria-pressed', String(!!m.manual));
+      setTxt($('#ir-s1t'), down ? 'LOW' : 'тримайте');
+      setTxt($('#ir-isrn'), cfg.mode === 'poll' ? 'вимк.' : `× ${m.calls}`);
+      if (kbSeen.led !== !!m.led) { kbSeen.led = !!m.led; kb.led.set({ on: m.led ? 1 : 0 }); }
+      setTxt($('#ir-ledn'), `LED · ${m.done}`);
+      setTxt($('#ir-now'), `millis() = ${fmt.num(m.t, 0)}`);
+    }
+
+    /* ---- timeline ---- */
+    const cv = $('#ir-tl');
+    let ctx = null;
+    const sizeCanvas = () => { cv.style.height = '214px'; ctx = Study.fitCanvas(cv); };
+    function drawTL() {
+      if (!ctx) return;
+      const T2 = Study.tokens(), c = ctx, W = c.w, H = c.h;
+      c.clearRect(0, 0, W, H);
+      const narrow = W < 520, x0 = narrow ? 64 : 86, pw = W - x0 - 10;
+      const win = (narrow ? 2400 : 4000) * (cfg.speed < 1 ? 0.4 : 1);
+      const tS = Math.max(0, m.t - win), tE = tS + win;
+      const X = (q) => x0 + (q - tS) / win * pw, cx = (q) => Math.max(x0, Math.min(x0 + pw, X(q)));
+      const fB = T2['f-body'] || 'sans-serif', fM = T2['f-mono'] || 'monospace';
+      const rows = [{ n: 'GPIO7', s: 'кнопка', h: 58 }, { n: 'Ядро 1', s: 'що робить', h: 50 }, { n: 'pressed', h: 32 }, { n: 'LED', h: 32 }];
+      let y = 0; rows.forEach((r, i) => { r.y = y; if (i % 2 === 0) { c.fillStyle = T2['panel-2']; c.fillRect(0, y, W, r.h); } y += r.h; });
+      const yAx = y;
+      rows.forEach((r) => {
+        c.fillStyle = T2.ink; c.font = `600 13px ${fB}`; c.fillText(r.n, 8, r.y + (r.s ? 20 : 21));
+        if (r.s) { c.fillStyle = T2.muted; c.font = `500 13px ${fB}`; c.fillText(r.s, 8, r.y + 37); }
+      });
+      c.strokeStyle = T2.line; c.lineWidth = 1; c.beginPath(); c.moveTo(x0 - 3, 0); c.lineTo(x0 - 3, yAx); c.stroke();
+      // GPIO7 level
+      const g = rows[0], yH = g.y + 28, yL = g.y + 48;
+      for (const p of m.presses) {
+        const pe = p.e == null || p.e > m.t ? m.t : p.e;
+        if (pe < tS || p.s > m.t) continue;
+        const a = cx(p.s), b = Math.max(cx(pe), a + 2);
+        c.fillStyle = p.caught ? T2.ok : p.missed ? T2.bad : T2.teach; c.globalAlpha = 0.22; c.fillRect(a, yH, b - a, yL - yH); c.globalAlpha = 1;
+        if (p.caught) {
+          const xa = cx(p.at), lat = p.at - p.s;
+          c.strokeStyle = T2.ok; c.lineWidth = 2; c.beginPath(); c.moveTo(xa, yH - 6); c.lineTo(xa, yL); c.stroke();
+          c.fillStyle = T2.ok; c.font = `700 13px ${fB}`; c.fillText('✓', xa + 3, yH - 6);
+          if (xa - a > 50) { c.strokeStyle = T2.muted; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(a, yH - 10); c.lineTo(xa, yH - 10); c.stroke(); c.setLineDash([]);
+            c.fillStyle = T2.ink; c.font = `600 13px ${fM}`; c.fillText(`${lat} мс`, Math.max(a + 2, xa - 60), yH - 13); }
+        } else if (p.missed) { c.fillStyle = T2.bad; c.font = `700 14px ${fB}`; c.fillText('✗', (a + b) / 2 - 4, yH - 4); }
+      }
+      c.strokeStyle = T2['lvl-lo'] || T2.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, yH);
+      let lv = 1;
+      const evs = [];
+      for (const p of m.presses) { evs.push([p.s, 0]); if (p.e != null && p.e <= m.t) evs.push([p.e, 1, p.nb]); }
+      evs.sort((a, b) => a[0] - b[0]);
+      for (const [q, v, nb] of evs) {
+        if (q < tS) { lv = v; c.moveTo(x0, v ? yH : yL); continue; }
+        const x = cx(q);
+        c.lineTo(x, lv ? yH : yL); c.lineTo(x, v ? yH : yL); lv = v;
+        if (nb) for (let k = 1; k <= nb; k++) { c.moveTo(x + 2.5 * k, yH); c.lineTo(x + 2.5 * k, yL - 6); c.moveTo(x + 2.5 * k + 1.2, yL - 6); c.lineTo(x + 2.5 * k + 1.2, yH); }
+        if (nb) c.moveTo(x + 2.5 * nb + 1.2, yH);
+      }
+      c.lineTo(cx(m.t), lv ? yH : yL); c.stroke();
+      // core 1: work blocks, checks, ISRs
+      const r = rows[1], yc = r.y + 10, hc = 26;
+      for (const w of m.works) {
+        if (w.e < tS || w.s > m.t) continue;
+        const a = cx(w.s) + 1, b = cx(Math.min(w.e, m.t));
+        if (b - a < 1) continue;
+        c.fillStyle = T2.accent; c.globalAlpha = 0.22; c.fillRect(a, yc, b - a, hc); c.globalAlpha = 1;
+        c.strokeStyle = T2.accent; c.lineWidth = 1; c.strokeRect(a + 0.5, yc + 0.5, b - a - 1, hc - 1);
+        if (b - a > 76) { c.fillStyle = T2.ink; c.font = `600 13px ${fM}`; c.fillText('doWork()', a + 6, yc + 18); }
+      }
+      c.fillStyle = T2.accent;
+      for (const q of m.checks) { if (q < tS || q > m.t) continue; const x = X(q); c.beginPath(); c.moveTo(x, yc + hc + 2); c.lineTo(x - 5, yc + hc + 10); c.lineTo(x + 5, yc + hc + 10); c.closePath(); c.fill(); }
+      for (const i of m.isrs) {
+        if (i.t + i.d < tS || i.t > m.t) continue;
+        const a = cx(i.t), b = Math.max(cx(Math.min(i.t + i.d, m.t)), a + 3);
+        c.fillStyle = T2.hi; c.fillRect(a - 1, yc - 4, b - a + 1, hc + 8);
+        if (!narrow || i.d) {
+          const s = i.d ? `ISR ${i.d} мс` : 'ISR'; c.font = `700 13px ${fM}`; const tw = c.measureText(s).width;
+          c.fillStyle = T2.panel; c.fillRect(b + 2, yc + 5, tw + 6, 17); c.fillStyle = T2['hi-ink']; c.fillText(s, b + 5, yc + 18);
+        }
+      }
+      // pressed flag
+      const f = rows[2];
+      for (const s of m.flags) {
+        const e = s.e == null ? m.t : s.e;
+        if (e < tS || s.s > m.t) continue;
+        const a = cx(s.s), b = Math.max(cx(e), a + 2);
+        c.fillStyle = T2.hi; c.globalAlpha = 0.3; c.fillRect(a, f.y + 7, b - a, 18); c.globalAlpha = 1;
+        c.strokeStyle = T2.hi; c.setLineDash([4, 3]); c.lineWidth = 1.5; c.strokeRect(a + 0.5, f.y + 7.5, b - a - 1, 17); c.setLineDash([]);
+        if (b - a > 44) { c.fillStyle = T2.ink; c.font = `600 13px ${fM}`; c.fillText(!cfg.vol && b - a > 150 ? 'true, а loop бачить false' : 'true', a + 5, f.y + 21); }
+      }
+      if (cfg.mode === 'poll') { c.fillStyle = T2.muted; c.font = `500 13px ${fB}`; c.fillText('в опитуванні прапорця немає', x0 + 8, f.y + 21); }
+      // LED
+      const l = rows[3], hi = l.y + 7, lo = l.y + 25;
+      c.strokeStyle = T2.n5; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, lo);
+      m.ledEv.forEach(([q, v], i) => {
+        const q1 = i + 1 < m.ledEv.length ? m.ledEv[i + 1][0] : m.t;
+        if (q1 < tS) return;
+        const a = cx(q), b = cx(q1); c.lineTo(a, v ? hi : lo); c.lineTo(b, v ? hi : lo);
+        if (v && b > a) { c.globalAlpha = 0.22; c.fillStyle = T2.n5; c.fillRect(a, hi, b - a, lo - hi); c.globalAlpha = 1; }
+      });
+      c.stroke();
+      for (const q of m.phantoms) { if (q < tS) continue; c.fillStyle = T2.bad; c.font = `700 13px ${fB}`; c.fillText('фантом', Math.min(cx(q) + 4, W - 60), l.y + 20); }
+      // axis + now
+      c.strokeStyle = T2.line; c.fillStyle = T2.muted; c.font = `500 13px ${fM}`; c.lineWidth = 1;
+      const step = win < 2000 ? 100 : 500;
+      for (let q = Math.ceil(tS / step) * step; q <= tE; q += step) {
+        const x = X(q), major = q % (step * (win < 2000 ? 5 : 2)) === 0;
+        c.beginPath(); c.moveTo(x, yAx); c.lineTo(x, yAx + (major ? 7 : 4)); c.stroke();
+        if (major && x < W - 40) c.fillText(`${fmt.num(q / 1000, win < 2000 ? 1 : 0)} с`, x + 3, yAx + 18);
+      }
+      const xn = cx(m.t); c.strokeStyle = T2.accent; c.setLineDash([4, 3]); c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(xn, 0); c.lineTo(xn, yAx); c.stroke(); c.setLineDash([]);
+    }
+
+    function readouts() {
+      const lat = $('#ir-lat');
+      setTxt(lat.previousElementSibling, cfg.mode === 'poll' ? 'Реакція' : 'Обробка в loop()');
+      setTxt(lat, m.lat == null ? '—' : `${fmt.num(m.lat, 0)} мс`); lat.classList.add('big');
+      setCls(lat, 'bad', m.lat != null && m.lat > 100); setCls(lat, 'ok', m.lat != null && m.lat <= 100);
+      setTxt($('#ir-real'), String(m.real));
+      setTxt($('#ir-calls'), cfg.mode === 'poll' ? '—' : String(m.calls)); setCls($('#ir-calls'), 'bad', cfg.mode === 'isr' && m.calls > m.real);
+      setTxt($('#ir-done'), String(m.done)); setCls($('#ir-done'), 'bad', m.done > m.real);
+      setTxt($('#ir-miss'), String(m.miss)); setCls($('#ir-miss'), 'bad', m.miss > 0);
+    }
+    function modeNote() {
+      say(cfg.mode === 'poll'
+        ? `Опитування: loop() ${cfg.W} мс робить свою роботу і лише потім читає GPIO7. Натисніть S1 коротко.`
+        : `Переривання: фронт на GPIO7 одразу запускає ISR, навіть посеред doWork(). Обробка однаково чекає кінця роботи loop().`);
+    }
+
+    const stage = $('#ir-stage');
+    const sim = Study.sim(stage, (dt) => {
+      if (!m) return;
+      m.tf += dt * 1000 * cfg.speed;
+      const target = Math.floor(m.tf);
+      while (m.t < target) { m.t++; tick(m.t); }
+      drawTL(); drawBoard(); markCode(); readouts();
+    });
+    const playBtn = $('#ir-play');
+    const syncPlay = () => setTxt(playBtn, sim.running ? '❚❚ Пауза' : '▶ Пуск');
+    new MutationObserver(syncPlay).observe(stage, { attributes: true, attributeFilter: ['data-sim'] });
+    playBtn.addEventListener('click', () => { sim.toggle(); syncPlay(); });
+    const reset = () => { fresh(); renderCode(); sizeCanvas(); sim.draw(); };
+    const seg = (id, fn) => $$(`#${id} button`).forEach((b) => b.addEventListener('click', () => {
+      $$(`#${id} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fn(b);
+    }));
+    seg('ir-mode', (b) => { cfg.mode = b.dataset.m; reset(); modeNote(); });
+    seg('ir-speed', (b) => { cfg.speed = +b.dataset.s; sim.draw(); });
+    $('#ir-w').addEventListener('input', (e) => { cfg.W = +e.target.value; setTxt($('#ir-wout'), `${cfg.W} мс`); renderCode(); });
+    $('#ir-auto').addEventListener('switch', (e) => { cfg.auto = e.detail.on; m.nextAuto = m.t + 300; if (cfg.auto && !sim.running) { sim.play(); syncPlay(); } });
+    $('#ir-bounce').addEventListener('switch', (e) => {
+      cfg.bounce = e.detail.on;
+      say(!cfg.bounce ? 'Брязкіт вимкнено: кожне натискання — рівно один спадаючий фронт.'
+        : cfg.mode === 'poll' ? 'Брязкіт увімкнено. В опитуванні він майже не заважає: пачка фронтів триває частки мілісекунди, і перевірка рідко в неї влучає. Перемкніться на «Переривання».'
+          : 'Брязкіт увімкнено: приблизно кожне третє відпускання дає ще спадаючі фронти, і ISR спрацьовує на кожен. Натисніть S1 кілька разів і стежте за «Викликів ISR».');
+    });
+    $('#ir-vol').addEventListener('switch', (e) => {
+      cfg.vol = e.detail.on; m.volSaid = false; renderCode();
+      say(cfg.mode === 'poll' ? 'volatile важливий для змінних, спільних з ISR. В опитуванні прапорця немає — перемкніться на «Переривання».'
+        : cfg.vol ? 'volatile: кожне читання pressed іде в пам’ять, тож loop() бачить, що ISR змінив прапорець.'
+          : 'Без volatile компілятор може тримати pressed у регістрі. Натисніть S1: ISR спрацює, а loop() не побачить змін.');
+    });
+    $('#ir-long').addEventListener('switch', (e) => {
+      cfg.long = e.detail.on; renderCode(); $('#ir-warn').hidden = !cfg.long;
+      say(cfg.long ? (cfg.mode === 'poll' ? 'Довгий ISR має сенс лише з перериваннями: перемкніться на «Переривання» і натисніть S1.' : 'ISR тепер триває 120 мс: натисніть S1 і подивіться, як стоїть doWork() у таймлайні.') : 'ISR знову короткий: лише pressed = true.');
+    });
+    const down = () => {
+      if (!m || m.manual) return;
+      m.manual = newPress(m.t + 1, null);
+      if (!sim.running) { sim.play(); syncPlay(); }
+    };
+    const up = () => { if (!m || !m.manual) return; m.manual.e = Math.max(m.t + 1, m.manual.s + 30); m.manual = null; };
+    holdable(pressBtn, down, up); holdable(s1, down, up);
+    new ResizeObserver(() => { sizeCanvas(); sim.draw(); }).observe(stage);
+    Study.onTheme(() => sim.draw());
+    reset(); modeNote(); syncPlay();
+  })();
+
+  /* =====================================================================
+     Explainer: what the CPU does on an interrupt (#ir-anim)
+     ===================================================================== */
+  (() => {
+    const L = [
+      ['void loop() {'], ['  doWork();'], ['  if (pressed) {'], ['    pressed = false;'], ['    toggle(LED);'], ['  }'], ['}'],
+      ['void IRAM_ATTR isr() {', 'isr'], ['  pressed = true;', 'isr'], ['}', 'isr'],
+    ];
+    const Y = (i) => 24 + i * 18.5 + (i >= 7 ? 8 : 0);
+    const g = $('#ira-lines'), bgs = [];
+    L.forEach(([s], i) => {
+      bgs.push(mk('rect', { class: 'ira-lnbg', x: 14, y: Y(i) - 13, width: 180, height: 18, rx: 3 }, g));
+      mk('text', { class: 'ira-ln', x: 22, y: Y(i), 'xml:space': 'preserve' }, g).textContent = s;
+    });
+    mk('path', { d: `M8 ${Y(7) - 21}H192`, stroke: 'var(--line)', 'stroke-dasharray': '3 3' }, g);
+    const pc = $('#ira-pc'), regs = $('#ira-regs');
+    const REG = ['PC', 'a0', 'a1'].map((n, i) => { const gr = mk('g', { class: 'ira-reg' }, regs); mk('rect', { x: -15, y: -10, width: 30, height: 20, rx: 4 }, gr); mk('text', { x: 0, y: 5, 'text-anchor': 'middle' }, gr).textContent = n; return gr; });
+    const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+    const lerp = (a, b, p) => a + (b - a) * p;
+    const setPc = (yy, isr) => { pc.setAttribute('transform', `translate(14 ${(yy - 5).toFixed(1)})`); pc.setAttribute('class', 'ira-pc' + (isr ? ' isr' : '')); };
+    const line = (i, cls) => bgs.forEach((b, k) => b.setAttribute('class', 'ira-lnbg' + (k === i ? ' ' + cls : '')));
+    const wave = (p) => { // HIGH until the edge, then LOW
+      const xe = lerp(322, 266, p);
+      $('#ira-wave').setAttribute('d', p <= 0 ? 'M210 32H322' : `M210 32H${xe.toFixed(1)}V60H322`);
+    };
+    const regsAt = (p) => { // p = 0: inside the CPU (hidden), 1: on the stack
+      REG.forEach((r, i) => {
+        const x0 = 100, y0 = Y(1) - 5, x1 = 232 + i * 34, y1 = 103;
+        const q = ease(Math.max(0, Math.min(1, p)));
+        r.setAttribute('transform', `translate(${lerp(x0, x1, q).toFixed(1)} ${lerp(y0, y1, q).toFixed(1)})`);
+        r.style.opacity = p <= 0.02 ? '0' : '1';
+      });
+    };
+    const flag = (v) => { setCls($('#ira-flag'), 'on', v); setTxt($('#ira-flagv'), String(v)); };
+    // the same kit LED as the bench, drawn small (no drop shadow at this scale)
+    const iraLed = K.part('led', { parent: $('#ira-led'), color: 'red', leg: 10, scale: 0.17, x: 220 - 12.7 * 0.17, y: 203, shadow: false });
+    const led = (v) => { iraLed.set({ on: v ? 1 : 0 }); setTxt($('#ira-ledt'), v ? 'LED перемкнено' : 'LED'); };
+    Study.anim($('#ir-anim'), {
+      steps: [
+        { title: 'loop() працює', cap: 'Процесор виконує <b>loop()</b>: зараз іде довга doWork(). Кнопку ніхто не опитує, і чекати її теж не треба.', dur: 3.5 },
+        { title: 'Фронт на GPIO7', cap: 'Кнопку натиснули: <b>HIGH → LOW</b>. Блок GPIO сам помічає спадаючий фронт і подає процесору запит на переривання. Програма для цього нічого не робить.', dur: 4 },
+        { title: 'Зберегти контекст', cap: 'Процесор відкладає loop(): системний код <b>зберігає регістри</b> на стек — це «закладка», де саме він зупинився.', dur: 4 },
+        { title: 'Стрибок у ISR', cap: 'Тепер виконується ваш обробник <b>isr()</b>. Він лежить в IRAM завдяки IRAM_ATTR.', dur: 3.5 },
+        { title: 'Прапорець', cap: 'ISR робить лише одне: <b>pressed = true</b>. Мікросекунди — і готово. Жодного Serial, delay() чи analogRead().', dur: 3.5 },
+        { title: 'Повернення', cap: 'Регістри <b>відновлюються</b> зі стека, і loop() продовжує doWork() з того самого місця, наче нічого не сталося.', dur: 4 },
+        { title: 'loop() обробляє', cap: 'Коли doWork() закінчиться, loop() дійде до <b>if (pressed)</b>, скине прапорець і зробить повільну частину — тут перемкне LED.', dur: 5 },
+      ],
+      draw(i, p) {
+        $('#ira-bolt').setAttribute('opacity', i === 1 && p > 0.3 ? '1' : '0');
+        wave(i === 0 ? 0 : i === 1 ? ease(Math.min(1, p / 0.4)) : 1);
+        flag(i >= 4 && i < 6 ? (i > 4 || p > 0.4) : i === 6 ? p < 0.45 : false);
+        led(i === 6 && p > 0.7);
+        if (i === 0) { setPc(Y(1), false); line(1, 'on'); regsAt(0); }
+        else if (i === 1) { setPc(Y(1), false); line(1, 'on'); regsAt(0); }
+        else if (i === 2) { setPc(Y(1), false); line(1, 'on'); regsAt(p / 0.7); }
+        else if (i === 3) { setPc(lerp(Y(1), Y(7), ease(Math.min(1, p / 0.5))), true); line(p > 0.5 ? 7 : -1, 'isr'); regsAt(1); }
+        else if (i === 4) { setPc(Y(8), true); line(8, 'isr'); regsAt(1); }
+        else if (i === 5) { setPc(lerp(Y(9), Y(1), ease(Math.min(1, p / 0.6))), p < 0.3); line(p > 0.6 ? 1 : 9, p > 0.6 ? 'on' : 'isr'); regsAt(1 - p / 0.6); }
+        else { const k = p < 0.25 ? 1 : p < 0.45 ? 2 : p < 0.7 ? 3 : 4; setPc(Y(k), false); line(k, 'on'); regsAt(0); }
+      },
+    });
+  })();
+
+  /* ================================================================ 04 idea cards: every figure responds */
+  // 1. polling vs interrupt: move the moment of a 60-ms press; three polling checks at fixed moments
+  (() => {
+    const CH = [100, 470, 840], P = 60, X = (ms) => 4 + ms / 1000 * 322;
+    const g = $('#pi-checks');
+    CH.forEach((c) => mk('rect', { x: (X(c) - 2.5).toFixed(1), y: 26, width: 5, height: 44 }, g));
+    mk('text', { class: 'svg-m', x: (X(CH[1]) + 8).toFixed(1), y: 38 }, g).textContent = 'перевірки';
+    const draw = (s) => {
+      const a = X(s).toFixed(1), b = X(s + P).toFixed(1);
+      $('#pi-w1').setAttribute('d', `M4 50H${a}V64H${b}V50H326`);
+      $('#pi-w2').setAttribute('d', `M4 128H${a}V142H${b}V128H326`);
+      $('#pi-isr').setAttribute('x', (X(s) - 2.5).toFixed(1));
+      const hit = CH.find((c) => c >= s && c < s + P);
+      const r = $('#pi-r1');
+      r.style.fill = hit != null ? 'var(--ok)' : 'var(--bad)';
+      setTxt(r, hit != null ? `✓ влучила, через ${hit - s} мс` : '✗ пропущено');
+      setTxt($('#pi-out'), `${s} мс`);
+    };
+    $('#pi-s').addEventListener('input', (e) => draw(+e.target.value));
+    draw(250);
+  })();
+
+  // 2. an interrupt is a short insertion into loop(), not a wait
+  (() => {
+    const svg = $('#us'), segs = $('#us-segs');
+    let x = 4, ins = null;
+    const LOOP = 'color-mix(in srgb, var(--accent) 30%, var(--panel-2))';
+    const draw = () => {
+      segs.replaceChildren();
+      const parts = ins ? [[4, ins, LOOP], [ins, ins + 18, 'var(--muted)', .5], [ins + 18, ins + 40, 'var(--hi)'], [ins + 40, ins + 58, 'var(--muted)', .5], [ins + 58, x, LOOP]] : [[4, x, LOOP]];
+      for (const [a, b, f, o] of parts) if (b > a) mk('rect', { x: a, y: 30, width: Math.min(b, 326) - a, height: 30, fill: f, opacity: o || 1 }, segs);
+      $('#us-cur').setAttribute('d', `M${Math.min(x, 326).toFixed(1)} 24V66`);
+      const L = $('#us-lbl');
+      L.setAttribute('opacity', ins != null && x > ins + 58 ? '1' : '0');
+      if (ins != null) {
+        $('#us-l1').setAttribute('d', `M${ins + 9} 64V72`); $('#us-t1').setAttribute('x', ins + 12);
+        $('#us-l2').setAttribute('d', `M${ins + 29} 26V8`); $('#us-t2').setAttribute('x', ins + 34);
+        $('#us-l3').setAttribute('d', `M${ins + 49} 64V90`); $('#us-t3').setAttribute('x', ins + 46);
+        $('#us-t1').setAttribute('text-anchor', ins < 90 ? 'start' : 'end'); if (ins < 90) $('#us-t1').setAttribute('x', 4);
+        $('#us-t3').setAttribute('x', Math.min(ins + 46, 240));
+      }
+    };
+    const sim = Study.sim(svg, (dt) => {
+      x += dt * 70;
+      if (x > 326 + 60) { x = 4; ins = null; }
+      draw();
+    });
+    $('#us-press').addEventListener('click', () => {
+      if (ins == null && x < 326 - 70) { ins = x; x += 58; } else if (ins == null) { x = 60; ins = x; x += 58; }
+      if (!sim.running) sim.play();
+      draw();
+    });
+    draw();
+  })();
+
+  // 3. the ISR sets the flag at once; loop() picks it up after doWork()
+  (() => {
+    const svg = $('#fl'); if (!svg) return;
+    const WORK = 1.2;               // seconds of animation per doWork()
+    let t = 0, flag = false, isrT = -9, doneT = -9, n = 0;
+    const out = $('#fl-out');
+    const draw = () => {
+      $('#fl-prog').setAttribute('width', (322 * (t % WORK) / WORK).toFixed(1));
+      $('#fl-isr').setAttribute('stroke-width', t - isrT < 0.35 ? '5' : '2');
+      setTxt($('#fl-v'), flag ? 'pressed = true' : 'bool pressed');
+      $('#fl-v').style.fill = flag ? 'var(--hi-ink)' : '';
+      $('#fl-loop').setAttribute('stroke-width', t - doneT < 0.5 ? '5' : '2');
+      $('#fl-loop').setAttribute('stroke', t - doneT < 0.5 ? 'var(--ok)' : 'var(--accent)');
+    };
+    const sim = Study.sim(svg, (dt) => {
+      const t0 = t; t += dt;
+      if (Math.floor(t0 / WORK) !== Math.floor(t / WORK) && flag) {
+        flag = false; doneT = t; n++;
+        out.textContent = `loop() закінчив doWork(), побачив pressed = true, скинув його і зробив повільну частину. Оброблено: ${n}.`;
+      }
+      draw();
+    });
+    $('#fl-press').addEventListener('click', () => {
+      flag = true; isrT = t;
+      out.textContent = 'ISR за мікросекунди поставив pressed = true і повернувся. loop() дочитає прапорець, коли закінчить doWork().';
+      if (!sim.running) sim.play();
+      draw();
+    });
+    draw();
+  })();
+
+  // 4. volatile is not atomic: step through the race with and without a critical section
+  (() => {
+    let mode = 'raw', k = 0;
+    const S = {
+      raw: [
+        { b1: 'on', l1: 'n = count;', cnt: 5, res: 'loop() прочитав n = 5…' },
+        { bi: 'isr', li: 'count++ → 6', cnt: 6, res: 'ISR вклинився між рядками' },
+        { b2: 'on', l2: 'count = 0;', cnt: 0, res: 'loop() обнулив count' },
+        { res: '✗ №6 втрачено: врахували 5 з 6', bad: true },
+      ],
+      crit: [
+        { b1: 'on', l1: '[крит] n = count;', bi: 'wait', li: 'чекає…', cnt: 5, res: 'ISR поки чекає' },
+        { b2: 'on', l2: 'count = 0; [/крит]', bi: 'wait', li: 'чекає…', cnt: 0, res: 'прочитали й обнулили разом' },
+        { bi: 'isr', li: 'count++ → 1', cnt: 1, res: 'тепер ISR: count = 1' },
+        { res: '✓ нічого не втрачено: 5 + 1', ok: true },
+      ],
+    };
+    const draw = () => {
+      const st = k ? S[mode][k - 1] : { res: 'Натисніть «Крок ▶»' };
+      $('#rc-b1').setAttribute('class', 'rc-box' + (st.b1 ? ' ' + st.b1 : ''));
+      $('#rc-b2').setAttribute('class', 'rc-box' + (st.b2 ? ' ' + st.b2 : ''));
+      $('#rc-bi').setAttribute('class', 'rc-box' + (st.bi ? ' ' + st.bi : ''));
+      const last = (key, def) => { for (let i = k - 1; i >= 0; i--) if (S[mode][i][key] != null) return S[mode][i][key]; return def; };
+      setTxt($('#rc-l1'), last('l1', mode === 'crit' ? '[крит] n = count;' : 'n = count;'));
+      setTxt($('#rc-l2'), last('l2', mode === 'crit' ? 'count = 0; [/крит]' : 'count = 0;'));
+      setTxt($('#rc-li'), st.li || (k ? last('li', 'count++') : 'count++'));
+      setTxt($('#rc-cnt'), `count = ${last('cnt', 5)}`);
+      const r = $('#rc-res'); setTxt(r, st.res); r.style.fill = st.bad ? 'var(--bad)' : st.ok ? 'var(--ok)' : '';
+      setTxt($('#rc-step'), k >= 4 ? '↻ Спочатку' : 'Крок ▶');
+    };
+    $$('#rc-mode button').forEach((b) => b.addEventListener('click', () => {
+      $$('#rc-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); mode = b.dataset.m; k = 0; draw();
+    }));
+    $('#rc-step').addEventListener('click', () => { k = k >= 4 ? 0 : k + 1; draw(); });
+    draw();
+  })();
+
+  // 5. bounce: every falling edge is one more ISR call
+  (() => {
+    const X = (ms) => 40 + ms / 4 * 270;
+    const gen = () => {
+      const k = Math.floor(Math.random() * 4);                 // extra LOW→HIGH→LOW pairs
+      const d = Math.exp(Math.log(0.05) + Math.random() * (Math.log(3.5) - Math.log(0.05)));
+      const ts = Array.from({ length: 2 * k }, () => Math.random() * d).sort((a, b) => a - b);
+      return { k, d, ts };
+    };
+    const draw = ({ k, d, ts }) => {
+      let path = `M4 30H${X(0).toFixed(1)}V72`, lv = 0;
+      ts.forEach((tm) => { lv ^= 1; path += `H${X(tm).toFixed(1)}V${lv ? 30 : 72}`; });
+      path += 'H326';
+      $('#bz-w').setAttribute('d', path);
+      const tri = $('#bz-tri'); tri.replaceChildren();
+      [0, ...ts.filter((_, i) => i % 2 === 1)].forEach((tm) => { const x = X(tm); mk('path', { d: `M${x.toFixed(1)} 80l-5 9h10z` }, tri); });
+      setTxt($('#bz-n'), k ? `ISR × ${k + 1} · брязкіт ≈ ${fmt.num(d, d < 1 ? 2 : 1)} мс` : 'ISR × 1: цього разу без брязкоту');
+    };
+    $('#bz-press').addEventListener('click', () => draw(gen()));
+    draw({ k: 2, d: 1.1, ts: [0.18, 0.31, 0.62, 1.1] });
+  })();
+
+  // 6. debounce by silence: N must be longer than the gaps inside the burst
+  (() => {
+    const E = [[0, 0], [0.4, 1], [0.7, 0], [2.6, 1], [4.2, 0], [4.5, 1], [4.8, 0]];   // [ms, level after]
+    const X = (ms) => 30 + ms / 14 * 280;
+    const draw = (N) => {
+      let path = `M4 24H${X(0).toFixed(1)}`, lv = 1;
+      E.forEach(([tm, v]) => { path += `H${X(tm).toFixed(1)}V${v ? 24 : 66}`; lv = v; });
+      $('#db-w').setAttribute('d', path + 'H326');
+      const q = $('#db-q'); q.replaceChildren();
+      let stable = 1, count = 0;
+      E.forEach(([tm, v], i) => {
+        const next = i + 1 < E.length ? E[i + 1][0] : Infinity;
+        const quietEnd = tm + N;
+        if (next >= quietEnd) {
+          mk('path', { d: `M${X(tm).toFixed(1)} 80H${X(quietEnd).toFixed(1)}`, stroke: 'var(--hi)', 'stroke-width': 3 }, q);
+          const changed = v !== stable;
+          if (changed) { stable = v; if (v === 0) count++; }
+          mk('rect', { x: (X(quietEnd) - 2.5).toFixed(1), y: 20, width: 5, height: 52, fill: changed ? (v === 0 ? 'var(--accent)' : 'var(--muted)') : 'var(--line-strong)' }, q);
+          if (changed) mk('text', { class: 'svg-m', x: (X(quietEnd) + 5).toFixed(1), y: v ? 92 : 92 }, q).textContent = v === 0 ? '+1' : 'HIGH';
+        } else mk('path', { d: `M${X(tm).toFixed(1)} 80H${X(next).toFixed(1)}`, stroke: 'var(--muted)', 'stroke-width': 1.5, 'stroke-dasharray': '2 2' }, q);
+      });
+      const r = $('#db-res');
+      r.style.fill = count === 1 ? 'var(--ok)' : 'var(--bad)';
+      setTxt(r, count === 1 ? '✓ зараховано 1 натискання' : `✗ ${count} натискання: тиша посеред брязкоту`);
+      setTxt($('#db-out'), `${fmt.num(N, 1)} мс`);
+    };
+    $('#db-n').addEventListener('input', (e) => draw(+e.target.value));
+    draw(1);
+  })();
 
   /* ================================================================ 05a polling vs interrupt */
   const WIN = 6000, N = 10;
@@ -1077,43 +1976,20 @@ document.addEventListener('study:ready', () => {
   renderSnip();
 
   /* ================================================================ 08 dual figure */
+  // the same Kit bench as the lab; wires and strips carry data-net, so Schem.link highlights them with the schematic
   const bbSvg = $('#bb-isr');
-  const g = S.svg('g', {}, bbSvg);
-  S.svg('rect', { x: 2, y: 38, width: 58, height: 150, rx: 4, fill: 'var(--panel-2)', stroke: 'var(--line)' }, g);
-  S.svg('text', { class: 'sch-pin', x: 6, y: 30 }, g).textContent = 'плата';
-  const pins = [['3V3', 'v33', 'net-3v3', 60], ['GND', 'gnd', 'net-gnd', 90], ['7', 'gpio7', 'net-sig', 130], ['15', 'gpio15', 'net-sig2', 170]];
-  const pinPt = {};
-  pins.forEach(([t, net, cls, y]) => { S.svg('text', { class: `sch-pin ${cls}`, 'data-net': net, x: 8, y: y + 5 }, g).textContent = t; pinPt[net] = { x: 50, y }; });
-  const bb = S.breadboard(bbSvg, { cols: 18, rails: true, x: 76, y: 0, colLabels: 'bottom' });
-  bb.markRail('top', '+', 'v33', 'net-3v3'); bb.markRail('top', '-', 'gnd', 'net-gnd');
-  bb.mark(4, 'top', 'gpio7', 'net-sig'); bb.mark(4, 'bottom', 'gpio7', 'net-sig');
-  bb.mark(7, 'top', 'gnd', 'net-gnd'); bb.mark(7, 'bottom', 'gnd', 'net-gnd');
-  bb.mark(11, 'bottom', 'gpio15', 'net-sig2'); bb.mark(14, 'bottom', 'led_a', 'net-sig3'); bb.mark(15, 'bottom', 'gnd', 'net-gnd');
-  const wires = [];
-  wires.push(S.part(bbSvg, 'jumper', { from: pinPt.v33, to: bb.rail('top', '+', 1), net: 'v33', cls: 'net-3v3', lift: 0, title: '3V3 плати → шина плюс' }));
-  wires.push(S.part(bbSvg, 'jumper', { from: pinPt.gnd, to: bb.rail('top', '-', 2), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'GND плати → шина мінус' }));
-  wires.push(S.part(bbSvg, 'jumper', { from: pinPt.gpio7, to: bb.hole(4, 'h'), net: 'gpio7', cls: 'net-sig', lift: 10, title: 'GPIO7 → стовпчик 4' }));
-  // GPIO15 and the LED live in the lower half, so this wire never crosses the button.
-  wires.push(S.part(bbSvg, 'jumper', { from: pinPt.gpio15, to: bb.hole(11, 'j'), net: 'gpio15', cls: 'net-sig2', lift: -12, title: 'GPIO15 → стовпчик 11' }));
-  S.part(bbSvg, 'res', { from: bb.hole(4, 'a'), to: bb.rail('top', '+', 4), ohms: 10000, label: '' });
-  S.svg('text', { class: 'bb-part-lbl', x: bb.hole(4, 'a').x + 11, y: 47 }, bbSvg).textContent = 'R1';
-  const e4 = bb.hole(4, 'e'), f7 = bb.hole(7, 'f');
-  S.part(bbSvg, 'btn4', { x: e4.x, y: e4.y, w: f7.x - e4.x, h: f7.y - e4.y, label: 'SW1' });
-  wires.push(S.part(bbSvg, 'jumper', { from: bb.hole(7, 'a'), to: bb.rail('top', '-', 7), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 7 → шина мінус' }));
-  S.part(bbSvg, 'res', { from: bb.hole(11, 'g'), to: bb.hole(14, 'g'), ohms: 220, label: '' });
-  S.svg('text', { class: 'bb-part-lbl', x: (bb.hole(11, 'g').x + bb.hole(14, 'g').x) / 2, y: 117, 'text-anchor': 'middle' }, bbSvg).textContent = 'R2';
-  const bbLed = S.part(bbSvg, 'led', { anode: bb.hole(14, 'j'), cathode: bb.hole(15, 'j'), color: 'red', label: '', h: 20 });
-  S.svg('text', { class: 'bb-part-lbl', x: bb.hole(16, 'i').x, y: bb.hole(16, 'i').y + 4 }, bbSvg).textContent = 'LED1';
-  wires.push(S.part(bbSvg, 'jumper', { from: bb.hole(15, 'f'), to: bb.rail('top', '-', 15), net: 'gnd', cls: 'net-gnd', lift: 0, title: 'Стовпчик 15 → шина мінус' }));
-  // Level of GPIO7 as a text tag (a colour would clash with the net colours).
-  const lvlBb = S.svg('text', { class: 'sch-val', x: 8, y: 152 }, g); lvlBb.textContent = 'HIGH';
+  const kbb = bench(bbSvg, { nets: true });
+  // Level of GPIO7 as a text tag (a colour would clash with the net colours), next to the switch column.
+  const lvlPill = pill(bbSvg, kbb.bb.hole(BC.node + 3.5, 'c').x, kbb.yL, 'HIGH', 84, 'lvl');
+  const lvlBb = lvlPill.text;
 
   const dual = $('#dual-isr');
   let ledOn = false, swDown = false;
-  function setLed() { bbLed.style.opacity = ledOn ? '1' : '.4'; const sl = $('#sch-led'); if (sl) sl.style.color = ledOn ? 'var(--bad)' : ''; }
+  function setLed() { kbb.led.set({ on: ledOn ? 1 : 0 }); const sl = $('#sch-led'); if (sl) sl.style.color = ledOn ? 'var(--bad)' : ''; }
   function setSw(down) {
     if (down === swDown) return;
     swDown = down;
+    kbb.btn.set({ pressed: down });
     const lv = down ? 'LOW' : 'HIGH';
     lvlBb.textContent = lv; const l7 = $('#lvl7'); if (l7) l7.textContent = lv;
     const badge = $('#isr-badge');

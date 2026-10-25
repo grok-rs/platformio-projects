@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="../../assets/study.css">
 <link rel="stylesheet" href="../../site-nav.css">
+<link rel="stylesheet" href="../mp1/twilight-kit.css">
 <script src="../../site-theme.js"></script>
 <style>
 /* Page widgets only; colours come from study.css tokens. */
@@ -48,6 +49,30 @@
 .topics button[data-rank] .rank { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
 .topics small { display: block; color: var(--muted); font-size: 14px; }
 pre { white-space: pre; }
+/* find-the-fault lab */
+.fx-row { display: grid; gap: 10px; margin-top: 10px; }
+@media (min-width: 760px) { .fx-row { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); } }
+.fx-scope-wrap { margin: 0; }
+.lab-stage canvas.fx-scope { display: block; width: 100%; height: 220px; border-radius: 10px; background: #12181c; border: 1px solid var(--line); }
+.fx-serial-wrap { display: flex; flex-direction: column; min-width: 0; border-radius: 10px; background: #12181c; border: 1px solid var(--line); overflow: hidden; }
+.fx-k { margin: 0; padding: 6px 12px; font: 600 13px var(--f-mono); letter-spacing: .06em; color: #9fb0bb; border-bottom: 1px solid #2a343b; }
+.fx-serial { flex: 1; margin: 0; padding: 8px 12px; min-height: 150px; background: none; border: 0; color: #9ef0b0; font: 500 14px/1.55 var(--f-mono); white-space: pre-wrap; overflow: hidden; }
+.fx-serial .warn { color: #ffb4a8; }
+#fx-faults .sw { font-size: 14px; }
+#fx-faults .sw[aria-checked="true"] { border-color: var(--bad); }
+#fx-faults .sw[aria-checked="true"]::before { background: var(--bad); }
+.lab .seg.fx-chips { display: flex; flex-wrap: wrap; gap: 6px; border: 0; border-radius: 0; overflow: visible; }
+.lab .seg.fx-chips button { border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 14px; }
+.fx-guess button[aria-pressed="true"] { background: var(--hl); color: #fff; }
+.fx-src { margin: 0; padding: 0 18px 10px; }
+.fx-diag { display: grid; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--line); }
+.fx-card { margin: 0; padding: 10px 14px; border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: 10px; background: var(--panel); }
+.fx-card.ok { border-left-color: var(--ok); }
+.fx-card h4 { margin: 0 0 6px; font-size: 16px; }
+.fx-card ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 4px; }
+.fx-card li { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 8px; font-size: 15px; }
+.fx-card li > b { font: 600 13px/1.6 var(--f-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 599px) { .fx-card li { grid-template-columns: 1fr; gap: 0; } .fx-diag { padding: 10px 12px; } }
 </style>
 </head>
 <body data-lesson="mp1-review">
@@ -69,6 +94,127 @@ pre { white-space: pre; }
       <a class="btn primary" href="#check">До перемішаного повторення</a>
     </div>
   </header>
+
+  <!-- ============================================================ lab: find the fault (TwKit from ../mp1/twilight-kit.js) -->
+  <section class="lab wide" id="bench" aria-labelledby="bench-h">
+    <header class="lab-head"><h2 id="bench-h">Лабораторія · знайдіть несправність</h2><p>Увімкніть поломку, подивіться на симптом, поміряйте щупом і натисніть «Діагностувати». Або візьміть загадку.</p></header>
+    <div class="lab-stage" id="fx-stage">
+      <div class="seg tw-view" role="group" aria-label="Вигляд стенда" id="fx-view">
+        <button type="button" data-v="kit" aria-pressed="true">Макетка</button>
+        <button type="button" data-v="sch" aria-pressed="false">Схема</button>
+      </div>
+      <svg class="tw-kit" id="fx-kit" viewBox="-170 -360 1860 1310" role="img" aria-label="Сутінковий перемикач на справжніх деталях набору, з поломками. Плата YD-ESP32-S3 лежить у повній макетці з модулем живлення MB102 зліва і перемичками через розрив шин; ключ BC547B з R3 і R4 ліворуч від плати, дільник LDR і R2 на GPIO4 праворуч угорі, жовтий світлодіод-лампа з 220 Ом праворуч унизу, синій модуль реле TONGLING під макеткою. Усі дроти прямі, з поворотами під прямим кутом. Поломки видно на самій збірці: бракує дроту, не той пін, переставлені деталі, R4 не на тій шині, випаяний діод; у режимі дослідження їх позначено червоним, відсутній дріт — пунктиром."></svg>
+      <svg class="tw-svg" id="fx-svg" hidden viewBox="0 0 892 318" role="img" aria-label="Сутінковий перемикач у чотирьох панелях з поломками: небо і дільник LDR–R2 на GPIO4; ESP32-S3 з числом АЦП, порогами і рівнем GPIO2; ключ BC547B з R3 і R4; модуль реле active-LOW з котушкою, діодом D1, контактом COM між NC і NO та лампою. Увімкнені поломки позначено червоним."></svg>
+      <div class="fx-row">
+        <figure class="fx-scope-wrap">
+          <canvas class="fx-scope" id="fx-scope" width="640" height="220" role="img" aria-label="Осцилограф: величина під щупом за останні 10 секунд."></canvas>
+        </figure>
+        <div class="fx-serial-wrap">
+          <p class="fx-k">Serial · 115200</p>
+          <pre class="fx-serial" id="fx-serial" role="log" aria-live="off"></pre>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <div class="seg" role="group" aria-label="Режим" id="fx-mode">
+        <button type="button" data-m="explore" aria-pressed="true">Дослідження</button>
+        <button type="button" data-m="riddle" aria-pressed="false">Загадка</button>
+      </div>
+      <div class="grp">
+        <button type="button" class="btn primary" id="fx-sunset">▶ Захід сонця</button>
+        <button type="button" class="btn" id="fx-sunrise">Світанок</button>
+        <button type="button" class="btn ghost" id="fx-pause">⏸ Пауза</button>
+      </div>
+      <label class="lab-range">Час <input type="range" id="fx-time" min="0" max="1000" step="5" value="200"><output id="fx-time-o">—</output></label>
+    </div>
+    <div class="lab-ctl" id="fx-faults">
+      <span class="grp-k">Поломки</span>
+      <button type="button" class="sw" data-f="noGnd">Немає спільної GND</button>
+      <button type="button" class="sw" data-f="noDiode">Немає діода на котушці</button>
+      <button type="button" class="sw" data-f="adc2">Не той GPIO: LDR на GPIO14 + Wi-Fi</button>
+      <button type="button" class="sw" data-f="swap">LDR і R2 переплутані</button>
+      <button type="button" class="sw" data-f="noHyst">Без гістерезису</button>
+      <button type="button" class="sw" data-f="r433">R4 до 3,3 В</button>
+      <button type="button" class="sw" data-f="r2open">R2 не на GND</button>
+      <button type="button" class="sw" data-f="lamp">Лампа світить на LDR</button>
+    </div>
+    <div class="lab-ctl" id="fx-riddle" hidden>
+      <button type="button" class="btn primary" id="fx-new">🎲 Нова загадка</button>
+      <span class="grp-k">Ваша версія</span>
+      <div class="seg fx-chips fx-guess" role="group" aria-label="Ваша версія несправності" id="fx-guess"></div>
+    </div>
+    <div class="lab-ctl">
+      <span class="grp-k">Щуп</span>
+      <div class="seg fx-chips" role="group" aria-label="Куди поставити щуп" id="fx-probe">
+        <button type="button" data-p="v5" aria-pressed="false">VCC модуля</button>
+        <button type="button" data-p="gnd" aria-pressed="false">GND ↔ GND</button>
+        <button type="button" data-p="g4" aria-pressed="false">Вхід АЦП</button>
+        <button type="button" data-p="gpio2" aria-pressed="false">GPIO2</button>
+        <button type="button" data-p="vbe" aria-pressed="false">V<sub>BE</sub></button>
+        <button type="button" data-p="in" aria-pressed="true">IN</button>
+        <button type="button" data-p="coil" aria-pressed="false">Котушка</button>
+      </div>
+    </div>
+    <div class="lab-read">
+      <div><b>Щуп</b><output id="fx-pv">—</output></div>
+      <div><b>Serial adc</b><output id="fx-adc">—</output></div>
+      <div><b>Код думає</b><output id="fx-code">—</output></div>
+      <div><b>Реле насправді</b><output id="fx-rel">—</output></div>
+      <div><b>Клацань</b><output id="fx-clk">0</output></div>
+      <div><b>Викидів</b><output id="fx-spk">0</output></div>
+    </div>
+    <div class="fx-diag">
+      <button type="button" class="btn primary" id="fx-diag">🔍 Діагностувати</button>
+      <div id="fx-diag-out" aria-live="polite"><p class="small muted">Тут з'явиться розбір: симптом → що виміряти → що покаже → причина і ліки.</p></div>
+    </div>
+    <p class="small muted fx-src">Звідки факти розбору: зворотний діод на котушці<sup class="cite" data-fact="uln2003a-flyback-diodes"></sup>; АЦП2 і Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>, 65535 замість числа<sup class="cite" data-fact="core-adc2-wifi-returns-0"></sup>, канали АЦП1<sup class="cite" data-fact="s3-adc1-pins"></sup>; модуль active-LOW і 3,3&nbsp;В на IN<sup class="cite" data-fact="relay-module-active-low"></sup>. Модель світла і LDR — зі стенда twilight-relay.</p>
+    <p class="lab-note" id="fx-note" aria-live="polite">Усе справно. Увімкніть одну поломку і запустіть захід сонця.</p>
+    <a class="lab-more" href="../../twilight-relay/#bench">Повна лабораторія: «Що буде, якщо…» на макетці і схемі →</a>
+  </section>
+
+  <figure class="anim wide" id="dbg-anim" aria-labelledby="dbg-anim-h">
+    <header class="anim-head"><h3 id="dbg-anim-h">Відео: налагодження за планом (експонат 2 «Мовчить»)</h3></header>
+    <div class="anim-stage">
+      <svg class="an-svg" viewBox="0 0 480 270" role="img" aria-label="Анімація налагодження в шести кроках: симптом — Serial пише relay=ON, а реле мовчить; сходинка живлення — 5 вольт є; сходинка земля — прозвонка мовчить; гіпотеза — струм бази не повертається, V_BE дорівнює нулю; ліки — дріт GND–GND; перевірка — V_BE 0,7 вольта, реле клацає.">
+        <defs><marker id="dg-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="var(--flow)"/></marker></defs>
+        <text class="an-t" id="dg-title" x="16" y="32">1 · Симптом</text>
+        <g id="dg-ladder"></g>
+        <!-- 0 symptom -->
+        <g id="dg-s0">
+          <rect x="214" y="52" width="256" height="86" rx="10" fill="#1d2329"/>
+          <text class="an-mono" x="228" y="84" style="fill:#9ef0b0">adc=474 relay=ON</text>
+          <text class="an-mono" x="228" y="118" style="fill:#9ef0b0">adc=471 relay=ON</text>
+          <text class="an-s" x="214" y="176">GPIO2: 3,3 В ✓</text>
+          <text class="an-s an-bad" x="214" y="210">реле: тиша ✗</text>
+          <text class="an-m" x="214" y="244">LED модуля не світить</text>
+        </g>
+        <!-- 1..2,5 the kit's UT136C+ with its probes -->
+        <g id="dg-mm">
+          <g id="dg-mmk" transform="translate(232 44) scale(.1)"></g>
+          <text id="dg-mmode" x="232" y="258" class="an-m">V⎓</text>
+          <text id="dg-pa" x="382" y="136" class="an-m" text-anchor="middle">VCC</text>
+          <text id="dg-pb" x="476" y="160" class="an-m" text-anchor="end">GND</text>
+        </g>
+        <!-- 3,4 loop: the kit's ESP32-S3 and BC547B -->
+        <g id="dg-loop">
+          <g id="dg-esp" transform="translate(222 64) scale(.2)"></g>
+          <g id="dg-q" transform="translate(400 176)"></g>
+          <text x="248" y="40" text-anchor="middle" class="an-s">ESP32</text>
+          <text x="470" y="64" text-anchor="end" class="an-s">VT1</text>
+          <path d="M282 84H384" class="an-arr" style="stroke:var(--flow)" marker-end="url(#dg-ah)"/>
+          <text x="330" y="74" text-anchor="middle" class="an-m">R3</text>
+          <path id="dg-ret" d="M451 182V192Q451 204 437 204H298Q282 204 282 190V176" fill="none" stroke="var(--ok)" stroke-width="4" stroke-linecap="round"/>
+          <g id="dg-x"><path d="M344 192l24 24M368 192l-24 24" stroke="var(--bad)" stroke-width="4" stroke-linecap="round"/></g>
+          <text id="dg-l1" x="214" y="244" class="an-s an-bad">I_B = 0: петля розірвана</text>
+          <text id="dg-l2" x="214" y="266" class="an-m">V_BE = 0 В</text>
+        </g>
+        <!-- 5 fixed -->
+        <g id="dg-ok">
+          <text id="dg-clack" x="470" y="34" class="an-clack" text-anchor="end" opacity="0">клац! реле ON ✓</text>
+        </g>
+      </svg>
+    </div>
+  </figure>
 
   <section class="hs" id="why">
     <h2><span class="n">01</span> Навіщо це</h2>
@@ -107,7 +253,11 @@ pre { white-space: pre; }
   <!-- ============================================================ museum -->
   <section class="hs" id="museum">
     <h2><span class="n">04</span> Музей помилок</h2>
-    <p>Кожен експонат — справжня поломка цього проєкту. Спершу вгадайте причину, потім прочитайте, яким виміром її знаходять. Ваші експонати (фото, симптом, причина, як знайшли, як виправили) — у Discussions → «Музей помилок»; найкращі потраплять сюди.</p>
+    <p>Кожен експонат — справжня поломка цього проєкту. Спершу вгадайте причину, потім прочитайте, яким виміром її знаходять. Кожну з них можна відтворити в лабораторії вгорі.</p>
+    <details class="more">
+      <summary>Детальніше: як подати свій експонат</summary>
+      <p>Ваші експонати (фото, симптом, причина, як знайшли, як виправили) — у Discussions → «Музей помилок»; найкращі потраплять сюди.</p>
+    </details>
 
     <div class="predict exhibit" id="ex-never-off" data-ok="1" data-why="Serial каже OFF, отже код і поріг ні до чого — проблема після GPIO. Багатьом 5-вольтовим модулям потрібен майже 5-вольтовий HIGH на IN, щоб вимкнутися. Якщо R4 підтягнутий до 3,3 В (або GPIO з'єднаний з IN напряму), IN ніколи не піднімається вище 3,3 В. Вимір: IN відносно GND при GPIO2 = LOW — має бути ≈5 В.">
       <span class="tag">Експонат 1 · «Реле не вимикається ніколи»</span>
@@ -252,7 +402,11 @@ pre { white-space: pre; }
   <!-- ============================================================ flex slot -->
   <section class="hs" id="flex">
     <h2><span class="n">09</span> Гнучкий слот: голосуємо</h2>
-    <p>У суботу 26.09 немає нової теми: група сама вирішує, що розібрати глибше. Кандидати нижче зібрані з типових «найменш зрозумілих» місць модуля 1; викладач доповнить їх відповідями з ваших квитків на вихід. Позначте <b>три</b> теми в порядку важливості, скопіюйте і проголосуйте на дошці (фрейм «Стіна прогнозів» → «Гнучкий слот»).</p>
+    <p>У суботу 26.09 немає нової теми: група сама вирішує, що розібрати глибше. Позначте <b>три</b> теми в порядку важливості, скопіюйте і проголосуйте на дошці.</p>
+    <details class="more">
+      <summary>Детальніше</summary>
+      <p>Кандидати нижче зібрані з типових «найменш зрозумілих» місць модуля 1; викладач доповнить їх відповідями з ваших квитків на вихід. Голосуйте на дошці у фреймі «Стіна прогнозів» → «Гнучкий слот».</p>
+    </details>
     <ul class="topics" id="topics">
       <li><button type="button" data-t="Транзистор як ключ: насичення і розрахунок бази"><span class="rank"></span><span>Транзистор як ключ<small>чому I<sub>B</sub> ≈ I<sub>C</sub>/10, а не I<sub>C</sub>/h<sub>FE</sub></small></span></button></li>
       <li><button type="button" data-t="Дільник напруги і точність АЦП"><span class="rank"></span><span>Дільник і точність АЦП<small>чому сире число «гуляє», калібрування, <code>analogReadMilliVolts()</code></small></span></button></li>
@@ -348,15 +502,329 @@ pre { white-space: pre; }
 <script src="../../assets/quiz.js" defer></script>
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script src="../mp1/twilight-kit.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
   const { $, $$ } = Study;
+  const press = (group, btn) => $$('button', group).forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
   const KEY = 'mp1-review.v1';
   const saved = Study.store.get(KEY, {}) || {};
   const save = () => Study.store.set(KEY, saved);
 
   document.addEventListener('click', (e) => { if (e.target.closest('.cite')) { const d = $('#sources').closest('details'); if (d) d.open = true; } });
+
+  /* ================================================================ LAB: find the fault (TwKit) */
+  (() => {
+    const T = window.TwKit;
+    if (!T) return;
+    const { fmt } = Study;
+    const K = T.K;
+    // Light for this bench: 13:00 (bright, LDR ≈ 1 кОм) → 22:00 (≥ 1 МОм); slow around the dusk crossing (ADC ≈ 550).
+    const C_MID = 0.62;
+    const ldrAt = (t) => {
+      const u = Math.abs(2 * t - 1), side = t < 0.5 ? -C_MID : 1 - C_MID;
+      const f = C_MID + side * (0.22 * u + 0.78 * u * u * u);
+      return Math.exp(Math.log(1e3) + f * Math.log(1e3));
+    };
+    const clock = (t) => { const m = Math.round(13 * 60 + t * 540); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
+    const NAMES = { noGnd: 'Немає спільної GND', noDiode: 'Немає діода', adc2: 'Не той GPIO', swap: 'LDR ↔ R2', noHyst: 'Без гістерезису',
+      r433: 'R4 до 3,3 В', r2open: 'R2 не на GND', lamp: 'Лампа на LDR' };
+    // Faults and symptoms: only what the museum (section 04) and docs/twilight-relay teach.
+    const DIAG = {
+      noGnd: { sym: 'Serial пише <code>relay=ON</code>, GPIO2 перемикається 0 ↔ 3,3&nbsp;В, на VCC модуля 5&nbsp;В — а реле мовчить, світлодіод модуля не світить.',
+        meas: 'Сходинка 2 — земля: прозвонка GND плати ↔ «−» шини 5&nbsp;В. Щуп «GND ↔ GND», потім «V<sub>BE</sub>» при HIGH.',
+        shows: 'Прозвонка мовчить (OL); V<sub>BE</sub> = 0&nbsp;В замість ≈0,7&nbsp;В.',
+        fix: 'Струм бази не має шляху назад до ESP32. Ліки — дріт GND–GND: усі GND — один провід (експонат 2).' },
+      noDiode: { sym: 'Усе працює, але щоразу, коли реле <b>вимикається</b>, на котушці стрибок напруги (щуп «Котушка», лічильник «Викидів»).',
+        meas: 'Осцилограф на котушці саме в момент вимкнення (запустіть «Світанок»).',
+        shows: 'Короткий викид далеко за межі шкали 5&nbsp;В замість спокійного спаду до нуля.',
+        fix: 'Енергії котушки нікуди подітися — викид може пробити транзистор модуля<sup class="cite" data-fact="uln2003a-flyback-diodes"></sup>. Ліки — діод паралельно котушці, катодом до «+» (на справжньому модулі він уже є, D1).' },
+      adc2: { sym: 'Після додавання Wi-Fi реле не вмикається навіть уночі. Serial пише <code>adc=65535</code>.',
+        meas: 'Сходинка 3 — сигнали: напруга на вході АЦП. Потім подивіться, на якому піні сидить LDR.',
+        shows: 'Напруга на піні нормальна, а числа немає: GPIO14 — канал АЦП2, а він зайнятий Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>; analogRead() повертає 65535<sup class="cite" data-fact="core-adc2-wifi-returns-0"></sup>.',
+        fix: 'Перенесіть LDR на канал АЦП1 — GPIO1–10<sup class="cite" data-fact="s3-adc1-pins"></sup>, як GPIO4 у проєкті (експонат 6).' },
+      swap: { sym: 'Поведінка перевернута: удень, при яскравому світлі, лампа світить, а в сутінках гасне.',
+        meas: 'Сходинка 3 — сигнали: напруга на вході АЦП удень і вночі.',
+        shows: 'Що темніше, то <b>вища</b> напруга: майже 3,3&nbsp;В уночі. Число АЦП росте в темряві, і умова «adc &lt; DARK» спрацьовує лише на яскравому світлі.',
+        fix: 'LDR має стояти вгорі дільника (до 3,3&nbsp;В), R2 = 10&nbsp;кОм — до GND, інакше логіка інвертується.' },
+      noHyst: { sym: 'У сутінках реле брязкотить: десятки клацань за хвилину, лампа мерехтить.',
+        meas: 'Сходинка 4 — код: рядки Serial, де змінюється <code>relay=</code>.',
+        shows: '<code>adc</code> тремтить біля одного порога, і <code>relay=</code> перемикається туди-сюди.',
+        fix: 'Два пороги DARK &lt; LIGHT і пам\'ять стану; мертва зона ширша за шум (пункт 2 чек-листа).' },
+      r433: { sym: 'Реле не вимикається ніколи, світлодіод модуля світить і вдень. Serial чесно пише <code>relay=OFF</code>.',
+        meas: 'Сходинка 3 — сигнали: IN відносно GND при GPIO2 = LOW. Щуп «IN».',
+        shows: '≈3,3&nbsp;В замість ≈5&nbsp;В. Багатьом 5-вольтовим модулям для вимкнення потрібен майже 5-вольтовий HIGH<sup class="cite" data-fact="relay-module-active-low"></sup>.',
+        fix: 'R4 — до шини +5&nbsp;В, не до 3,3&nbsp;В (експонат 1).' },
+      r2open: { sym: 'Serial пише <code>adc=4095</code>, хоч накривай LDR, хоч світи ліхтариком. Реле не вмикається.',
+        meas: 'Сходинка 3 — напруга на вході АЦП і прозвонка R2 до шини GND.',
+        shows: '3,3&nbsp;В на вході АЦП за будь-якого світла: через LDR він підтягнутий до 3,3&nbsp;В.',
+        fix: 'З\'єднайте нижній кінець R2 з GND (експонат 3).' },
+      lamp: { sym: 'Пороги 500 / 600, гістерезис є, а в сутінках реле клацає раз на секунду. Коли лампу накрили — заспокоюється.',
+        meas: 'Накрийте лампу (вимкніть цю поломку): клацання зникають?',
+        shows: 'Так: лампа освітлює LDR, число АЦП підскакує вище LIGHT — перемикач сам себе «будить».',
+        fix: 'Екран між лампою і LDR або LDR, спрямований убік (експонат 4).' },
+    };
+    const st = { t: 0.2, on: false, arm: false, raw: null, clicks: 0, spikes: 0, ramp: 0, simT: 0, acc: 0, lampLux: 0,
+      f: {}, mode: 'explore', secret: null, guess: null, probe: 'in', hist: [], serial: [], lastPrint: 0 };
+    const cfg = { hyst: true, center: 550, dark: K.DARK, light: K.LIGHT };
+    const view = T.views($('#fx-kit'), $('#fx-svg'), $('#fx-view'), { id: 'fx' });
+    const faults = () => (st.mode === 'riddle' ? (st.secret ? { [st.secret]: true } : {}) : st.f);
+    const rand = (() => { let a = 20260923; return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; }; })();
+    const rlNow = (f) => {
+      const r = ldrAt(st.t);
+      return f.lamp ? T.rOfLux(T.luxOfR(r) + st.lampLux) : r;
+    };
+    const probeVal = (p, e, f, h) => {
+      switch (p) {
+        case 'v5': return { v: 5, txt: '5,0 В' };
+        case 'gnd': return { v: null, txt: f.noGnd ? 'OL · тиша' : '0 Ом · пищить' };
+        case 'g4': return { v: e.vAdc, txt: `${fmt.num(e.vAdc, 2, true)} В` };
+        case 'gpio2': return { v: st.on ? 3.3 : 0, txt: st.on ? '3,3 В' : '0 В' };
+        case 'vbe': return { v: e.vbe, txt: `${fmt.num(e.vbe, 1, true)} В` };
+        case 'in': return { v: e.vin, txt: `${fmt.num(e.vin, 1, true)} В` };
+        case 'coil': return { v: e.coil ? 4.9 : 0, txt: e.coil ? '≈4,9 В' : '0 В' };
+        default: return { v: null, txt: '—' };
+      }
+    };
+    const serialPush = (line, warn) => {
+      st.serial.push({ line, warn });
+      if (st.serial.length > 7) st.serial.shift();
+      $('#fx-serial').innerHTML = st.serial.map((s) => `<span${s.warn ? ' class="warn"' : ''}>${s.line}</span>`).join('\n');
+    };
+    function sample() {
+      const f = faults();
+      const e = T.solve(rlNow(f), st.on, f);
+      st.raw = f.adc2 ? 65535 : T.clamp(T.adcOf(e.vAdc) + Math.round(20 * (rand() + rand() - 1)), 0, 4095);
+      const prevOn = st.on;
+      st.on = T.decide(st.raw, st.on, { ...cfg, hyst: !f.noHyst });
+      const e2 = T.solve(rlNow(f), st.on, f);
+      const wasArm = st.arm;
+      st.arm = e2.coil;
+      const click = wasArm !== st.arm;
+      let spike = 0;
+      if (click) {
+        st.clicks++;
+        if (wasArm && !st.arm) { spike = f.noDiode ? 1 : -1; if (f.noDiode) { st.spikes++; view.sparkle(); } }
+      }
+      st.hist.push({ t: st.simT, e: e2, on: st.on, arm: st.arm, raw: st.raw, spike, f });
+      while (st.hist.length && st.hist[0].t < st.simT - 11) st.hist.shift();
+      if (prevOn !== st.on || st.simT - st.lastPrint >= 0.5) {
+        st.lastPrint = st.simT;
+        serialPush(`adc=${st.raw} relay=${st.on ? 'ON' : 'OFF'}`, st.on !== st.arm || st.raw > 4095);
+      }
+    }
+    function drawScope() {
+      const cv = $('#fx-scope'), ctx = Study.fitCanvas(cv), tk = Study.tokens();
+      const W = ctx.w, H = ctx.h, L = 44, R = 10, Tp = 26, B = 24, pw = W - L - R, ph = H - Tp - B;
+      const vmin = -1, vmax = 6, y = (v) => Tp + ph * (1 - (T.clamp(v, vmin, vmax) - vmin) / (vmax - vmin));
+      const x = (tt) => L + pw * (1 - (st.simT - tt) / 10);
+      const mono = tk['f-mono'] || 'monospace';
+      ctx.clearRect(0, 0, W, H);
+      ctx.font = `13px ${mono}`; ctx.textBaseline = 'middle';
+      ctx.strokeStyle = 'rgba(160,190,200,.32)'; ctx.lineWidth = 1; ctx.fillStyle = '#8fa3ad'; ctx.textAlign = 'right';
+      for (let v = 0; v <= 5; v++) { ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - R, y(v)); ctx.stroke(); if (v % 1 === 0) ctx.fillText(`${v} В`, L - 6, y(v)); }
+      for (let s = 0; s <= 10; s += 2) { ctx.beginPath(); ctx.moveTo(x(st.simT - s), Tp); ctx.lineTo(x(st.simT - s), Tp + ph); ctx.stroke(); }
+      const label = $(`#fx-probe [data-p="${st.probe}"]`).textContent;
+      ctx.textAlign = 'left'; ctx.fillStyle = '#ffd34d'; ctx.font = `600 13px ${mono}`;
+      ctx.fillText(`CH1 · ${label} · 1 В/под · 1 с/под`, L, 12);
+      if (st.probe === 'gnd') {
+        const f = faults();
+        ctx.textAlign = 'center'; ctx.font = `700 22px ${mono}`;
+        ctx.fillStyle = f.noGnd ? '#ff8a7a' : '#9ef0b0';
+        ctx.fillText(f.noGnd ? 'OL — тиша, землі не з\'єднані' : '0 Ом — пищить ✓', L + pw / 2, Tp + ph / 2);
+        return;
+      }
+      ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 2.2; ctx.beginPath();
+      st.hist.forEach((h, i) => {
+        const pv = probeVal(st.probe, h.e, h.f).v;
+        const xx = x(h.t), yy = y(pv == null ? 0 : pv);
+        if (i) ctx.lineTo(xx, yy); else ctx.moveTo(xx, yy);
+        if (st.probe === 'coil' && h.spike) {
+          const top = h.spike > 0 ? y(vmax) - 4 : y(-0.7);
+          ctx.lineTo(xx + 1, top); ctx.lineTo(xx + 3, yy);
+        }
+      });
+      ctx.stroke();
+      if (st.probe === 'coil') st.hist.filter((h) => h.spike > 0).forEach((h) => {
+        ctx.fillStyle = '#ff8a7a'; ctx.textAlign = 'left'; ctx.font = `700 13px ${mono}`;
+        ctx.fillText('↑ викид за шкалою', Math.min(x(h.t) + 6, W - 150), Tp + 8);
+      });
+    }
+    function paint(dt) {
+      const f = faults(), rl = rlNow(f), e = T.solve(rl, st.on, f);
+      view.render({ t: T.clamp((st.t - 0.25) / 0.75, 0, 1), rl, vAdc: e.vAdc, raw: st.raw, on: st.on, el: e, arm: st.arm, cfg: { ...cfg, hyst: !f.noHyst }, f, clock: clock(st.t), hideMarks: st.mode === 'riddle' }, dt);
+      drawScope();
+      $('#fx-pv').textContent = probeVal(st.probe, e, f).txt;
+      const adc = $('#fx-adc'); adc.textContent = st.raw == null ? '—' : String(st.raw); adc.className = st.raw > 4095 ? 'bad' : '';
+      $('#fx-code').textContent = `relay=${st.on ? 'ON' : 'OFF'}`;
+      const rel = $('#fx-rel'); rel.textContent = st.arm ? 'ON' : 'OFF'; rel.className = st.arm !== st.on ? 'bad' : st.arm ? 'ok' : '';
+      const ck = $('#fx-clk'); ck.textContent = String(st.clicks); ck.className = st.clicks > 3 ? 'bad' : '';
+      const sp = $('#fx-spk'); sp.textContent = String(st.spikes); sp.className = st.spikes ? 'bad' : '';
+      $('#fx-time-o').textContent = clock(st.t);
+    }
+    const stage = $('#fx-stage');
+    const sim = Study.sim(stage, (dt) => {
+      const f = faults();
+      if (st.ramp) {
+        st.t = T.clamp(st.t + st.ramp * dt / 30, 0, 1);
+        $('#fx-time').value = Math.round(st.t * 1000);
+        if (st.t <= 0 || st.t >= 1) { st.ramp = 0; syncBtns(); }
+      }
+      st.lampLux += ((f.lamp && st.arm ? K.LAMP_LUX : 0) - st.lampLux) * (1 - Math.exp(-dt / K.LDR_TAU));
+      st.simT += dt; st.acc += dt;
+      while (st.acc >= K.PERIOD) { st.acc -= K.PERIOD; sample(); }
+      paint(dt);
+    });
+    const pauseBtn = $('#fx-pause');
+    const syncBtns = () => { pauseBtn.textContent = sim.running ? '⏸ Пауза' : '▶ Пуск'; };
+    const run = (dir) => {
+      st.ramp = dir; st.clicks = 0; st.spikes = 0;
+      if (dir > 0 && st.t > 0.9) st.t = 0.2;
+      if (dir < 0 && st.t < 0.1) st.t = 0.95;
+      if (!sim.running) sim.play();
+      syncBtns();
+    };
+    $('#fx-sunset').addEventListener('click', () => run(1));
+    $('#fx-sunrise').addEventListener('click', () => run(-1));
+    pauseBtn.addEventListener('click', () => { sim.toggle(); syncBtns(); });
+    stage.addEventListener('click', () => setTimeout(syncBtns));
+    stage.addEventListener('keydown', () => setTimeout(syncBtns));
+    $('#fx-time').addEventListener('input', (e) => { st.t = +e.target.value / 1000; st.ramp = 0; paint(0); });
+
+    const card = (k, ok) => {
+      const d = DIAG[k];
+      return `<div class="fx-card"><h4>${ok == null ? '' : ok ? '✓ ' : '✗ '}${NAMES[k]}</h4><ol>
+        <li><b>Симптом</b><span>${d.sym}</span></li><li><b>Виміряти</b><span>${d.meas}</span></li>
+        <li><b>Покаже</b><span>${d.shows}</span></li><li><b>Причина, ліки</b><span>${d.fix}</span></li></ol></div>`;
+    };
+    const out = $('#fx-diag-out');
+    const clearDiag = () => { out.innerHTML = '<p class="small muted">Тут з\'явиться розбір: симптом → що виміряти → що покаже → причина і ліки.</p>'; };
+    const noteFaults = () => {
+      const on = Object.keys(st.f).filter((k) => st.f[k]);
+      $('#fx-note').textContent = st.mode === 'riddle'
+        ? 'Загадка: щось зламано. Запустіть захід або світанок, поміряйте щупом, читайте Serial — і виберіть версію.'
+        : on.length ? `Увімкнено: ${on.map((k) => NAMES[k]).join(', ')}. Запустіть захід сонця і подивіться на симптом.` : 'Усе справно. Увімкніть одну поломку і запустіть захід сонця.';
+    };
+    $$('#fx-faults .sw').forEach((b) => b.addEventListener('switch', (e) => {
+      st.f[b.dataset.f] = e.detail.on; st.clicks = 0; st.spikes = 0; clearDiag(); noteFaults(); paint(0);
+    }));
+    $('#fx-diag').addEventListener('click', () => {
+      if (st.mode === 'riddle') {
+        if (!st.secret) { out.innerHTML = '<p>Спершу натисніть «Нова загадка».</p>'; return; }
+        if (!st.guess) { out.innerHTML = '<p>Виберіть свою версію в рядку «Ваша версія». Підказка: міряйте знизу вгору — живлення, земля, сигнали, код.</p>'; return; }
+        const ok = st.guess === st.secret;
+        out.innerHTML = (ok ? '<p><b>Влучно!</b> Ось розбір:</p>' : `<p><b>Ні, це не «${NAMES[st.guess]}».</b> Правильна відповідь і розбір:</p>`) + card(st.secret, ok);
+      } else {
+        const on = Object.keys(st.f).filter((k) => st.f[k]);
+        out.innerHTML = on.length ? on.map((k) => card(k)).join('')
+          : `<div class="fx-card ok"><h4>✓ Несправностей немає</h4><p>VCC 5&nbsp;В, прозвонка GND пищить, V<sub>BE</sub> ≈ 0,7&nbsp;В при HIGH, IN ≈ 0,1&nbsp;В, у сутінках одне чисте клацання.</p></div>`;
+      }
+      // citations in the card reuse the numbers of the static list above (.fx-src), so page numbering stays stable
+      $$('.cite[data-fact]', out).forEach((c) => {
+        const src = $(`.fx-src .cite[data-fact="${c.dataset.fact}"]`);
+        if (src) { c.innerHTML = src.innerHTML; $$('[id]', c).forEach((n) => n.removeAttribute('id')); }
+      });
+    });
+    const guessG = $('#fx-guess');
+    guessG.innerHTML = Object.keys(NAMES).map((k) => `<button type="button" data-g="${k}" aria-pressed="false">${NAMES[k]}</button>`).join('');
+    $$('button', guessG).forEach((b) => b.addEventListener('click', () => { st.guess = b.dataset.g; press(guessG, b); }));
+    const newRiddle = () => {
+      const keys = Object.keys(NAMES).filter((k) => k !== st.secret);
+      st.secret = keys[Math.floor(Math.random() * keys.length)];
+      st.guess = null; press(guessG, null); st.clicks = 0; st.spikes = 0; st.t = 0.2; st.on = false; st.arm = false;
+      clearDiag(); noteFaults(); run(1);
+    };
+    $('#fx-new').addEventListener('click', newRiddle);
+    $$('#fx-mode button').forEach((b) => b.addEventListener('click', () => {
+      st.mode = b.dataset.m; press($('#fx-mode'), b);
+      $('#fx-faults').hidden = st.mode !== 'explore'; $('#fx-riddle').hidden = st.mode !== 'riddle';
+      clearDiag();
+      if (st.mode === 'riddle' && !st.secret) newRiddle(); else noteFaults();
+      paint(0);
+    }));
+    $$('#fx-probe button').forEach((b) => b.addEventListener('click', () => { st.probe = b.dataset.p; press($('#fx-probe'), b); paint(0); }));
+    for (let i = 0; i < 100; i++) { st.simT += K.PERIOD; sample(); }
+    st.clicks = 0;
+    Study.onTheme(() => paint(0));
+    addEventListener('resize', () => paint(0));
+    paint(0); syncBtns();
+  })();
+
+  /* ================================================================ ANIM: debugging walk-through (exhibit 2) */
+  (() => {
+    const T = window.TwKit;
+    if (!T) return;
+    const RUNGS = ['1 Живлення', '2 Земля', '3 Сигнали', '4 Код'];
+    const lad = $('#dg-ladder');
+    const rungs = RUNGS.map((t, k) => {
+      const y = 220 - k * 44;
+      const g = T.el('g', {}, lad);
+      const r = T.el('rect', { x: 16, y: y - 28, width: 182, height: 38, rx: 8, class: 'an-step' }, g);
+      const tx = T.el('text', { x: 28, y: y - 2 }, g); tx.textContent = t;
+      const mk = T.el('text', { x: 186, y: y - 2, 'text-anchor': 'end', class: 'an-s' }, g);
+      return { r, mk };
+    });
+    // per step: rung states (ok / bad / cur / '')
+    const LAD = [['', '', '', ''], ['cur', '', '', ''], ['ok', 'bad', '', ''], ['ok', 'bad', 'cur', ''], ['ok', 'cur', '', ''], ['ok', 'ok', 'ok', '']];
+    const titles = ['1 · Симптом', '2 · Живлення', '3 · Земля', '4 · Гіпотеза', '5 · Ліки', '6 · Перевірка'];
+    const show = (id, on) => $(id).setAttribute('display', on ? '' : 'none');
+    const ease = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    // the kit's parts: UT136C+ with two probes (dial + LCD follow the rung), the ESP32-S3 board and a BC547B
+    let mm = null, mmKey = '';
+    if (window.Kit) {
+      const g = $('#dg-mmk');
+      mm = Kit.part('multimeter', { parent: g, title: 'Мультиметр UNI-T UT136C+' });
+      const pr = Kit.part('probe', { parent: g, color: 'red', x: 1500, y: 1060, rot: 10, scale: 0.55 });
+      const pb = Kit.part('probe', { parent: g, color: 'black', x: 2200, y: 1300, rot: -10, scale: 0.55 });
+      Kit.wire(g, pr.pins.end, mm.pins.V, 'red', { width: 30, ends: ['none', 'banana'], lift: -120 });
+      Kit.wire(g, pb.pins.end, mm.pins.COM, '#26272a', { width: 30, ends: ['none', 'banana'], lift: -200 });
+      Kit.part('esp32s3', { parent: $('#dg-esp'), labels: false, title: 'Плата ESP32-S3' });
+      Kit.part('npn', { parent: $('#dg-q'), model: 'BC547B', title: 'VT1 BC547B' });
+    }
+    const meter = (dial, disp, unit) => { const k = dial + disp; if (mm && k !== mmKey) { mmKey = k; mm.set({ dial, display: disp, unit, ac: false }); } };
+    const retLen = $('#dg-ret').getTotalLength ? $('#dg-ret').getTotalLength() : 240;
+    Study.anim($('#dbg-anim'), {
+      steps: [
+        { title: 'Симптом', dur: 4, cap: 'Симптом: Serial пише <code>relay=ON</code>, GPIO2 справді 3,3&nbsp;В, а реле мовчить. Код рішення прийняв — проблема <b>після</b> GPIO.' },
+        { title: 'Живлення', dur: 3.5, cap: 'Сходинка 1 — <b>живлення</b>: на VCC модуля 5,0&nbsp;В. Ця сходинка пройдена, йдемо вище.' },
+        { title: 'Земля', dur: 4, cap: 'Сходинка 2 — <b>земля</b>: прозвонка GND плати ↔ «−» шини 5&nbsp;В. Тиша, OL — земля не з\'єднана!' },
+        { title: 'Гіпотеза', dur: 4.5, cap: 'Гіпотеза: струм бази виходить з GPIO2, але не має шляху назад до ESP32. Перевірка: V<sub>BE</sub> = 0&nbsp;В замість ≈0,7&nbsp;В.' },
+        { title: 'Ліки', dur: 3.5, cap: 'Ліки: один дріт GND–GND. Петля замикається, як мотузка.' },
+        { title: 'Перевірка', dur: 4.5, cap: 'Перевірка вимірюванням: V<sub>BE</sub> ≈ 0,7&nbsp;В, IN ≈ 0,1&nbsp;В, реле клацає. Запишіть експонат: симптом, вимір, причина, ліки.' },
+      ],
+      draw(i, p) {
+        $('#dg-title').textContent = titles[i];
+        rungs.forEach((r, k) => {
+          const s = LAD[i][k];
+          r.r.setAttribute('class', `an-step${s === 'cur' ? ' cur' : s === 'ok' ? ' done' : ''}`);
+          r.r.style.stroke = s === 'bad' ? 'var(--bad)' : '';
+          r.r.style.strokeWidth = s === 'bad' ? '3' : '';
+          r.mk.textContent = s === 'ok' ? '✓' : s === 'bad' ? '✗' : '';
+          r.mk.setAttribute('class', `an-s ${s === 'bad' ? 'an-bad' : 'an-ok'}`);
+        });
+        show('#dg-s0', i === 0); show('#dg-mm', i === 1 || i === 2 || i === 5); show('#dg-loop', i === 3 || i === 4); show('#dg-ok', i === 5);
+        if (i === 1) { meter('V', p > 0.3 ? '5.00' : '----', 'V'); $('#dg-mmode').textContent = 'V⎓ постійна'; $('#dg-pa').textContent = 'VCC'; $('#dg-pb').textContent = 'GND модуля'; }
+        if (i === 2) { meter('Ω', p > 0.3 ? 'OL' : '----', 'MΩ'); $('#dg-mmode').textContent = '))) прозвонка'; $('#dg-pa').textContent = 'GND плати'; $('#dg-pb').textContent = '«−» шини'; }
+        if (i === 5) {
+          meter('V', p < 0.45 ? '0.70' : '0.10', 'V'); $('#dg-mmode').textContent = p < 0.45 ? 'V⎓ · V_BE 0,7 В' : 'V⎓ · IN 0,1 В';
+          $('#dg-pa').textContent = p < 0.45 ? 'база' : 'IN'; $('#dg-pb').textContent = 'GND';
+          const sw = T.clamp((p - 0.55) * 10, 0, 1);
+          $('#dg-clack').setAttribute('opacity', sw.toFixed(2));
+          show('#dg-mm', true);
+        }
+        if (i === 3 || i === 4) {
+          const fixed = i === 4, k = fixed ? ease(T.clamp(p * 1.6, 0, 1)) : 0;
+          $('#dg-ret').setAttribute('stroke-dasharray', `${(retLen * k).toFixed(1)} ${(retLen + 10).toFixed(0)}`);
+          $('#dg-x').setAttribute('opacity', (1 - k).toFixed(2));
+          $('#dg-l1').textContent = fixed ? 'дріт GND–GND ✓' : 'I_B = 0: петля розірвана';
+          $('#dg-l1').setAttribute('class', `an-s ${fixed ? 'an-ok' : 'an-bad'}`);
+          $('#dg-l2').textContent = fixed ? 'I_B ≈ 0,26 мА' : (p > 0.4 ? 'V_BE = 0 В — підтверджено' : 'V_BE = ?');
+        }
+      },
+    });
+  })();
 
   /* interleaved review: one question per screen; a mixed set keeps no per-lesson score by design */
   const mq = $('#mix-quiz');

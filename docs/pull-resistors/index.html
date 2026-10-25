@@ -446,12 +446,15 @@ Z_наводки ≈ 2 МОм  →  без R: ~100 %,  45 кОм: ~2 %</div>
 </footer>
 </div>
 
+<script src="../assets/kit.js" defer></script>
 <script>
 'use strict';
 const VDD = 3.3, VIH = 0.75 * VDD, VIL = 0.25 * VDD, VMID = VDD / 2, I_LEAK = 50e-9, Z_EMI = 2e6;
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Kit parts (assets/kit.js, deferred) exist only after parsing: build them on DOMContentLoaded
+const kitReady = fn => { if (window.Kit) fn(); else document.addEventListener('DOMContentLoaded', () => { if (window.Kit) fn(); }); };
 
 // ---------- formatting ----------
 function si(v, unit, digits = 3) {
@@ -632,10 +635,10 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.15
   function button(x, y1, y2) {
     const a = y1 + (y2 - y1) / 2 - 22, b = a + 44;
     return `<path class="w seg-top" d="M${x} ${y1} V${a}"/><path class="w seg-bot" d="M${x} ${b} V${y2}"/>
-      <g class="pbtn" id="pu-btn"><rect x="${x - 40}" y="${a - 10}" width="70" height="64" fill="transparent"/>
+      <g class="pbtn" id="pu-btn"><rect x="${x - 72}" y="${a - 10}" width="102" height="64" fill="transparent"/>
       <circle class="term" cx="${x}" cy="${a}" r="4"/><circle class="term" cx="${x}" cy="${b}" r="4"/>
       <line class="lever" id="pu-lever" x1="${x}" y1="${b}" x2="${x - 18}" y2="${a + 4}"/>
-      <rect class="cap" id="pu-cap" x="${x - 40}" y="${(a + b) / 2 - 8}" width="14" height="16" rx="3"/></g>`;
+      <g id="pu-kbtn" data-x="${x - 48}" data-y="${(a + b) / 2}" pointer-events="none"></g></g>`;
   }
   function render() {
     const { topo, R } = state;
@@ -653,7 +656,7 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.15
       ${lower}
       <path class="gs" d="M${x} ${yBot} v6 M${x - 14} ${yBot + 6} h28 M${x - 9} ${yBot + 12} h18 M${x - 4} ${yBot + 18} h8"/>
       ${topo !== 'none' ? `<text class="lbl" x="${x + 18}" y="${rLabelY - 4}">R ${ohm(R)}</text><text class="sub" x="${x + 18}" y="${rLabelY + 12}">${internal ? 'усередині чипа' : 'зовнішній'}</text>` : ''}
-      <text class="lbl" x="${x - 50}" y="${btnLabelY + 4}" text-anchor="end">кнопка</text>
+      <text class="lbl" x="${x - 74}" y="${btnLabelY + 4}" text-anchor="end">кнопка</text>
       <text class="big" id="pu-vtxt" x="${x + 18}" y="${yNode - 10}">3,30 В</text>
       <rect class="mcu" x="360" y="70" width="180" height="180" rx="8"/>
       <text class="ttl" x="450" y="98" text-anchor="middle">ESP32-S3</text>
@@ -666,12 +669,23 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.15
       <text class="sub" x="370" y="236">Шмітт: 0,82 / 2,47 В</text>
       <path class="flow" id="pu-flow" d="M${x} ${yTop} V${yBot}"/>
     </svg>`;
+    kitBtn();
     const btn = $('#pu-btn');
     const down = e => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); press(true); };
     const up = () => press(false);
     btn.addEventListener('pointerdown', down); btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('lostpointercapture', up);
     code();
   }
+  // the real 6×6 tactile switch from the kit (Kit 'button', top view) sits on the schematic's switch
+  let kbtn = null;
+  function kitBtn() {
+    const host = $('#pu-kbtn'); kbtn = null;
+    if (!host || !window.Kit) return;
+    const sc = 0.56;   // body centre in part units = (P, 1.5·P)
+    kbtn = Kit.part('button', { parent: host, scale: sc, x: +host.dataset.x - Kit.P * sc, y: +host.dataset.y - 1.5 * Kit.P * sc, cap: 'black', title: 'Тактова кнопка 6×6 з набору' });
+    kbtn.set({ pressed: state.pressed });
+  }
+  kitReady(kitBtn);
   function code() {
     const { topo, R } = state, internal = Math.abs(R - 45000) < 600;
     let s;
@@ -735,7 +749,7 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.15
       const rt = $('#pu-rtxt'); if (rt) { rt.textContent = d ? 'HIGH' : 'LOW'; rt.setAttribute('class', 'big ' + (floating ? 'z' : d ? 'hi' : 'lo')); }
       const fl = $('#pu-flow'); if (fl) { fl.classList.toggle('on', pressed && topo !== 'none'); fl.classList.toggle('weak', state.R > 20000); }
       const lever = $('#pu-lever'); if (lever) { const y1 = +lever.getAttribute('y1'); lever.setAttribute('x2', pressed ? lever.getAttribute('x1') : String(+lever.getAttribute('x1') - 18)); lever.setAttribute('y2', pressed ? String(y1 - 44) : String(y1 - 40)); }
-      const cap = $('#pu-cap'); if (cap) cap.setAttribute('transform', pressed ? 'translate(14 0)' : '');
+      if (kbtn && kbtn.state.pressed !== pressed) kbtn.set({ pressed });
       const pv = $('#pu-v'); pv.textContent = floating ? 'висить' : volts(v); pv.className = 'v ' + lvl;
       const pr = $('#pu-read'); pr.textContent = (d ? 'HIGH' : 'LOW') + (floating ? '?' : ''); pr.className = 'v ' + (floating ? 'z' : d ? 'hi' : 'lo');
     },

@@ -180,10 +180,17 @@ svg text { font-family: var(--f-mono); }
 .schem.dim [data-ch] { opacity: .25; }
 .schem.dim [data-ch].on { opacity: 1; }
 .schem [data-ch].on .sc-w, .schem .sc-w[data-ch].on { stroke-width: 4; }
-.photo { display: block; width: 100%; height: auto; border-radius: 0 0 8px 8px; background: #fff; }
-/* the light breadboard photo would glare in dark mode */
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .photo { filter: brightness(.88); border: 1px solid var(--sheet); } }
-:root[data-theme="dark"] .photo { filter: brightness(.88); border: 1px solid var(--sheet); }
+/* real-kit drawing (assets/kit.js): hardware keeps its own colours in both themes, only the tags use theme tokens */
+.kitbb { padding: 8px 6px 0; }
+.kitbb svg { width: 100%; height: auto; display: block; }
+.kitbb [data-ch] { transition: opacity .15s; }
+.kitbb.dim [data-ch] { opacity: .2; }
+.kitbb.dim [data-ch].on { opacity: 1; }
+.kit-lbl { fill: #2f2c26; font-family: var(--f-mono); }   /* printed on the breadboard: dark in both themes */
+.kit-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; margin: 0; padding: 6px 12px 10px; font: 500 13px var(--f-mono); color: var(--muted); }
+.kit-legend i { display: inline-block; width: 18px; height: 5px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+.an-kit { width: 100%; max-width: 240px; margin-top: 6px; }
+.an-kit .c-t { font-size: 11px; }
 /* touch screens have no Space bar to hold */
 @media (pointer: coarse) { .stat.kbd-only { display: none; } }
 
@@ -298,6 +305,7 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
   #lgSvg { min-width: 600px; }
   .schem-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .schem-scroll svg { min-width: 700px; }
+  #bbKit svg { min-width: 620px; }
   .scope-t { font-size: 22px; }
   .hint-scroll { display: block; }
 }
@@ -359,6 +367,7 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
             <text class="c-t" x="210" y="56" text-anchor="middle">контакт</text>
             <text class="c-t" x="18" y="14" id="anGap"></text>
           </svg>
+          <div class="an-kit" id="anKit"></div>
         </div>
         <div class="scope-wrap">
           <span class="model-chip an-chip">анімація, не запис</span>
@@ -445,8 +454,12 @@ footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line);
         </table>
       </div>
       <div class="panel">
-        <div class="ph"><h3>Макетна плата</h3><a class="note" href="breadboard.png" target="_blank" rel="noopener">відкрити повністю ↗</a></div>
-        <img class="photo" src="breadboard.png" alt="Розкладка на макетній платі: YD-ESP32-S3, кнопка S1 у рядах 46/48, провід GPIO21 a5→a46, аналізатор CH1 c46, CH2 a15, CH3 a16, GND a2" loading="lazy" width="1320" height="840">
+        <div class="ph"><h3>Макетна плата</h3><span class="note">наведіть на рядок таблиці — підсвітиться провід</span></div>
+        <span class="hint-scroll">↔ макетка прокручується вбік</span>
+        <div class="pb kitbb schem-scroll" id="bbKit" role="img" aria-label="Розкладка на макетній платі, вигляд з боку плати (ряди 1–63 справа наліво): YD-ESP32-S3 у рядах 1–22 гребінцями в i та b, антеною ліворуч; кнопка S1 у рядах 46/48 над жолобком; фіолетовий провід GPIO21 a5→a46 над макеткою; чорні: j1 і j48 на шину «−», перемичка 28→33 через розрив шини. Аналізатор під макеткою: CH1 c46 (синій), CH2 a15 (зелений), CH3 a16 (помаранчевий), GND a2 (чорний, навколо кінця з USB)"></div>
+        <ul class="kit-legend" aria-hidden="true">
+          <li><i style="background:#8a3fc2"></i>GPIO21 → S1</li><li><i style="background:#222326"></i>GND</li><li><i style="background:#2a62d4"></i>CH1 → c46</li><li><i style="background:#22a04a"></i>CH2 → a15</li><li><i style="background:#f07a12"></i>CH3 → a16</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -840,6 +853,7 @@ const hideTip = () => { tip.hidden = true; };
   function draw() {
     plate.setAttribute('transform', `translate(0 ${(1 - y) * TRAVEL})`);
     led.setAttribute('fill', last === 0 ? 'var(--ok)' : 'var(--lo)');
+    if (window.anKitBtn && window.anKitBtn.state.pressed !== pressed) window.anKitBtn.set({ pressed });
     $('#anGap').textContent = last === 0 ? 'замкнено: GPIO21 = LOW' : 'розімкнено: GPIO21 = HIGH';
     let p = ''; for (let i = 0; i < N; i++) p += `${(i * 640 / (N - 1)).toFixed(1)},${buf[i] ? 44 : 164} `;
     trace.setAttribute('points', p);
@@ -860,7 +874,13 @@ const hideTip = () => { tip.hidden = true; };
 // =====================================================================
 (function bench() {
   const sch = $('#schem');
-  const on = ch => { sch.classList.toggle('dim', !!ch); $$('[data-ch]', sch).forEach(g => g.classList.toggle('on', g.dataset.ch === ch)); $$('#conn tr[data-ch]').forEach(r => r.classList.toggle('hl', r.dataset.ch === ch)); };
+  const kb = $('#bbKit');
+  const on = ch => {
+    for (const box of [sch, kb]) { box.classList.toggle('dim', !!ch); $$('[data-ch]', box).forEach(g => g.classList.toggle('on', g.dataset.ch === ch)); }
+    $$('#conn tr[data-ch]').forEach(r => r.classList.toggle('hl', r.dataset.ch === ch));
+    if (window.bbKitHl) window.bbKitHl(ch);
+  };
+  window.bbKitOn = on;
   $$('#conn tr[data-ch]').forEach(r => { r.tabIndex = 0; r.onmouseenter = r.onfocus = () => on(r.dataset.ch); r.onmouseleave = r.onblur = () => on(null); });
   $$('[data-ch]', sch).forEach(g => { g.onmouseenter = () => on(g.dataset.ch); g.onmouseleave = () => on(null); });
 })();
@@ -1321,6 +1341,83 @@ const viewer = (function () {
     d.appendChild(fb); box.appendChild(d);
   });
 })();
+</script>
+<script src="../assets/kit.js" defer></script>
+<script>
+// Real-kit drawings (assets/kit.js, loaded with defer → ready before DOMContentLoaded).
+document.addEventListener('DOMContentLoaded', () => {
+  'use strict';
+  const K = window.Kit; if (!K) return;
+  const P = K.P, $ = (s) => document.querySelector(s);
+  const NS = 'http://www.w3.org/2000/svg';
+  const g = (parent, attrs = {}) => { const e = document.createElementNS(NS, 'g'); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+
+  // 1. The same 6×6 tactile button seen from above: its cap follows the «Утримуйте» button
+  {
+    const s = K.svg($('#anKit'), '0 0 10 10', 'Кнопка S1 зверху: чорний квадрат 6 на 6 мм з круглою кнопкою, ніжки у двох рядах');
+    window.anKitBtn = K.part('button', { parent: s });
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', 110); t.setAttribute('y', 52); t.setAttribute('class', 'c-t'); t.setAttribute('style', 'font-size:30px');
+    t.textContent = 'S1 зверху'; s.appendChild(t);
+    K.fit(s, 10);
+  }
+
+  // 2. The lesson bench, tidy layout (docs/kit/ «Усе разом»): the board sits IN the breadboard, left header (3V3 … G) in
+  //    row i, right header (G, G, 19, 20, 21 … 40, 41 …) in row b, rows j and a stay free; jumpers are Kit.route lines on
+  //    the hole grid and nothing crosses. Hole names are the real ones from esp32-s3-bounce-test/README.md (board in rows
+  //    1–22, S1 in 46/48, GPIO21 a5 → a46, j48 → «−», G → «−», rail bridge 28 → 33, CH1 c46, CH2 a15, CH3 a16, GND a2).
+  //    With the module to the left that is the bench seen from the board's side, so the printed row numbers run right
+  //    to left: README row k = Kit column 64 − k.
+  {
+    const host = $('#bbKit');
+    const s = K.svg(host, '0 0 10 10', null);
+    s.setAttribute('aria-hidden', 'true');
+    const xy = (x, y) => ({ x, y });
+    const bb = K.part('breadboard', { parent: s });
+    bb.querySelectorAll('text').forEach((t) => { const n = +t.textContent; if (n > 0 && /^\d+$/.test(t.textContent)) t.setAttribute('x', ((64 - n) + 0.5) * P); });
+    const R = (k) => 64 - k;                                  // README row → Kit column
+    const at = (row, k) => bb.at(row + R(k));                 // hole by README name: at('a', 5) = a5
+    const rail = (side, k) => bb.at(side + '-' + R(k));
+    const yA = bb.hole(1, 'a').y, yC = bb.hole(1, 'c').y;
+    const TOP = yA - P * 1.15, OVER = -P * 0.8;               // strip above row a · just above the breadboard
+    const o = bb.hole(R(22), 'i');
+    const esp = K.part('esp32s3', { parent: s, x: o.x, y: o.y, rot: -90 });
+    // S1 across the trench: e48/f48 and e46/f46
+    const b1 = bb.hole(R(48), 'e');
+    const btnG = g(s, { 'data-ch': 'btn' });
+    const btn = K.part('button', { parent: btnG, x: b1.x, y: b1.y });
+    const W = (ch, pts, col) => K.route(g(s, { 'data-ch': ch }), pts, col);
+    // GND: G (j1) → «−» rail, the rail split bridged 28 → 33, the diagonal leg of S1 (j48) → «−» rail
+    { const j = at('j', 1), r = rail('bottom', 3); W('gnd', [j, xy(j.x, r.y), r], 'black'); }
+    W('gnd', [rail('bottom', 28), rail('bottom', 33)], 'black');
+    W('gnd', [at('j', 48), rail('bottom', 48)], 'black');
+    // GPIO21 (a5) → a46 just above the breadboard: the button's other side
+    { const a = at('a', 5), b = at('a', 46); W('btn', [a, xy(a.x, OVER), xy(b.x, OVER), b], 'purple'); }
+    // logic analyzer under the breadboard (half size, like the meter on docs/kit/): CH1, CH2, CH3 rise through the free
+    // rows 44 … 41 between S1 and the board, GND runs round the USB end into a2
+    const LS = 0.5, cx = bb.hole(R(44), 'j').x;
+    const la = K.part('logic-analyzer', { parent: s, x: cx - 562 * LS, y: 21 * P + 50, scale: LS });
+    la.set({ pwr: true });
+    const pin = la.pins, h = 12.7 * LS;                       // half the analyzer's pin pitch
+    { const b = at('c', 46); W('btn', [pin.CH1, xy(pin.CH1.x, yC), b], 'blue'); }
+    { const b = at('a', 15), x = at('j', 43).x; W('mark', [pin.CH2, xy(x, pin.CH2.y), xy(x, TOP), xy(b.x, TOP), b], 'green'); }
+    { const b = at('a', 16), x = at('j', 41).x, y = pin.CH3.y - h; W('lbl', [pin.CH3, xy(pin.CH3.x, y), xy(x, y), xy(x, yA), b], 'orange'); }
+    { const b = at('a', 2), x = bb.size.w + P * 1.5; W('gnd', [pin.GND, xy(x, pin.GND.y), xy(x, TOP), xy(b.x, TOP), b], 'black'); }
+    // the one label: S1, in the trench left of the button
+    { const t = document.createElementNS(NS, 'text'), p = bb.hole(R(51), 'e');
+      Object.entries({ x: p.x, y: p.y + 1.5 * P, 'font-size': 48, 'font-weight': 700, 'dominant-baseline': 'central', class: 'kit-lbl' }).forEach(([k, v]) => t.setAttribute(k, v));
+      t.textContent = 'S1'; g(s, { 'data-ch': 'btn' }).appendChild(t); }
+    K.fit(s, 16);
+    // hovering a table row also lights the matching header pins
+    const PINS = { btn: [['GPIO21'], ['CH1']], mark: [['GPIO40'], ['CH2']], lbl: [['GPIO41'], ['CH3']], gnd: [['GND', 'GND3'], ['GND']] };
+    window.bbKitHl = (ch) => { const p = PINS[ch] || [null, null]; esp.set({ highlight: p[0] }); la.set({ hl: p[1] }); };
+    s.querySelectorAll('[data-ch]').forEach((e) => { e.addEventListener('mouseenter', () => window.bbKitOn && window.bbKitOn(e.dataset.ch)); e.addEventListener('mouseleave', () => window.bbKitOn && window.bbKitOn(null)); });
+    // the button on the drawing can be pressed too
+    btnG.style.cursor = 'pointer';
+    btnG.addEventListener('pointerdown', () => btn.set({ pressed: true }));
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btnG.addEventListener(ev, () => btn.set({ pressed: false }));
+  }
+});
 </script>
 <script src="../assets/course.js" defer></script><script src="../assets/site-nav.js" defer></script>
 </body>
