@@ -1,0 +1,66 @@
+/* review.css: page widgets of «Повторення» (docs/review/). Colours only from theme.css / study.css tokens.
+   The quiz itself is styled by quiz.js, so it looks exactly like a lesson self-check. */
+.rv-bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin: 0 0 14px; }
+.rv-info { flex: 1 1 18rem; margin: 0; font: 500 14px/1.5 var(--f-mono); color: var(--ink); }
+.rv-info .muted { color: var(--muted); }
+#rv-more { min-height: 44px; padding-inline: 18px; }
+.rv-blocked { margin-top: 0; }
+#rv-quiz .qz-msg p { margin: 0 0 6px; }
+
+/* result per lesson, under the engine's own summary */
+.rv-result { margin: 16px 0 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); box-shadow: var(--shadow); outline: none; }
+.rv-result h3 { margin: 0 0 8px; font-size: var(--fs-h4, 1.15rem); }
+.rv-weak { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--bad); background: color-mix(in srgb, var(--bad) 6%, var(--panel)); font-size: 16px; line-height: 1.6; }
+.rv-weak.none { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 7%, var(--panel)); }
+.rv-weak b a { font-family: var(--f-mono); }
+.rv-by { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.rv-by li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; padding: 8px 0; border-top: 1px dashed var(--line); font-size: 15px; }
+.rv-by li:first-child { border-top: 0; }
+.rv-dots { flex: none; min-width: 2.6em; font: 600 15px/1 var(--f-mono); letter-spacing: .12em; color: var(--ok); }
+.rv-by li.weak .rv-dots { color: var(--bad); }
+.rv-l { flex: 1 1 10rem; min-width: 0; }
+.rv-l b { font-family: var(--f-mono); }
+.rv-s { flex: none; font: 600 14px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.rv-go { flex: 1 1 100%; padding-left: calc(2.6em + 12px); font-size: 14.5px; }
+.rv-go a, .rv-weak a, .rv-st a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.rv-weak a { display: inline-block; min-height: 0; padding: 0 2px; }
+
+/* lesson map */
+.rv-scroll { max-width: 100%; }
+.rv-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.rv-table th, .rv-table td { padding: 6px 8px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--line); }
+.rv-table thead th { font: 600 13px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rv-table tbody th { font-weight: 500; }
+.rv-table tbody th a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.rv-n { font: 600 14px var(--f-mono); color: var(--muted); min-width: 2.6em; }
+.rv-bar-cell { white-space: nowrap; }
+.rv-meter { display: inline-block; width: 72px; height: 8px; margin-right: 8px; vertical-align: middle; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.rv-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--ok); }
+.st-weak .rv-meter > span { background: var(--bad); }
+.rv-pct, .rv-cnt { font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; }
+.rv-cnt { color: var(--muted); }
+.rv-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font: 600 13px/1.4 var(--f-mono); border: 1px solid var(--line-2); color: var(--muted); white-space: nowrap; }
+.rv-tag.weak { color: var(--bad); border-color: var(--bad); }
+.rv-tag.good { color: var(--ok); border-color: var(--ok); }
+@media (max-width: 560px) {
+  /* phones: lesson name on its own line, numbers and status under it */
+  .rv-table thead { display: none; }
+  .rv-table, .rv-table tbody, .rv-table tr { display: block; }
+  .rv-table tr { display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px; padding: 4px 0 8px; border-bottom: 1px solid var(--line); }
+  .rv-table th, .rv-table td { display: block; padding: 0; border: 0; }
+  .rv-table tbody th { flex: 1 1 100%; }
+  .rv-meter { width: 56px; }
+}
+.rv-runs { margin-top: 18px; }
+.rv-runs-h { margin: 0 0 6px; font: 600 13px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.rv-runs-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rv-runs-list li { margin: 0; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font: 500 14px var(--f-mono); }
+.rv-runs-list .w { color: var(--muted); }
+
+.rv-how { margin-top: clamp(32px, 5vw, 48px); }
+.rv-how ul { font-size: 15.5px; }
+.rv-reset { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.rv-reset .btn { min-height: 44px; }
+.rv-reset .btn.confirm { border-color: var(--bad); color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--panel)); }
+@media print { #rv-more, .rv-reset { display: none !important; } }
+.rv-st a { margin-left: 8px; }

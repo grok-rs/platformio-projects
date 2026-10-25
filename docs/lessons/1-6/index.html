@@ -8,6 +8,8 @@
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
@@ -253,6 +255,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
       <button type="button" class="sw" id="b6-noise" aria-checked="false">Шум</button>
       <button type="button" class="sw" id="b6-avg" aria-checked="false">Середнє з 16</button>
     </div>
+    <div class="lab-ctl" id="b6-live" aria-label="Справжні виміри з вашої плати"></div>
     <div class="lab-read">
       <div><b>Світло</b><output id="b6-o-lux">300 лк</output></div>
       <div><b>Опір LDR</b><output id="b6-o-r">—</output></div>
@@ -882,6 +885,7 @@ void loop() {
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
 <script src="../../assets/kit.js" defer></script>
+<script src="../../assets/serial.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -1000,12 +1004,25 @@ document.addEventListener('study:ready', () => {
     let dpos = 0;
 
     const luxEff = () => { const lx = 10 ** lab.lg; return lab.palm ? Math.min(lx, 1) : lx; };
+    // «Під'єднати мою плату» (assets/serial.js, firmware esp32-s3-site-bridge): while on, the board's own analogRead and
+    // calibrated millivolts drive the lab; light and LDR resistance are worked back from the voltage with the same model.
+    const live = { on: false, raw: null, mv: null, q: [], noteAt: 0 };
     const model = () => {
+      if (live.on && live.mv != null) {
+        const v = Math.min(VCC, Math.max(0, live.mv / 1000));
+        const rl = v <= 0.001 ? RDARK : Math.max(1, Math.min(RDARK, 10000 * (VCC / v - 1)));
+        const lx = rl >= RDARK ? 0.01 : Math.min(1e5, 10 * Math.pow(rl / R10, -1 / GAMMA));
+        return { lx, rl, v, vfs: ATT[3][1], ideal: live.raw, i: VCC / (rl + 10000) };
+      }
       const lx = luxEff(), rl = rLdr(lx), v = VCC * 10000 / (rl + 10000), vfs = ATT[lab.att][1];
       const ideal = Math.max(0, Math.min(RAWMAX, Math.round(v / vfs * RAWMAX)));
       return { lx, rl, v, vfs, ideal, i: VCC / (rl + 10000) };
     };
     const sample = (m) => {
+      if (live.on && live.raw != null) {
+        const q = live.q.slice(-16);
+        return { raw: live.raw, shown: lab.avg && q.length ? Math.round(q.reduce((a, b) => a + b, 0) / q.length) : live.raw };
+      }
       const one = () => Math.max(0, Math.min(RAWMAX, Math.round(m.v / m.vfs * RAWMAX + (lab.noise ? gauss() * SIG : 0))));
       const raw = one();
       if (!lab.avg) return { raw, shown: raw };
@@ -1060,6 +1077,13 @@ document.addEventListener('study:ready', () => {
     function note(m) {
       clearTimeout(noteTimer);
       noteTimer = setTimeout(() => {
+        if (live.on && live.raw != null) {
+          let t = `Ваша плата: на GPIO4 ${fmt.num(m.v, 2)} В → analogRead = ${live.raw}. Модель для цієї напруги дала б ${toRaw(m.v)}; LDR ≈ ${ohm(m.rl)}, це ${luxDesc(m.lx)}.`;
+          if (live.raw >= RAWMAX) t += ' Стеля 4095: яскравішого АЦП вже не бачить.';
+          else if (live.raw < 60) t += ' Число біля нуля: накрили LDR чи подільник не на GPIO4?';
+          $('#b6-note').textContent = t;
+          return;
+        }
         const where = lab.palm ? 'Під долонею' : luxDesc(m.lx)[0].toUpperCase() + luxDesc(m.lx).slice(1);
         let s = `${where}: LDR ≈ ${ohm(m.rl)}, пін бачить ${fmt.num(m.v, 2)} В → analogRead ≈ ${m.ideal}.`;
         if (m.ideal >= RAWMAX) s += ` Стеля: ${fmt.num(m.v, 2)} В більше за шкалу ${fmt.num(m.vfs, 2)} В, тож АЦП показує 4095 і змін світла вже не бачить.${lab.att < 3 ? ' Поверніть ослаблення 11 дБ.' : ''}`;
@@ -1082,9 +1106,9 @@ document.addEventListener('study:ready', () => {
       ctx.strokeStyle = t.bad; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, Y(RAWMAX)); ctx.lineTo(R, Y(RAWMAX)); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = t.bad; ctx.fillText('4095', L - 6, Y(RAWMAX) + 4);
       ctx.textAlign = 'left'; ctx.fillStyle = t.ink; ctx.font = `600 13px ${t['f-mono']}`;
-      ctx.fillText(lab.avg ? 'analogRead · точки — окремі виміри, лінія — середнє з 16' : 'analogRead() у часі, останні 12 с', L, 16);
+      ctx.fillText(live.on ? (lab.avg ? 'ваша плата · точки — виміри, лінія — середнє з 16' : 'analogRead() з вашої плати, останні 12 с') : lab.avg ? 'analogRead · точки — окремі виміри, лінія — середнє з 16' : 'analogRead() у часі, останні 12 с', L, 16);
       const off = N - hist.length;
-      if (lab.noise || lab.avg) { ctx.fillStyle = t.muted; hist.forEach((p, i) => { ctx.beginPath(); ctx.arc(X(i + off), Y(p.raw), 1.8, 0, 7); ctx.fill(); }); }
+      if (lab.noise || lab.avg || live.on) { ctx.fillStyle = t.muted; hist.forEach((p, i) => { ctx.beginPath(); ctx.arc(X(i + off), Y(p.raw), 1.8, 0, 7); ctx.fill(); }); }
       ctx.strokeStyle = t.accent; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.beginPath();
       hist.forEach((p, i) => { const x = X(i + off), y = Y(p.shown); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
@@ -1100,7 +1124,7 @@ document.addEventListener('study:ready', () => {
     const sim = Study.sim($('#b6-stage'), (dt) => {
       const m = model();
       acc += dt;
-      if (acc >= 0.1) { acc = 0; push(); draw(m); }
+      if (acc >= 0.1) { acc = 0; if (!live.on) push(); draw(m); }
       // current dots: speed ∝ current (0,3 мА ≈ one pass in 3 s)
       dpos = (dpos + dt * m.i * 1000 * 60) % LEN;
       dots.forEach((c, k) => { const y = 30 + ((dpos + k * LEN / dots.length) % LEN); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('opacity', m.i * 1000 > 0.002 ? 1 : 0); });
@@ -1135,6 +1159,33 @@ document.addEventListener('study:ready', () => {
     Study.onTheme(plot);
     for (let k = 0; k < 30; k++) push();
     update();
+
+    // the board: model controls that the firmware fixes (11 дБ, real light) are disabled while it is connected
+    if (window.BoardSerial) {
+      const modelCtl = () => [$('#b6-lux'), ...$$('#b6-pre button'), ...$$('#b6-atts button'), $('#b6-palm'), $('#b6-noise')];
+      BoardSerial.control($('#b6-live'), { what: 'показання АЦП', onChange(on) {
+        live.on = on; live.q = [];
+        if (on) {
+          lab.palm = false; lab.noise = false; $('#b6-palm').setAttribute('aria-checked', 'false'); $('#b6-noise').setAttribute('aria-checked', 'false');
+          lab.att = 3; $$('#b6-atts button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === '3')));
+        } else { live.raw = live.mv = null; lab.lg = +$('#b6-lux').value; }
+        modelCtl().forEach((el) => { el.disabled = on; });
+        $('.b6-model').hidden = on;
+        hist.length = 0;
+        if (on) draw(model()); else { for (let k = 0; k < 30; k++) push(); update(); }   // live: the plot starts empty and fills with the board's readings
+      } });
+      BoardSerial.link().on('adc', (d) => {
+        if (!live.on || typeof d.raw !== 'number' || typeof d.mv !== 'number') return;
+        live.raw = Math.max(0, Math.min(RAWMAX, d.raw | 0)); live.mv = d.mv;
+        live.q.push(live.raw); if (live.q.length > 16) live.q.shift();
+        const m = model();
+        lab.lg = Math.max(-2, Math.min(5, Math.log10(m.lx)));
+        $('#b6-lux').value = lab.lg;
+        $$('#b6-pre button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+        push(); draw(m);
+        if (performance.now() - live.noteAt > 1000) { live.noteAt = performance.now(); note(m); }   // note() waits 250 ms of calm
+      });
+    }
 
     /* ---------- missions: goals checked from the lab's own state (lab, model(), hist) ---------- */
     const room = () => !lab.palm && Math.abs(lab.lg - Math.log10(300)) < 0.15;

@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мій стенд</title>
+<meta name="description" content="Під’єднайте свою ESP32-S3 по USB просто до сторінки: живий графік АЦП фоторезистора поруч із моделлю курсу, брязкіт вашої кнопки фронт за фронтом і сирий журнал рядків з плати. Chrome або Edge на комп’ютері.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<script src="../site-theme.js"></script>
+<style>
+/* Page widgets only; colours from study.css tokens. */
+.lv-conn { display: grid; gap: 14px; align-items: center; }
+@media (min-width: 760px) { .lv-conn { grid-template-columns: minmax(0, 1fr) minmax(0, 320px); } }
+.lv-status { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font: 600 clamp(18px, 2.4vw, 22px)/1.3 var(--f-body); }
+.lv-led { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--sunk); }
+.lv-led[data-s="open"] { background: var(--ok); border-color: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 22%, transparent); }
+.lv-led[data-s="demo"] { background: var(--hi); border-color: var(--hi); }
+.lv-led[data-s="connecting"] { border-color: var(--hi); border-style: dashed; }
+.lv-sub { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+.lv-board { min-width: 0; }
+.lv-board svg { display: block; width: 100%; height: auto; max-height: 220px; }
+.lv-board figcaption { margin-top: 4px; font: 500 13px/1.4 var(--f-mono); color: var(--muted); text-align: center; }
+.lv-plot { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
+.lv-plot + .lv-plot { margin-top: 12px; }
+.lv-plot canvas { display: block; width: 100%; touch-action: pan-y; }
+.lv-plot.time canvas { height: 230px; }
+.lv-plot.xfer canvas { height: 260px; }
+.lv-plot.trace canvas { height: 210px; }
+.lv-plots { display: grid; gap: 12px; }
+@media (min-width: 900px) { .lv-plots { grid-template-columns: 1.5fr 1fr; } .lv-plot + .lv-plot { margin-top: 0; } }
+.lv-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 8px 12px 0; font: 500 13px var(--f-mono); color: var(--muted); }
+.lv-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lv-legend i { display: inline-block; width: 18px; height: 0; border-top: 3px solid var(--nsig2); }
+.lv-legend i.model { border-top: 2px dashed var(--muted); }
+.lv-legend i.dot { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--nsig2); }
+.lv-empty { position: absolute; left: calc(50% + 22px); top: 50%; transform: translate(-50%, -50%); width: max-content; max-width: calc(100% - 108px); margin: 0;
+  padding: 6px 12px; border-radius: 8px; background: var(--panel); box-shadow: 0 0 0 1px var(--line); text-align: center; font-size: 15px; color: var(--muted); pointer-events: none; }
+.lv-empty[hidden] { display: none; }
+.lv-tbl td, .lv-tbl th { font-variant-numeric: tabular-nums; }
+.lv-tbl td.num { font-family: var(--f-mono); white-space: nowrap; }
+@media (max-width: 520px) { .lv-tbl th, .lv-tbl td { padding: 8px 8px; } #lv-evs-w :is(th, td):nth-child(4) { display: none; } }
+.lv-tbl thead th.nc { text-transform: none; }
+.lv-tbl .bad { color: var(--bad); font-weight: 600; }
+.lv-snap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lv-k { font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lv-log { margin: 0; height: 300px; overflow: auto; padding: 10px 14px; background: var(--sheet); color: var(--ink); font: 400 13px/1.55 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.lv-log .j { color: var(--muted); }
+.lv-log .x { color: var(--hi-ink); }
+.lv-log .b { color: var(--ink); font-weight: 600; }
+.lv-proto code { font-size: 14px; }
+.lv-proto pre { margin: 8px 0 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font: 400 13px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.lab-read output.bad { color: var(--bad); }
+.model-chip { display: inline-block; vertical-align: middle; padding: 1px 8px; border: 1px solid var(--hi); border-radius: 999px; background: color-mix(in oklab, var(--hi) 12%, transparent); color: var(--hi-ink, var(--hi)); font: 600 13px/1.25 var(--f-mono); letter-spacing: .04em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="live">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main">
+  <header id="top">
+    <p class="eyebrow">Довідник</p>
+    <h1>Мій <span>стенд</span></h1>
+    <p class="lead">Під’єднайте свою ESP32-S3 кабелем просто до цієї сторінки. Плата надсилає числа з АЦП фоторезистора і кожен фронт кнопки, а сторінка малює їх поруч із моделлю курсу. Так видно, де ваш стенд збігається з теорією, а де живе своїм життям.</p>
+  </header>
+
+  <!-- ============================================================ connection -->
+  <section class="lab wide" id="conn" aria-labelledby="conn-h">
+    <header class="lab-head"><h2 id="conn-h">Під’єднання</h2><p>Chrome або Edge на комп’ютері, кабель у роз’єм USB плати.</p></header>
+    <div class="lab-stage">
+      <div class="lv-conn">
+        <div>
+          <p class="lv-status"><span class="lv-led" id="lv-led" data-s="idle" aria-hidden="true"></span><span id="lv-state" aria-live="polite">Плату не під’єднано</span></p>
+          <p class="lv-sub" id="lv-sub">Натисніть «Під’єднати плату» і виберіть у списку порт ESP32-S3 (USB JTAG/serial).</p>
+          <div class="btn-row">
+            <button type="button" class="btn primary" id="lv-connect">Під’єднати плату</button>
+            <button type="button" class="btn" id="lv-disconnect" hidden>Від’єднати</button>
+            <button type="button" class="btn ghost" id="lv-demo">Демо без плати</button>
+          </div>
+          <p class="note warn" id="lv-unsup" hidden></p>
+        </div>
+        <figure class="lv-board" id="lv-board" style="margin:0">
+          <div id="lv-board-stage"></div>
+          <figcaption>Ваша плата: LDR на <b>GPIO4</b>, кнопка на <b>GPIO21</b></figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="lab-read">
+      <div><b>Плата</b><output id="lv-o-board">—</output></div>
+      <div><b>Прошивка</b><output id="lv-o-fw">—</output></div>
+      <div><b>Рядків</b><output id="lv-o-lines">0</output></div>
+      <div><b>Останній рядок</b><output id="lv-o-age">—</output></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 01 setup -->
+  <section class="hs" id="setup">
+    <h2><span class="n">01</span> Що потрібно</h2>
+    <ol>
+      <li><b>Стенд з уроків 1.5 і 1.6, без змін.</b> Подільник «3V3 → фоторезистор → GPIO4 → 10&nbsp;кОм → GND» (<a href="../lessons/1-6/#circuit">схема 1.6</a>) і кнопка між GPIO21 і GND (<a href="../lessons/1-5/#circuit">схема 1.5</a>). Можна зібрати лише одне з двох: інша частина просто мовчатиме.</li>
+      <li><b>Прошивка-міст.</b> Проєкт <code>esp32-s3-site-bridge</code> у репозиторії курсу: <code>cd esp32-s3-site-bridge/cpp</code>, потім <code>pio run -t upload</code>. Rust-версія: <code>cd esp32-s3-site-bridge/rust</code>, <code>cargo run --release</code>. Обидві надсилають однакові рядки.</li>
+      <li><b>Кабель у роз’єм USB</b> (не COM). Монітор PlatformIO закрийте: порт може читати лише одна програма.</li>
+      <li><b>Chrome або Edge на комп’ютері.</b> Натисніть «Під’єднати плату» і виберіть порт. Наступного разу сторінка під’єднається без списку.</li>
+    </ol>
+    <p class="note tip">Немає плати під рукою? Кнопка «Демо без плати» пускає ті самі рядки з уявної плати, щоб ви побачили, як усе працює.</p>
+  </section>
+
+  <!-- ============================================================ light -->
+  <section class="lab wide" id="light" aria-labelledby="light-h">
+    <header class="lab-head"><h2 id="light-h">Світло: ваш стенд проти моделі</h2><p>Накрийте фоторезистор долонею, посвітіть ліхтариком і дивіться на обидві лінії.</p></header>
+    <div class="lab-stage">
+      <div class="lv-plots">
+        <div class="lv-plot time">
+          <p class="lv-legend"><span><i></i>ваша плата: analogRead()</span><span><i class="model"></i>модель: мВ ÷ 3100 · 4095</span></p>
+          <canvas id="lv-time" width="900" height="230" role="img" aria-label="Графік analogRead з вашої плати за останні 30 секунд і модельне число для тієї самої напруги. Значення останнього виміру — у рядку під графіками."></canvas>
+          <p class="lv-empty" id="lv-time-empty">Тут з’явиться графік, щойно плата надішле перші виміри.</p>
+        </div>
+        <div class="lv-plot xfer">
+          <p class="lv-legend"><span><i class="dot"></i>ваші виміри</span><span><i class="model"></i>ідеальна лінійка АЦП</span></p>
+          <canvas id="lv-xfer" width="500" height="260" role="img" aria-label="Характеристика АЦП: по горизонталі калібровані мілівольти, по вертикалі analogRead. Пунктир — ідеальна лінійка до стелі 3100 мВ, точки — ваші виміри."></canvas>
+          <p class="lv-empty" id="lv-xfer-empty">Точка на кожен вимір: чим ширше світло, тим довша крива.</p>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="lv-pause" aria-checked="false">Пауза графіків</button>
+      <div class="lv-snap" role="group" aria-labelledby="lv-snap-k"><span class="lv-k" id="lv-snap-k">Зафіксувати</span>
+        <button type="button" class="btn sm" data-snap="долоня">долоня</button>
+        <button type="button" class="btn sm" data-snap="кімната">кімната</button>
+        <button type="button" class="btn sm" data-snap="ліхтарик">ліхтарик</button>
+      </div>
+      <button type="button" class="btn sm ghost" id="lv-clear-adc">Очистити графіки</button>
+    </div>
+    <div class="lab-read">
+      <div><b>analogRead</b><output id="lv-o-raw">—</output></div>
+      <div><b>Напруга</b><output id="lv-o-mv">—</output></div>
+      <div><b>Модель RAW</b><output id="lv-o-model">—</output></div>
+      <div><b>Різниця</b><output id="lv-o-diff">—</output></div>
+      <div><b>Опір LDR</b><output id="lv-o-r">—</output></div>
+      <div><b>Світло ≈</b><output id="lv-o-lux">—</output></div>
+    </div>
+    <p class="lab-note" id="lv-light-note" aria-live="polite">Модель бере калібровані мілівольти плати і рахує, яке число мала б дати ідеальна лінійка: RAW = мВ ÷ 3100 · 4095.</p>
+    <p class="lab-note"><span class="model-chip">модель</span> Опір і освітленість — оцінка за моделлю курсу (GL5528: ≈ 15&nbsp;кОм при 10&nbsp;лк, γ ≈ 0,65, R1 = 10&nbsp;кОм, 3,3&nbsp;В). Ваш фоторезистор може відрізнятися в 2 рази — люксметром він не стане.</p>
+    <div class="tbl lv-tbl" id="lv-snaps-w" hidden>
+      <table>
+        <caption>Ваші зафіксовані виміри</caption>
+        <thead><tr><th scope="col">Умова</th><th scope="col">RAW</th><th scope="col" class="nc">мВ</th><th scope="col">LDR</th></tr></thead>
+        <tbody id="lv-snaps"></tbody>
+      </table>
+    </div>
+    <div class="btn-row" style="margin:0 18px 14px" id="lv-snaps-ctl" hidden><button type="button" class="btn sm ghost" id="lv-snaps-clear">Стерти таблицю</button></div>
+  </section>
+
+  <!-- ============================================================ bounce -->
+  <section class="lab wide" id="bounce" aria-labelledby="bounce-h">
+    <header class="lab-head"><h2 id="bounce-h">Кнопка: брязкіт наживо</h2><p>Кожне натискання і відпускання — з моментами всіх фронтів з переривання CHANGE.</p></header>
+    <div class="lab-stage">
+      <div class="lv-plot trace">
+        <canvas id="lv-trace" width="900" height="210" role="img" aria-label="Остання подія кнопки, як на логічному аналізаторі: рівень GPIO21 у часі, кожен фронт позначено. Опис події — у рядку під графіком."></canvas>
+        <p class="lv-empty" id="lv-trace-empty">Натисніть кнопку на макетці: тут з’явиться її остання подія фронт за фронтом.</p>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <button type="button" class="btn sm ghost" id="lv-clear-btn">Скинути статистику</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Натискань</b><output id="lv-o-press">0</output></div>
+      <div><b>Відпускань</b><output id="lv-o-rel">0</output></div>
+      <div><b>З брязкотом</b><output id="lv-o-bnc">—</output></div>
+      <div><b>Найдовший</b><output id="lv-o-max">—</output></div>
+    </div>
+    <p class="lab-note" id="lv-btn-note" aria-live="polite">Подія закінчується після 50&nbsp;мс тиші — тоді плата надсилає її цілком.</p>
+    <div class="tbl lv-tbl" id="lv-evs-w" hidden>
+      <table>
+        <caption>Останні події</caption>
+        <thead><tr><th scope="col">Подія</th><th scope="col">Фронтів</th><th scope="col">Брязкіт</th><th scope="col">Найкоротший</th></tr></thead>
+        <tbody id="lv-evs"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ log -->
+  <section class="lab wide" id="log" aria-labelledby="log-h">
+    <header class="lab-head"><h2 id="log-h">Журнал</h2><p>Рядки точно так, як їх надіслала плата.</p></header>
+    <pre class="lv-log" id="lv-log" tabindex="0" aria-label="Журнал рядків з плати"></pre>
+    <div class="lab-ctl">
+      <button type="button" class="sw" id="lv-log-adc" aria-checked="true">Рядки adc</button>
+      <button type="button" class="sw" id="lv-log-pause" aria-checked="false">Пауза журналу</button>
+      <button type="button" class="btn sm" id="lv-log-copy">Копіювати</button>
+      <button type="button" class="btn sm ghost" id="lv-log-clear">Очистити</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ 02 protocol -->
+  <section class="hs lv-proto" id="proto">
+    <h2><span class="n">02</span> Що саме надсилає плата</h2>
+    <p>Кожен рядок — один об’єкт JSON. Поле <code>"t"</code> каже, що це за рядок. Швидкість 115&nbsp;200 бод, як у всіх прошивках курсу.</p>
+    <pre>{"t":"hello","fw":"site-bridge","ver":"1.0.0","lang":"cpp","board":"YD-ESP32-S3 N16R8",…}</pre>
+    <p><b>hello</b> — хто на тому боці кабелю: на старті й раз на 5&nbsp;с, бо сторінку можна відкрити будь-коли.</p>
+    <pre>{"t":"adc","ms":12300,"raw":2861,"mv":2190}</pre>
+    <p><b>adc</b> — кожні 100&nbsp;мс: <code>analogRead(4)</code> і <code>analogReadMilliVolts(4)</code>, як у домашньому завданні 1.6.</p>
+    <pre>{"t":"btn","kind":"press","n":3,"us":81234567,"edges":5,"bounce_us":830,"missed":false,"at":[0,12,52,610,830]}</pre>
+    <p><b>btn</b> — подія кнопки: <code>at</code> — моменти фронтів у мікросекундах від першого (їх записує <code>micros()</code> у перериванні), <code>edges</code> — скільки фронтів було, <code>missed</code> — чи не загубило переривання фронт (парність не збігається зі зміною рівня). Те саме рахує прошивка <code>esp32-s3-bounce-test</code> з уроку 1.5.</p>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/kit.js" defer></script>
+<script src="../assets/serial.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$, fmt, store } = Study;
+  const NB = ' ';
+  const link = BoardSerial.link();
+
+  /* ---------- the course's LDR model (lessons/1-6): GL5528 + 10 кОм to GND, 3,3 В, ADC 11 дБ ---------- */
+  const VCC_MV = 3300, R1 = 10000, R10 = 15000, GAMMA = 0.65, RDARK = 1e6, UREF = 3100, RAWMAX = 4095;
+  const modelRaw = (mv) => Math.max(0, Math.min(RAWMAX, Math.round(mv / UREF * RAWMAX)));
+  const rFromMv = (mv) => (mv <= 0 ? Infinity : mv >= VCC_MV ? 0 : R1 * (VCC_MV / mv - 1));
+  const luxFromR = (r) => (r >= RDARK ? 0 : r <= 0 ? Infinity : 10 * Math.pow(r / R10, -1 / GAMMA));
+  const ohm = (r) => (!Number.isFinite(r) || r >= RDARK ? '> 1' + NB + 'МОм' : fmt.si(r, 'Ом', 2));
+  const luxFmt = (lx) => (lx <= 0.05 ? 'темрява' : !Number.isFinite(lx) || lx > 1e5 ? '> 100' + NB + 'тис.' + NB + 'лк'
+    : lx < 10 ? fmt.num(lx, 1) + NB + 'лк' : lx < 1000 ? fmt.num(Math.round(lx), 0) + NB + 'лк' : fmt.num(lx / 1000, lx < 1e4 ? 1 : 0) + NB + 'тис.' + NB + 'лк');
+  const usFmt = (us) => (us < 1000 ? fmt.num(us, 0) + NB + 'мкс' : fmt.num(us / 1000, us < 10000 ? 2 : 1) + NB + 'мс');
+  const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
+
+  /* ---------- connection card ---------- */
+  const STATE_TXT = { idle: 'Плату не під’єднано', connecting: 'Під’єднуюсь…', open: 'Плату під’єднано', demo: 'Демо: уявна плата' };
+  let lines = 0, lastAt = 0;
+  function paintState() {
+    const s = link.state;
+    $('#lv-led').dataset.s = s;
+    $('#lv-state').textContent = STATE_TXT[s] || s;
+    $('#lv-connect').hidden = s === 'open';        // in the demo it stays: a real board replaces the demo
+    $('#lv-disconnect').hidden = s !== 'open';
+    $('#lv-demo').textContent = s === 'demo' ? 'Зупинити демо' : 'Демо без плати';
+    $('#lv-demo').hidden = s === 'open';
+    if (s === 'idle') $('#lv-sub').textContent = BoardSerial.supported() ? 'Натисніть «Під’єднати плату» і виберіть у списку порт ESP32-S3 (USB JTAG/serial).' : 'У цьому браузері можна подивитися демо.';
+    if (s === 'open' && !link.hello) $('#lv-sub').textContent = 'Порт відкрито, чекаю на перший рядок від плати…';
+    board.set(s === 'open' || s === 'demo');
+  }
+  function paintHello(h) {
+    $('#lv-o-board').textContent = h.board || 'ESP32-S3';
+    $('#lv-o-fw').textContent = `${h.fw || '?'} ${h.ver || ''}${h.lang && h.lang !== 'demo' ? ' · ' + (h.lang === 'rust' ? 'Rust' : 'C++') : ''}`;
+    if (link.state === 'open') $('#lv-sub').textContent = `Прошивка ${h.fw} ${h.ver}: АЦП на GPIO${h.ldr_pin} кожні ${h.adc_ms} мс, кнопка на GPIO${h.btn_pin}.`;
+    if (link.state === 'demo') $('#lv-sub').textContent = 'Рядки генерує сама сторінка: світло повільно гуляє, раз на 20 с «долоня», кнопку тисне уявний палець.';
+    if (h.fw && h.fw !== 'site-bridge') $('#lv-sub').textContent = `Плата надсилає рядки прошивки «${h.fw}». Для цієї сторінки прошийте esp32-s3-site-bridge.`;
+  }
+  // a small drawing of the group's board with the two pins highlighted (assets/kit.js)
+  const board = { set() {}, tx() {} };
+  try {
+    const K = window.Kit, stage = $('#lv-board-stage');
+    const s = K.svg(stage, '0 0 10 10', 'Плата YD-ESP32-S3 з групового набору: підсвічено виводи GPIO4 (фоторезистор) і GPIO21 (кнопка).');
+    const esp = K.part('esp32s3', { parent: s, x: 0, y: 0 });
+    K.fit(s, 16);
+    board.set = (on) => esp.set({ highlight: ['GPIO4', 'GPIO21'], power: on, tx: false });
+    // the board's TX LED flickers with every line it sends (at most a few times a second)
+    let txAt = 0;
+    board.tx = () => { const n = performance.now(); if (n - txAt < 160) return; txAt = n; esp.set({ tx: true }); setTimeout(() => esp.set({ tx: false }), 70); };
+    board.set(false);
+  } catch (e) { $('#lv-board').hidden = true; }
+
+  if (!BoardSerial.supported()) { const u = $('#lv-unsup'); u.hidden = false; u.textContent = BoardSerial.UNSUPPORTED; $('#lv-connect').disabled = true; }
+  $('#lv-connect').addEventListener('click', async () => { if (!(await link.reconnect())) await link.connect(); });
+  $('#lv-disconnect').addEventListener('click', () => link.disconnect());
+  $('#lv-demo').addEventListener('click', () => link.demo(link.state !== 'demo'));
+  link.on('state', paintState);
+  link.on('hello', paintHello);
+  link.on('error', (msg) => { $('#lv-sub').textContent = msg; Study.toast(msg, 'bad'); });
+  setInterval(() => {
+    if (!lastAt) return;
+    const s = (performance.now() - lastAt) / 1000;
+    $('#lv-o-age').textContent = s < 1.5 ? 'щойно' : `${fmt.num(Math.floor(s), 0)}${NB}с тому`;
+  }, 500);
+
+  /* ---------- log ---------- */
+  const LOG_MAX = 300, logLines = [];
+  let logAdc = true, logPause = false, logDirty = false;
+  const logEl = $('#lv-log');
+  link.on('line', (text) => {
+    lines++; lastAt = performance.now(); board.tx();
+    $('#lv-o-lines').textContent = fmt.num(lines, 0);
+    if (logPause) return;
+    logLines.push(text); if (logLines.length > LOG_MAX * 3) logLines.splice(0, logLines.length - LOG_MAX * 3);
+    logDirty = true;
+  });
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  function paintLog() {
+    if (!logDirty) return;
+    logDirty = false;
+    const shown = (logAdc ? logLines : logLines.filter((l) => !l.startsWith('{"t":"adc"'))).slice(-LOG_MAX);
+    const atEnd = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 30;
+    logEl.innerHTML = shown.map((l) => `<span class="${l[0] !== '{' ? 'x' : l.startsWith('{"t":"btn"') ? 'b' : 'j'}">${esc(l)}</span>`).join('\n');
+    if (atEnd) logEl.scrollTop = logEl.scrollHeight;
+  }
+  setInterval(paintLog, 250);
+  $('#lv-log-adc').addEventListener('switch', (e) => { logAdc = e.detail.on; logDirty = true; paintLog(); });
+  $('#lv-log-pause').addEventListener('switch', (e) => { logPause = e.detail.on; });
+  $('#lv-log-clear').addEventListener('click', () => { logLines.length = 0; logDirty = true; paintLog(); });
+  $('#lv-log-copy').addEventListener('click', () => Study.copy(logLines.slice(-LOG_MAX).join('\n')));
+
+  /* ---------- light: time chart + transfer chart ---------- */
+  const SPAN = 30000;   // ms shown on the time chart
+  let adc = [];         // {t (page ms), raw, mv}
+  let pause = false, hoverX = null;
+  const cvT = $('#lv-time'), cvX = $('#lv-xfer');
+  let ctxT = Study.fitCanvas(cvT), ctxX = Study.fitCanvas(cvX);
+  const lastAdc = () => adc[adc.length - 1];
+
+  function drawTime() {
+    const t = Study.tokens(), c = ctxT, { w, h } = c, L = 50, R = w - 12, T = 12, B = h - 26;
+    c.clearRect(0, 0, w, h); c.fillStyle = t.panel; c.fillRect(0, 0, w, h);
+    const now = adc.length ? lastAdc().t : 0;   // the board's millis(): USB delivers lines in bursts, the board's clock does not
+    const X = (tt) => R - (now - tt) / SPAN * (R - L), Y = (r) => B - r / RAWMAX * (B - T);
+    c.font = `500 13px ${t['f-mono']}`; c.textAlign = 'right'; c.strokeStyle = t.line; c.lineWidth = 1; c.fillStyle = t.muted;
+    [0, 1024, 2048, 3072, 4095].forEach((r) => { c.beginPath(); c.moveTo(L, Math.round(Y(r)) + 0.5); c.lineTo(R, Math.round(Y(r)) + 0.5); c.stroke(); c.fillText(String(r), L - 6, Y(r) + 4); });
+    c.textAlign = 'center';
+    [[0, 'right', w - 4], [10, 'center'], [20, 'center'], [30, 'left', L]].forEach(([sec, al, x]) => { c.textAlign = al; c.fillText(sec ? `−${sec} с` : 'зараз', x ?? X(now - sec * 1000), h - 8); });
+    const pts = adc.filter((p) => p.t >= now - SPAN);
+    $('#lv-time-empty').hidden = pts.length > 0;
+    if (!pts.length) return;
+    // model: what an ideal ruler gives for the same calibrated voltage
+    c.strokeStyle = t.muted; c.lineWidth = 2; c.setLineDash([6, 4]); c.beginPath();
+    pts.forEach((p, i) => { const x = X(p.t), y = Y(modelRaw(p.mv)); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = t.nsig2; c.lineWidth = 2; c.lineJoin = 'round'; c.beginPath();
+    pts.forEach((p, i) => { const x = X(p.t), y = Y(p.raw); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
+    const lp = pts[pts.length - 1];
+    c.fillStyle = t.nsig2; c.strokeStyle = t.panel; c.lineWidth = 2; c.beginPath(); c.arc(X(lp.t), Y(lp.raw), 5, 0, 7); c.fill(); c.stroke();
+    // hover: crosshair + readout of the nearest sample
+    if (hoverX != null) {
+      let best = pts[0];
+      for (const p of pts) if (Math.abs(X(p.t) - hoverX) < Math.abs(X(best.t) - hoverX)) best = p;
+      const x = X(best.t);
+      c.strokeStyle = t['line-strong'] || t.muted; c.lineWidth = 1; c.beginPath(); c.moveTo(Math.round(x) + 0.5, T); c.lineTo(Math.round(x) + 0.5, B); c.stroke();
+      const lbl = `${best.raw} · модель ${modelRaw(best.mv)} · ${fmt.num(best.mv, 0)} мВ`;
+      c.font = `600 13px ${t['f-mono']}`;
+      const tw = c.measureText(lbl).width + 14, bx = Math.min(Math.max(L, x - tw / 2), R - tw);
+      c.fillStyle = t['panel-2']; c.strokeStyle = t.line; c.beginPath(); c.rect(bx, T + 2, tw, 24); c.fill(); c.stroke();
+      c.fillStyle = t.ink; c.textAlign = 'left'; c.fillText(lbl, bx + 7, T + 19);
+    }
+  }
+  function drawXfer() {
+    const t = Study.tokens(), c = ctxX, { w, h } = c, L = 50, R = w - 12, T = 12, B = h - 40;
+    c.clearRect(0, 0, w, h); c.fillStyle = t.panel; c.fillRect(0, 0, w, h);
+    const MVMAX = 3300, X = (mv) => L + mv / MVMAX * (R - L), Y = (r) => B - r / RAWMAX * (B - T);
+    c.font = `500 13px ${t['f-mono']}`; c.strokeStyle = t.line; c.lineWidth = 1; c.fillStyle = t.muted; c.textAlign = 'right';
+    [0, 2048, 4095].forEach((r) => { c.beginPath(); c.moveTo(L, Math.round(Y(r)) + 0.5); c.lineTo(R, Math.round(Y(r)) + 0.5); c.stroke(); c.fillText(String(r), L - 6, Y(r) + 4); });
+    c.textAlign = 'center';
+    [0, 1000, 2000, 3100].forEach((mv) => { c.beginPath(); c.moveTo(Math.round(X(mv)) + 0.5, T); c.lineTo(Math.round(X(mv)) + 0.5, B); c.stroke(); c.fillText(mv === 3100 ? '3,1 В' : `${mv / 1000} В`, X(mv), B + 16); });
+    c.fillText('калібровані мВ →', (L + R) / 2, h - 6);
+    c.strokeStyle = t.muted; c.lineWidth = 2; c.setLineDash([6, 4]); c.beginPath(); c.moveTo(X(0), Y(0)); c.lineTo(X(UREF), Y(RAWMAX)); c.lineTo(X(MVMAX), Y(RAWMAX)); c.stroke(); c.setLineDash([]);
+    $('#lv-xfer-empty').hidden = adc.length > 0;
+    c.fillStyle = t.nsig2;
+    const pts = adc.slice(-600);
+    pts.forEach((p) => { c.globalAlpha = 0.45; c.beginPath(); c.arc(X(Math.min(p.mv, MVMAX)), Y(p.raw), 3, 0, 7); c.fill(); });
+    c.globalAlpha = 1;
+    const lp = lastAdc();
+    if (lp) { c.strokeStyle = t.panel; c.lineWidth = 2; c.beginPath(); c.arc(X(Math.min(lp.mv, MVMAX)), Y(lp.raw), 5.5, 0, 7); c.fill(); c.stroke(); }
+  }
+  let lightNoteAt = 0, lightNoteTimer = 0;
+  function readLight() {
+    const p = lastAdc();
+    if (!p) return;
+    const m = modelRaw(p.mv), d = p.raw - m, r = rFromMv(p.mv);
+    $('#lv-o-raw').textContent = String(p.raw);
+    $('#lv-o-raw').classList.toggle('bad', p.raw >= RAWMAX);
+    $('#lv-o-mv').textContent = fmt.num(p.mv, 0) + NB + 'мВ';
+    $('#lv-o-model').textContent = String(m);
+    $('#lv-o-diff').textContent = (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d);
+    $('#lv-o-r').textContent = ohm(r);
+    $('#lv-o-lux').textContent = luxFmt(luxFromR(r));
+    // the sentence changes at most every 1,5 s (it is read aloud by screen readers); the latest reading always wins
+    const wait = 1500 - (performance.now() - lightNoteAt);
+    if (wait > 0) { if (!lightNoteTimer) lightNoteTimer = setTimeout(() => { lightNoteTimer = 0; readLight(); }, wait); return; }
+    lightNoteAt = performance.now();
+    let s;
+    if (p.raw >= RAWMAX) s = `Стеля: ${fmt.num(p.mv, 0)} мВ — більше за шкалу 3100 мВ, тож analogRead показує 4095 і яскравішого вже не бачить.`;
+    else if (p.mv < 80) s = 'Майже нуль: світла замало, LDR має сотні кілоом. Посвітіть на нього або перевірте, чи подільник на GPIO4.';
+    else if (Math.abs(d) <= 40) s = `Ваша плата і модель збігаються з точністю до ${Math.abs(d)} одиниць — це шум і округлення.`;
+    else s = `Різниця ${Math.abs(d)} одиниць: справжній АЦП ESP32-S3 не ідеально лінійний, особливо близько до країв шкали. Тому калібровані мілівольти (analogReadMilliVolts) точніші, ніж RAW ÷ 4095 · 3100.`;
+    $('#lv-light-note').textContent = s;
+  }
+  let raf = 0;
+  const redraw = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; drawTime(); drawXfer(); }); };
+  link.on('adc', (m) => {
+    if (typeof m.raw !== 'number' || typeof m.mv !== 'number') return;
+    if (!pause) {
+      const t = typeof m.ms === 'number' ? m.ms : (adc.length ? lastAdc().t + 100 : 0);
+      if (adc.length && t < lastAdc().t) adc = [];   // the board restarted: its clock began again from zero
+      adc.push({ t, raw: m.raw, mv: m.mv }); if (adc.length > 3000) adc.splice(0, adc.length - 3000);
+    }
+    readLight(); redraw();
+  });
+  $('#lv-pause').addEventListener('switch', (e) => { pause = e.detail.on; redraw(); });
+  $('#lv-clear-adc').addEventListener('click', () => { adc = []; redraw(); });
+  cvT.addEventListener('pointermove', (e) => { const r = cvT.getBoundingClientRect(); hoverX = e.clientX - r.left; drawTime(); });
+  cvT.addEventListener('pointerleave', () => { hoverX = null; drawTime(); });
+
+  // snapshots: a few labelled readings, remembered between visits (Study.store is try/catch inside)
+  const SKEY = 'study.live.v1';
+  let snaps = (store.get(SKEY, {}) || {}).snaps || [];
+  function paintSnaps() {
+    $('#lv-snaps-w').hidden = !snaps.length; $('#lv-snaps-ctl').hidden = !snaps.length;
+    $('#lv-snaps').innerHTML = snaps.map((s) => `<tr><th scope="row">${esc(s.label)}</th><td class="num">${s.raw}</td><td class="num">${fmt.num(s.mv, 0)}</td><td class="num">${esc(ohm(rFromMv(s.mv)))}</td></tr>`).join('');
+  }
+  const saveSnaps = () => { const all = store.get(SKEY, {}) || {}; all.snaps = snaps; store.set(SKEY, all); };
+  $$('[data-snap]').forEach((b) => b.addEventListener('click', () => {
+    const p = lastAdc();
+    if (!p) { Study.toast('Ще немає вимірів: під’єднайте плату або ввімкніть демо.', 'bad'); return; }
+    snaps = snaps.filter((s) => s.label !== b.dataset.snap).concat({ label: b.dataset.snap, raw: p.raw, mv: p.mv });
+    snaps.sort((a, c) => a.mv - c.mv);
+    saveSnaps(); paintSnaps();
+    Study.toast(`Зафіксовано: ${b.dataset.snap}, ${p.raw}`);
+  }));
+  $('#lv-snaps-clear').addEventListener('click', () => { snaps = []; saveSnaps(); paintSnaps(); });
+  paintSnaps();
+
+  /* ---------- bounce ---------- */
+  let evs = [];   // newest last: {kind, n, edges, bounce, at[], missed}
+  const cvB = $('#lv-trace');
+  let ctxB = Study.fitCanvas(cvB);
+  function drawTrace() {
+    const t = Study.tokens(), c = ctxB, { w, h } = c, L = 58, R = w - 14, T = 34, B = h - 34;
+    c.clearRect(0, 0, w, h); c.fillStyle = t.panel; c.fillRect(0, 0, w, h);
+    const ev = evs[evs.length - 1];
+    $('#lv-trace-empty').hidden = !!ev;
+    const yHi = T + 10, yLo = B - 10;
+    c.font = `600 13px ${t['f-mono']}`; c.textAlign = 'right'; c.fillStyle = t.muted;
+    c.fillText('HIGH', L - 8, yHi + 4); c.fillText('LOW', L - 8, yLo + 4);
+    c.strokeStyle = t.line; c.lineWidth = 1;
+    [yHi, yLo].forEach((y) => { c.beginPath(); c.moveTo(L, Math.round(y) + 0.5); c.lineTo(R, Math.round(y) + 0.5); c.stroke(); });
+    if (!ev) return;
+    const at = ev.at.length ? ev.at : [0];
+    const D = Math.max(at[at.length - 1], 200), a = -0.12 * D, b = 1.12 * D;
+    const X = (us) => L + (us - a) / (b - a) * (R - L);
+    // level before the first edge: a press starts HIGH, a release LOW, a glitch at the level it returns to
+    const endLow = ev.kind === 'press' || (ev.kind === 'glitch' && evs.slice(0, -1).reverse().find((e) => e.kind !== 'glitch')?.kind === 'press');
+    let lvl = ev.kind === 'glitch' ? !endLow : ev.kind === 'press';   // true = HIGH
+    c.strokeStyle = t.nsig2; c.lineWidth = 2; c.lineJoin = 'miter'; c.beginPath();
+    let y = lvl ? yHi : yLo; c.moveTo(X(a), y);
+    for (const u of at) { c.lineTo(X(u), y); lvl = !lvl; y = lvl ? yHi : yLo; c.lineTo(X(u), y); }
+    c.lineTo(X(b), y); c.stroke();
+    // edge ticks
+    c.fillStyle = t.hi;
+    at.forEach((u) => { c.beginPath(); c.arc(X(u), T - 8, 3.5, 0, 7); c.fill(); });
+    // time axis: 0 and the bounce length
+    c.fillStyle = t.muted; c.textAlign = 'center'; c.font = `500 13px ${t['f-mono']}`;
+    const ticks = [0, D / 2, D];
+    ticks.forEach((u) => { c.fillText(u ? usFmt(u) : '0', X(u), h - 10); c.strokeStyle = t.line; c.beginPath(); c.moveTo(Math.round(X(u)) + 0.5, B); c.lineTo(Math.round(X(u)) + 0.5, B + 5); c.stroke(); });
+    c.textAlign = 'left'; c.fillStyle = t.ink; c.font = `600 13px ${t['f-mono']}`;
+    const name = ev.kind === 'press' ? 'Натискання' : ev.kind === 'release' ? 'Відпускання' : 'Короткий імпульс';
+    // the title shortens on a phone instead of running off the canvas
+    const titles = [`${name} #${ev.n} · ${ev.edges} ${plural(ev.edges, 'фронт', 'фронти', 'фронтів')}${ev.edges > 1 ? ' · ' + usFmt(ev.bounce) : ''}`,
+      `${name} · ${ev.edges} ${plural(ev.edges, 'фронт', 'фронти', 'фронтів')}`, `${ev.edges} ${plural(ev.edges, 'фронт', 'фронти', 'фронтів')}`];
+    c.fillText(titles.find((tt) => c.measureText(tt).width <= w - 16) || titles[2], 8, 18);
+  }
+  function readBounce() {
+    const pr = evs.filter((e) => e.kind === 'press').length, rl = evs.filter((e) => e.kind === 'release').length;
+    $('#lv-o-press').textContent = String(pr); $('#lv-o-rel').textContent = String(rl);
+    const bounced = evs.filter((e) => e.edges > 1);
+    $('#lv-o-bnc').textContent = evs.length ? `${bounced.length} з ${evs.length}` : '—';
+    $('#lv-o-max').textContent = bounced.length ? usFmt(Math.max(...bounced.map((e) => e.bounce))) : '—';
+    const ev = evs[evs.length - 1];
+    if (ev) {
+      const what = ev.kind === 'press' ? 'Натискання' : ev.kind === 'release' ? 'Відпускання' : 'Короткий імпульс без зміни рівня';
+      // a press starts HIGH, so its odd edges are falls; a release starts LOW, so only its even edges are
+      const falls = ev.kind === 'press' ? Math.ceil(ev.edges / 2) : Math.floor(ev.edges / 2);
+      let s = ev.edges === 1 ? `${what}: один чистий фронт, брязкоту немає.` : `${what}: ${ev.edges} ${plural(ev.edges, 'фронт', 'фронти', 'фронтів')} за ${usFmt(ev.bounce)}. Програма з FALLING без антибрязкоту нарахувала б тут ${falls} ${plural(falls, 'спад', 'спади', 'спадів')}${ev.kind === 'press' ? '' : ', хоча кнопку не натискали'}.`;
+      if (ev.missed) s += ' Парність фронтів не збігається зі зміною рівня: імпульс був коротший за реакцію переривання, і один фронт загубився.';
+      $('#lv-btn-note').textContent = s;
+    }
+    $('#lv-evs-w').hidden = !evs.length;
+    $('#lv-evs').innerHTML = evs.slice(-10).reverse().map((e) => {
+      const gaps = e.at.slice(1).map((u, i) => u - e.at[i]);
+      const short = gaps.length ? usFmt(Math.min(...gaps)) : '—';
+      const name = e.kind === 'press' ? 'натискання' : e.kind === 'release' ? 'відпускання' : 'імпульс';
+      return `<tr><th scope="row">${name} #${e.n}</th><td class="num">${e.edges}${e.missed ? ' <span class="bad" title="загублено фронт">!</span>' : ''}</td><td class="num">${e.edges > 1 ? usFmt(e.bounce) : 'чисто'}</td><td class="num">${short}</td></tr>`;
+    }).join('');
+  }
+  link.on('btn', (m) => {
+    if (!Array.isArray(m.at)) return;
+    evs.push({ kind: m.kind, n: m.n | 0, edges: m.edges | 0 || m.at.length, bounce: m.bounce_us | 0, at: m.at.map(Number), missed: !!m.missed });
+    if (evs.length > 500) evs.shift();
+    drawTrace(); readBounce();
+  });
+  $('#lv-clear-btn').addEventListener('click', () => { evs = []; drawTrace(); readBounce(); $('#lv-btn-note').textContent = 'Статистику скинуто. Натисніть кнопку на макетці.'; });
+
+  /* ---------- sizes and theme ---------- */
+  const fitAll = () => { ctxT = Study.fitCanvas(cvT); ctxX = Study.fitCanvas(cvX); ctxB = Study.fitCanvas(cvB); drawTime(); drawXfer(); drawTrace(); };
+  let rw = 0;
+  new ResizeObserver(() => { const w2 = document.documentElement.clientWidth; if (w2 === rw) return; rw = w2; fitAll(); }).observe(document.documentElement);
+  Study.onTheme(() => { drawTime(); drawXfer(); drawTrace(); });
+  paintState(); fitAll();
+  // a port allowed on an earlier visit opens without the picker
+  if (BoardSerial.supported()) link.reconnect();
+});
+</script>
+</body>
+</html>

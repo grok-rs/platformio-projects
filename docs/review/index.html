@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Повторення</title>
+<meta name="description" content="Щотижнева мішанка з 10 питань з усіх пройдених уроків: частіше старі теми й питання, на яких ви помилялися. Підсумок по уроках показує слабкі місця й посилання на картки.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<link rel="stylesheet" href="review.css">
+<script src="../site-theme.js"></script>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="review">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main">
+  <header id="top">
+    <p class="eyebrow">Між заняттями · 10 хвилин на тиждень</p>
+    <h1>Перемішане <span>повторення</span></h1>
+    <p class="lead">Десять питань з усіх уроків, які вже були, упереміш. Частіше трапляються старі теми й питання, на яких ви помилялися. Коли теми чергуються, щоразу треба спершу впізнати, яке це питання, і саме це тренує пам’ять краще, ніж десять питань поспіль з одного уроку.</p>
+  </header>
+
+  <section class="hs" id="mix" aria-labelledby="mix-h">
+    <h2 id="mix-h"><span class="n">01</span> Мішанка тижня</h2>
+    <div class="rv-bar">
+      <p class="rv-info" id="rv-info" aria-live="polite">Збираємо питання…</p>
+      <button type="button" class="btn sm" id="rv-more" disabled title="Нові 10 питань з тих самих уроків">Ще 10</button>
+    </div>
+    <p class="note warn rv-blocked" id="rv-blocked" hidden>Цей браузер не зберігає дані сайту (приватне вікно або заблоковані дані). Повторення працює, але історія відповідей зникне, щойно ви закриєте вкладку.</p>
+    <div class="quiz" id="rv-quiz" data-manual><div class="qz-msg"><p class="muted">Завантаження питань…</p></div></div>
+    <noscript><p class="note warn">Повторення працює з увімкненим JavaScript.</p></noscript>
+    <div id="rv-result" class="rv-result" tabindex="-1" hidden></div>
+  </section>
+
+  <section class="hs" id="map" aria-labelledby="map-h">
+    <h2 id="map-h"><span class="n">02</span> Ваша карта уроків</h2>
+    <p class="hs-sub">Усі відповіді в «Повторенні» на цьому пристрої, по уроках. Слабкі уроки трапляються в мішанці частіше.</p>
+    <div id="rv-map" class="rv-map"><p class="muted">Ще немає відповідей. Пройдіть мішанку вище, і тут з’явиться картина по уроках.</p></div>
+    <div id="rv-runs" class="rv-runs"></div>
+  </section>
+
+  <details class="more rv-how" id="how">
+    <summary>Як складається мішанка</summary>
+    <ul>
+      <li><b>Які уроки:</b> усі, що вже відбулися за розкладом курсу і мають самоперевірку.</li>
+      <li><b>Старші частіше:</b> найстаріший урок має вдвічі більшу вагу, ніж учорашній. Нове ще свіже, а старе вже потребує повторення.</li>
+      <li><b>Помилки частіше:</b> питання, на якому ви помилилися минулого разу, має вагу втричі більшу; питання, на яке ви правильно відповіли цього тижня, трапляється рідше. Урок зі слабким результатом самоперевірки на сторінці уроку теж отримує більшу вагу.</li>
+      <li><b>Упереміш:</b> два питання з одного уроку ніколи не стоять поруч, і з одного уроку не більше двох питань. Номер уроку видно лише після відповіді, у посиланні «Перечитати в уроці».</li>
+      <li><b>Новий набір щопонеділка:</b> протягом тижня мішанка та сама, навіть після перезавантаження. «Ще 10» дає нові питання, які цього тижня ще не траплялися.</li>
+      <li><b>Що зберігається:</b> лише в цьому браузері: перша відповідь на кожне питання мішанки. «Пройти ще раз» і «Повторити помилкові» — тренування, вони не змінюють історію.</li>
+    </ul>
+    <div class="rv-reset">
+      <button type="button" class="btn ghost sm" id="rv-reset">Скинути історію повторення</button>
+      <span class="small" id="rv-reset-msg" aria-live="polite"></span>
+    </div>
+  </details>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/quiz.js" defer></script>
+<script src="review.js" defer></script>
+</body>
+</html>

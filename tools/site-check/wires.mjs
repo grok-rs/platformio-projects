@@ -34,7 +34,7 @@ const server = createServer(async (req, res) => {
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(DOCS, p);
   if (!file.startsWith(DOCS)) { res.writeHead(403).end(); return; }
-  try { res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' }).end(await readFile(file)); }
+  try { const body = await readFile(file); res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' }).end(body); } // read first: a 404 must not follow a 200 header
   catch { res.writeHead(404).end(); }
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));

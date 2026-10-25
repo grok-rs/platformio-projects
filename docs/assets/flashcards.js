@@ -21,6 +21,9 @@
     { id: 'atlas', title: 'Атлас компонентів' },
   ];
   const ANKI_ROOT = 'ESP32-S3 курс';
+  // Personal deck: every case solved in a «Знайди несправність» block (Study.hunt) saves a card into localStorage
+  // 'study.myfaults.v1'; ids start with 'mf:'. It is scheduled like any deck and exported to Anki with the scene embedded.
+  const MY = 'my-faults', MY_TITLE = 'Мої несправності', MY_KEY = 'study.myfaults.v1';
   const self = doc.currentScript;
 
   /* ================================================================ helpers */
@@ -146,7 +149,7 @@
   }
 
   /* ================================================================ decks: discovery, loading, validation */
-  const deckOf = (cardId) => String(cardId).split('#')[0].replace(/-\d+$/, '');
+  const deckOf = (cardId) => (String(cardId).startsWith('mf:') ? MY : String(cardId).split('#')[0].replace(/-\d+$/, ''));
   // «Урок 1.3», but «МП1» (a mini-project is not a numbered lesson).
   const lessonName = (l) => (/^\d/.test(String(l.n || l.id)) ? `Урок ${l.n || l.id}` : String(l.n || l.id));
   function courseLessons() {
@@ -172,9 +175,11 @@
     // without a manifest at all, try the known ones.
     const extra = window.COURSE ? (Array.isArray(window.COURSE.decks) ? window.COURSE.decks : []) : GLOBAL_DECKS;
     for (const g of extra) if (g && g.id && !out.some((d) => d.id === g.id)) out.push({ id: g.id, title: g.title || g.id, group: 'Довідка' });
+    if (ownRaw().length) out.push({ id: MY, title: MY_TITLE, group: 'Особисте' });
     return out;
   }
   function deckTitle(id, data) {
+    if (id === MY) return MY_TITLE;
     const l = (courseLessons() || []).find((x) => x.id === id);
     if (l) return `${lessonName(l)} · ${l.title || ''}`.replace(/ · $/, '');
     if (data && typeof data.title === 'string' && data.title) return data.title;
@@ -183,6 +188,7 @@
   }
   // Short name for the deck chip on a card and the Anki sub-deck: «Урок 1.1», «Нотація номіналів».
   function deckShort(id) {
+    if (id === MY) return MY_TITLE;
     const d = deckCache.get(id);
     const l = (courseLessons() || []).find((x) => x.id === id);
     if (l) return lessonName(l);
@@ -233,7 +239,49 @@
 
   const deckCache = new Map(); // id → { id, title, lesson, cards, notes, problems }
   const filePromises = new Map();
+  // «Мої несправності»: raw records from Study.hunt → study cards (type debug, with the scene picture).
+  function ownRaw() {
+    try {
+      if (S() && S().faultCards) return S().faultCards.list();
+      const all = rawStore.get(MY_KEY, {});
+      return all && typeof all === 'object' ? Object.values(all).filter((c) => c && c.id) : [];
+    } catch { return []; }
+  }
+  // Scenes are stored deflated; they are unpacked once per stored string and kept here.
+  const sceneText = new Map();
+  async function unpackScenes(raws) {
+    await Promise.all(raws.map(async (r) => {
+      if (!r.scenez || sceneText.has(r.scenez)) return;
+      let t = '';
+      try { t = S() && S().faultCards && S().faultCards.scene ? await S().faultCards.scene(r) : ''; } catch { t = ''; }
+      sceneText.set(r.scenez, t);
+    }));
+  }
+  function ownDeck() {
+    const cards = ownRaw().filter((r) => str(r.id).startsWith('mf:') && str(r.answer)).sort((a, b) => (a.added || '').localeCompare(b.added || '') || a.id.localeCompare(b.id))
+      .map((r) => {
+        const lesson = str(r.lesson);
+        return {
+          id: r.id, note: r.id, sub: null, deck: MY, type: 'debug', title: str(r.title),
+          front: `${r.title ? `<b>${r.title}</b><br>` : ''}Симптом: ${str(r.symptom)}`,
+          back: `<b>${str(r.answer)}</b>${r.explain ? `<br>${r.explain}` : ''}`,
+          scene: [str(r.scene), r.scenez ? sceneText.get(r.scenez) || '' : ''].find((x) => /^<svg[\s>]/.test(x)) || '', code: str(r.code), alt: str(r.label) || 'Схема справи з уроку',
+          lesson, ref: str(r.ref), text: '', extra: '', img: '', sym: '', en: '', mc: '', fact: '', author: '',
+          tags: ['несправність', lesson ? `урок_${lesson}` : ''].filter(Boolean),
+        };
+      });
+    const d = { id: MY, title: MY_TITLE, lesson: null, verified: '', cards, problems: [] };
+    deckCache.set(MY, d);
+    return d;
+  }
   function loadDeck(id) {
+    if (id === MY) {
+      return unpackScenes(ownRaw()).then(() => {
+        const d = ownDeck();
+        if (!d.cards.length) throw new Error('«Мої несправності» ще порожня');
+        return d;
+      });
+    }
     if (filePromises.has(id)) return filePromises.get(id);
     const p = fetchJSON(`data/cards/${encodeURIComponent(id)}.json`).then((data) => {
       if (!data || typeof data !== 'object' || !Array.isArray(data.cards)) {
@@ -271,6 +319,7 @@
     return out;
   }
   const loadedCards = (deckIds) => list(deckIds).flatMap((id) => (deckCache.get(id) || { cards: [] }).cards);
+  const loadedCardsAll = loadedCards;
 
   /* ================================================================ queue + stats */
   // Round-robin over groups, so reviews from different decks alternate (interleaving).
@@ -283,9 +332,10 @@
    * Today's study queue for loaded decks: due reviews first (interleaved across decks), then new cards up to
    * newLimit minus the new cards already started today. Siblings (cloze gaps, reverse) of one note come later.
    */
-  function queue({ decks: ids = [...deckCache.keys()], newLimit = 15, today = localISODate() } = {}) {
+  function queue({ decks: ids = [...deckCache.keys()], newLimit = 15, today = localISODate(), filter = null } = {}) {
     const st = readState();
     const deckIds = list(ids);
+    const loadedCards = (one) => loadedCardsAll(one).filter((c) => !filter || filter(c));
     const due = deckIds.map((id) => loadedCards([id]).filter((c) => st.s[c.id] && st.s[c.id].d <= today)
       .sort((a, b) => (st.s[a.id].d < st.s[b.id].d ? -1 : st.s[a.id].d > st.s[b.id].d ? 1 : 0)));
     const budget = Math.max(0, newLimit - ((st.days[today] || {}).new || 0));
@@ -352,8 +402,11 @@
   const imgHTML = (c) => `<img class="fc-img" src="${esc(new URL(c.img, base()).href)}" alt="${esc(c.alt)}" loading="lazy">`;
 
   // { q, a } HTML for a study card; flip = show the back first (only for term and symbol cards).
+  const sceneHTML = (c) => (c.scene ? `<img class="fc-img fc-scene" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(c.scene)}" alt="${esc(c.alt)}">` : '')
+    + (c.code ? `<pre class="fc-code">${esc(c.code)}</pre>` : '');
   function faces(c, flip = false) {
     const t = c.type;
+    if (c.deck === MY) return { q: `${sceneHTML(c)}<p>${safe(c.front)}</p><p class="fc-ask">Що зламано?</p>`, a: `<p>${safe(c.back)}</p>` };
     if (t === 'cloze') return { q: `<p>${clozeHTML(c.text, c.n, 'q')}</p>`, a: `<p>${clozeHTML(c.text, c.n, 'a')}</p>${c.extra ? `<p class="fc-extra">${safe(c.extra)}</p>` : ''}` };
     if (t === 'term') {
       const term = `<p class="fc-term">${safe(c.front)}</p>${c.en ? `<p class="fc-en"><span>англ.</span> ${safe(c.en)}</p>` : ''}`;
@@ -546,7 +599,7 @@
     const multi = present.length > 1;
     const head = (type) => ['#separator:Tab', '#html:true', `#notetype:${type}`, multi ? '#deck column:5' : `#deck:${ankiDeck(present[0] || 'deck')}`,
       '#guid column:1', '#tags column:4'].join('\n');
-    const basic = [], cloze = [], images = [], skipped = [];
+    const basic = [], cloze = [], images = [], skipped = [], inline = [];
     const row = (cells, deck) => (multi ? [...cells, ankiDeck(deck)] : cells).map(tsv).join('\t');
     for (const id of present) {
       const seenNotes = new Set();
@@ -558,6 +611,14 @@
           continue;
         }
         let front = c.front, back = c.back;
+        if (c.deck === MY) {
+          // The scene goes into the note itself as a data image, so there is no media file to copy.
+          const pic = c.scene ? `<img src="data:image/svg+xml;base64,${b64(c.scene)}" alt="${esc(c.alt)}" style="max-width:100%;height:auto"><br>` : '';
+          const code = c.code ? `<pre style="text-align:left;white-space:pre-wrap">${esc(c.code)}</pre>` : '';
+          if (c.scene) inline.push(c.id);
+          basic.push(row([c.id, `${pic}${code}${front}<br><br><i>Що зламано?</i>`, back, ankiTags(c)], id));
+          continue;
+        }
         if (c.type === 'reverse' && c.sub === 'r') [front, back] = [c.back, c.front];
         if (c.type === 'term' && c.en) back = `${back}<br><i>англ.: ${c.en}</i>`;
         if (c.type === 'image') {
@@ -575,9 +636,15 @@
     return {
       basic: basic.length ? `${head('Basic')}\n${basic.join('\n')}\n` : '',
       cloze: cloze.length ? `${head('Cloze')}\n${cloze.join('\n')}\n` : '',
-      images, skipped, counts: { basic: basic.length, cloze: cloze.length },
+      images, skipped, inline, counts: { basic: basic.length, cloze: cloze.length },
     };
   }
+  const b64 = (text) => {
+    const bytes = new TextEncoder().encode(text);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
   const fileStem = (ids) => `esp32-s3-cards-${list(ids).length > 3 ? 'all' : list(ids).join('_')}`;
   // Downloads the Basic and Cloze files (only the non-empty ones). Returns the export object.
   async function downloadAnki(deckIds) {
@@ -608,7 +675,7 @@
   /* ================================================================ progress backup */
   function exportProgress() {
     return JSON.stringify({ app: 'esp32-s3-study', kind: 'progress', v: 1, exported: new Date().toISOString(),
-      cards: readState(), quiz: rawStore.get('study.quiz.v1', {}) || {} }, null, 1);
+      cards: readState(), quiz: rawStore.get('study.quiz.v1', {}) || {}, myfaults: rawStore.get(MY_KEY, {}) || {} }, null, 1);
   }
   // Merges a backup into this browser: per card the more practised record wins. Returns { cards, quiz }.
   function importProgress(json) {
@@ -643,7 +710,16 @@
       }
       rawStore.set('study.quiz.v1', all);
     }
-    return { cards: n, quiz: q };
+    let f = 0;
+    if (data.myfaults && typeof data.myfaults === 'object') {
+      const all = rawStore.get(MY_KEY, {}) || {};
+      for (const [k, v] of Object.entries(data.myfaults)) {
+        if (!k.startsWith('mf:') || !v || typeof v !== 'object' || v.id !== k || typeof v.answer !== 'string') continue;
+        if (!all[k]) { all[k] = v; f++; }
+      }
+      if (f) rawStore.set(MY_KEY, all);
+    }
+    return { cards: n, quiz: q, myfaults: f };
   }
   function resetProgress() { rawStore.del(KEY); }
 
@@ -661,25 +737,30 @@
     const links = `<p class="fc-links"><a href="${esc(trainerURL)}">Усі картки в тренажері →</a>
       <button type="button" class="linkish fc-anki">Експорт в Anki</button>
       ${repo ? `<a href="${esc(repo.replace(/\/$/, ''))}/discussions" target="_blank" rel="noopener">Запропонувати свою картку ↗</a>` : ''}</p>`;
-    const start = () => {
-      const st = stats([deck]);
-      const q = queue({ decks: [deck] }).slice(0, n);
+    // This lesson's cards from «Мої несправності» (cases solved on this page) ride along with the lesson deck.
+    const mineHere = (c) => c.deck !== MY || c.lesson === deck;
+    const start = async () => {
+      await loadDeck(MY).catch(() => ownDeck());
+      const own = loadedCards([MY]).filter((c) => c.lesson === deck);
+      const st = stats(own.length ? [deck, MY] : [deck]);
+      const q = queue({ decks: own.length ? [deck, MY] : [deck], filter: mineHere }).slice(0, n);
       const d = deckCache.get(deck);
-      el.innerHTML = `<div class="fc-mini-head"><span class="tag">Картки уроку</span><span class="fc-mini-stats">${cardsWord(d.cards.length)} · ${q.length ? `${q.length} на сьогодні` : 'на сьогодні все'}</span></div>
+      const all = [...d.cards, ...own];
+      el.innerHTML = `<div class="fc-mini-head"><span class="tag">Картки уроку</span><span class="fc-mini-stats">${cardsWord(d.cards.length)}${own.length ? ` + ${own.length} ${plural(own.length, 'моя несправність', 'мої несправності', 'моїх несправностей')}` : ''} · ${q.length ? `${q.length} на сьогодні` : 'на сьогодні все'}</span></div>
         <div class="fc-mini-body"></div>${links}`;
       const body = $('.fc-mini-body', el);
       $('.fc-anki', el).addEventListener('click', () => downloadAnki([deck]));
       if (!q.length) {
         body.innerHTML = `<div class="fc-empty"><p class="fc-done-h">На сьогодні все.</p><p>${nextLine(st)}</p>
-          <button type="button" class="btn fc-cram">Тренування уроку (${cardsWord(d.cards.length)})</button></div>`;
-        $('.fc-cram', body).addEventListener('click', () => run(d.cards, true));
+          <button type="button" class="btn fc-cram">Тренування уроку (${cardsWord(all.length)})</button></div>`;
+        $('.fc-cram', body).addEventListener('click', () => run(all, true));
         return;
       }
       body.innerHTML = `<div class="fc-start"><p><b>${cardsWord(q.length)}</b> на ≈${NBSP}${Math.max(1, Math.round(q.length * 0.4))}${NBSP}хв: спершу згадайте відповідь, потім відкрийте її й чесно оцініть.</p>
         <div class="btn-row"><button type="button" class="btn primary fc-go">Почати</button>
         <button type="button" class="btn ghost fc-cram">Тренування уроку</button></div></div>`;
       $('.fc-go', body).addEventListener('click', () => run(q, false));
-      $('.fc-cram', body).addEventListener('click', () => run(d.cards, true));
+      $('.fc-cram', body).addEventListener('click', () => run(all, true));
     };
     const run = (cards, cram) => {
       const body = $('.fc-mini-body', el);
@@ -692,8 +773,11 @@
       });
       focusQuiet($('.fc-flip', body));
     };
+    // A case solved on this page adds a card: redraw the widget unless a session is running in it.
+    let ready = false;
+    doc.addEventListener('study:myfaults', () => { if (ready && el.isConnected && !$('.fc-session', el)) start(); });
     el.innerHTML = '<p class="fc-msg">Завантаження карток…</p>';
-    loadDeck(deck).then(start, (err) => {
+    loadDeck(deck).then(() => { ready = true; start(); }, (err) => {
       const file = location.protocol === 'file:';
       el.innerHTML = `<p class="fc-msg"><b>Картки цього уроку ще не опубліковані.</b> ${file ? 'Або відкрийте сайт через http:// (не file://).' : ''}</p>${err && err.friendly ? `<p class="small">${esc(err.message)}</p>` : ''}`;
     });
@@ -750,6 +834,7 @@
             <li>Картки з картинками: завантажте зображення і скопіюйте їх у папку <code>collection.media</code> свого профілю Anki (<b>Інструменти → Перевірити медіа</b> покаже, чого бракує).</li>
             <li>Повторний імпорт оновлює наявні картки (їхній id — це GUID), а не дублює їх. Розклад повторень в Anki і на сайті окремий.</li>
             <li>Картки-символи експортуються як текст із назвою символу: малюнок символу є лише на сайті.</li>
+            <li>«Мої несправності»: малюнок справи вбудовано в саму картку (SVG усередині поля), копіювати нічого не треба.</li>
           </ol>
           <h4>Прогрес</h4>
           <p>Прогрес зберігається лише в цьому браузері. Щоб перенести його на інший пристрій або не втратити після очищення даних сайту, збережіть файл.</p>
@@ -757,12 +842,17 @@
             <button type="button" class="btn fc-save">Зберегти прогрес</button>
             <label class="btn ghost fc-load-l">Відновити з файлу<input type="file" accept="application/json,.json" class="sr-only fc-load"></label>
             <button type="button" class="btn ghost sm fc-reset">Скинути прогрес карток</button>
+            <button type="button" class="btn ghost sm fc-myclear" hidden>Очистити «Мої несправності»</button>
           </div>
         </div>
       </details>`;
     const stage = $('.fc-stage', el), listEl = $('.fc-deck-list', el);
     const sel = () => available.filter((d) => selected.has(d.id)).map((d) => d.id);
-    const saveUI = () => { const st = readState(); st.ui = { ...st.ui, decks: [...selected], flip }; writeState(st); };
+    const saveUI = () => {
+      const st = readState();
+      st.ui = { ...st.ui, decks: [...selected], flip, ...(available.some((d) => d.id === MY) ? { myKnown: true } : {}) };
+      writeState(st);
+    };
 
     function drawDash() {
       const ids = sel();
@@ -864,9 +954,24 @@
       if (!f) return;
       try {
         const r = importProgress(await f.text());
-        toast(`Відновлено: ${cardsWord(r.cards)}${r.quiz ? `, результати квізів: ${r.quiz}` : ''}`);
+        toast(`Відновлено: ${cardsWord(r.cards)}${r.quiz ? `, результати квізів: ${r.quiz}` : ''}${r.myfaults ? `, мої несправності: ${r.myfaults}` : ''}`);
+        if (r.myfaults) await refreshOwn();
         drawDecks(); idle();
       } catch (err) { toast(err.message || 'Не вдалося прочитати файл', 'bad'); }
+    });
+    // Re-reads «Мої несправності» (after an import or clearing) and adds or drops it in the deck list.
+    async function refreshOwn() {
+      const d = await loadDeck(MY).catch(() => null);
+      available = available.filter((x) => x.id !== MY);
+      if (d) { available.push({ id: MY, title: MY_TITLE, group: 'Особисте', cards: d.cards.length }); if (!readState().ui.myKnown) selected.add(MY); }
+      else selected.delete(MY);
+      $('.fc-myclear', el).hidden = !d;
+      saveUI();
+    }
+    $('.fc-myclear', el).addEventListener('click', async () => {
+      if (!confirm('Видалити всі картки «Мої несправності» з цього браузера? Справи на сторінках уроків залишаться розкритими; картку можна повернути, розв’язавши справу ще раз.')) return;
+      try { if (S() && S().faultCards) S().faultCards.clear(); else rawStore.del(MY_KEY); } catch { /* storage blocked */ }
+      await refreshOwn(); drawDecks(); idle(); toast('Колоду «Мої несправності» очищено');
     });
     $('.fc-reset', el).addEventListener('click', () => {
       if (!confirm('Скинути весь прогрес карток у цьому браузері? Це не можна скасувати (хіба що з файлу резервної копії).')) return;
@@ -888,6 +993,9 @@
       const want = urlDecks || (Array.isArray(stored) ? stored : null);
       selected = new Set(available.map((d) => d.id).filter((id) => !want || want.includes(id)));
       if (!selected.size) available.forEach((d) => selected.add(d.id));
+      // The personal deck is new to a saved selection the first time it appears: include it once.
+      if (!urlDecks && available.some((d) => d.id === MY) && !readState().ui.myKnown) { selected.add(MY); saveUI(); }
+      $('.fc-myclear', el).hidden = !available.some((d) => d.id === MY);
       drawDecks();
       idle();
       // ../cards/#export (link on start/) opens the Anki/backup panel.
@@ -938,6 +1046,9 @@
   color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); border: 1.5px dashed var(--accent); }
 .fc-ans { color: inherit; padding: 0 .25em; border-radius: 5px; background: color-mix(in srgb, var(--ok) 20%, var(--panel)); box-shadow: inset 0 -2px 0 var(--ok); }
 .fc-img { display: block; max-width: 100%; max-height: 280px; width: auto; height: auto; margin: 0 0 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+.fc-scene { max-height: 320px; margin-inline: auto; }
+.fc-code { margin: 0 0 12px; padding: 8px 12px; max-height: 260px; overflow: auto; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
+  font: 14px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; }
 .fc-sym { display: block; width: 220px; max-width: 100%; height: auto; margin: 0 auto 12px; color: var(--ink); fill: none; stroke: currentColor; }
 .fc-a { animation: fc-reveal .28s ease-out; }
 @keyframes fc-reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

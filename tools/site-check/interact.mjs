@@ -40,7 +40,7 @@ const server = createServer(async (req, res) => {
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(DOCS, p);
   if (!file.startsWith(DOCS)) { res.writeHead(403).end(); return; }
-  try { res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' }).end(await readFile(file)); }
+  try { const body = await readFile(file); res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' }).end(body); } // read first: a 404 must not follow a 200 header
   catch { res.writeHead(404).end('not found'); }
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -222,11 +222,16 @@ for (const page of pages) {
       if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
       return r.result.value;
     };
+    // Heavy hubs (many Kit drawings, the code editor) can still be loading after the fixed sleep on a busy machine:
+    // wait up to 8 s more for the load event and for every quiz to have replaced its «Завантаження питань…» stub.
+    const READY = `document.readyState === 'complete' && ![...document.querySelectorAll('.quiz')].some((q) => /Завантаження питань/.test(q.textContent))`;
+    const settle = async () => { for (let t0 = Date.now(); Date.now() - t0 < 8000; await sleep(100)) if (await evaluate(READY)) return; };
     const tag = `${page} storage=${mode}`;
     const lines = [];
     try {
       await send('Page.navigate', { url: origin + page }, sessionId);
       await sleep(1500);
+      await settle();
       const team = await evaluate(TEAM);
       if (team) { lines.push(`team     ${team}`); if (team.startsWith('FAIL')) problems.push(`team: ${team}`); }
       const acted = await evaluate(ACT);
@@ -234,6 +239,7 @@ for (const page of pages) {
       await sleep(300);
       await send('Page.reload', {}, sessionId);
       await sleep(1500);
+      await settle();
       const back = await evaluate(CHECK);
       for (const [k, v] of Object.entries(back)) {
         lines.push(`reload   ${k}: ${v}`);

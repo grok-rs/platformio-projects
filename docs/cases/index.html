@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Справи групи</title>
+<meta name="description" content="Зробіть свою несправність на макетці з деталей нашого набору, поділіться посиланням — і нехай група шукає, що зламано. Без реєстрації й сервера: уся справа живе в посиланні.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<link rel="stylesheet" href="cases.css">
+<script src="../site-theme.js"></script>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="cases">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main">
+  <header id="top">
+    <p class="eyebrow">Командні виклики</p>
+    <h1>Справи <span>групи</span></h1>
+    <p class="lead">Зламайте стенд з уроку однією несправністю, опишіть симптом — і надішліть групі посилання. Хто першим знайде, що зламано? Реєстрації й сервера немає: уся справа записана в самому посиланні.</p>
+    <p class="btn-row cs-hero-row"><a class="btn primary" href="#new">Створити справу</a><a class="btn ghost" href="#examples">Розкрити приклад</a></p>
+  </header>
+
+  <!-- filled by cases.js when the address has #case=… (the solver or a friendly error) -->
+  <section class="cs-solve wide" id="solve" aria-label="Справа з посилання" hidden></section>
+
+  <section class="hs" id="examples" aria-labelledby="ex-h">
+    <h2 id="ex-h"><span class="n">01</span> Приклади</h2>
+    <p class="sub">Три справи, зроблені цим самим редактором. Відкрийте, знайдіть несправність, а потім зробіть свою.</p>
+    <ol class="cs-ex">
+      <li><a data-case href="#case=1.eyJ0IjoibGVkIiwiZiI6InJldiIsInRpIjoi0KLQtdC80L3Qviwg0YXQvtGH0LAg0LLRgdC1INC30LAg0YHRhdC10LzQvtGOIiwicyI6ItCc0L7QtNGD0LvRjCDRg9Cy0ZbQvNC60L3QtdC90LjQuSwg0LTQtdGC0LDQu9GWINGC0ZYg0YHQsNC80ZYsINGJ0L4g0L3QsCDRgdGF0LXQvNGWLiBMRUQxINC90LUg0YHQstGW0YLQuNGC0YzRgdGPLCDQsCDQstC-0LvRjNGC0LzQtdGC0YAg0L3QsCDQudC-0LPQviDQstC40LLQvtC00LDRhSDQv9C-0LrQsNC30YPRlCDiiYggNSDQki4iLCJvIjpbIlIxINC30LDQstC10LvQuNC60LjQuTogMSDQutCe0Lwg4oCUINC30LDQsdCw0LPQsNGC0L4iLCJMRUQxINCy0YHRgtCw0LLQu9C10L3QviDQvdCw0LLQv9Cw0LrQuDog0LrQsNGC0L7QtCDQtNC-IFIxLCDQsNC90L7QtCDQtNC-IMKr4oiSwrsiLCLQp9C-0YDQvdC40Lkg0LTRgNGW0YIg0L3QtSDQvdCwINGI0LjQvdGWIMKr4oiSwrsiXSwiYSI6MSwiayI6WyJyZXMiLCJsZWQiLCJibGsiXSwiYnkiOiLQktC40LrQu9Cw0LTQsNGHIn0"><b>Темно, хоча все за схемою</b></a><span class="cs-ex-meta">Світлодіод від MB-102</span></li>
+      <li><a data-case href="#case=1.eyJ0IjoiYnRuIiwiZiI6InMxcGx1cyIsInRpIjoi0JrQvdC-0L_QutCwLCDRj9C60LAg0L3RltGH0L7Qs9C-INC90LUg0LfQvNGW0L3RjtGUIiwicyI6ItCh0LrQtdGC0Ycg0LLQtdGB0Ywg0YfQsNGBINC00YDRg9C60YPRlCAxIOKAlCDRliDQutC-0LvQuCBTMSDQstGW0LTQv9GD0YnQtdC90L4sINGWINC60L7Qu9C4INC90LDRgtC40YHQvdGD0YLQvi4iLCJvIjpbIlIxINC_0ZbQtNGC0Y_Qs9GD0ZQg0LLRhdGW0LQg0L3QtSDQtNC-INGC0L7Qs9C-INC20LjQstC70LXQvdC90Y8iLCLQltC-0LLRgtC40Lkg0LTRgNGW0YIg0ZbQtNC1INC90LUg0L3QsCBHUElPMjEiLCLQlNGA0ZbRgiDQstGW0LQgUzEgKNGB0YLQvtCy0L_Rh9C40LogMzYpINCy0YHRgtGA0L7QvNC70LXQvdC-INCyINGI0LjQvdGDIMKrK8K7LCDQsCDQvdC1INCyIMKr4oiSwrsiXSwiYSI6MiwiayI6WyJyZXMiLCJzaWciLCJrIl0sImJ5Ijoi0JLQuNC60LvQsNC00LDRhyJ9"><b>Кнопка, яка нічого не змінює</b></a><span class="cs-ex-meta">Кнопка на GPIO21</span></li>
+      <li><a data-case href="#case=1.eyJ0IjoicmVsYXkiLCJmIjoiZHJldiIsInRpIjoi0KDQtdC70LUg0LzQvtCy0YfQuNGC0YwsINGC0YDQsNC90LfQuNGB0YLQvtGAINCz0LDRgNGP0YfQuNC5IiwicyI6ItCp0L7QudC90L4gR1BJTzUg0YHRgtCw0ZQgSElHSCwg0YDQtdC70LUg0L3QtSDQutC70LDRhtCw0ZQsINCwIEJDNTQ3QiDQt9CwINC60ZbQu9GM0LrQsCDRgdC10LrRg9C90LQg0YHRgtCw0ZQg0LPQsNGA0Y_Rh9C40LwuIiwibyI6WyJEMSDQstGB0YLQsNCy0LvQtdC90L4g0L3QsNCy0L_QsNC60Lg6INGB0LzRg9C20LrQsC3QutCw0YLQvtC0INC90LAg0LrQvtC70LXQutGC0L7RgNGWIiwi0J3QtdC80LDRlCDRgdC_0ZbQu9GM0L3QvtGXINC30LXQvNC70ZYiLCJS0LEgNjgwINCe0Lwg0LfQsNC80LDQu9C40LkiXSwiYSI6MCwiayI6WyJkMSIsImduZCIsInJiIl0sImJ5Ijoi0JLQuNC60LvQsNC00LDRhyJ9"><b>Реле мовчить, транзистор гарячий</b></a><span class="cs-ex-meta">Ключ BC547B і реле</span></li>
+    </ol>
+  </section>
+
+  <section class="hs wide" id="new" aria-labelledby="new-h">
+    <h2 id="new-h"><span class="n">02</span> Нова справа</h2>
+    <p class="sub">Чотири кроки. Редактор підказує симптом і варіанти, але найкраща справа — та, яку ви бачили на власній макетці.</p>
+    <div class="cs-ed">
+      <fieldset class="cs-step">
+        <legend><span class="cs-k">1</span> Стенд з уроку</legend>
+        <div class="cs-tpls" id="ed-tpls"></div>
+      </fieldset>
+
+      <fieldset class="cs-step">
+        <legend><span class="cs-k">2</span> Що зламати</legend>
+        <label class="cs-lab" for="ed-fault">Одна несправність або один зсув на стовпчик</label>
+        <select id="ed-fault"></select>
+        <div class="cs-stage" id="ed-stage"></div>
+        <div class="cs-stage-row">
+          <button type="button" class="sw" id="ed-cmp" aria-checked="false">Показати справний стенд</button>
+          <p class="cs-note" id="ed-fault-note" aria-live="polite"></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="cs-step">
+        <legend><span class="cs-k">3</span> Текст справи</legend>
+        <div class="cs-grid">
+          <div class="cs-f">
+            <label class="cs-lab" for="ed-ti">Назва <span class="cs-opt-l">(необов’язково)</span></label>
+            <input type="text" id="ed-ti" maxlength="70" placeholder="Наприклад: «Темно, хоча все за схемою»" autocomplete="off">
+          </div>
+          <div class="cs-f">
+            <label class="cs-lab" for="ed-by">Автор <span class="cs-opt-l">(ім’я або команда, необов’язково)</span></label>
+            <input type="text" id="ed-by" maxlength="40" autocomplete="off">
+          </div>
+        </div>
+        <div class="cs-f">
+          <label class="cs-lab" for="ed-s">Симптом: що бачить той, хто зібрав стенд <span class="cs-cnt" id="ed-s-n"></span></label>
+          <textarea id="ed-s" rows="3" maxlength="320"></textarea>
+        </div>
+        <div class="cs-f">
+          <p class="cs-lab" id="ed-opts-l">Три варіанти відповіді: позначте правильний і, якщо хочете, деталь на малюнку, клацання по якій вибирає цей варіант</p>
+          <div class="cs-opts" id="ed-opts" role="group" aria-labelledby="ed-opts-l">
+            <div class="cs-opt">
+              <label class="cs-right"><input type="radio" name="ed-right" value="0" checked><span>Правильна</span></label>
+              <input type="text" maxlength="120" aria-label="Варіант 1">
+              <select aria-label="Деталь на малюнку для варіанта 1"></select>
+            </div>
+            <div class="cs-opt">
+              <label class="cs-right"><input type="radio" name="ed-right" value="1"><span>Правильна</span></label>
+              <input type="text" maxlength="120" aria-label="Варіант 2">
+              <select aria-label="Деталь на малюнку для варіанта 2"></select>
+            </div>
+            <div class="cs-opt">
+              <label class="cs-right"><input type="radio" name="ed-right" value="2"><span>Правильна</span></label>
+              <input type="text" maxlength="120" aria-label="Варіант 3">
+              <select aria-label="Деталь на малюнку для варіанта 3"></select>
+            </div>
+          </div>
+        </div>
+        <div class="cs-f">
+          <label class="cs-lab" for="ed-e">Пояснення: його побачать після правильної відповіді <span class="cs-cnt" id="ed-e-n"></span></label>
+          <textarea id="ed-e" rows="4" maxlength="520"></textarea>
+        </div>
+        <p class="btn-row"><button type="button" class="btn sm ghost" id="ed-reset">Повернути підказки</button></p>
+      </fieldset>
+
+      <fieldset class="cs-step">
+        <legend><span class="cs-k">4</span> Перевірити й поділитися</legend>
+        <p class="btn-row">
+          <button type="button" class="btn" id="ed-try" data-needs-case>Переглянути як учень</button>
+          <button type="button" class="btn primary" id="ed-copy" data-needs-case>Скопіювати посилання</button>
+          <button type="button" class="btn" id="ed-copy-post" data-needs-case>Скопіювати допис</button>
+        </p>
+        <p class="cs-msg" id="ed-msg" aria-live="polite"></p>
+        <div class="cs-f">
+          <label class="cs-lab" for="ed-link">Посилання на справу <span class="cs-cnt" id="ed-len"></span></label>
+          <div class="cs-link-row"><input type="text" id="ed-link" readonly spellcheck="false"><a class="btn sm ghost" id="ed-open">Відкрити</a></div>
+        </div>
+        <div class="cs-f">
+          <label class="cs-lab" for="ed-post">Допис для <a href="https://github.com/grok-rs/platformio-projects/discussions" target="_blank" rel="noopener">Discussions</a>, категорія «Командні виклики»</label>
+          <textarea id="ed-post" rows="9" readonly spellcheck="false"></textarea>
+        </div>
+        <div class="cs-prev" id="ed-preview" hidden>
+          <p class="tag">Так справу побачить група</p>
+          <div class="cs-prev-host"></div>
+        </div>
+      </fieldset>
+    </div>
+  </section>
+
+  <section class="hs" id="how" aria-labelledby="how-h">
+    <h2 id="how-h"><span class="n">03</span> Як це працює</h2>
+    <ul>
+      <li><b>Посилання і є справою.</b> Стенд, несправність, симптом і варіанти записані в адресі після <code>#case=</code>. Нікуди нічого не надсилається; хто має посилання, той бачить справу.</li>
+      <li><b>Одна несправність на справу.</b> Так її можна знайти міркуванням, а не вгадуванням. Зсув деталі на один стовпчик — теж несправність: смужка макетки переносить вивід в інший вузол.</li>
+      <li><b>Симптом — як на справжньому стенді.</b> Що світиться, що друкує Serial, що показує мультиметр. Не пишіть у симптомі відповідь.</li>
+      <li><b>Відповідь — не в коментарях.</b> У Discussions пишіть свою версію під спойлером <code>&lt;details&gt;</code>, щоб інші теж шукали самі.</li>
+      <li><b>Чернетка зберігається в цьому браузері</b>, поки ви її не зміните. Довжина тексту обмежена, щоб посилання вміщалося в повідомлення.</li>
+    </ul>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="../assets/kit.js" defer></script>
+<script src="scenes.js" defer></script>
+<script src="cases.js" defer></script>
+</body>
+</html>

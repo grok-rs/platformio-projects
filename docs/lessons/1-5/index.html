@@ -8,6 +8,8 @@
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
@@ -219,6 +221,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
           <button type="button" data-v="bench" aria-pressed="false">як на стенді</button>
         </div></div>
     </div>
+    <div class="lab-ctl" id="b5-live" aria-label="Справжні фронти з вашої плати"></div>
     <div class="lab-read">
       <div><b>Натиснули насправді</b><output id="b5-real">0</output></div>
       <div><b>Порахувала програма</b><output id="b5-prog">0</output></div>
@@ -722,7 +725,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
           <text class="sch-val" x="172" y="70">10 кОм</text>
           <path class="sch-w net-sig" data-net="gpio21" id="w-node" d="M160 88V112"/>
           <path class="sch-w net-sig" data-net="gpio21" id="w-pin" d="M100 100H160"/>
-          <path class="sch-w net-sig" data-net="gpio21" id="w-la" d="M160 100H250"/>
+          <path class="sch-w net-sig" data-net="gpio21" id="w-sig21" d="M160 100H250"/>
           <use class="sch-sym net-sig" data-net="gpio21" href="#dot" x="160" y="100"/>
           <use class="sch-sym" id="s1-open" href="#btn" x="160" y="112" transform="rotate(90 160 112)"/>
           <g id="s1-closed" hidden><path class="sch-w net-gnd" d="M160 112V172"/><text class="sch-val" x="168" y="146">натиснута</text></g>
@@ -947,6 +950,7 @@ text.kit-lbl.net-3v3 { fill: var(--n33-ink, var(--n33)); } text.kit-lbl.net-sig 
 <script src="../../assets/flashcards.js" defer></script>
 <script src="../../assets/schem.js" defer></script>
 <script src="../../assets/kit.js" defer></script>
+<script src="../../assets/serial.js" defer></script>
 <script>
 document.addEventListener('study:ready', () => {
   'use strict';
@@ -1168,11 +1172,12 @@ document.addEventListener('study:ready', () => {
       return { prog: st.db ? acc : falls, marks, locks, real: EVS.filter((e) => e.kind === 'press' && e.t <= T).length };
     }
 
-    function addEvent(kind) {
+    // tsLive: edge times (µs from the first edge) recorded by the board's CHANGE interrupt (esp32-s3-site-bridge)
+    function addEvent(kind, tsLive = null) {
       if (E.length > 20000) { E = []; EVS = []; }
       const last = E.length ? E[E.length - 1].t : 0;
-      const t = Math.max(now(), last + 50), to = kind === 'press' ? 0 : 1;
-      const ts = (st.mode === 'bench' ? genBench : genTeach)(to);
+      const t = Math.max(now(), last + 50), to = kind === 'press' ? 0 : kind === 'release' ? 1 : st.pressed ? 1 : 0;
+      const ts = tsLive || (st.mode === 'bench' ? genBench : genTeach)(to);
       const ev = EVS.length;
       ts.forEach((dt, i) => E.push({ t: t + dt, l: to ^ (i & 1), ev }));
       EVS.push({ kind, t, n: ts.length, dur: ts[ts.length - 1], mode: st.mode });
@@ -1257,7 +1262,7 @@ document.addEventListener('study:ready', () => {
         }
         // event label + trigger marker
         const lbl = `${ev.kind === 'press' ? 'Натискання' : 'Відпускання'} · ${ev.n} ${plural(ev.n, 'фронт', 'фронти', 'фронтів')}${ev.n > 1 ? ' · ' + fmtTime(ev.dur * 1e-6) : ''}`;
-        txt(lbl, X(ev.trigT) + 8, y(4.3), SCR.ink);
+        txt(lbl + (ev.mode === 'live' ? ' · ваша плата' : ''), X(ev.trigT) + 8, y(4.3), SCR.ink);
         ctx.fillStyle = SCR.zi; ctx.beginPath(); ctx.moveTo(X(ev.trigT) - 7, TOP); ctx.lineTo(X(ev.trigT) + 7, TOP); ctx.lineTo(X(ev.trigT), TOP + 10); ctx.fill();
       } else {
         ctx.strokeStyle = SCR.tr; ctx.globalAlpha = 0.35; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
@@ -1270,7 +1275,7 @@ document.addEventListener('study:ready', () => {
       txt('0 В ▸', 4, y(0) - 5, SCR.ink);
       txt('CH1 1 В/под', 8, 20, SCR.tr);
       txt(fmtDiv(st.sdiv), w - 8, 20, SCR.ink, 'right');
-      if (w > 460) txt(st.mode === 'bench' ? 'модель: як на стенді' : 'модель: навчальна', w / 2, 20, SCR.zi, 'center');
+      if (w > 460) txt(st.mode === 'live' ? 'ваша плата · GPIO21' : st.mode === 'bench' ? 'модель: як на стенді' : 'модель: навчальна', w / 2, 20, SCR.zi, 'center');
       const stopped = !sim.running && !Study.reducedMotion();
       txt(stopped ? '■ STOP — клацніть екран' : ev ? `TRIG'D ${st.trig ? '↑' : '↓'} 1,65 В` : `READY ${st.trig ? '↑' : '↓'}`, 8, h - 9, stopped ? SCR.bad : ev ? SCR.ok : SCR.ink);
       txt(st.pressed ? 'S1 натиснута' : 'S1 відпущена', w - 8, h - 9, SCR.ink, 'right');
@@ -1293,7 +1298,7 @@ document.addEventListener('study:ready', () => {
       if (!last) note = 'Натисніть S1: осцилограф чекає на спад ↓ (натискання з підтяжкою вгору — це HIGH → LOW).';
       else {
         const extra = c.marks.filter((m) => m.kind === 'extra').length, ign = c.marks.filter((m) => m.kind === 'ign').length;
-        const what = last.kind === 'press' ? 'Натискання' : 'Відпускання';
+        const what = last.kind === 'press' ? 'Натискання' : last.kind === 'release' ? 'Відпускання' : 'Короткий імпульс';
         note = last.n === 1 ? `${what}: один чистий фронт, без брязкоту.` : `${what}: ${last.n} ${plural(last.n, 'фронт', 'фронти', 'фронтів')} за ${fmtTime(last.dur * 1e-6)} — це брязкіт.`;
         if (c.prog > c.real) note += ` Програма нарахувала ${c.prog} натискань замість ${c.real}: зайві спади брязкоту.`;
         else if (st.db && ign) note += ` Антибрязкіт відкинув ${ign} ${plural(ign, 'зайвий спад', 'зайві спади', 'зайвих спадів')}: лічильник чесний.`;
@@ -1303,7 +1308,9 @@ document.addEventListener('study:ready', () => {
       if (note !== lastNote) { $('#b5-note').textContent = note; lastNote = note; }
     }
     function mtext() {
-      $('#b5-mtext').textContent = st.mode === 'bench'
+      $('#b5-mtext').textContent = st.mode === 'live'
+        ? 'Ваша плата: кожен фронт записало переривання CHANGE на GPIO21 вашого стенду (micros()). Форму фронтів між ними малює модель: без C1 — майже вертикальні, з C1 — RC-криві.'
+        : st.mode === 'bench'
         ? 'Як на стенді: інтервали між фронтами — із запису нашої кнопки 17.10.2026. Натискання брязкотіло 1 раз із 91, відпускання — 35 з 91, тож здебільшого фронт буде чистим.'
         : 'Навчальна: навмисно перебільшена, брязкотить майже кожна подія (0,3–6 мс, у межах вимірів Ганссла). Справжня кнопка — режим «як на стенді».';
     }
@@ -1381,6 +1388,41 @@ document.addEventListener('study:ready', () => {
     new ResizeObserver(() => { const w = cv.parentElement.clientWidth; if (Math.abs(w - rw) < 1) return; rw = w; ctx = Study.fitCanvas(cv); draw(); }).observe(cv.parentElement);
     Study.onTheme(draw);
     mtext(); rebuild(); redraw();
+
+    // «Під'єднати мою плату»: the board's own press/release events replace the modelled bounce; the on-screen S1,
+    // «10 натискань» and the bounce model wait until it is disconnected (filters stay: they act on the real edges).
+    if (window.BoardSerial) {
+      let modeBefore = st.mode;
+      const modelCtl = () => [key, $('#b5-hold'), $('#b5-ten'), ...$$('#b5-mode button')];
+      BoardSerial.control($('#b5-live'), { what: 'фронти кнопки', onChange(on) {
+        if (on) {
+          if (st.hold) $('#b5-hold').click();
+          modeBefore = st.mode; st.mode = 'live';
+          $$('#b5-mode button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+        } else {
+          st.mode = modeBefore;
+          $$('#b5-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === st.mode)));
+          if (st.pressed) { st.pressed = false; RB.btn.set({ pressed: false }); ring.classList.remove('on'); key.setAttribute('aria-pressed', 'false'); }
+        }
+        modelCtl().forEach((el) => { el.disabled = on; });
+        $('#b5-keyhint').textContent = on ? 'Тепер тисніть справжню кнопку на макетці: S1 тут повторює її' : 'Кнопка S1 на макетці: утримуйте мишею, пальцем або Пробілом';
+        mtext(); lastNote = ''; redraw();
+      } });
+      BoardSerial.link().on('btn', (d) => {
+        if (st.mode !== 'live' || !Array.isArray(d.at) || !d.at.length) return;
+        const kind = d.kind === 'press' || d.kind === 'release' ? d.kind : 'glitch';
+        const ts = d.at.map(Number).filter(Number.isFinite);
+        // levels alternate edge by edge, so an edge the interrupt lost (wrong parity) is restored as a 1 µs pulse
+        const odd = ts.length % 2 === 1;
+        if (kind !== 'glitch' ? !odd : odd) ts.splice(1, 0, ts[0] + 1);
+        if (kind !== 'glitch') {
+          st.pressed = kind === 'press';
+          RB.btn.set({ pressed: st.pressed }); ring.classList.toggle('on', st.pressed);
+          key.setAttribute('aria-pressed', String(st.pressed));
+        }
+        addEvent(kind, ts);
+      });
+    }
 
     /* ---------- missions: goals checked from the lab's own state (st, EVS, count) ---------- */
     const shownEv = () => trigEvent(now());

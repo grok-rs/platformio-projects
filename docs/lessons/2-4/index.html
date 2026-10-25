@@ -8,6 +8,8 @@
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
@@ -182,6 +184,37 @@ pre.ir-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding:
 .hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
 .hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
 .hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+/* ---- code editor of the lab (MiniC, script below): the panel's code can be changed and uploaded to the model ---- */
+.ce-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; }
+.ce-bar .btn { min-height: 44px; }
+.ce-state { font: 600 13px var(--f-mono); color: var(--muted); }
+.ce-state.mine { color: var(--teach); }
+.ce-state.mine::before { content: "● "; }
+.ce-edit { display: grid; gap: 8px; min-width: 0; }
+.ce-lbl { font-size: 13px; line-height: 1.45; color: var(--muted); }
+.ce-ta { display: block; width: 100%; min-height: 12em; margin: 0; padding: 8px 10px; font: 14px/1.55 var(--f-mono); font-variant-ligatures: none;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; resize: vertical; tab-size: 2; white-space: pre; overflow: auto; }
+.ce-ta:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+@media (pointer: coarse) { .ce-ta { font-size: 16px; } }
+.ce-ins, .ce-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ce-ins-h { font-size: 13px; color: var(--muted); }
+.ce-ins .btn, .ce-acts .btn { min-height: 44px; }
+.ce-ins .btn { font: 600 13px var(--f-mono); font-variant-ligatures: none; padding-inline: 10px; }
+pre.ce-out { margin: 8px 0 0; padding: 8px 12px; font: 13px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 18em; overflow: auto;
+  color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: 8px; box-shadow: none; }
+pre.ce-out.bad { border-left-color: var(--bad); }
+.ce-out .err { color: var(--bad); font-weight: 650; }
+.ce-out .warn { color: var(--warn); font-weight: 650; }
+.ce-out .ok { color: var(--ok); font-weight: 650; }
+.ce-out .dim { color: var(--muted); }
+.ce-out .uk { color: var(--ink); font-family: var(--f-body); }
+.ce-tok { cursor: pointer; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; border-radius: 3px; }
+.ce-tok:hover { background: color-mix(in srgb, var(--hi) 24%, transparent); }
+.ir-codebox .ce-edit { padding: 8px; }
+.ir-code .k { color: var(--accent); font-weight: 600; }
+.ir-code .n { color: var(--hi-ink); font-weight: 700; }
+.ir-code .s { color: var(--copper); }
+.ir-code .c { color: var(--muted); }
 </style>
 </head>
 <body data-lesson="2-4">
@@ -231,9 +264,12 @@ pre.ir-code { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding:
               <li><i style="--c:#e8262a"></i><span id="ir-ledn">LED · 0</span><span class="ir-sub">оброблено <small>GPIO15</small></span></li>
             </ul>
           </div>
-          <div class="ir-codebox">
-            <div class="ir-code-h"><span>src/main.cpp</span><span id="ir-now" class="ir-nowt"></span></div>
-            <pre class="ir-code" id="ir-code" aria-label="Код прошивки; підсвічено рядок, який зараз виконується"></pre>
+          <div class="ce" id="ir-ce">
+            <div class="ir-codebox">
+              <div class="ir-code-h"><span>src/main.cpp</span><span id="ir-now" class="ir-nowt"></span></div>
+              <pre class="ir-code" id="ir-code" aria-label="Код прошивки; підсвічено рядок, який зараз виконується"></pre>
+            </div>
+            <pre class="ce-out" id="ir-cout" aria-live="polite" hidden></pre>
           </div>
         </div>
       </div>
@@ -1027,6 +1063,754 @@ document.addEventListener('study:ready', () => {
   const NS = 'http://www.w3.org/2000/svg';
   const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
   const prng = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  /* ==== MiniC + code editor: the lab's code panel is editable (shared verbatim by lessons 1-3, 2-3 and 2-4) ====
+     A tiny C/Arduino subset, parsed and run by a tree-walking interpreter (no eval, no Function). Supported:
+     #include <Arduino.h>, #define NAME value, global/local variables (bool/int/uint32_t…, volatile, const),
+     void functions without parameters (IRAM_ATTR allowed), if/else, = += -= ++ --, || && == != < > <= >= + - * / % !,
+     calls to the lab's built-ins and to your own functions. Errors read like the compiler's: «file:line:col: error: …»
+     plus one Ukrainian line. Each lab gives a spec: { file, consts, globals, builtins, require, check(prog, fail, warn) }.
+     run: MiniC.machine(prog, spec, hooks).task() → generator that yields
+       { k:'enter'|'exit', fn, line } · { k:'did', line, node } after a statement · { k:'cond', line, taken } after an if test ·
+       { k:'wait', ms, node } inside a built-in that takes time · { k:'pass' } after every loop().
+     Non-volatile globals: the loop task keeps its own «register copy» (read once, then reused) — the worst case the
+     compiler may produce when an ISR changes the variable; ISRs always use memory. */
+  const MiniC = (() => {
+    class CErr extends Error {
+      constructor(line, col, en, uk, kind = 'error') { super(en); Object.assign(this, { line, col, en, uk, kind }); }
+    }
+    const OPS = ['&&', '||', '==', '!=', '>=', '<=', '+=', '-=', '++', '--', '<<', '>>', '::', '->',
+      '(', ')', '{', '}', ';', ',', '=', '<', '>', '+', '-', '*', '/', '%', '!', '&', '|', '^', '~', '?', ':', '.', '[', ']'];
+    const TYPES = new Set(['void', 'bool', 'boolean', 'int', 'long', 'short', 'char', 'byte', 'uint8_t', 'uint16_t', 'uint32_t', 'int32_t', 'unsigned', 'size_t', 'float', 'double']);
+    const QUALS = new Set(['volatile', 'const', 'static', 'unsigned', 'signed']);
+    const UNSUP = new Set(['for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'goto', 'class', 'struct', 'new', 'delete',
+      'template', 'namespace', 'using', 'typedef', 'enum', 'auto', 'sizeof', 'String']);
+    const UNSUP_UK = 'Справжній компілятор це, можливо, прийняв би, але модель лабораторії розуміє лише виклики, присвоєння, if/else та #define. Поверніть простішу форму.';
+
+    function lex(src) {
+      const out = [], n = src.length;
+      let i = 0, line = 1, ls = 0, bol = true;
+      const col = (p) => p - ls + 1;
+      while (i < n) {
+        const c = src[i];
+        if (c === '\n') { i++; line++; ls = i; bol = true; continue; }
+        if (c === ' ' || c === '\t' || c === '\r') { i++; continue; }
+        if (c === '/' && src[i + 1] === '/') { while (i < n && src[i] !== '\n') i++; continue; }
+        if (c === '/' && src[i + 1] === '*') {
+          const l0 = line, c0 = col(i); i += 2;
+          while (i < n && !(src[i] === '*' && src[i + 1] === '/')) { if (src[i] === '\n') { line++; ls = i + 1; } i++; }
+          if (i >= n) throw new CErr(l0, c0, 'unterminated comment', 'Коментар /* … не закрито: бракує */.');
+          i += 2; continue;
+        }
+        const s = i, l = line, cc = col(i);
+        if (c === '#' && bol) { while (i < n && src[i] !== '\n') i++; out.push({ t: 'pp', v: src.slice(s, i), line: l, col: cc, s, e: i }); continue; }
+        bol = false;
+        if (/[A-Za-z_]/.test(c)) { while (i < n && /\w/.test(src[i])) i++; out.push({ t: 'id', v: src.slice(s, i), line: l, col: cc, s, e: i }); continue; }
+        if (/[0-9]/.test(c)) {
+          if (c === '0' && /[xX]/.test(src[i + 1])) { i += 2; while (i < n && /[0-9a-fA-F]/.test(src[i])) i++; }
+          else { while (i < n && /[0-9]/.test(src[i])) i++; if (src[i] === '.' && /[0-9]/.test(src[i + 1])) { i++; while (i < n && /[0-9]/.test(src[i])) i++; } }
+          const ne = i;
+          while (i < n && /[uUlL]/.test(src[i])) i++;
+          if (i < n && /\w/.test(src[i])) {
+            while (i < n && /\w/.test(src[i])) i++;
+            throw new CErr(l, cc, `invalid suffix "${src.slice(ne, i)}" on integer constant`, 'Число злиплося з літерами: між ними потрібен пробіл, кома або дужка.');
+          }
+          const txt = src.slice(s, ne);
+          out.push({ t: 'num', v: /^0[xX]/.test(txt) ? parseInt(txt, 16) : Number(txt), line: l, col: cc, s, e: ne });
+          continue;
+        }
+        if (c === '"' || c === '\'') {
+          i++; let v = '';
+          while (i < n && src[i] !== c && src[i] !== '\n') {
+            if (src[i] === '\\' && i + 1 < n && src[i + 1] !== '\n') { const q = src[i + 1]; v += q === 'n' ? '\n' : q === 't' ? '\t' : q; i += 2; } else v += src[i++];
+          }
+          if (src[i] !== c) throw new CErr(l, cc, `missing terminating ${c} character`, c === '"' ? 'Рядок не закрито: друга лапка " має бути в цьому ж рядку.' : 'Бракує другого апострофа \'.');
+          i++; out.push({ t: c === '"' ? 'str' : 'chr', v, line: l, col: cc, s, e: i }); continue;
+        }
+        const op = OPS.find((o) => src.startsWith(o, i));
+        if (op) { i += op.length; out.push({ t: 'op', v: op, line: l, col: cc, s, e: i }); continue; }
+        const uk = /[“”„«»‘’]/.test(c) ? 'Це «друкарські» лапки з текстового редактора. У коді потрібні прямі лапки "…".'
+          : /[А-Яа-яЇїІіЄєҐґ]/.test(c) ? 'Українська літера поза рядком "…" чи коментарем // — компілятор розуміє лише латиницю. Перевірте розкладку клавіатури.'
+            : 'Цей символ компілятор не розуміє.';
+        throw new CErr(l, cc, `stray '${c}' in program`, uk);
+      }
+      out.push({ t: 'eof', v: '', line, col: col(i), s: n, e: n });
+      return out;
+    }
+
+    const desc = (t) => (t.t === 'eof' ? 'end of input' : t.t === 'id' ? `'${t.v}'` : t.t === 'num' ? 'numeric constant'
+      : t.t === 'str' ? 'string constant' : `'${t.v}' token`);
+    const EXPECT_UK = {
+      ';': 'Наприкінці цієї команди бракує крапки з комою ;.',
+      ')': 'Дужку не закрито: кожній ( потрібна своя ).',
+      '(': 'Після назви функції чи if мають іти круглі дужки ( ).',
+      '{': 'Тіло функції береться у фігурні дужки { }.',
+      '}': 'Фігурну дужку не закрито: кожній { потрібна своя }.',
+    };
+
+    function parse(src) {
+      const T = lex(src);
+      let k = 0;
+      const peek = (o = 0) => T[Math.min(k + o, T.length - 1)];
+      const next = () => T[k++];
+      const is = (v, o = 0) => { const t = peek(o); return (t.t === 'op' || t.t === 'id') && t.v === v; };
+      const expect = (v) => {
+        if (is(v)) return next();
+        const t = peek(), p = k > 0 ? T[k - 1] : t;
+        // like gcc: a missing ; is reported at the end of the previous token
+        const at = v === ';' || v === ')' ? { line: p.line, col: p.col + (p.e - p.s) } : t;
+        throw new CErr(at.line, at.col, t.t === 'eof' ? `expected '${v}' at end of input` : `expected '${v}' before ${desc(t)}`, EXPECT_UK[v] || '');
+      };
+      const unsup = (t, what) => new CErr(t.line, t.col, `unsupported in this lab model: ${what || `'${t.v}'`}`, UNSUP_UK);
+      const prog = { defines: {}, globals: [], fns: {}, items: 0 };
+
+      function directive(t) {
+        const txt = t.v.replace(/\/\/.*$/, '').replace(/^#\s*/, '').trim();
+        let mm;
+        if ((mm = /^include\s*(<([^>]*)>|"([^"]*)")$/.exec(txt))) {
+          const f = mm[2] || mm[3];
+          if (!/^Arduino\.h$/.test(f)) throw new CErr(t.line, t.col, `fatal error: ${f}: No such file or directory`, 'Такого файлу бібліотеки немає. Для цих програм потрібен лише <Arduino.h>.');
+          return;
+        }
+        if ((mm = /^define\s+([A-Za-z_]\w*)(\(?)\s*(.*)$/.exec(txt))) {
+          if (mm[2]) throw unsup(t, '#define with parameters');
+          const name = mm[1], body = mm[3].trim();
+          let val = null;
+          if (body) {
+            const off0 = t.v.indexOf(body, t.v.indexOf(name) + name.length);
+            let vt;
+            try { vt = lex(body).filter((x) => x.t !== 'eof'); } catch (er) { if (er instanceof CErr) { er.line = t.line; er.col = t.col + off0 + er.col - 1; } throw er; }
+            if (vt.length === 1 && (vt[0].t === 'num' || vt[0].t === 'id')) {
+              const off = t.s + off0;
+              val = { k: vt[0].t === 'num' ? 'num' : 'id', v: vt[0].v, name: vt[0].v, line: t.line, col: t.col + (off - t.s), s: off + vt[0].s, e: off + vt[0].e };
+            } else throw unsup(t, '#define with an expression');
+          }
+          if (prog.defines[name]) throw new CErr(t.line, t.col, `"${name}" redefined`, 'Цю назву вже визначено вище: залиште один #define.', 'error');
+          prog.defines[name] = { name, val, line: t.line, order: prog.items++, s: t.s, e: t.e };
+          return;
+        }
+        const w = /^(\w*)/.exec(txt)[1];
+        if (['if', 'ifdef', 'ifndef', 'else', 'endif', 'elif', 'undef', 'pragma', 'error', 'warning'].includes(w)) throw unsup(t, `#${w}`);
+        throw new CErr(t.line, t.col, `invalid preprocessing directive #${w}`, 'Невідома директива: на початку рядка з # можуть бути #include або #define.');
+      }
+      function quals() { const q = new Set(); while (peek().t === 'id' && QUALS.has(peek().v)) q.add(next().v); return q; }
+      function baseType(q) {
+        const t = peek();
+        if (t.t === 'id' && TYPES.has(t.v)) { next(); if (t.v === 'unsigned' || t.v === 'long') while (is('long') || is('int')) next(); return t.v; }
+        if (q.has('unsigned') || q.has('signed')) return 'int';
+        return null;
+      }
+      function block() {
+        expect('{');
+        const stmts = [];
+        while (!is('}')) {
+          if (peek().t === 'eof') { const t = peek(); throw new CErr(t.line, t.col, 'expected \'}\' at end of input', EXPECT_UK['}']); }
+          stmts.push(stmt());
+        }
+        const close = next();
+        return { stmts, endLine: close.line };
+      }
+      function stmt() {
+        const t = peek();
+        if (is('{')) { const b = block(); return { k: 'block', stmts: b.stmts, line: t.line, col: t.col }; }
+        if (is(';')) { next(); return { k: 'empty', line: t.line, col: t.col }; }
+        if (t.t === 'pp') throw unsup(t, 'a directive inside a function');
+        if (t.t === 'id') {
+          if (t.v === 'if') {
+            next(); expect('(');
+            const c = expr(); expect(')');
+            const th = stmt();
+            let el = null;
+            if (is('else')) { next(); el = stmt(); }
+            return { k: 'if', c, th, el, line: t.line, col: t.col };
+          }
+          if (t.v === 'else') throw new CErr(t.line, t.col, '\'else\' without a previous \'if\'', 'Перед else має стояти if (…) { … } — перевірте фігурні дужки.');
+          if (UNSUP.has(t.v)) throw unsup(t);
+          if (t.v === 'return') {
+            next();
+            if (!is(';')) { const e = peek(); throw new CErr(e.line, e.col, 'return-statement with a value, in function returning \'void\'', 'Функція void нічого не повертає: пишіть просто return;'); }
+            next(); return { k: 'ret', line: t.line, col: t.col };
+          }
+          if (TYPES.has(t.v) || QUALS.has(t.v)) {
+            const q = quals(), type = baseType(q) || 'int';
+            const nm = peek();
+            if (nm.t !== 'id') throw new CErr(nm.line, nm.col, `expected unqualified-id before ${desc(nm)}`, 'Після типу має йти назва змінної.');
+            next();
+            if (is('(')) {
+              throw new CErr(nm.line, nm.col, 'a function-definition is not allowed here before \'{\' token',
+                'Функцію не можна оголошувати всередині іншої. Найчастіше це означає, що вище бракує закривальної } попередньої функції.');
+            }
+            let init = null;
+            if (is('=')) { next(); init = expr(); }
+            expect(';');
+            return { k: 'decl', name: nm.v, type, vol: q.has('volatile'), cnst: q.has('const'), init, line: t.line, col: t.col };
+          }
+        }
+        const e = expr();
+        expect(';');
+        return { k: 'expr', e, line: t.line, col: t.col };
+      }
+      const BIN = [['||'], ['&&'], ['==', '!='], ['<', '>', '<=', '>='], ['+', '-'], ['*', '/', '%']];
+      function expr() { return assign(); }
+      function assign() {
+        const l = bin(0);
+        if (is('=') || is('+=') || is('-=')) {
+          const op = next();
+          const r = assign();
+          if (l.k !== 'id') throw new CErr(op.line, op.col, 'lvalue required as left operand of assignment', 'Ліворуч від = має стояти назва змінної.');
+          return { k: 'asg', op: op.v, l, r, line: op.line, col: op.col };
+        }
+        return l;
+      }
+      function bin(lv) {
+        if (lv >= BIN.length) return unary();
+        let l = bin(lv + 1);
+        while (peek().t === 'op' && BIN[lv].includes(peek().v)) { const op = next(); l = { k: 'bin', op: op.v, l, r: bin(lv + 1), line: op.line, col: op.col }; }
+        return l;
+      }
+      function unary() {
+        const t = peek();
+        if (is('!') || is('-') || is('+')) { next(); return { k: 'un', op: t.v, e: unary(), line: t.line, col: t.col }; }
+        if (is('++') || is('--')) { next(); const e = unary(); if (e.k !== 'id') throw new CErr(t.line, t.col, `lvalue required as ${t.v === '++' ? 'increment' : 'decrement'} operand`, '++ та -- працюють лише зі змінною.'); return { k: 'inc', op: t.v, e, line: t.line, col: t.col }; }
+        if (is('&') || is('*') || is('~')) throw unsup(t);
+        return post();
+      }
+      function post() {
+        let p = prim();
+        for (;;) {
+          const t = peek();
+          if (is('(')) {
+            next(); const args = [];
+            if (!is(')')) { args.push(expr()); while (is(',')) { next(); args.push(expr()); } }
+            expect(')');
+            p = { k: 'call', f: p, args, line: p.line, col: p.col, s: p.s };
+          } else if (is('.') || is('->')) {
+            next(); const id = peek();
+            if (id.t !== 'id') throw new CErr(id.line, id.col, `expected unqualified-id before ${desc(id)}`, 'Після крапки має йти назва методу, наприклад Serial.println.');
+            next(); p = { k: 'mem', o: p, name: id.v, line: p.line, col: p.col };
+          } else if (is('++') || is('--')) {
+            next(); if (p.k !== 'id') throw new CErr(t.line, t.col, 'lvalue required as increment operand', '++ та -- працюють лише зі змінною.');
+            p = { k: 'inc', op: t.v, e: p, line: p.line, col: p.col };
+          } else if (is('[') || is('?') || is('::')) throw unsup(t);
+          else return p;
+        }
+      }
+      function prim() {
+        const t = peek();
+        if (t.t === 'num') { next(); return { k: 'num', v: t.v, line: t.line, col: t.col, s: t.s, e: t.e }; }
+        if (t.t === 'str') { next(); return { k: 'str', v: t.v, line: t.line, col: t.col }; }
+        if (t.t === 'chr') { next(); return { k: 'num', v: t.v.charCodeAt(0) || 0, line: t.line, col: t.col, s: t.s, e: t.e }; }
+        if (t.t === 'id') {
+          if (UNSUP.has(t.v)) throw unsup(t);
+          next();
+          if (t.v === 'true' || t.v === 'false') return { k: 'num', v: t.v === 'true' ? 1 : 0, bool: true, line: t.line, col: t.col, s: t.s, e: t.e };
+          return { k: 'id', name: t.v, line: t.line, col: t.col, s: t.s, e: t.e };
+        }
+        if (is('(')) { next(); const e = expr(); expect(')'); return e; }
+        throw new CErr(t.line, t.col, `expected primary-expression before ${desc(t)}`, 'Тут очікувалось значення: число, назва чи виклик функції.');
+      }
+
+      while (peek().t !== 'eof') {
+        const t = peek();
+        if (t.t === 'pp') { next(); directive(t); continue; }
+        if (is(';')) { next(); continue; }
+        const q = quals(), type = baseType(q);
+        if (!type) {
+          const b = peek();
+          if (b.t === 'id' && peek(1).t === 'op' && peek(1).v === '(') {
+            throw new CErr(b.line, b.col, `expected constructor, destructor, or type conversion before '(' token`,
+              'Команди пишуть лише всередині функцій. Можливо, цей рядок випав за межі setup() чи loop(): перевірте фігурні дужки.');
+          }
+          if (b.t === 'id') throw new CErr(b.line, b.col, `'${b.v}' does not name a type`, 'На верхньому рівні файлу бувають лише #define, змінні й функції. Можливо, тут опечатка в типі (void, int, bool) або команда опинилась поза функцією.');
+          throw new CErr(b.line, b.col, `expected unqualified-id before ${desc(b)}`, b.t === 'op' && b.v === '}' ? 'Зайва закривальна }: її пара { уже закрита.' : 'Тут очікувалось оголошення: тип і назва.');
+        }
+        let iram = false;
+        while (is('IRAM_ATTR')) { next(); iram = true; }
+        const nm = peek();
+        if (nm.t !== 'id') throw new CErr(nm.line, nm.col, `expected unqualified-id before ${desc(nm)}`, 'Після типу має йти назва.');
+        next();
+        if (is('(')) {
+          next();
+          if (!is(')')) { if (is('void') && is(')', 1)) next(); else throw unsup(peek(), 'function parameters'); }
+          expect(')');
+          if (type !== 'void') throw unsup(t, `a function returning '${type}'`);
+          if (prog.fns[nm.v]) throw new CErr(nm.line, nm.col, `redefinition of 'void ${nm.v}()'`, 'Функцію з такою назвою вже написано вище: дві однакові функції бути не може.');
+          if (is(';')) throw unsup(peek(), 'a separate function declaration');
+          const b = block();
+          prog.fns[nm.v] = { name: nm.v, body: b.stmts, line: t.line, col: t.col, endLine: b.endLine, iram, order: prog.items++ };
+        } else {
+          let init = null;
+          if (is('=')) { next(); init = expr(); }
+          if (is(',')) throw unsup(peek(), 'several variables in one declaration');
+          expect(';');
+          if (prog.globals.some((g) => g.name === nm.v)) throw new CErr(nm.line, nm.col, `redefinition of '${type} ${nm.v}'`, 'Змінну з такою назвою вже оголошено вище.');
+          prog.globals.push({ name: nm.v, type, vol: q.has('volatile'), cnst: q.has('const'), init, line: t.line, col: t.col, s: t.s, order: prog.items++ });
+        }
+      }
+      return prog;
+    }
+
+    // nearest known name for «did you mean …?» (case slips and 1–2 letter typos)
+    function near(name, names) {
+      let best = null, bd = 3;
+      for (const c of names) {
+        if (c.toLowerCase() === name.toLowerCase()) return c;
+        const a = name, b = c; if (Math.abs(a.length - b.length) > 2) continue;
+        const d = [];
+        for (let i = 0; i <= a.length; i++) { d[i] = [i]; for (let j = 1; j <= b.length; j++) d[i][j] = i ? Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+        if (d[a.length][b.length] < bd) { bd = d[a.length][b.length]; best = c; }
+      }
+      return best;
+    }
+
+    // semantic checks: names, calls, assignments; the lab's own rules via spec.check
+    function check(prog, spec) {
+      const warns = [];
+      const fail = (n, en, uk) => { throw new CErr(n.line, n.col, en, uk); };
+      const warn = (n, en, uk) => warns.push({ line: n.line, col: n.col, en, uk, kind: 'warning' });
+      const consts = spec.consts || {}, builtins = spec.builtins || {}, hidden = spec.globals || {};
+      const known = () => [...Object.keys(consts), ...Object.keys(builtins).map((b) => b.split('.')[0]), ...Object.keys(hidden), ...Object.keys(prog.defines), ...prog.globals.map((g) => g.name), ...Object.keys(prog.fns)];
+      const undeclared = (n, name) => {
+        const m = near(name, [...new Set(known())]);
+        fail(n, `'${name}' was not declared in this scope`, m ? `Такої назви компілятор не знає. Можливо, ви мали на увазі ${m}? Великі й малі літери різняться.`
+          : 'Такої назви компілятор не знає: її не оголошено ні в коді, ні в бібліотеці.');
+      };
+      for (const d of Object.values(prog.defines)) {
+        if (d.val && d.val.k === 'id' && !consts[d.val.v] && !prog.defines[d.val.v] && !hidden[d.val.v]) undeclared(d.val, d.val.v);
+      }
+      const kindOf = (name, locals, here) => {
+        if (locals && locals.has(name)) return locals.get(name);
+        const g = prog.globals.find((x) => x.name === name);
+        if (g && (here == null || g.order < here)) return { k: 'var', cnst: g.cnst, g };
+        if (prog.defines[name] && (here == null || prog.defines[name].order < here)) return { k: 'const' };
+        if (hidden[name]) return { k: 'var', hidden: true };
+        if (name in consts) return { k: 'const' };
+        const f = prog.fns[name];
+        if (f && (here == null || f.order <= here)) return { k: 'fn', f };
+        if (builtins[name]) return { k: 'builtin' };
+        if (g || f || prog.defines[name]) return { k: 'later' };
+        return null;
+      };
+      const exprC = (e, locals, here, ctx) => {
+        switch (e.k) {
+          case 'num': case 'str': return;
+          case 'id': {
+            const kd = kindOf(e.name, locals, here);
+            if (!kd) undeclared(e, e.name);
+            if (kd.k === 'later') fail(e, `'${e.name}' was not declared in this scope`, 'Це оголошено нижче, ніж використано. У файлі .cpp назву треба оголосити вище: перенесіть її над цією функцією.');
+            if (kd.k === 'builtin') fail(e, `invalid use of function '${e.name}'`, 'Щоб викликати функцію, потрібні дужки: delay(500);');
+            return;
+          }
+          case 'un': return exprC(e.e, locals, here, ctx);
+          case 'bin': exprC(e.l, locals, here, ctx); return exprC(e.r, locals, here, ctx);
+          case 'inc': case 'asg': {
+            const tg = e.k === 'inc' ? e.e : e.l;
+            const kd = kindOf(tg.name, locals, here);
+            if (!kd) undeclared(tg, tg.name);
+            if (kd.k === 'later') fail(tg, `'${tg.name}' was not declared in this scope`, 'Змінну оголошено нижче, ніж використано: перенесіть оголошення вище.');
+            if (kd.k === 'var' && kd.cnst) fail(tg, `assignment of read-only variable '${tg.name}'`, 'Це const: її значення змінювати не можна.');
+            if (kd.k !== 'var') fail(e, 'lvalue required as left operand of assignment', `${tg.name} — не змінна, а стала чи функція: присвоїти їй значення не можна.`);
+            if (e.k === 'asg') exprC(e.r, locals, here, ctx);
+            if (ctx.fn) ctx.writes.add(tg.name);
+            return;
+          }
+          case 'mem': fail(e, `invalid use of member function '${e.name}'`, 'Метод викликають з дужками: Serial.println("…");');
+          // falls through (fail throws)
+          case 'call': {
+            let name;
+            if (e.f.k === 'mem') {
+              if (e.f.o.k !== 'id') fail(e, 'unsupported in this lab model: chained member call', UNSUP_UK);
+              const obj = e.f.o.name;
+              const has = Object.keys(builtins).filter((b) => b.startsWith(obj + '.'));
+              if (!has.length) undeclared(e.f.o, obj);
+              name = obj + '.' + e.f.name;
+              if (!builtins[name]) {
+                const m = near(e.f.name, has.map((b) => b.split('.')[1]));
+                fail(e, `'${obj}' has no member named '${e.f.name}'`, m ? `У ${obj} немає такого методу. Можливо, ${obj}.${m}?` : `У ${obj} немає такого методу.`);
+              }
+            } else if (e.f.k === 'id') {
+              name = e.f.name;
+              const kd = kindOf(name, locals, here);
+              if (!kd) undeclared(e.f, name);
+              if (kd.k === 'later') fail(e.f, `'${name}' was not declared in this scope`, 'Цю функцію написано нижче, ніж викликано. У файлі .cpp (PlatformIO) функцію треба оголосити вище: перенесіть її над місцем виклику.');
+              if (kd.k === 'var' || kd.k === 'const') fail(e.f, `'${name}' cannot be used as a function`, `${name} — це значення, а не функція.`);
+              if (kd.k === 'fn') {
+                if (e.args.length) fail(e, `too many arguments to function 'void ${name}()'`, 'Ця функція не приймає аргументів: пишіть порожні дужки ().');
+                ctx.calls.add(name);
+                return;
+              }
+            } else fail(e, 'unsupported in this lab model: call of an expression', UNSUP_UK);
+            const b = builtins[name], [lo, hi] = Array.isArray(b.n) ? b.n : [b.n, b.n];
+            if (e.args.length < lo) fail(e, `too few arguments to function '${b.sig || name}'`, `${name} потребує ${lo === 1 ? 'одного аргументу' : lo + ' аргументів'} у дужках.`);
+            if (e.args.length > hi) fail(e, `too many arguments to function '${b.sig || name}'`, `${name} приймає ${hi === 0 ? 'порожні дужки ()' : hi === 1 ? 'лише один аргумент' : 'не більше ' + hi + ' аргументів'}.`);
+            e.args.forEach((a) => {
+              if (a.k === 'id' && prog.fns[a.name] && kindOf(a.name, locals, here)?.k === 'fn') { ctx.calls.add(a.name); return; }
+              exprC(a, locals, here, ctx);
+            });
+            if (b.check) b.check(e, { fail, warn, prog, ctx, locals });
+            return;
+          }
+          default: return;
+        }
+      };
+      const stmtsC = (list, locals, here, ctx) => {
+        const loc = new Map(locals);
+        for (const s of list) {
+          switch (s.k) {
+            case 'expr':
+              exprC(s.e, loc, here, ctx);
+              if (s.e.k !== 'call' && s.e.k !== 'asg' && s.e.k !== 'inc') warn(s, 'statement has no effect', 'Цей рядок нічого не робить: можливо, бракує дужок виклику ().');
+              break;
+            case 'decl':
+              if (s.init) exprC(s.init, loc, here, ctx);
+              if (loc.has(s.name) && loc.get(s.name).depth === ctx.depth) fail(s, `redeclaration of '${s.type} ${s.name}'`, 'Змінну з такою назвою вже оголошено в цьому блоці.');
+              loc.set(s.name, { k: 'var', cnst: s.cnst, local: true, depth: ctx.depth });
+              if (s.vol && ctx.fn) warn(s, 'volatile on a local variable', 'volatile потрібен змінним, які ділять loop() та ISR, а не локальним.');
+              break;
+            case 'if':
+              exprC(s.c, loc, here, ctx);
+              if (s.c.k === 'asg') warn(s.c, 'suggest parentheses around assignment used as truth value', 'У if стоїть присвоєння =, а не порівняння ==. Так змінна отримає нове значення, а не перевіриться.');
+              ctx.depth++; stmtsC([s.th], loc, here, ctx); if (s.el) stmtsC([s.el], loc, here, ctx); ctx.depth--;
+              break;
+            case 'block': ctx.depth++; stmtsC(s.stmts, loc, here, ctx); ctx.depth--; break;
+            default: break;
+          }
+        }
+      };
+      const info = {};
+      for (const g of prog.globals) if (g.init) exprC(g.init, null, g.order, { calls: new Set(), writes: new Set(), depth: 0 });
+      for (const f of Object.values(prog.fns)) {
+        const ctx = { fn: f.name, calls: new Set(), writes: new Set(), depth: 0 };
+        stmtsC(f.body, new Map(), f.order, ctx);
+        info[f.name] = ctx;
+      }
+      for (const r of spec.require || ['setup', 'loop']) {
+        if (!prog.fns[r]) throw new CErr(0, 0, `undefined reference to \`${r}()'`, `Ядро Arduino саме викликає ${r}(), тож ця функція має бути в програмі (хай навіть порожня). Перевірте назву: регістр літер важливий.`, 'ld');
+      }
+      prog.info = info;
+      if (spec.check) spec.check(prog, fail, warn);
+      return warns;
+    }
+
+    function compile(src, spec) {
+      try {
+        const prog = parse(src);
+        const warns = check(prog, spec);
+        return { ok: true, prog, warns };
+      } catch (e) {
+        if (!(e instanceof CErr)) throw e;
+        return { ok: false, err: e };
+      }
+    }
+
+    // walk every node (for the labs' own static questions: «is there a delay in loop?»)
+    function walk(list, fn, depth = 0) {
+      for (const s of list) {
+        fn(s, depth);
+        if (s.k === 'if') { walk([s.th], fn, depth + 1); if (s.el) walk([s.el], fn, depth + 1); }
+        if (s.k === 'block') walk(s.stmts, fn, depth);
+      }
+    }
+    const calls = (e, out = []) => {
+      if (!e) return out;
+      if (e.k === 'call') { out.push(e); e.args.forEach((a) => calls(a, out)); }
+      else if (e.k === 'bin') { calls(e.l, out); calls(e.r, out); }
+      else if (e.k === 'un' || e.k === 'inc') calls(e.e, out);
+      else if (e.k === 'asg') calls(e.r, out);
+      return out;
+    };
+    const callName = (c) => (c.f.k === 'mem' ? c.f.o.name + '.' + c.f.name : c.f.name);
+
+    function machine(prog, spec, hooks = {}) {
+      const consts = spec.consts || {}, builtins = spec.builtins || {};
+      const mem = {}, cache = {};
+      const isNum = (v) => typeof v === 'number';
+      const store = (type, v) => (type === 'bool' || type === 'boolean' ? (v ? 1 : 0) : isNum(v) && type !== 'float' && type !== 'double' ? (type === 'uint32_t' || type === 'unsigned' ? Math.trunc(v) >>> 0 : Math.trunc(v)) : v);
+      const defVal = (name, seen = 0) => {
+        const d = prog.defines[name];
+        if (!d.val) return 1;
+        if (d.val.k === 'num') return d.val.v;
+        const n = d.val.v;
+        if (prog.defines[n] && seen < 8) return defVal(n, seen + 1);
+        if (n in consts) return consts[n];
+        if (mem[n]) return mem[n].v;
+        return 0;
+      };
+      for (const [k, v] of Object.entries(spec.globals || {})) mem[k] = { v: v.v, type: v.type || 'int', vol: !!v.vol, hidden: true };
+      const ctx0 = { isr: false, locals: [] };
+      for (const g of prog.globals) mem[g.name] = { v: g.init ? store(g.type, evalSync(g.init, ctx0)) : 0, type: g.type, vol: g.vol, g };
+      // the loop task's «register copies» of plain (non-volatile) globals start with their initial values
+      for (const g of prog.globals) if (!g.vol) cache[g.name] = mem[g.name].v;
+      function evalSync(e, ctx) { const it = evalE(e, ctx); let r = it.next(); while (!r.done) r = it.next(); return r.value; }
+      const findLocal = (ctx, name) => { for (let i = ctx.locals.length - 1; i >= 0; i--) if (name in ctx.locals[i]) return ctx.locals[i]; return null; };
+      function read(name, ctx, node) {
+        const L = findLocal(ctx, name);
+        if (L) return L[name].v;
+        if (mem[name]) {
+          const g = mem[name];
+          if (hooks.read) hooks.read(name, ctx, g, node);
+          if (!ctx.isr && !g.vol && !g.hidden) { if (!(name in cache)) cache[name] = g.v; return cache[name]; }
+          return g.v;
+        }
+        if (prog.defines[name]) return defVal(name);
+        if (name in consts) return consts[name];
+        if (prog.fns[name]) return { fn: name };
+        return 0;
+      }
+      function write(name, v, ctx) {
+        const L = findLocal(ctx, name);
+        if (L) { L[name].v = store(L[name].type, v); return L[name].v; }
+        const g = mem[name];
+        g.v = store(g.type, v);
+        if (!ctx.isr && !g.vol && !g.hidden) cache[name] = g.v;
+        if (hooks.write) hooks.write(name, g.v, ctx);
+        return g.v;
+      }
+      const num = (v) => (isNum(v) ? v : v && v.fn ? 1 : Number(v) || 0);
+      function* evalE(e, ctx) {
+        switch (e.k) {
+          case 'num': return e.v;
+          case 'str': return e.v;
+          case 'id': return read(e.name, ctx, e);
+          case 'un': { const v = yield* evalE(e.e, ctx); return e.op === '!' ? (num(v) ? 0 : 1) : e.op === '-' ? -num(v) : num(v); }
+          case 'bin': {
+            if (e.op === '&&') return num(yield* evalE(e.l, ctx)) && num(yield* evalE(e.r, ctx)) ? 1 : 0;
+            if (e.op === '||') return num(yield* evalE(e.l, ctx)) || num(yield* evalE(e.r, ctx)) ? 1 : 0;
+            const a = yield* evalE(e.l, ctx), b = yield* evalE(e.r, ctx);
+            if (typeof a === 'string' || typeof b === 'string') return e.op === '==' ? (a === b ? 1 : 0) : e.op === '!=' ? (a !== b ? 1 : 0) : 0;
+            const x = num(a), y = num(b);
+            switch (e.op) {
+              case '+': return x + y; case '-': return x - y; case '*': return x * y;
+              case '/': if (!y) { if (hooks.fault) hooks.fault(e, 'ділення на нуль'); return 0; } return Math.trunc(x / y);
+              case '%': if (!y) { if (hooks.fault) hooks.fault(e, 'ділення на нуль'); return 0; } return x % y;
+              case '==': return x === y ? 1 : 0; case '!=': return x !== y ? 1 : 0;
+              case '<': return x < y ? 1 : 0; case '>': return x > y ? 1 : 0; case '<=': return x <= y ? 1 : 0; case '>=': return x >= y ? 1 : 0;
+              default: return 0;
+            }
+          }
+          case 'asg': {
+            const r = num(yield* evalE(e.r, ctx));
+            const v = e.op === '=' ? r : e.op === '+=' ? num(read(e.l.name, ctx, e.l)) + r : num(read(e.l.name, ctx, e.l)) - r;
+            return write(e.l.name, v, ctx);
+          }
+          case 'inc': { const v = num(read(e.e.name, ctx, e.e)); write(e.e.name, e.op === '++' ? v + 1 : v - 1, ctx); return v; }
+          case 'call': {
+            if (e.f.k === 'id' && prog.fns[e.f.name]) { yield* callFn(e.f.name, ctx); return 0; }
+            const name = callName(e), b = builtins[name];
+            const args = [];
+            for (const a of e.args) args.push(yield* evalE(a, ctx));
+            const r = b.f(args, { isr: ctx.isr, node: e, args: e.args, prog });
+            if (r && typeof r === 'object' && 'wait' in r) { yield { k: 'wait', ms: r.wait, node: e, why: r.why }; return r.ret ?? 0; }
+            return r ?? 0;
+          }
+          default: return 0;
+        }
+      }
+      function* execList(list, ctx) {
+        for (const s of list) { if ((yield* execS(s, ctx)) === 'ret') return 'ret'; }
+        return null;
+      }
+      function* execS(s, ctx) {
+        switch (s.k) {
+          case 'expr': yield* evalE(s.e, ctx); yield { k: 'did', line: s.line, node: s }; return null;
+          case 'decl': {
+            const v = s.init ? yield* evalE(s.init, ctx) : 0;
+            ctx.locals[ctx.locals.length - 1][s.name] = { v: store(s.type, v), type: s.type };
+            yield { k: 'did', line: s.line, node: s }; return null;
+          }
+          case 'if': {
+            const c = num(yield* evalE(s.c, ctx));
+            yield { k: 'cond', line: s.line, taken: !!c, node: s };
+            ctx.locals.push({});
+            const r = c ? yield* execS(s.th, ctx) : s.el ? yield* execS(s.el, ctx) : null;
+            ctx.locals.pop();
+            return r;
+          }
+          case 'block': { ctx.locals.push({}); const r = yield* execList(s.stmts, ctx); ctx.locals.pop(); return r; }
+          case 'ret': yield { k: 'did', line: s.line, node: s }; return 'ret';
+          default: return null;
+        }
+      }
+      function* callFn(name, ctx) {
+        const f = prog.fns[name], depth = (ctx.depth || 0) + 1;
+        if (depth > 24) { if (hooks.fault) hooks.fault(f, 'stack overflow'); yield { k: 'wait', ms: 1e9, node: f, why: 'crash' }; return; }
+        const c = { isr: ctx.isr, locals: [{}], depth };
+        yield { k: 'enter', fn: name, line: f.line };
+        yield* execList(f.body, c);
+        yield { k: 'exit', fn: name, line: f.endLine };
+      }
+      return {
+        mem, prog,
+        *task(skipSetup) {
+          if (prog.fns.setup && !skipSetup) yield* callFn('setup', ctx0);
+          for (;;) { yield* callFn('loop', ctx0); yield { k: 'pass' }; }
+        },
+        // an ISR runs to the end at once; built-ins that take time inside it only add up its duration
+        isr(name, onStep) {
+          let ms = 0;
+          const it = callFn(name, { isr: true, locals: [] });
+          let r = it.next(), guard = 0;
+          while (!r.done && guard++ < 2000) { if (r.value.k === 'wait') ms += r.value.ms; if (onStep) onStep(r.value); r = it.next(); }
+          return ms;
+        },
+        get: (name) => (mem[name] ? mem[name].v : undefined),
+        cached: (name) => (name in cache ? cache[name] : undefined),
+      };
+    }
+
+    // gcc-like report lines: [{ cls, txt }]
+    function report(spec, res) {
+      const L = [];
+      const where = (x) => (x.kind === 'ld' ? 'ld: ' : `${spec.file || 'src/main.cpp'}:${x.line}:${x.col}: `);
+      const push = (x) => {
+        L.push({ cls: x.kind === 'warning' ? 'warn' : 'err', txt: `${where(x)}${x.kind === 'warning' ? 'warning' : x.kind === 'ld' ? 'error' : 'error'}: ${x.en}` });
+        if (x.uk) L.push({ cls: 'uk', txt: '  ↳ ' + x.uk });
+      };
+      if (!res.ok) push(res.err);
+      else (res.warns || []).forEach(push);
+      return L;
+    }
+
+    // syntax colouring of one source line for the read-only view; numbers and a few words become editable tokens
+    const KW = new Set(['void', 'bool', 'int', 'long', 'unsigned', 'uint32_t', 'uint8_t', 'byte', 'volatile', 'const', 'static', 'if', 'else', 'return', 'true', 'false', 'IRAM_ATTR', '#include', '#define']);
+    function colour(line, off, editable) {
+      const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      let out = '', i = 0;
+      const tok = (cls, s, at, ed) => (ed ? `<span class="${cls} ce-tok" data-o="${off + at}" data-l="${s.length}">${esc(s)}</span>` : `<span class="${cls}">${esc(s)}</span>`);
+      while (i < line.length) {
+        const r = line.slice(i);
+        let m;
+        if ((m = /^\/\/.*/.exec(r)) || (m = /^\/\*.*?(\*\/|$)/.exec(r))) { out += tok('c', m[0], i); i += m[0].length; continue; }
+        if ((m = /^"(?:[^"\\]|\\.)*"?/.exec(r))) { out += tok('s', m[0], i); i += m[0].length; continue; }
+        if ((m = /^#\s*(include|define)\b/.exec(r))) { out += tok('k', m[0], i); i += m[0].length; continue; }
+        if ((m = /^\d+[uUlL]*/.exec(r)) && !/\w/.test(line[i - 1] || '')) { out += tok('n', m[0], i, true); i += m[0].length; continue; }
+        if ((m = /^[A-Za-z_]\w*/.exec(r))) {
+          const w = m[0];
+          out += KW.has(w) ? tok('k', w, i, w === 'volatile') : editable && editable.has(w) ? tok('id', w, i, true) : esc(w);
+          i += w.length; continue;
+        }
+        out += esc(line[i]); i++;
+      }
+      return out;
+    }
+
+    return { lex, parse, check, compile, machine, report, colour, walk, calls, callName, CErr };
+  })();
+
+  /* Code editor UI around a lab's code panel. opts: { root (the panel's box), view (element with the lines),
+     out (<pre> for build messages), spec, template() → source, editable: Set of words, snippets: [[label, code]],
+     onLoad(res, src, why) — called with a compiled program, render(src, res) — draws the read-only view } */
+  function codeEditor(opts) {
+    const { root, out } = opts;
+    const id = root.id || 'ce';
+    const bar = document.createElement('div');
+    bar.className = 'ce-bar';
+    bar.innerHTML = `<button type="button" class="btn sm ce-open" id="${id}-edit" aria-expanded="false">✎ Змінити код</button>
+      <span class="ce-state" id="${id}-state">оригінал</span>`;
+    const ed = document.createElement('div');
+    ed.className = 'ce-edit'; ed.hidden = true;
+    ed.innerHTML = `<label class="ce-lbl" for="${id}-ta">Ваш код (як у PlatformIO): змініть числа, назви чи рядки й натисніть «Завантажити»</label>
+      <textarea class="ce-ta" id="${id}-ta" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea>
+      ${opts.snippets && opts.snippets.length ? `<div class="ce-ins" role="group" aria-label="Вставити рядок у місце курсора"><span class="ce-ins-h">Вставити рядок:</span>${opts.snippets.map(([l], i) => `<button type="button" class="btn sm ghost" data-i="${i}">${l}</button>`).join('')}</div>` : ''}
+      <div class="ce-acts">
+        <button type="button" class="btn primary" data-a="up">⤓ Скомпілювати й завантажити</button>
+        <button type="button" class="btn" data-a="cancel">Скасувати</button>
+        <button type="button" class="btn ghost" data-a="orig">↺ Оригінал</button>
+      </div>`;
+    root.prepend(bar); opts.view.after(ed);
+    const ta = ed.querySelector('textarea'), openBtn = bar.querySelector('.ce-open'), state = bar.querySelector('.ce-state');
+    let src = opts.template(), custom = false;
+    const api = { uploads: 0, errors: 0, get src() { return src; }, get custom() { return custom; }, get isOpen() { return !ed.hidden; } };
+    const fit = () => { ta.rows = Math.max(6, ta.value.split('\n').length + 1); };
+    const show = (lines, ok) => {
+      out.hidden = !lines.length;
+      out.innerHTML = '';
+      out.classList.toggle('bad', !ok);
+      lines.forEach((l) => { const s = document.createElement('span'); s.className = l.cls || ''; s.textContent = l.txt + '\n'; out.appendChild(s); });
+    };
+    const setState = () => { state.textContent = custom ? 'ваша версія' : 'оригінал'; state.classList.toggle('mine', custom); };
+    function load(newSrc, why) {
+      const res = MiniC.compile(newSrc, opts.spec);
+      if (!res.ok) return res;
+      src = newSrc;
+      opts.render(src, res);
+      opts.onLoad(res, src, why);
+      return res;
+    }
+    function open(at, len) {
+      ta.value = src; fit();
+      ed.hidden = false; opts.view.hidden = true; openBtn.setAttribute('aria-expanded', 'true'); openBtn.textContent = '✎ Редагування…';
+      ta.focus({ preventScroll: true });
+      if (at != null) { try { ta.setSelectionRange(at, at + (len || 0)); } catch { /* old browser */ } }
+    }
+    function close() { ed.hidden = true; opts.view.hidden = false; openBtn.setAttribute('aria-expanded', 'false'); openBtn.textContent = '✎ Змінити код'; }
+    openBtn.addEventListener('click', () => (ed.hidden ? open() : close()));
+    ta.addEventListener('input', fit);
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); upload(); }
+      if (e.key === 'Escape') { e.preventDefault(); close(); openBtn.focus(); }
+    });
+    ed.querySelectorAll('.ce-ins button').forEach((b) => b.addEventListener('click', () => {
+      const code = opts.snippets[+b.dataset.i][1];
+      const v = ta.value, p = ta.selectionStart;
+      const ls = v.lastIndexOf('\n', p - 1) + 1, le = v.indexOf('\n', p) < 0 ? v.length : v.indexOf('\n', p);
+      const indent = /^\s*/.exec(v.slice(ls, le))[0] || '  ';
+      const ins = '\n' + indent + code;
+      ta.value = v.slice(0, le) + ins + v.slice(le);
+      const caret = le + ins.length;
+      ta.focus(); ta.setSelectionRange(caret, caret); fit();
+    }));
+    function upload() {
+      const res = MiniC.compile(ta.value, opts.spec);
+      if (!res.ok) {
+        api.errors++;
+        show([{ cls: 'dim', txt: 'Компіляція src/main.cpp…' }, ...MiniC.report(opts.spec, res),
+          { cls: 'err', txt: '✗ [FAILED] Прошивку не завантажено: плата далі виконує попередню версію.' }], false);
+        const e = res.err;
+        if (e.line > 0) {
+          const lines = ta.value.split('\n');
+          let p = 0; for (let i = 0; i < e.line - 1 && i < lines.length; i++) p += lines[i].length + 1;
+          p += Math.max(0, Math.min((lines[e.line - 1] || '').length, e.col - 1));
+          ta.focus(); try { ta.setSelectionRange(p, Math.min(ta.value.length, p + 1)); } catch { /* ignore */ }
+        }
+        return false;
+      }
+      api.uploads++;
+      custom = ta.value !== opts.template();
+      close();
+      load(ta.value, 'upload');
+      show([{ cls: 'dim', txt: 'Компіляція src/main.cpp…' }, ...MiniC.report(opts.spec, res),
+        { cls: 'ok', txt: '✓ [SUCCESS] Скомпільовано й завантажено: плата перезапустилась з новою прошивкою.' }], true);
+      setState();
+      return true;
+    }
+    ed.querySelector('[data-a="up"]').addEventListener('click', upload);
+    ed.querySelector('[data-a="cancel"]').addEventListener('click', () => { close(); openBtn.focus(); });
+    ed.querySelector('[data-a="orig"]').addEventListener('click', () => { ta.value = opts.template(); fit(); ta.focus(); });
+    // clicking a number or a marked word in the read-only view opens the editor with that token selected
+    opts.view.addEventListener('click', (e) => {
+      const t = e.target.closest && e.target.closest('.ce-tok');
+      if (!t) return;
+      open(+t.dataset.o, +t.dataset.l);
+    });
+    Object.assign(api, {
+      load, open, close, upload, show,
+      // the lab's own controls change the code: a patched source ('hot': the running model keeps its state) or a
+      // fresh template ('reset': new firmware). Returns the compiled result, or null when the source does not compile.
+      set(newSrc, isTemplate, how = 'reset') {
+        const res = MiniC.compile(newSrc, opts.spec);
+        if (!res.ok) return null;
+        custom = !isTemplate && newSrc !== opts.template();
+        load(newSrc, how);
+        setState(); out.hidden = true;
+        if (!ed.hidden) { ta.value = src; fit(); }
+        return res;
+      },
+      textarea: ta,
+    });
+    return api;
+  }
+  // replace [s, e) ranges in a string (ranges must not overlap)
+  const splice = (s, edits) => edits.sort((a, b) => b.s - a.s).reduce((acc, x) => acc.slice(0, x.s) + x.v + acc.slice(x.e), s);
   function holdable(el, down, up) {
     el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ } down(); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, up));
@@ -1144,9 +1928,9 @@ document.addEventListener('study:ready', () => {
     const LONG = 120;
     let m, rnd = prng(41);
     const fresh = () => {
-      m = { t: 0, tf: 0, workStart: 0, workEnd: cfg.W, isrUntil: 0, pending: false, flag: false, wasDown: false, led: 0,
-        presses: [], edges: [], isrs: [], works: [{ s: 0, e: cfg.W }], checks: [], flags: [], ledEv: [[0, 0]], phantoms: [],
-        calls: 0, done: 0, miss: 0, real: 0, lat: null, nextAuto: 700, manual: null, flash: {} };
+      m = { t: 0, tf: 0, workStart: 0, workEnd: cfg.W, wake: 0, slept: false, isrUntil: 0, pending: false, flag: false, wasDown: false, led: 0,
+        presses: [], edges: [], isrs: [], works: [], checks: [], flags: [], ledEv: [[0, 0]], phantoms: [],
+        calls: 0, done: 0, miss: 0, real: 0, lat: null, nextAuto: 700, manual: null, flash: {}, irq: null };
     };
     const now = () => performance.now();
     const level = (t) => (m.presses.some((p) => p.s <= t && (p.e == null || t < p.e)) ? 0 : 1);
@@ -1162,10 +1946,22 @@ document.addEventListener('study:ready', () => {
       m.flag = v;
       if (v) m.flags.push({ s: t, e: null }); else { const f = m.flags[m.flags.length - 1]; if (f && f.e == null) f.e = t; }
     }
+    // the ISR is the function named in attachInterrupt(); MiniC runs it to the end at once, longWork() inside it adds 120 ms
     function runIsr(t, p) {
-      m.calls++; m.isrs.push({ t, d: cfg.long ? LONG : 0 }); setFlag(true, t); m.flash.isr = now();
+      m.calls++; m.flash.isr = now();
       if (p && p.isrAt == null) p.isrAt = t;
-      if (cfg.long) { m.isrUntil = t + LONG; m.workEnd += LONG; }
+      inIsr = true;
+      const d = M.isr(m.irq.fn, (v) => { if (v.k === 'did' || v.k === 'cond') m.flash['L' + v.line] = now(); });
+      inIsr = false;
+      m.isrs.push({ t, d });
+      if (d > 0) { m.isrUntil = t + d; m.workEnd += d; m.wake += d; }
+    }
+    function phantomWhy() {
+      if (cfg.mode === 'poll') return F.edgeDetect ? 'Фантом: зайве перемикання без нового натискання.'
+        : 'Фантом: поки S1 натиснута, умова if істинна на кожному проході. Без перевірки wasDown loop() перемикає LED знову і знову.';
+      if (F.flag && !F.clears) return `Фантом: ${F.flag} ніхто не скидає (у loop() немає ${F.flag} = false;), тож loop() «обробляє натискання» на кожному проході.`;
+      if (F.edge === 'CHANGE') return 'Фантом: CHANGE запускає ISR і на натисканні, і на відпусканні — одне натискання дає дві обробки.';
+      return 'Фантом: брязкіт відпускання дав ще спадаючий фронт → ще один виклик ISR → loop() обробив «натискання», якого не було. Потрібен антибрязкіт (картки розділу 04).';
     }
     function handled(t) {
       m.done++; m.led ^= 1; m.ledEv.push([t, m.led]); m.flash.hit = now();
@@ -1175,45 +1971,54 @@ document.addEventListener('study:ready', () => {
         say(cfg.mode === 'poll'
           ? `Помічено через ${m.lat} мс: перевірка після роботи loop() якраз застала кнопку натиснутою.`
           : cfg.long ? `ISR стартував одразу на фронті, але тривав ${LONG} мс: увесь цей час doWork() стояв. Обробка в loop() — через ${m.lat} мс.`
-            : `ISR спрацював одразу на фронті (за мікросекунди) і поставив прапорець; loop() обробив його через ${m.lat} мс, коли закінчив doWork().`);
+            : F.edge === 'RISING' ? `RISING: ISR спрацював, коли S1 відпустили, а не коли натиснули. Обробка в loop() — через ${m.lat} мс від натискання.`
+              : `ISR спрацював одразу на фронті (за мікросекунди) і поставив прапорець; loop() обробив його через ${m.lat} мс, коли закінчив doWork().`);
       } else {
         m.phantoms.push(t);
-        say('Фантом: брязкіт відпускання дав ще спадаючий фронт → ще один виклик ISR → loop() обробив «натискання», якого не було. Потрібен антибрязкіт (картки розділу 04).');
+        say(phantomWhy());
       }
     }
+    let curT = 0, inIsr = false, M = null, task = null, P = null;
+    let F = { flag: null, clears: true, edge: 'FALLING', edgeDetect: true, lines: {} };
     function tick(t) {
+      curT = t;
       if (cfg.auto && t >= m.nextAuto && !m.manual && quiet(t)) {
         const dur = 40 + Math.round(rnd() * 160);
         newPress(t, t + dur);
         m.nextAuto = t + dur + 500 + Math.round(rnd() * 1400);
       }
-      // edges on GPIO7 in this ms
-      const falls = [];
+      // edges on GPIO7 in this ms (a bouncing release = one rise plus nb extra fall/rise pairs)
+      const falls = [], rises = [];
       for (const p of m.presses) {
         if (p.s === t) { falls.push(p); m.edges.push({ t, k: 'fall' }); m.flash.edge = now(); }
         if (p.e === t) {
           m.edges.push({ t, k: 'rise', nb: p.nb });
-          for (let i = 0; i < p.nb; i++) falls.push(null);
+          rises.push(p);
+          for (let i = 0; i < p.nb; i++) { falls.push(null); rises.push(null); }
           if (p.nb) m.flash.edge = now();
         }
       }
-      if (cfg.mode === 'isr') {
-        for (const p of falls) {
+      const irq = m.irq;
+      if (irq && irq.pin === 7) {
+        const trig = irq.mode === 1 ? rises : irq.mode === 2 ? falls : irq.mode === 3 ? [...falls, ...rises] : [];
+        for (const p of trig) {
           if (t < m.isrUntil) m.pending = true;
           else runIsr(t, p);
         }
-        if (cfg.long && t === m.isrUntil && m.pending) { m.pending = false; runIsr(t, null); }
+        if (t === m.isrUntil && m.pending) { m.pending = false; runIsr(t, m.presses.find((q) => q.isrAt == null && !q.caught && q.s <= t) || null); }
       }
-      // loop()
-      if (t >= m.isrUntil && t >= m.workEnd) {
-        m.checks.push(t);
-        if (cfg.mode === 'poll') {
-          const down = level(t) === 0;
-          if (down && !m.wasDown) handled(t);
-          m.wasDown = down;
-        } else if (cfg.vol ? m.flag : false) { setFlag(false, t); handled(t); }
-        else if (!cfg.vol && m.flag && !m.volSaid) { m.volSaid = true; say('ISR поставив pressed = true, але loop() читає свою копію з регістра і бачить false. Без volatile компілятор має право так оптимізувати, і натискання ніколи не обробиться.'); }
-        m.workStart = t; m.workEnd = t + cfg.W; m.works.push({ s: t, e: m.workEnd });
+      // loop(): the panel's code, run by MiniC; doWork()/delay() take time, the rest is instant
+      if (t >= m.isrUntil) {
+        let guard = 0;
+        while (task && t >= m.wake && guard++ < 400) {
+          const v = task.next().value;
+          if (v.k === 'wait') {
+            if (v.ms > 0) { m.wake = t + v.ms; m.workStart = t; m.workEnd = m.wake; m.works.push({ s: t, e: m.wake }); m.workLine = v.node.line; m.slept = true; }
+            continue;
+          }
+          if (v.k === 'pass') { if (!m.slept) m.wake = t + 1; m.slept = false; continue; }
+          if (v.k === 'cond' && v.taken) m.flash['L' + v.line] = now();
+        }
       }
       // missed presses
       for (const p of m.presses) {
@@ -1221,7 +2026,7 @@ document.addEventListener('study:ready', () => {
         const limit = cfg.mode === 'poll' ? p.e : p.e + cfg.W + (cfg.long ? LONG : 0) + 2;
         if (t >= limit) {
           p.done = true;
-          if (!p.caught && (cfg.mode === 'poll' || !cfg.vol)) {
+          if (!p.caught) {
             m.miss++; p.missed = true;
             if (cfg.mode === 'poll') say('✗ Пропущено: кнопку відпустили, поки loop() робив свою роботу. Опитування так і не дізналося про натискання.');
           }
@@ -1237,43 +2042,116 @@ document.addEventListener('study:ready', () => {
       }
     }
 
-    /* ---- code ---- */
+    /* ---- code: the panel's source is editable (codeEditor + MiniC above) ---- */
     const codeEl = $('#ir-code');
     let lines = [];
-    function renderCode() {
-      const rem = (s) => `<span class="rem">${s}</span>`;
-      const W = `<b>${cfg.W}</b>`;
-      const L = cfg.mode === 'poll' ? [
-        ['', 'void loop() {'],
-        ['work', `  doWork();            ${rem(`// ${W} мс`)}`],
-        ['read', `  bool down = !digitalRead(BTN);`],
-        ['if', '  if (down &amp;&amp; !wasDown) toggle(LED);'],
-        ['', '  wasDown = down;'],
-        ['', '}'],
-      ] : [
-        ['decl', cfg.vol ? 'volatile bool pressed = false;' : `bool pressed = false;  ${rem('// без volatile!')}`],
-        ['isr', 'void IRAM_ATTR onPress() {'],
-        ['isr', '  pressed = true;'],
-        ...(cfg.long ? [['isr', `  longWork();          ${rem('// 120 мс ✗')}`]] : []),
-        ['isr', '}'],
-        ['', 'void loop() {'],
-        ['work', `  doWork();            ${rem(`// ${W} мс`)}`],
-        ['if', '  if (pressed) {'],
-        ['if', '    pressed = false; toggle(LED); }'],
-        ['', '}'],
-      ];
-      codeEl.innerHTML = L.map(([k, h]) => `<span class="ln" data-k="${k}">${h}</span>`).join('');
+    const EDGE = { 1: 'RISING', 2: 'FALLING', 3: 'CHANGE' };
+    const check1 = (t) => { if (m.checks[m.checks.length - 1] !== t) m.checks.push(t); };
+    const spec = {
+      file: 'src/main.cpp', require: ['loop'],
+      consts: { BTN: 7, LED: 15, HIGH: 1, LOW: 0, RISING: 1, FALLING: 2, CHANGE: 3, INPUT: 1, OUTPUT: 3, INPUT_PULLUP: 5 },
+      globals: { wasDown: { type: 'bool', v: 0 } },
+      builtins: {
+        doWork: { n: 1, sig: 'void doWork(uint32_t)', f: ([ms]) => ({ wait: Math.min(5000, Math.max(0, Math.trunc(Number(ms) || 0))) }) },
+        delay: { n: 1, sig: 'void delay(uint32_t)', f: ([ms]) => ({ wait: Math.min(5000, Math.max(0, Math.trunc(Number(ms) || 0))) }) },
+        longWork: { n: 0, sig: 'void longWork()', f: () => ({ wait: LONG }) },
+        millis: { n: 0, sig: 'unsigned long millis()', f: () => curT },
+        digitalRead: { n: 1, sig: 'int digitalRead(uint8_t)', f: ([p], c) => { if (!c.isr) check1(curT); m.flash['L' + c.node.line] = now(); return p === 7 ? level(curT) : 0; } },
+        toggle: { n: 1, sig: 'void toggle(uint8_t)', f: ([p], c) => { if (p === 15) { m.flash['L' + c.node.line] = now(); handled(curT); } } },
+        pinMode: { n: 2, sig: 'void pinMode(uint8_t, uint8_t)', f: () => {} },
+        digitalPinToInterrupt: { n: 1, sig: 'int digitalPinToInterrupt(uint8_t)', f: ([p]) => p },
+        attachInterrupt: { n: 3, sig: 'void attachInterrupt(uint8_t, void (*)(), int)', f: ([pin, fn, mode]) => { m.irq = { pin, fn: fn.fn, mode }; },
+          check: (e, { fail, prog }) => {
+            const a = e.args[1];
+            if (!(a.k === 'id' && prog.fns[a.name])) fail(a, 'invalid conversion from \'int\' to \'void (*)()\'', 'Другим аргументом має бути назва функції-обробника (ISR), без дужок: onPress.');
+          } },
+      },
+      check(prog, fail, warn) {
+        const isrs = [];
+        for (const fn of Object.values(prog.fns)) MiniC.walk(fn.body, (s) => { for (const c of MiniC.calls(s.e || s.init || s.c)) if (MiniC.callName(c) === 'attachInterrupt' && c.args[1].k === 'id') isrs.push(c.args[1].name); });
+        for (const n of isrs) {
+          const f = prog.fns[n];
+          if (n === 'loop' || n === 'setup') fail(f, `'${n}' used as an interrupt handler`, 'Обробником переривання має бути окрема коротка функція, не setup() і не loop().');
+          if (!f.iram) warn(f, `ISR '${n}' is not in IRAM (no IRAM_ATTR)`, 'Без IRAM_ATTR обробник лежить у flash; коли flash зайнятий, переривання може зламати програму. Додайте IRAM_ATTR.');
+          MiniC.walk(f.body, (s) => { for (const c of MiniC.calls(s.e || s.init || s.c)) { const nm = MiniC.callName(c); if (nm === 'delay' || nm === 'doWork') fail(c, `${nm}() inside an interrupt handler`, 'У перериванні чекати не можна: delay() в ISR зупиняє все ядро і закінчується перезавантаженням. Тримайте ISR коротким: лише поставте прапорець.'); } });
+        }
+      },
+    };
+    const tpl = (mode = cfg.mode, W = cfg.W, vol = cfg.vol, long = cfg.long, edge = 'FALLING') => (mode === 'poll' ? [
+      '// BTN = 7 (S1), LED = 15; doWork(мс) — «робота» loop()',
+      'void loop() {',
+      `  doWork(${W});`,
+      '  bool down = !digitalRead(BTN);',
+      '  if (down && !wasDown) toggle(LED);',
+      '  wasDown = down;',
+      '}',
+    ] : [
+      '// BTN = 7 (S1), LED = 15; doWork(мс) — «робота» loop()',
+      `${vol ? 'volatile ' : ''}bool pressed = false;`,
+      'void IRAM_ATTR onPress() {',
+      '  pressed = true;',
+      ...(long ? ['  longWork();          // 120 мс ✗'] : []),
+      '}',
+      'void setup() {',
+      `  attachInterrupt(digitalPinToInterrupt(BTN), onPress, ${edge});`,
+      '}',
+      'void loop() {',
+      `  doWork(${W});`,
+      '  if (pressed) {',
+      '    pressed = false; toggle(LED); }',
+      '}',
+    ]).join('\n');
+    // what the program does, read from its tree
+    function facts(prog) {
+      const f = { mode: 'poll', isr: null, flag: null, flagG: null, clears: false, edge: null, edgeDetect: false, long: null, work: null, lines: {} };
+      for (const fn of Object.values(prog.fns)) MiniC.walk(fn.body, (s) => {
+        for (const c of MiniC.calls(s.e || s.init || s.c)) {
+          const n = MiniC.callName(c);
+          if (n === 'attachInterrupt') {
+            f.mode = 'isr'; f.isr = c.args[1].name;
+            const a = c.args[2], v = a.k === 'num' ? a.v : spec.consts[a.name] ?? (prog.defines[a.name] && prog.defines[a.name].val ? spec.consts[prog.defines[a.name].val.v] ?? prog.defines[a.name].val.v : null);
+            f.edge = EDGE[v] || String(v); f.edgeNode = a;
+          }
+          if (n === 'doWork' && fn.name === 'loop' && !f.work && c.args[0].k === 'num') f.work = c.args[0];
+        }
+      });
+      const isr = f.isr && prog.fns[f.isr];
+      if (isr) {
+        f.lines.isr = [isr.line, isr.endLine];
+        MiniC.walk(isr.body, (s) => {
+          if (s.k === 'expr' && s.e.k === 'asg' && !f.flag && prog.globals.some((g) => g.name === s.e.l.name)) f.flag = s.e.l.name;
+          if (s.k === 'expr' && s.e.k === 'call' && MiniC.callName(s.e) === 'longWork') f.long = s;
+        });
+        f.firstIsrLine = isr.body.length ? isr.body[0].line : isr.line;
+      }
+      f.flagG = f.flag ? prog.globals.find((g) => g.name === f.flag) : null;
+      if (prog.fns.loop) MiniC.walk(prog.fns.loop.body, (s) => {
+        if (s.k === 'expr' && s.e.k === 'asg' && s.e.l.name === f.flag && s.e.r.k === 'num' && !s.e.r.v) f.clears = true;
+        const ids = JSON.stringify(s.c || s.e || s.init || {});
+        if (/"name":"wasDown"/.test(ids)) f.edgeDetect = true;
+      });
+      return f;
+    }
+        function render(src, res) {
+      F = facts(res.prog);
+      const [a, b] = F.lines.isr || [0, -1];
+      const work = F.work ? F.work.line : 0, bad = F.flagG && !F.flagG.vol ? F.flagG.line : 0;
+      let off = 0;
+      codeEl.innerHTML = src.split('\n').map((ln, i) => {
+        const L = i + 1, html = MiniC.colour(ln, off, EDIT) || ' '; off += ln.length + 1;
+        return `<span class="ln" data-l="${L}"${L >= a && L <= b ? ' data-isr="1"' : ''}${L === work ? ' data-work="1"' : ''}${L === bad ? ' data-bad="1"' : ''}>${html}</span>`;
+      }).join('');
       lines = $$('.ln', codeEl);
     }
+    const EDIT = new Set(['RISING', 'FALLING', 'CHANGE', 'BTN', 'LED']);
     function markCode() {
-      const tn = now(), inIsr = m.t < m.isrUntil || (m.flash.isr && tn - m.flash.isr < 300);
-      const hit = m.flash.hit && tn - m.flash.hit < 350;
+      const tn = now(), isrNow = m.t < m.isrUntil || (m.flash.isr && tn - m.flash.isr < 300);
       for (const el of lines) {
-        const k = el.dataset.k;
-        setCls(el, 'isr', k === 'isr' && inIsr);
-        setCls(el, 'on', k === 'work' && !inIsr);
-        setCls(el, 'hit', (k === 'if' || k === 'read') && hit);
-        setCls(el, 'bad', k === 'decl' && !cfg.vol);
+        const f = m.flash['L' + el.dataset.l];
+        setCls(el, 'isr', !!el.dataset.isr && isrNow);
+        setCls(el, 'on', !!el.dataset.work && !isrNow && m.t < m.wake);
+        setCls(el, 'hit', !el.dataset.isr && !!f && tn - f < 350);
+        setCls(el, 'bad', !!el.dataset.bad);
       }
     }
 
@@ -1443,13 +2321,64 @@ document.addEventListener('study:ready', () => {
     const syncPlay = () => setTxt(playBtn, sim.running ? '❚❚ Пауза' : '▶ Пуск');
     new MutationObserver(syncPlay).observe(stage, { attributes: true, attributeFilter: ['data-sim'] });
     playBtn.addEventListener('click', () => { sim.toggle(); syncPlay(); });
-    const reset = () => { fresh(); renderCode(); sizeCanvas(); sim.draw(); };
+    const hooks = {
+      read(name, ctx) {
+        if (name !== F.flag || ctx.isr) return;
+        check1(curT);
+        if (F.flagG && !F.flagG.vol && M.get(name) && M.cached(name) === 0 && !m.volSaid) { m.volSaid = true; say(`ISR поставив ${name} = true, але loop() читає свою копію з регістра і бачить false. Без volatile компілятор має право так оптимізувати, і натискання ніколи не обробиться.`); }
+      },
+      write(name, v) { if (name === F.flag) setFlag(!!v, curT); },
+    };
+    const reset = () => { fresh(); M = MiniC.machine(P, spec, hooks); task = M.task(); tick(0); sizeCanvas(); sim.draw(); };
+    const syncCtl = () => {
+      $$('#ir-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.m === cfg.mode)));
+      if (cfg.mode === 'isr') { $('#ir-vol').setAttribute('aria-checked', String(cfg.vol)); $('#ir-long').setAttribute('aria-checked', String(cfg.long)); }
+      $('#ir-warn').hidden = !(cfg.mode === 'isr' && cfg.long);
+      if (cfg.W >= 20 && cfg.W <= 1000) $('#ir-w').value = String(cfg.W);
+      setTxt($('#ir-wout'), `${cfg.W} мс`);
+    };
+    // the controls and the editor share one program: a control rewrites the code, the code sets cfg
+    const ce = codeEditor({
+      root: $('#ir-ce'), view: codeEl, out: $('#ir-cout'), spec, template: () => tpl('poll', 300, true, false),
+      snippets: [['pressed = false;', 'pressed = false;'], ['longWork();', 'longWork();'], ['doWork(100);', 'doWork(100);'], ['toggle(LED);', 'toggle(LED);']],
+      render,
+      onLoad(res, src, how) {
+        P = res.prog;
+        cfg.mode = F.mode;
+        if (F.work) cfg.W = F.work.v;
+        if (cfg.mode === 'isr') { cfg.vol = F.flagG ? F.flagG.vol : true; cfg.long = !!F.long; }
+        syncCtl();
+        if (how === 'hot' && M && m) {
+          const old = M; M = MiniC.machine(P, spec, hooks);
+          for (const g of Object.keys(old.mem)) if (M.mem[g]) M.mem[g].v = old.mem[g].v;
+          task = M.task(true); m.volSaid = false;
+          if (m.wake > m.t) { m.wake = m.t; }
+          sim.draw();
+        } else {
+          reset();
+          if (how === 'upload') say(cfg.mode === 'poll' ? `Ваша прошивка: опитування, робота loop() ${cfg.W} мс. Натисніть S1.`
+            : m.irq && m.irq.pin !== 7 ? `attachInterrupt на GPIO${m.irq.pin}, а S1 під'єднана до GPIO7: переривання не спрацює.`
+              : `Ваша прошивка: переривання ${F.edge}${F.flag ? `, прапорець ${F.flag}${cfg.vol ? '' : ' без volatile'}` : ''}. Натисніть S1.`);
+        }
+      },
+    });
+    const patchOr = (edits, why) => {
+      if (edits) return ce.set(splice(ce.src, edits), !ce.custom, 'hot');
+      if (ce.custom) say(why || 'Ваші зміни коду замінено шаблоном.');
+      return ce.set(tpl('isr'), true, 'hot');
+    };
     const seg = (id, fn) => $$(`#${id} button`).forEach((b) => b.addEventListener('click', () => {
       $$(`#${id} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fn(b);
     }));
-    seg('ir-mode', (b) => { cfg.mode = b.dataset.m; reset(); modeNote(); });
+    seg('ir-mode', (b) => { if (ce.custom) say('Ваші зміни коду замінено шаблоном.'); ce.set(tpl(b.dataset.m), true, 'reset'); modeNote(); });
     seg('ir-speed', (b) => { cfg.speed = +b.dataset.s; sim.draw(); });
-    $('#ir-w').addEventListener('input', (e) => { cfg.W = +e.target.value; setTxt($('#ir-wout'), `${cfg.W} мс`); renderCode(); });
+    $('#ir-w').addEventListener('input', (e) => {
+      const v = +e.target.value;
+      if (F.work) ce.set(splice(ce.src, [{ s: F.work.s, e: F.work.e, v: String(v) }]), !ce.custom, 'hot');
+      else if (!ce.custom) { cfg.W = v; ce.set(tpl(), true, 'hot'); }
+      else say('У вашому loop() немає doWork() з числом: змініть роботу в редакторі.');
+      setTxt($('#ir-wout'), `${cfg.W} мс`);
+    });
     $('#ir-auto').addEventListener('switch', (e) => { cfg.auto = e.detail.on; m.nextAuto = m.t + 300; if (cfg.auto && !sim.running) { sim.play(); syncPlay(); } });
     $('#ir-bounce').addEventListener('switch', (e) => {
       cfg.bounce = e.detail.on;
@@ -1458,13 +2387,26 @@ document.addEventListener('study:ready', () => {
           : 'Брязкіт увімкнено: приблизно кожне третє відпускання дає ще спадаючі фронти, і ISR спрацьовує на кожен. Натисніть S1 кілька разів і стежте за «Викликів ISR».');
     });
     $('#ir-vol').addEventListener('switch', (e) => {
-      cfg.vol = e.detail.on; m.volSaid = false; renderCode();
+      if (cfg.mode === 'isr') {
+        const g = F.flagG, src = ce.src;
+        if (g) {
+          const le = src.indexOf('\n', g.s), seg2 = src.slice(g.s, le < 0 ? src.length : le), mv = /\bvolatile\s+/.exec(seg2);
+          patchOr(e.detail.on ? (mv ? null : [{ s: g.s, e: g.s, v: 'volatile ' }]) : mv ? [{ s: g.s + mv.index, e: g.s + mv.index + mv[0].length, v: '' }] : null);
+        } else { cfg.vol = e.detail.on; patchOr(null); }
+      } else cfg.vol = e.detail.on;
+      m.volSaid = false;
       say(cfg.mode === 'poll' ? 'volatile важливий для змінних, спільних з ISR. В опитуванні прапорця немає — перемкніться на «Переривання».'
         : cfg.vol ? 'volatile: кожне читання pressed іде в пам’ять, тож loop() бачить, що ISR змінив прапорець.'
           : 'Без volatile компілятор може тримати pressed у регістрі. Натисніть S1: ISR спрацює, а loop() не побачить змін.');
     });
     $('#ir-long').addEventListener('switch', (e) => {
-      cfg.long = e.detail.on; renderCode(); $('#ir-warn').hidden = !cfg.long;
+      if (cfg.mode === 'isr') {
+        const src = ce.src, lineStart = (L) => { let p = 0; for (let i = 1; i < L; i++) p = src.indexOf('\n', p) + 1; return p; };
+        if (!e.detail.on && F.long) { const a = lineStart(F.long.line), b = src.indexOf('\n', a); patchOr([{ s: a, e: b < 0 ? src.length : b + 1, v: '' }]); }
+        else if (e.detail.on && !F.long && F.isr) { const a = lineStart(F.firstIsrLine + 1); patchOr([{ s: a, e: a, v: '  longWork();          // 120 мс ✗\n' }]); }
+        else { cfg.long = e.detail.on; patchOr(null); }
+      } else cfg.long = e.detail.on;
+      $('#ir-warn').hidden = !(cfg.mode === 'isr' && cfg.long);
       say(cfg.long ? (cfg.mode === 'poll' ? 'Довгий ISR має сенс лише з перериваннями: перемкніться на «Переривання» і натисніть S1.' : 'ISR тепер триває 120 мс: натисніть S1 і подивіться, як стоїть doWork() у таймлайні.') : 'ISR знову короткий: лише pressed = true.');
     });
     const down = () => {
@@ -1476,7 +2418,7 @@ document.addEventListener('study:ready', () => {
     holdable(pressBtn, down, up); holdable(s1, down, up);
     new ResizeObserver(() => { sizeCanvas(); sim.draw(); }).observe(stage);
     Study.onTheme(() => sim.draw());
-    reset(); modeNote(); syncPlay();
+    ce.set(tpl(), true, 'reset'); modeNote(); syncPlay();
 
     /* ---- missions: each check reads this model (cfg, m) ---- */
     Study.missions($('#ir-ms'), { key: 'ir', items: [
@@ -1492,6 +2434,12 @@ document.addEventListener('study:ready', () => {
       { id: 'vol', text: 'Вимкніть <code>volatile</code> і натисніть S1: ISR спрацює, а натискання так і не обробиться.',
         hint: 'Режим «Переривання», перемикач volatile вимкнений. Зачекайте, поки «Пропущено» стане 1: loop() читає свою копію pressed з регістра.',
         check: () => cfg.mode === 'isr' && !cfg.vol && m.calls >= 1 && m.miss >= 1 },
+      { id: 'rising', text: 'Змініть у <b>коді</b> <code>FALLING</code> на <code>RISING</code> і натисніть S1: коли тепер спрацьовує ISR?',
+        hint: 'Режим «Переривання», «✎ Змінити код» (або клацніть слово FALLING у коді). RISING — фронт угору: кнопку відпустили. «Обробка в loop()» тепер рахує і час, поки ви тримали S1.',
+        check: () => cfg.mode === 'isr' && F.edge === 'RISING' && m.done >= 1 && m.lat != null },
+      { id: 'clear', text: 'Видаліть з <code>loop()</code> рядок скидання прапорця (<code>pressed = false;</code>), натисніть S1 один раз і подивіться на LED.',
+        hint: 'Режим «Переривання». Лишіть у рядку лише <code>toggle(LED); }</code> і завантажте. Без скидання прапорець лишається true, і кожен прохід loop() «обробляє» те саме натискання.',
+        check: () => cfg.mode === 'isr' && F.flag && !F.clears && m.real >= 1 && m.done >= 3 },
       { id: 'long', text: 'Увімкніть «Довгий код в ISR», натисніть S1 і прочитайте попередження під лабораторією.',
         hint: 'Режим «Переривання». Поки ISR триває 120&nbsp;мс, смуга «робота loop()» на таймлайні стоїть.',
         check: () => cfg.mode === 'isr' && cfg.long && m.isrs.some((i) => i.d > 0) && !$('#ir-warn').hidden },

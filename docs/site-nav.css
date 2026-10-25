@@ -181,3 +181,130 @@
 }
 .skip.sn-skip:focus { top: 8px; }
 [data-sn-main]:focus { outline: none; }
+
+/* ---------------------------------------------------------------- site search (assets/site-nav.js)
+   The «Пошук /» button sits just left of the theme switch (in .site-nav and in the course map's top bar); on phones it
+   is a 44 px icon pinned next to the theme switch. The results open in a modal <dialog>: a panel near the top of the
+   screen on desktop, a full-screen sheet on phones. */
+.sn-search-btn {
+  margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 10px; min-height: 36px; border: 1px solid var(--line-2); border-radius: 10px;
+  background: var(--panel); color: var(--ink); font: 600 13px/1.3 var(--f-mono, ui-monospace, monospace); cursor: pointer;
+  box-shadow: 0 1.5px 0 var(--line-2); letter-spacing: normal; text-transform: none;
+}
+.sn-search-btn svg { flex: none; display: block; }
+.sn-search-btn:hover { color: var(--accent); border-color: var(--accent); }
+.sn-search-btn:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; }
+.sn-search-btn + .theme-btn { margin-left: 0; }
+.sn-search-btn .sn-s-kbd {
+  display: none; min-width: 20px; padding: 0 5px; border: 1px solid var(--line-2); border-radius: 5px;
+  background: var(--panel-2); color: var(--muted); font: 600 13px/18px var(--f-mono, ui-monospace, monospace); text-align: center;
+}
+@media (min-width: 1200px) { .sn-search-btn .sn-s-kbd { display: inline-block; } }
+/* a desktop row that would wrap (site-nav.js tighten): icon only, then the theme switch without its «Тема» caption */
+.site-nav.sn-tight1 > .sn-search-btn :is(.sn-s-lbl, .sn-s-kbd) { display: none; }
+.site-nav.sn-tight1 > .sn-search-btn { padding-inline: 9px; }
+.site-nav.sn-tight2 > .theme-btn::before { display: none; }
+@media (pointer: coarse) { .sn-search-btn { min-height: 44px; } .sn-search-btn .sn-s-kbd { display: none; } }
+/* 641–1199 px: the nav row is full, so only the icon (the name stays in aria-label) */
+@media (min-width: 641px) and (max-width: 1199px) {
+  .site-nav > .sn-search-btn .sn-s-lbl { display: none; }
+  .site-nav > .sn-search-btn { padding-inline: 9px; }
+}
+@media (max-width: 640px) {
+  .sn-search-btn .sn-s-lbl { display: none; }
+  .sn-search-btn { min-width: 44px; min-height: 44px; justify-content: center; padding: 6px 10px; }
+  /* pinned left of the pinned theme switch (site-nav.js measures the switch into --sn-tw) */
+  .site-nav > .sn-search-btn { position: sticky; right: calc(8px + var(--sn-tw, 80px) + 12px); z-index: 2; }
+  /* the 12 px between the two pinned buttons is masked too, so no sliced link shows through it */
+  .site-nav.sn-scroll:has(> .sn-search-btn):has(> .theme-btn) {
+    --sn-g1: calc(100% - 8px - var(--sn-tw, 80px) - 12px); --sn-g2: calc(100% - 8px - var(--sn-tw, 80px));
+    --sn-mask: linear-gradient(90deg, transparent 8px, #000 8px, #000 var(--sn-l), transparent var(--sn-l), transparent calc(var(--sn-l) + 8px),
+      #000 calc(var(--sn-l) + 30px), #000 calc(var(--sn-r) - 30px), transparent calc(var(--sn-r) - 8px), transparent var(--sn-r), #000 var(--sn-r),
+      #000 var(--sn-g1), transparent var(--sn-g1), transparent var(--sn-g2), #000 var(--sn-g2), #000 calc(100% - 8px), transparent calc(100% - 8px));
+  }
+  .site-nav.sn-scroll:has(> .sn-search-btn:focus-visible) { -webkit-mask-image: none; mask-image: none; }
+}
+@media print { .sn-search-btn, .sn-sdlg { display: none !important; } }
+
+html.sn-s-open { overflow: hidden; }
+.sn-sdlg {
+  box-sizing: border-box; width: min(680px, calc(100vw - 32px)); max-width: none; max-height: min(78vh, 720px);
+  margin: 9vh auto auto; padding: 0; border: 1px solid var(--line-2); border-radius: var(--r-lg, 16px);
+  background: var(--panel); color: var(--ink); box-shadow: var(--shadow-lift);
+  font: 400 15px/1.45 var(--f-body, system-ui, sans-serif); overflow: hidden;
+}
+.sn-sdlg[open] { display: flex; }
+.sn-sdlg::backdrop { background: rgba(20, 14, 8, .45); }
+.sn-sdlg *, .sn-sdlg *::before, .sn-sdlg *::after { box-sizing: border-box; }
+.sn-s-box { display: flex; flex-direction: column; width: 100%; min-height: 0; }
+.sn-s-h { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sn-s-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--line); }
+.sn-s-ico { flex: none; display: inline-flex; color: var(--muted); }
+.sn-sdlg .sn-s-head input[type="search"] {
+  flex: 1; min-width: 0; min-height: 44px; margin: 0; padding: 8px 4px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--ink); font: 500 17px/1.3 var(--f-body, system-ui, sans-serif); box-shadow: none; -webkit-appearance: none; appearance: none;
+}
+.sn-sdlg .sn-s-head input[type="search"]::placeholder { color: var(--muted); opacity: 1; }
+/* the focus indicator is the 2 px line under the whole search row (.sn-s-head:focus-within); :not(#\#) outranks
+   study.css's input focus ring */
+.sn-sdlg .sn-s-head input[type="search"]:not(#\#):is(:focus, :focus-visible) { outline: none; border: 0; box-shadow: none; background: transparent; }
+.sn-sdlg input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+.sn-s-head:focus-within { box-shadow: inset 0 -2px 0 var(--focus); }
+.sn-s-close {
+  flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px; margin: 0;
+  border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); color: var(--ink);
+  font: 600 13px/1.3 var(--f-mono, ui-monospace, monospace); cursor: pointer; letter-spacing: normal; text-transform: none;
+}
+.sn-s-close:hover { border-color: var(--accent); color: var(--accent); }
+.sn-s-close:focus-visible, .sn-s-ex:focus-visible, .sn-s-retry:focus-visible, .sn-s-list a:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; }
+.sn-s-esc { color: var(--muted); font-weight: 500; }
+.sn-s-status { margin: 0; padding: 8px 16px 0; min-height: 0; color: var(--muted); font: 500 13px/1.4 var(--f-mono, ui-monospace, monospace); }
+.sn-s-status:empty { display: none; }
+.sn-s-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px; }
+.sn-s-list a {
+  display: block; padding: 10px 12px; min-height: 44px; border-radius: 10px; color: var(--ink); text-decoration: none;
+  scroll-margin: 8px;
+}
+.sn-s-list a + a { margin-top: 2px; }
+.sn-s-list a[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 11%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+.sn-s-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; font: 500 13px/1.4 var(--f-mono, ui-monospace, monospace); color: var(--muted); }
+.sn-s-type {
+  flex: none; padding: 0 7px; border-radius: var(--r-pill, 999px); border: 1px solid var(--line-2); background: var(--panel-2);
+  color: var(--ink); font-weight: 600;
+}
+.sn-s-type[data-y="урок"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2)); }
+.sn-s-type[data-y="глосарій"] { color: var(--copper); border-color: color-mix(in srgb, var(--copper) 45%, var(--line-2)); }
+.sn-s-type[data-y="деталь"] { color: var(--hi-ink); border-color: color-mix(in srgb, var(--hi) 50%, var(--line-2)); }
+.sn-s-type[data-y="картка"] { color: var(--teach); border-color: color-mix(in srgb, var(--teach) 45%, var(--line-2)); }
+.sn-s-where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sn-s-t { display: block; margin-top: 2px; font: 600 16px/1.35 var(--f-body, system-ui, sans-serif); overflow-wrap: anywhere; }
+.sn-s-alt { font-weight: 400; color: var(--muted); }
+.sn-s-x {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  margin-top: 2px; color: var(--muted); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere;
+}
+.sn-s-list mark { background: color-mix(in srgb, var(--hi) 28%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.sn-s-hint { padding: 10px 8px; color: var(--muted); }
+.sn-s-hint p { margin: 0 0 10px; }
+.sn-s-exs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sn-s-ex, .sn-s-retry {
+  min-height: 44px; padding: 6px 14px; margin: 0; border: 1px solid var(--line-2); border-radius: var(--r-pill, 999px);
+  background: var(--panel-2); color: var(--ink); font: 500 14px/1.3 var(--f-body, system-ui, sans-serif); cursor: pointer;
+  letter-spacing: normal; text-transform: none;
+}
+.sn-s-ex:hover, .sn-s-retry:hover { border-color: var(--accent); color: var(--accent); }
+.sn-s-foot { margin: 0; padding: 8px 16px; border-top: 1px solid var(--line); color: var(--muted); font: 500 13px/1.4 var(--f-mono, ui-monospace, monospace); }
+.sn-s-foot kbd {
+  display: inline-block; min-width: 22px; margin-right: 3px; padding: 0 5px; border: 1px solid var(--line-2); border-radius: 5px;
+  background: var(--panel-2); color: var(--ink); font: 600 13px/18px var(--f-mono, ui-monospace, monospace); text-align: center;
+}
+@media (pointer: coarse) { .sn-s-foot, .sn-s-esc { display: none; } }
+@media (max-width: 640px) {
+  .sn-sdlg { width: 100vw; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
+  .sn-s-head { padding: 8px 8px 8px 14px; }
+  .sn-s-list { padding: 6px; }
+  .sn-s-foot, .sn-s-esc { display: none; }
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sn-sdlg::backdrop { background: rgba(0, 0, 0, .6); } }
+:root[data-theme="dark"] .sn-sdlg::backdrop { background: rgba(0, 0, 0, .6); }

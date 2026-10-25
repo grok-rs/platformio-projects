@@ -365,21 +365,212 @@
   // Study.hunt(el, { key: '1-2', cases: [{ title, symptom, build(stage), options: ['…', …], answer: i, explain }] })
   // build(stage) draws the faulty scene into the stage element (rebuilt every time the case is opened). Elements inside it
   // with data-hunt="i" are clickable answers (click the faulty part = choose option i). Solved cases persist ('study.hunt.v1').
+  // Every solved case also becomes a flashcard in the personal deck «Мої несправності» ('study.myfaults.v1', read by
+  // flashcards.js): front = a snapshot of the scene (SVG with computed colours inlined) + the symptom, back = answer +
+  // explanation. The card id is stable per page + key + case, so solving again only refreshes it.
+  // «На проєктор» opens the current case full screen (options A/B/C for a chat vote, «Показати відповідь», ←/→, Esc).
+  // Returns { open(i), projector(i), solved }.
   const HUNT = 'study.hunt.v1';
+  const MYFAULTS = 'study.myfaults.v1';
+  const SCENE_MAX = 400000;     // serialized SVG chars; a bigger scene is not kept (the card keeps its text)
+  const SCENEZ_MAX = 90000;     // the same, deflated + base64 (a breadboard with the ESP32 board: ~100 k → ~14 k)
+  const LETTERS = 'ABCDEFGH';
+
+  // Card text: keeps <b> <i> <code> <sub> <sup> <br>, everything else becomes its text (flashcards.js escapes the rest).
+  function richText(html) {
+    const box = h('div', {}, String(html ?? ''));
+    const walk = (n) => Array.from(n.childNodes).map((c) => {
+      if (c.nodeType === 3) return c.nodeValue;
+      if (c.nodeType !== 1) return '';
+      const tag = c.tagName.toLowerCase();
+      if (tag === 'br') return '<br>';
+      const t = { strong: 'b', em: 'i' }[tag] || tag;
+      const inner = walk(c);
+      return /^(b|i|code|sub|sup)$/.test(t) && inner ? `<${t}>${inner}</${t}>` : inner;
+    }).join('');
+    return walk(box).replace(/[ \t\r\n]+/g, ' ').trim();
+  }
+
+  // Standalone SVG of a live drawing: computed paint inlined (CSS variables, theme and classes resolved), classes,
+  // ids-for-scripts, filters and interaction attributes dropped, referenced gradients/clips copied in, numbers rounded.
+  // Initial values: a property equal to the inherited one (or, at a root, to its initial value) is not written.
+  const PAINT0 = { fill: 'rgb(0, 0, 0)', 'fill-opacity': '1', 'fill-rule': 'nonzero', stroke: 'none', 'stroke-width': '1px', 'stroke-opacity': '1',
+    'stroke-linecap': 'butt', 'stroke-linejoin': 'miter', 'stroke-dasharray': 'none', 'stroke-dashoffset': '0px', 'paint-order': 'normal', visibility: 'visible' };
+  const TEXT0 = { 'font-family': '', 'font-size': '', 'font-weight': '400', 'font-style': 'normal', 'letter-spacing': 'normal', 'text-anchor': 'start',
+    'dominant-baseline': 'auto' };
+  const STOP0 = { 'stop-color': 'rgb(0, 0, 0)', 'stop-opacity': '1' };
+  const PAINT = [...Object.keys(PAINT0), ...Object.keys(TEXT0), ...Object.keys(STOP0), 'color'];
+  const TEXTISH = /^(text|tspan|textPath)$/;
+  const hex2 = (n) => (+n).toString(16).padStart(2, '0');
+  const tidyVal = (p, v) => {
+    v = v.replace(/rgb\((\d+), (\d+), (\d+)\)/g, (m, r, g, b) => `#${hex2(r)}${hex2(g)}${hex2(b)}`);
+    if (p === 'font-family') { const f = v.split(','); v = f.length > 2 ? `${f[0].trim()},${f[f.length - 1].trim()}` : v; }
+    return v;
+  };
+  const URL_RE = /url\(\s*["']?[^"')#]*#([^"')]+)["']?\s*\)/g;
+  function sceneSVG(svg, bg) {
+    const refs = new Set();
+    const urls = (v) => v.replace(URL_RE, (m, id) => { refs.add(id); return `url(#${id})`; });
+    const inline = (src, dst, diff) => {
+      const a = [src, ...src.querySelectorAll('*')], b = [dst, ...dst.querySelectorAll('*')], css = new Map(), drop = [];
+      a.forEach((n, k) => {
+        const d = b[k], cs = getComputedStyle(n);
+        css.set(n, cs);
+        const tag = n.localName;
+        if (cs.display === 'none' || tag === 'script' || tag === 'foreignObject' || tag === 'title' || tag === 'desc') { drop.push(d); return; }
+        const pcs = diff && k ? css.get(n.parentNode) : null;
+        const ptext = pcs && TEXTISH.test(n.parentNode.localName);
+        const st = [];
+        const put = (p, base0) => {
+          const v = cs.getPropertyValue(p);
+          if (v && v !== base0) st.push(`${p}:${urls(tidyVal(p, v))}`);
+        };
+        for (const p of Object.keys(PAINT0)) put(p, pcs ? pcs.getPropertyValue(p) : PAINT0[p]);
+        if (TEXTISH.test(tag)) for (const p of Object.keys(TEXT0)) put(p, ptext ? pcs.getPropertyValue(p) : TEXT0[p]);
+        if (tag === 'stop') for (const p of Object.keys(STOP0)) put(p, STOP0[p]);
+        if (cs.opacity !== '1') st.push(`opacity:${cs.opacity}`);
+        for (const p of ['clip-path', 'mask']) { const v = cs.getPropertyValue(p); if (v && v !== 'none') st.push(`${p}:${urls(v)}`); }
+        for (const at of Array.from(d.attributes)) {
+          const nm = at.name;
+          if (nm === 'class' || nm === 'style' || nm === 'filter' || nm === 'tabindex' || nm === 'role' || nm === 'clip-path' || nm === 'mask'
+            || PAINT.includes(nm) || nm === 'opacity' || /^(data-|aria-|on)/.test(nm)) d.removeAttribute(nm);
+          else if (/href$/.test(nm) && at.value.startsWith('#')) refs.add(at.value.slice(1));
+        }
+        if (st.length) d.setAttribute('style', st.join(';'));
+      });
+      drop.forEach((d) => d.remove());
+    };
+    const out = svg.cloneNode(true);
+    inline(svg, out, true);
+    // Referenced paint servers / clips that live outside this svg (Kit keeps its gradients in one shared <defs>).
+    const defs = doc.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const done = new Set();
+    for (let guard = 0; guard < 6 && [...refs].some((id) => !done.has(id)); guard++) {
+      for (const id of [...refs]) {
+        if (done.has(id)) continue;
+        done.add(id);
+        if (out.querySelector(`[id="${CSS.escape(id)}"]`)) continue;
+        const src = doc.getElementById(id);
+        if (!src || src.localName === 'filter') continue;
+        const c = src.cloneNode(true);
+        inline(src, c, true);
+        c.setAttribute('id', id);
+        defs.append(c);
+      }
+    }
+    if (defs.childNodes.length) out.prepend(defs);
+    let vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+    if (vb.length !== 4 || !vb.every(Number.isFinite)) { const r = svg.getBBox(); vb = [r.x, r.y, r.width || 100, r.height || 100]; }
+    const W = 1000, H = Math.round(W * vb[3] / vb[2]);
+    out.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    out.setAttribute('viewBox', vb.join(' '));
+    out.setAttribute('width', String(W)); out.setAttribute('height', String(H));
+    out.removeAttribute('id');
+    const rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    [['x', vb[0]], ['y', vb[1]], ['width', vb[2]], ['height', vb[3]], ['fill', bg || '#fffefb']].forEach(([k, v]) => rect.setAttribute(k, v));
+    out.insertBefore(rect, defs.parentNode ? defs.nextSibling : out.firstChild);
+    return new XMLSerializer().serializeToString(out)
+      .replace(/(\d+\.\d)\d+/g, '$1').replace(/>\s+</g, '><');
+  }
+  // Text of the non-drawing parts of a stage (code listings, serial output), for the card.
+  function stageText(stage) {
+    const parts = [];
+    for (const n of stage.children) {
+      if (n.matches('svg, button, .kit-zoom') || n.querySelector('svg')) continue;
+      const t = (n.innerText || n.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+      if (t) parts.push(t);
+    }
+    return parts.join('\n\n').slice(0, 3000);
+  }
+  // Where the hunt lives, relative to the site root (for the card's «Розділ уроку →» link).
+  function pageRef(el) {
+    const here = location.href.split('#')[0].split('?')[0];
+    const rel = here.startsWith(base) ? here.slice(base.length) : location.pathname;
+    const id = el.id || (el.closest('[id]') || {}).id;
+    return rel + (id ? '#' + id : '');
+  }
+  // Scenes are stored deflated (CompressionStream) as base64 in `scenez`; without it, as plain SVG text in `scene`.
+  const canZip = typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
+  async function zip(text) {
+    const buf = new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  async function unzip(b64) {
+    const bin = atob(b64), buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('deflate'))).text();
+  }
+  async function saveFaultCard(el, key, i, c, snap) {
+    const id = `mf:${pageKey()}:${key}:${i}`;
+    let scene = snap.scene || '', scenez = '';
+    if (scene && canZip) { try { scenez = await zip(scene); scene = ''; } catch { /* keep plain */ } }
+    if (scenez.length > SCENEZ_MAX) scenez = '';
+    const all = store.get(MYFAULTS, {}) || {};
+    const prev = all[id] || {};
+    const card = {
+      id, title: richText(c.title), symptom: richText(c.symptom), answer: richText(c.options[c.answer]), explain: richText(c.explain),
+      scene, scenez, code: snap.code || '', label: snap.label || '', lesson: Study.lesson || key, n: i + 1, ref: pageRef(el),
+      added: prev.added || new Date().toISOString().slice(0, 10),
+    };
+    all[id] = card;
+    // Pictures are the big part; past ~2,5 M chars the oldest cards keep their text only (localStorage holds ~5 M per site).
+    const older = Object.values(all).filter((x) => (x.scene || x.scenez) && x.id !== id).sort((a, b) => (a.added || '').localeCompare(b.added || ''));
+    let size = JSON.stringify(all).length;
+    while (size > 2500000 && older.length) { const x = older.shift(); size -= (x.scene || '').length + (x.scenez || '').length; x.scene = ''; x.scenez = ''; }
+    if (!store.set(MYFAULTS, all) && (card.scene || card.scenez)) { card.scene = ''; card.scenez = ''; store.set(MYFAULTS, all); } // full storage: keep the text
+    doc.dispatchEvent(new CustomEvent('study:myfaults', { detail: { id } }));
+    return card;
+  }
+
+  // The personal deck «Мої несправності» (flashcards.js reads it through this).
+  const faultCards = {
+    key: MYFAULTS,
+    list() { const all = store.get(MYFAULTS, {}); return all && typeof all === 'object' ? Object.values(all).filter((c) => c && c.id) : []; },
+    // The scene of a stored card as SVG text ('' when there is none or it cannot be read).
+    async scene(card) {
+      if (!card) return '';
+      if (card.scenez) { try { return await unzip(card.scenez); } catch { return ''; } }
+      return typeof card.scene === 'string' ? card.scene : '';
+    },
+    remove(id) { const all = store.get(MYFAULTS, {}) || {}; delete all[id]; store.set(MYFAULTS, all); doc.dispatchEvent(new CustomEvent('study:myfaults', { detail: { id } })); },
+    clear() { store.del(MYFAULTS); doc.dispatchEvent(new CustomEvent('study:myfaults', { detail: {} })); },
+  };
+
+  hunt.scene = sceneSVG; // (svg, background) → standalone SVG text, for tools and tests
   function hunt(el, { key, cases }) {
     if (!el || el._hunt) return el && el._hunt;
     const solved = new Set(((store.get(HUNT, {})[pageKey()] || {})[key]) || []);
-    el.innerHTML = `<div class="hn-head"><b>Знайди несправність</b><span class="hn-n"></span></div>
+    el.innerHTML = `<div class="hn-head"><b>Знайди несправність</b><span class="hn-n"></span>
+      <button type="button" class="btn ghost sm hn-proj-btn" title="Повноекранний показ справи для заняття: варіанти A/B/C для голосування в чаті">На проєктор</button></div>
       <div class="hn-tabs" role="tablist" aria-label="Справи">${cases.map((c, i) => `<button type="button" role="tab" data-i="${i}" aria-selected="false" title="${esc(c.title)}">${i + 1}</button>`).join('')}</div>
       <div class="hn-case"><h4 class="hn-title"></h4><p class="hn-sym"></p><div class="hn-stage"></div>
       <p class="hn-ask">Що зламано? Клацніть деталь на малюнку або виберіть відповідь:</p><div class="hn-opts"></div>
       <div class="hn-fb" aria-live="polite"></div><div class="hn-nav"><button type="button" class="btn hn-next">Наступна справа →</button></div></div>`;
     const tabs = $$('.hn-tabs button', el), stage = $('.hn-stage', el), opts = $('.hn-opts', el), fb = $('.hn-fb', el);
-    let cur = 0, answered = false;
+    let cur = 0, answered = false, snap = null, snapTimer = 0;
     const save = () => patch(HUNT, pageKey(), { ...(store.get(HUNT, {})[pageKey()] || {}), [key]: [...solved] });
     const head = () => {
       $('.hn-n', el).textContent = `розкрито ${solved.size} з ${cases.length}`;
       tabs.forEach((b, i) => { b.classList.toggle('ok', solved.has(i)); b.setAttribute('aria-selected', String(i === cur)); });
+    };
+    // The scene is captured right after it is drawn (idle), before any click: no hover glow, no highlighted answer.
+    const takeSnap = () => {
+      const s = { scene: '', code: '', label: '' };
+      try {
+        const svg = $('svg', stage);
+        if (svg) {
+          const hl = $$('.hn-hit, .hn-found', stage).map((n) => [n, n.getAttribute('class')]);
+          hl.forEach(([n]) => n.classList.remove('hn-hit', 'hn-found'));
+          let x = '';
+          try { x = sceneSVG(svg, getComputedStyle(stage).backgroundColor); } finally { hl.forEach(([n, c]) => n.setAttribute('class', c)); }
+          if (x.length <= SCENE_MAX) s.scene = x;
+          s.label = svg.getAttribute('aria-label') || '';
+        }
+        s.code = stageText(stage);
+      } catch (e) { console.error('Study.hunt snapshot:', e); }
+      return s;
     };
     const choose = (i) => {
       if (answered) return;
@@ -387,10 +578,15 @@
       $$('.hn-opts button', el).forEach((b, k) => { b.classList.toggle('right', ok && k === i); b.classList.toggle('wrong', !ok && k === i); });
       $$('[data-hunt]', stage).forEach((n) => n.classList.toggle('hn-hit', +n.dataset.hunt === i));
       if (ok) {
+        if (!snap) { clearTimeout(snapTimer); snap = takeSnap(); }
         answered = true;
         $$('[data-hunt]', stage).forEach((n) => n.classList.toggle('hn-found', +n.dataset.hunt === c.answer));
         fb.className = 'hn-fb ok'; fb.innerHTML = `<b>Так!</b> ${c.explain}`;
-        if (!solved.has(cur)) { solved.add(cur); save(); toast(solved.size === cases.length ? 'Усі справи розкрито!' : 'Справу розкрито', 'ok'); }
+        saveFaultCard(el, key, cur, c, snap).catch((e) => console.error('Study.hunt card:', e));
+        if (!solved.has(cur)) {
+          solved.add(cur); save();
+          toast((solved.size === cases.length ? 'Усі справи розкрито!' : 'Справу розкрито.') + ' Картка — у колоді «Мої несправності».', 'ok');
+        }
         head();
       } else { fb.className = 'hn-fb no'; fb.innerHTML = 'Ні, це не воно. Подивіться ще раз на симптом і на те, куди йде кожен дріт.'; }
     };
@@ -405,14 +601,96 @@
       $$('.hn-opts button', el).forEach((b) => b.addEventListener('click', () => choose(+b.dataset.k)));
       $$('[data-hunt]', stage).forEach((n) => { n.setAttribute('tabindex', '0'); n.setAttribute('role', 'button'); });
       fb.className = 'hn-fb'; fb.textContent = '';
+      snap = null; clearTimeout(snapTimer);
+      const at = cur;
+      snapTimer = setTimeout(() => { if (cur === at && !answered && !snap) snap = takeSnap(); }, 60);
       head();
     };
     stage.addEventListener('click', (e) => { const t = e.target.closest('[data-hunt]'); if (t) choose(+t.dataset.hunt); });
     stage.addEventListener('keydown', (e) => { const t = e.target.closest('[data-hunt]'); if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); choose(+t.dataset.hunt); } });
     tabs.forEach((b) => b.addEventListener('click', () => open(+b.dataset.i)));
     $('.hn-next', el).addEventListener('click', () => open(cur + 1));
+
+    /* projector: a full-screen modal with large type; it never marks a case solved (the class votes, the teacher reveals) */
+    let dlg = null;
+    const projector = (start = cur) => {
+      if (dlg && dlg.open) return;
+      dlg = h('dialog', { class: 'hn-proj', 'aria-label': 'Знайди несправність: показ на проєкторі' });
+      dlg.innerHTML = `<div class="hp-bar"><b class="hp-brand">Знайди несправність</b><span class="hp-n"></span>
+        <span class="hp-nav"><button type="button" class="hp-prev" aria-label="Попередня справа">←</button><button type="button" class="hp-next" aria-label="Наступна справа">→</button></span>
+        ${doc.fullscreenEnabled ? '<button type="button" class="hp-fs" aria-pressed="false">На весь екран</button>' : ''}
+        <button type="button" class="hp-close">Закрити <kbd>Esc</kbd></button></div>
+        <div class="hp-body"><div class="hp-scene"><div class="hn-stage hp-stage"></div></div>
+        <div class="hp-side"><h2 class="hp-title"></h2><p class="hp-sym"></p><p class="hp-ask">Що зламано? Напишіть у чат літеру:</p>
+        <ol class="hp-opts"></ol><button type="button" class="btn primary hp-reveal">Показати відповідь</button><div class="hp-fb" aria-live="polite"></div></div></div>`;
+      el.append(dlg);
+      const ps = $('.hp-stage', dlg);
+      let pc = 0;
+      const show = (i) => {
+        pc = (i + cases.length) % cases.length;
+        const c = cases[pc];
+        $('.hp-n', dlg).textContent = `Справа ${pc + 1} з ${cases.length}`;
+        $('.hp-title', dlg).textContent = c.title;
+        $('.hp-sym', dlg).innerHTML = `<b>Симптом:</b> ${c.symptom}`;
+        ps.replaceChildren();
+        try { c.build(ps); } catch (e) { console.error('Study.hunt build:', e); }
+        $$('[data-hunt]', ps).forEach((n) => { n.removeAttribute('tabindex'); n.removeAttribute('role'); });
+        $('.hp-opts', dlg).innerHTML = c.options.map((o, k) => `<li data-k="${k}"><span class="hp-l" aria-hidden="true">${LETTERS[k] || k + 1}</span><span class="hp-o"><span class="sr-only">${LETTERS[k] || k + 1}. </span>${o}</span></li>`).join('');
+        const rv = $('.hp-reveal', dlg);
+        rv.hidden = false;
+        $('.hp-fb', dlg).className = 'hp-fb'; $('.hp-fb', dlg).textContent = '';
+        dlg.classList.remove('revealed');
+      };
+      const reveal = () => {
+        const c = cases[pc];
+        dlg.classList.add('revealed');
+        $$('.hp-opts li', dlg).forEach((li) => li.classList.toggle('right', +li.dataset.k === c.answer));
+        $$('[data-hunt]', ps).forEach((n) => n.classList.toggle('hn-found', +n.dataset.hunt === c.answer));
+        const fbx = $('.hp-fb', dlg);
+        fbx.className = 'hp-fb ok';
+        fbx.innerHTML = `<b>${LETTERS[c.answer] || c.answer + 1}.</b> ${c.explain}`;
+        $('.hp-reveal', dlg).hidden = true;
+        focusIn($('.hp-next', dlg));
+      };
+      const focusIn = (n) => { try { n.focus({ preventScroll: true }); } catch { /* old browser */ } };
+      const close = () => { if (dlg.open) dlg.close(); };
+      $('.hp-prev', dlg).addEventListener('click', () => show(pc - 1));
+      $('.hp-next', dlg).addEventListener('click', () => show(pc + 1));
+      $('.hp-reveal', dlg).addEventListener('click', reveal);
+      $('.hp-close', dlg).addEventListener('click', close);
+      const fs = $('.hp-fs', dlg);
+      if (fs) {
+        fs.addEventListener('click', () => {
+          try {
+            if (doc.fullscreenElement) doc.exitFullscreen();
+            else dlg.requestFullscreen().catch(() => toast('Браузер не дозволив повний екран: натисніть F11', 'bad'));
+          } catch { toast('Браузер не дозволив повний екран: натисніть F11', 'bad'); }
+        });
+        const fsSync = () => fs.setAttribute('aria-pressed', String(doc.fullscreenElement === dlg));
+        doc.addEventListener('fullscreenchange', fsSync);
+        dlg.addEventListener('close', () => doc.removeEventListener('fullscreenchange', fsSync), { once: true });
+      }
+      dlg.addEventListener('keydown', (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.key === 'ArrowLeft') { e.preventDefault(); show(pc - 1); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); show(pc + 1); }
+      });
+      dlg.addEventListener('close', () => {
+        try { if (doc.fullscreenElement === dlg) doc.exitFullscreen(); } catch { /* not in full screen */ }
+        const back = pc;
+        dlg.remove(); dlg = null;
+        if (back !== cur) open(back);
+        focusIn($('.hn-proj-btn', el));
+      }, { once: true });
+      // Open first: scene builders measure the drawing (Kit.fit → getBBox), which needs it rendered.
+      try { dlg.showModal(); } catch { dlg.setAttribute('open', ''); }
+      show(start);
+      focusIn($('.hp-reveal', dlg));
+    };
+    $('.hn-proj-btn', el).addEventListener('click', () => projector(cur));
+
     open(Math.max(0, cases.findIndex((_, i) => !solved.has(i))));
-    el._hunt = { open, get solved() { return [...solved]; } };
+    el._hunt = { open, projector, get solved() { return [...solved]; } };
     return el._hunt;
   }
 
@@ -1305,7 +1583,7 @@
 
   /* ================================================================ boot */
   const Study = {
-    base, $, $$, store, parseNum, tokens, onTheme, isDark, fitCanvas, sim, anim, switches, missions, hunt, predict, tryInit, measure, exit, teacher,
+    base, $, $$, store, parseNum, tokens, onTheme, isDark, fitCanvas, sim, anim, switches, missions, hunt, faultCards, predict, tryInit, measure, exit, teacher,
     toc, cites, comments, copy, toast, fetchJSON, lessonInfo, dual: { init: dualInit },
     fmt: { num, si, date: fmtDate },
     reducedMotion: () => mqReduce.matches,

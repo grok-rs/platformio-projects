@@ -1,0 +1,106 @@
+/* live-tools.css: «На дзвінку» tools of the teacher page (activity timer, student picker, projector launcher).
+   Colours from theme.css tokens only. «На весь екран» turns a card into a full-viewport projector view: the Fullscreen
+   API when the browser allows it, otherwise a fixed overlay (.proj). The end flash is three soft pulses (< 5 s) and
+   a still colour under prefers-reduced-motion; it is never the only signal (the digits change to «Час!» too). */
+.lt-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .lt-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }
+.lt-card { position: relative; }
+.lt-card .pb { padding: 14px 16px 16px; }
+.lt-card .ph .btn { flex: none; }
+.lt-hint { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+
+/* ---- timer */
+.tm-face { text-align: center; padding: 6px 0 2px; border-radius: 10px; transition: background-color .2s; }
+.tm-label { font: 600 15px/1.35 var(--f-body); color: var(--muted); margin: 0; min-height: 1.35em; }
+.tm-digits {
+  font: 700 clamp(64px, 17vw, 112px)/1 var(--f-mono); letter-spacing: -.02em; color: var(--ink);
+  font-variant-numeric: tabular-nums; margin: 6px 0 4px;
+}
+.tm-state { font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin: 0; min-height: 1.4em; }
+.tm-bar { height: 10px; border-radius: 5px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; margin: 10px 0 0; }
+.tm-bar > span { display: block; height: 100%; width: var(--p, 100%); background: var(--accent); transition: width .25s linear; }
+.tm-face.low .tm-bar > span { background: var(--hi); }
+.tm-face.done { background: color-mix(in srgb, var(--bad) 14%, var(--panel)); }
+.tm-face.done .tm-digits, .tm-face.done .tm-state { color: var(--bad); }
+.tm-face.done .tm-bar > span { background: var(--bad); }
+.tm-face.flash { animation: tm-flash .9s ease-in-out 3; }
+@keyframes tm-flash { 0%, 100% { background: color-mix(in srgb, var(--bad) 14%, var(--panel)); } 50% { background: color-mix(in srgb, var(--bad) 55%, var(--panel)); } }
+@media (prefers-reduced-motion: reduce) { .tm-face.flash { animation: none; } }
+.tm-ctl { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 14px 0 0; }
+.tm-ctl .btn { min-height: 44px; min-width: 44px; }
+.tm-ctl #tm-go { min-width: 9.5em; }
+.tm-next { margin: 12px 0 0; text-align: center; }
+.tm-presets { margin: 16px 0 0; }
+.tm-presets h4 { margin: 0 0 6px; font-size: 15px; }
+.tm-pre { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
+.tm-pre li { margin: 0; }
+.tm-pre button {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--line); border-left: 5px solid var(--bc, var(--line-strong)); background: var(--panel); color: var(--ink);
+  font: 500 14px/1.25 var(--f-body); cursor: pointer; text-align: left;
+}
+.tm-pre button:hover { border-color: var(--accent); border-left-color: var(--bc, var(--accent)); }
+.tm-pre button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 10%, var(--panel)); box-shadow: inset 0 0 0 1px var(--accent); }
+.tm-pre button b { font: 600 13px var(--f-mono); color: var(--muted); }
+.tm-pre button.k-brk { border-left-style: dashed; }
+.tm-own { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tm-own input { width: 6em; min-height: 44px; }
+
+/* ---- picker */
+.pk-face { text-align: center; padding: 10px 6px; border-radius: 10px; min-height: 140px; display: grid; align-content: center; gap: 6px; }
+.pk-name { font: 700 clamp(34px, 9vw, 64px)/1.1 var(--f-display); color: var(--ink); overflow-wrap: anywhere; }
+.pk-name.empty { font: 500 17px/1.5 var(--f-body); color: var(--muted); }
+.pk-team { justify-self: center; font-size: 17px; }
+.pk-team.team-disc::before { width: 1.7em; height: 1.7em; font-size: 15px; }
+.pk-face.pop .pk-name { animation: pk-pop .35s ease-out; }
+@keyframes pk-pop { from { transform: scale(.92); opacity: .3; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pk-face.pop .pk-name { animation: none; } }
+.pk-ctl { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 12px 0 0; }
+.pk-ctl .btn { min-height: 44px; }
+.pk-left { text-align: center; margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+.pk-done { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; list-style: none; padding: 0; margin: 8px 0 0; }
+.pk-done li { margin: 0; font-size: 14px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); }
+.pk-done li.team-disc { font-weight: 600; }
+.pk-done li.team-disc::before { width: 18px; height: 18px; min-width: 18px; min-height: 18px; font-size: 13px; }
+.pk-done li.absent { text-decoration: line-through; color: var(--muted); }
+.pk-edit textarea { display: block; width: calc(100% - 32px); min-height: 180px; font: 15px/1.5 var(--f-mono); }
+.pk-edit .btn-row { margin: 10px 16px 16px; }
+.pk-priv { margin: 12px 0 0; }
+
+/* ---- projector launcher */
+.pj-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+.pj-head select { min-height: 44px; max-width: 100%; }
+.pj-tiles { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); list-style: none; padding: 0; margin: 0; }
+@media (min-width: 640px) { .pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pj-tiles li { margin: 0; }
+.pj-tile {
+  display: grid; gap: 2px; min-height: 64px; padding: 10px 14px; height: 100%;
+  border: 1px solid var(--line); border-left: 5px solid var(--bc, var(--accent)); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink); text-decoration: none;
+}
+.pj-tile:hover { border-color: var(--accent); border-left-color: var(--bc, var(--accent)); text-decoration: none; }
+.pj-tile b { font: 650 17px/1.25 var(--f-display); color: var(--accent); }
+.pj-tile span { font-size: 14px; color: var(--muted); }
+.pj-tile[aria-disabled="true"] { opacity: .7; border-style: dashed; pointer-events: none; }
+.pj-tile[aria-disabled="true"] b { color: var(--muted); }
+
+/* ---- projector view: the card fills the screen; setup controls hide */
+.lt-card.proj, .lt-card:fullscreen {
+  position: fixed; inset: 0; z-index: 1000; width: auto !important; max-width: none !important; margin: 0 !important;
+  border-radius: 0; border: 0; display: flex; flex-direction: column; overflow: auto; background: var(--paper);
+}
+.lt-card:fullscreen { position: static; }
+.lt-card:is(.proj, :fullscreen) .ph { border-bottom: 0; }
+.lt-card:is(.proj, :fullscreen) .pb { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.lt-card:is(.proj, :fullscreen) .lt-setup { display: none; }
+.lt-card:is(.proj, :fullscreen) .tm-label { font-size: clamp(20px, 3.4vw, 40px); color: var(--ink); }
+.lt-card:is(.proj, :fullscreen) .tm-digits { font-size: min(30vw, 50vh); }
+.lt-card:is(.proj, :fullscreen) .tm-state { font-size: clamp(14px, 1.8vw, 22px); }
+.lt-card:is(.proj, :fullscreen) .tm-bar { height: 16px; border-radius: 8px; margin-inline: 4vw; }
+.lt-card:is(.proj, :fullscreen) .tm-face { padding: 3vh 2vw; }
+.lt-card:is(.proj, :fullscreen) .pk-face { min-height: 50vh; }
+.lt-card:is(.proj, :fullscreen) .pk-name { font-size: min(12vw, 22vh); }
+.lt-card:is(.proj, :fullscreen) .pk-team { font-size: clamp(20px, 3vw, 36px); }
+.lt-card:is(.proj, :fullscreen) .btn { font-size: 17px; min-height: 52px; }
+
+@media print { #live { display: none !important; } }

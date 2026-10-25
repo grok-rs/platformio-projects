@@ -8,6 +8,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
@@ -341,13 +343,15 @@ footer.foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--l
 <body>
 <a class="skip" href="#course">До карти курсу</a>
 <div class="map">
-  <nav class="topbar" aria-label="Розділи карти" data-theme-slot>
+  <nav class="topbar" aria-label="Розділи карти" data-theme-slot data-search-slot>
     <a class="brand" href="./"><img src="favicon.svg" alt="">ESP32-S3</a>
     <a class="jl" href="#week">Цього тижня</a>
     <a class="jl" href="#labs">Лабораторії</a>
     <a class="jl" href="#course">Модулі</a>
     <a class="jl" href="#ref">Довідка</a>
     <a class="jl" href="#projects">Проєкти</a>
+    <!-- site-nav.js: here only the search button («/», Ctrl+K); the map has no .site-nav strip -->
+    <script src="assets/site-nav.js" defer></script>
   </nav>
 
   <header class="map-head">

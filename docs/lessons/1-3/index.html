@@ -8,6 +8,8 @@
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
@@ -225,6 +227,32 @@ pre.snip .c { color: var(--muted); }
 [data-sim] { outline-offset: 3px; }
 /* idea figures here carry controls and are taller than the folded text: keep them in flow, so they never slide over «Головне» */
 @media (min-width: 820px) { #ideas .idea:has(> figure) > figure { position: static; } }
+/* ---- code editor of the lab (MiniC, script below): the panel's code can be changed and uploaded to the model ---- */
+.ce-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; }
+.ce-bar .btn { min-height: 44px; }
+.ce-state { font: 600 13px var(--f-mono); color: var(--muted); }
+.ce-state.mine { color: var(--teach); }
+.ce-state.mine::before { content: "● "; }
+.ce-edit { display: grid; gap: 8px; min-width: 0; }
+.ce-lbl { font-size: 13px; line-height: 1.45; color: var(--muted); }
+.ce-ta { display: block; width: 100%; min-height: 12em; margin: 0; padding: 8px 10px; font: 14px/1.55 var(--f-mono); font-variant-ligatures: none;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; resize: vertical; tab-size: 2; white-space: pre; overflow: auto; }
+.ce-ta:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+@media (pointer: coarse) { .ce-ta { font-size: 16px; } }
+.ce-ins, .ce-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ce-ins-h { font-size: 13px; color: var(--muted); }
+.ce-ins .btn, .ce-acts .btn { min-height: 44px; }
+.ce-ins .btn { font: 600 13px var(--f-mono); font-variant-ligatures: none; padding-inline: 10px; }
+pre.ce-out { margin: 8px 0 0; padding: 8px 12px; font: 13px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 18em; overflow: auto;
+  color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: 8px; box-shadow: none; }
+pre.ce-out.bad { border-left-color: var(--bad); }
+.ce-out .err { color: var(--bad); font-weight: 650; }
+.ce-out .warn { color: var(--warn); font-weight: 650; }
+.ce-out .ok { color: var(--ok); font-weight: 650; }
+.ce-out .dim { color: var(--muted); }
+.ce-out .uk { color: var(--ink); font-family: var(--f-body); }
+.ce-tok { cursor: pointer; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; border-radius: 3px; }
+.ce-tok:hover { background: color-mix(in srgb, var(--hi) 24%, transparent); }
 </style>
 </head>
 <body data-lesson="1-3">
@@ -262,6 +290,7 @@ pre.snip .c { color: var(--muted); }
           </div>
         </div>
         <div class="bl-right">
+          <div class="ce" id="bl-ce">
           <ol class="codebox bl-code" id="bl-code" aria-label="Програма Blink; рядок, що виконується, підсвічено">
 <li><span class="k">#include</span> &lt;Arduino.h&gt;</li>
 <li id="bl-def"><span class="k">#define</span> LED_PIN 15  <span class="c">// зовнішній LED</span></li>
@@ -280,6 +309,8 @@ pre.snip .c { color: var(--muted); }
 <li>  delay(<span class="n" data-d>1000</span>);</li>
 <li>}</li>
           </ol>
+            <pre class="ce-out" id="bl-cout" aria-live="polite" hidden></pre>
+          </div>
           <div class="bl-mon">
             <div class="bl-mon-h"><span>Монітор порту · 115200</span>
               <span class="seg" role="group" aria-label="У який роз'єм вставлено кабель" id="bl-port">
@@ -750,7 +781,7 @@ pre.snip .c { color: var(--muted); }
         </div>
         <div class="wave">
           <canvas id="bl-cv" width="700" height="130" aria-label="Осцилограма напруги на виводі за останні 2 секунди реального часу: прямокутні імпульси 3,3 В з вибраними тривалостями."></canvas>
-          <p class="small" id="bl-note">Останні 2&nbsp;с. Екран оновлюється лише кілька десятків разів за секунду, тому дуже швидке миготіння він не покаже — віджет тоді малює середню яскравість, як її бачить око. Перевірте на платі в міні-лабі!</p>
+          <p class="small" id="bl-wave-note">Останні 2&nbsp;с. Екран оновлюється лише кілька десятків разів за секунду, тому дуже швидке миготіння він не покаже — віджет тоді малює середню яскравість, як її бачить око. Перевірте на платі в міні-лабі!</p>
         </div>
       </div>
     </div>
@@ -1194,9 +1225,759 @@ document.addEventListener('study:ready', () => {
   // set() only when the state really changes (some parts rebuild a few nodes on every set)
   const setter = (part) => { let last = ''; return (st) => { const k = JSON.stringify(st); if (k !== last) { last = k; part.set(st); } }; };
 
+  /* ==== MiniC + code editor: the lab's code panel is editable (shared verbatim by lessons 1-3, 2-3 and 2-4) ====
+     A tiny C/Arduino subset, parsed and run by a tree-walking interpreter (no eval, no Function). Supported:
+     #include <Arduino.h>, #define NAME value, global/local variables (bool/int/uint32_t…, volatile, const),
+     void functions without parameters (IRAM_ATTR allowed), if/else, = += -= ++ --, || && == != < > <= >= + - * / % !,
+     calls to the lab's built-ins and to your own functions. Errors read like the compiler's: «file:line:col: error: …»
+     plus one Ukrainian line. Each lab gives a spec: { file, consts, globals, builtins, require, check(prog, fail, warn) }.
+     run: MiniC.machine(prog, spec, hooks).task() → generator that yields
+       { k:'enter'|'exit', fn, line } · { k:'did', line, node } after a statement · { k:'cond', line, taken } after an if test ·
+       { k:'wait', ms, node } inside a built-in that takes time · { k:'pass' } after every loop().
+     Non-volatile globals: the loop task keeps its own «register copy» (read once, then reused) — the worst case the
+     compiler may produce when an ISR changes the variable; ISRs always use memory. */
+  const MiniC = (() => {
+    class CErr extends Error {
+      constructor(line, col, en, uk, kind = 'error') { super(en); Object.assign(this, { line, col, en, uk, kind }); }
+    }
+    const OPS = ['&&', '||', '==', '!=', '>=', '<=', '+=', '-=', '++', '--', '<<', '>>', '::', '->',
+      '(', ')', '{', '}', ';', ',', '=', '<', '>', '+', '-', '*', '/', '%', '!', '&', '|', '^', '~', '?', ':', '.', '[', ']'];
+    const TYPES = new Set(['void', 'bool', 'boolean', 'int', 'long', 'short', 'char', 'byte', 'uint8_t', 'uint16_t', 'uint32_t', 'int32_t', 'unsigned', 'size_t', 'float', 'double']);
+    const QUALS = new Set(['volatile', 'const', 'static', 'unsigned', 'signed']);
+    const UNSUP = new Set(['for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'goto', 'class', 'struct', 'new', 'delete',
+      'template', 'namespace', 'using', 'typedef', 'enum', 'auto', 'sizeof', 'String']);
+    const UNSUP_UK = 'Справжній компілятор це, можливо, прийняв би, але модель лабораторії розуміє лише виклики, присвоєння, if/else та #define. Поверніть простішу форму.';
+
+    function lex(src) {
+      const out = [], n = src.length;
+      let i = 0, line = 1, ls = 0, bol = true;
+      const col = (p) => p - ls + 1;
+      while (i < n) {
+        const c = src[i];
+        if (c === '\n') { i++; line++; ls = i; bol = true; continue; }
+        if (c === ' ' || c === '\t' || c === '\r') { i++; continue; }
+        if (c === '/' && src[i + 1] === '/') { while (i < n && src[i] !== '\n') i++; continue; }
+        if (c === '/' && src[i + 1] === '*') {
+          const l0 = line, c0 = col(i); i += 2;
+          while (i < n && !(src[i] === '*' && src[i + 1] === '/')) { if (src[i] === '\n') { line++; ls = i + 1; } i++; }
+          if (i >= n) throw new CErr(l0, c0, 'unterminated comment', 'Коментар /* … не закрито: бракує */.');
+          i += 2; continue;
+        }
+        const s = i, l = line, cc = col(i);
+        if (c === '#' && bol) { while (i < n && src[i] !== '\n') i++; out.push({ t: 'pp', v: src.slice(s, i), line: l, col: cc, s, e: i }); continue; }
+        bol = false;
+        if (/[A-Za-z_]/.test(c)) { while (i < n && /\w/.test(src[i])) i++; out.push({ t: 'id', v: src.slice(s, i), line: l, col: cc, s, e: i }); continue; }
+        if (/[0-9]/.test(c)) {
+          if (c === '0' && /[xX]/.test(src[i + 1])) { i += 2; while (i < n && /[0-9a-fA-F]/.test(src[i])) i++; }
+          else { while (i < n && /[0-9]/.test(src[i])) i++; if (src[i] === '.' && /[0-9]/.test(src[i + 1])) { i++; while (i < n && /[0-9]/.test(src[i])) i++; } }
+          const ne = i;
+          while (i < n && /[uUlL]/.test(src[i])) i++;
+          if (i < n && /\w/.test(src[i])) {
+            while (i < n && /\w/.test(src[i])) i++;
+            throw new CErr(l, cc, `invalid suffix "${src.slice(ne, i)}" on integer constant`, 'Число злиплося з літерами: між ними потрібен пробіл, кома або дужка.');
+          }
+          const txt = src.slice(s, ne);
+          out.push({ t: 'num', v: /^0[xX]/.test(txt) ? parseInt(txt, 16) : Number(txt), line: l, col: cc, s, e: ne });
+          continue;
+        }
+        if (c === '"' || c === '\'') {
+          i++; let v = '';
+          while (i < n && src[i] !== c && src[i] !== '\n') {
+            if (src[i] === '\\' && i + 1 < n && src[i + 1] !== '\n') { const q = src[i + 1]; v += q === 'n' ? '\n' : q === 't' ? '\t' : q; i += 2; } else v += src[i++];
+          }
+          if (src[i] !== c) throw new CErr(l, cc, `missing terminating ${c} character`, c === '"' ? 'Рядок не закрито: друга лапка " має бути в цьому ж рядку.' : 'Бракує другого апострофа \'.');
+          i++; out.push({ t: c === '"' ? 'str' : 'chr', v, line: l, col: cc, s, e: i }); continue;
+        }
+        const op = OPS.find((o) => src.startsWith(o, i));
+        if (op) { i += op.length; out.push({ t: 'op', v: op, line: l, col: cc, s, e: i }); continue; }
+        const uk = /[“”„«»‘’]/.test(c) ? 'Це «друкарські» лапки з текстового редактора. У коді потрібні прямі лапки "…".'
+          : /[А-Яа-яЇїІіЄєҐґ]/.test(c) ? 'Українська літера поза рядком "…" чи коментарем // — компілятор розуміє лише латиницю. Перевірте розкладку клавіатури.'
+            : 'Цей символ компілятор не розуміє.';
+        throw new CErr(l, cc, `stray '${c}' in program`, uk);
+      }
+      out.push({ t: 'eof', v: '', line, col: col(i), s: n, e: n });
+      return out;
+    }
+
+    const desc = (t) => (t.t === 'eof' ? 'end of input' : t.t === 'id' ? `'${t.v}'` : t.t === 'num' ? 'numeric constant'
+      : t.t === 'str' ? 'string constant' : `'${t.v}' token`);
+    const EXPECT_UK = {
+      ';': 'Наприкінці цієї команди бракує крапки з комою ;.',
+      ')': 'Дужку не закрито: кожній ( потрібна своя ).',
+      '(': 'Після назви функції чи if мають іти круглі дужки ( ).',
+      '{': 'Тіло функції береться у фігурні дужки { }.',
+      '}': 'Фігурну дужку не закрито: кожній { потрібна своя }.',
+    };
+
+    function parse(src) {
+      const T = lex(src);
+      let k = 0;
+      const peek = (o = 0) => T[Math.min(k + o, T.length - 1)];
+      const next = () => T[k++];
+      const is = (v, o = 0) => { const t = peek(o); return (t.t === 'op' || t.t === 'id') && t.v === v; };
+      const expect = (v) => {
+        if (is(v)) return next();
+        const t = peek(), p = k > 0 ? T[k - 1] : t;
+        // like gcc: a missing ; is reported at the end of the previous token
+        const at = v === ';' || v === ')' ? { line: p.line, col: p.col + (p.e - p.s) } : t;
+        throw new CErr(at.line, at.col, t.t === 'eof' ? `expected '${v}' at end of input` : `expected '${v}' before ${desc(t)}`, EXPECT_UK[v] || '');
+      };
+      const unsup = (t, what) => new CErr(t.line, t.col, `unsupported in this lab model: ${what || `'${t.v}'`}`, UNSUP_UK);
+      const prog = { defines: {}, globals: [], fns: {}, items: 0 };
+
+      function directive(t) {
+        const txt = t.v.replace(/\/\/.*$/, '').replace(/^#\s*/, '').trim();
+        let mm;
+        if ((mm = /^include\s*(<([^>]*)>|"([^"]*)")$/.exec(txt))) {
+          const f = mm[2] || mm[3];
+          if (!/^Arduino\.h$/.test(f)) throw new CErr(t.line, t.col, `fatal error: ${f}: No such file or directory`, 'Такого файлу бібліотеки немає. Для цих програм потрібен лише <Arduino.h>.');
+          return;
+        }
+        if ((mm = /^define\s+([A-Za-z_]\w*)(\(?)\s*(.*)$/.exec(txt))) {
+          if (mm[2]) throw unsup(t, '#define with parameters');
+          const name = mm[1], body = mm[3].trim();
+          let val = null;
+          if (body) {
+            const off0 = t.v.indexOf(body, t.v.indexOf(name) + name.length);
+            let vt;
+            try { vt = lex(body).filter((x) => x.t !== 'eof'); } catch (er) { if (er instanceof CErr) { er.line = t.line; er.col = t.col + off0 + er.col - 1; } throw er; }
+            if (vt.length === 1 && (vt[0].t === 'num' || vt[0].t === 'id')) {
+              const off = t.s + off0;
+              val = { k: vt[0].t === 'num' ? 'num' : 'id', v: vt[0].v, name: vt[0].v, line: t.line, col: t.col + (off - t.s), s: off + vt[0].s, e: off + vt[0].e };
+            } else throw unsup(t, '#define with an expression');
+          }
+          if (prog.defines[name]) throw new CErr(t.line, t.col, `"${name}" redefined`, 'Цю назву вже визначено вище: залиште один #define.', 'error');
+          prog.defines[name] = { name, val, line: t.line, order: prog.items++, s: t.s, e: t.e };
+          return;
+        }
+        const w = /^(\w*)/.exec(txt)[1];
+        if (['if', 'ifdef', 'ifndef', 'else', 'endif', 'elif', 'undef', 'pragma', 'error', 'warning'].includes(w)) throw unsup(t, `#${w}`);
+        throw new CErr(t.line, t.col, `invalid preprocessing directive #${w}`, 'Невідома директива: на початку рядка з # можуть бути #include або #define.');
+      }
+      function quals() { const q = new Set(); while (peek().t === 'id' && QUALS.has(peek().v)) q.add(next().v); return q; }
+      function baseType(q) {
+        const t = peek();
+        if (t.t === 'id' && TYPES.has(t.v)) { next(); if (t.v === 'unsigned' || t.v === 'long') while (is('long') || is('int')) next(); return t.v; }
+        if (q.has('unsigned') || q.has('signed')) return 'int';
+        return null;
+      }
+      function block() {
+        expect('{');
+        const stmts = [];
+        while (!is('}')) {
+          if (peek().t === 'eof') { const t = peek(); throw new CErr(t.line, t.col, 'expected \'}\' at end of input', EXPECT_UK['}']); }
+          stmts.push(stmt());
+        }
+        const close = next();
+        return { stmts, endLine: close.line };
+      }
+      function stmt() {
+        const t = peek();
+        if (is('{')) { const b = block(); return { k: 'block', stmts: b.stmts, line: t.line, col: t.col }; }
+        if (is(';')) { next(); return { k: 'empty', line: t.line, col: t.col }; }
+        if (t.t === 'pp') throw unsup(t, 'a directive inside a function');
+        if (t.t === 'id') {
+          if (t.v === 'if') {
+            next(); expect('(');
+            const c = expr(); expect(')');
+            const th = stmt();
+            let el = null;
+            if (is('else')) { next(); el = stmt(); }
+            return { k: 'if', c, th, el, line: t.line, col: t.col };
+          }
+          if (t.v === 'else') throw new CErr(t.line, t.col, '\'else\' without a previous \'if\'', 'Перед else має стояти if (…) { … } — перевірте фігурні дужки.');
+          if (UNSUP.has(t.v)) throw unsup(t);
+          if (t.v === 'return') {
+            next();
+            if (!is(';')) { const e = peek(); throw new CErr(e.line, e.col, 'return-statement with a value, in function returning \'void\'', 'Функція void нічого не повертає: пишіть просто return;'); }
+            next(); return { k: 'ret', line: t.line, col: t.col };
+          }
+          if (TYPES.has(t.v) || QUALS.has(t.v)) {
+            const q = quals(), type = baseType(q) || 'int';
+            const nm = peek();
+            if (nm.t !== 'id') throw new CErr(nm.line, nm.col, `expected unqualified-id before ${desc(nm)}`, 'Після типу має йти назва змінної.');
+            next();
+            if (is('(')) {
+              throw new CErr(nm.line, nm.col, 'a function-definition is not allowed here before \'{\' token',
+                'Функцію не можна оголошувати всередині іншої. Найчастіше це означає, що вище бракує закривальної } попередньої функції.');
+            }
+            let init = null;
+            if (is('=')) { next(); init = expr(); }
+            expect(';');
+            return { k: 'decl', name: nm.v, type, vol: q.has('volatile'), cnst: q.has('const'), init, line: t.line, col: t.col };
+          }
+        }
+        const e = expr();
+        expect(';');
+        return { k: 'expr', e, line: t.line, col: t.col };
+      }
+      const BIN = [['||'], ['&&'], ['==', '!='], ['<', '>', '<=', '>='], ['+', '-'], ['*', '/', '%']];
+      function expr() { return assign(); }
+      function assign() {
+        const l = bin(0);
+        if (is('=') || is('+=') || is('-=')) {
+          const op = next();
+          const r = assign();
+          if (l.k !== 'id') throw new CErr(op.line, op.col, 'lvalue required as left operand of assignment', 'Ліворуч від = має стояти назва змінної.');
+          return { k: 'asg', op: op.v, l, r, line: op.line, col: op.col };
+        }
+        return l;
+      }
+      function bin(lv) {
+        if (lv >= BIN.length) return unary();
+        let l = bin(lv + 1);
+        while (peek().t === 'op' && BIN[lv].includes(peek().v)) { const op = next(); l = { k: 'bin', op: op.v, l, r: bin(lv + 1), line: op.line, col: op.col }; }
+        return l;
+      }
+      function unary() {
+        const t = peek();
+        if (is('!') || is('-') || is('+')) { next(); return { k: 'un', op: t.v, e: unary(), line: t.line, col: t.col }; }
+        if (is('++') || is('--')) { next(); const e = unary(); if (e.k !== 'id') throw new CErr(t.line, t.col, `lvalue required as ${t.v === '++' ? 'increment' : 'decrement'} operand`, '++ та -- працюють лише зі змінною.'); return { k: 'inc', op: t.v, e, line: t.line, col: t.col }; }
+        if (is('&') || is('*') || is('~')) throw unsup(t);
+        return post();
+      }
+      function post() {
+        let p = prim();
+        for (;;) {
+          const t = peek();
+          if (is('(')) {
+            next(); const args = [];
+            if (!is(')')) { args.push(expr()); while (is(',')) { next(); args.push(expr()); } }
+            expect(')');
+            p = { k: 'call', f: p, args, line: p.line, col: p.col, s: p.s };
+          } else if (is('.') || is('->')) {
+            next(); const id = peek();
+            if (id.t !== 'id') throw new CErr(id.line, id.col, `expected unqualified-id before ${desc(id)}`, 'Після крапки має йти назва методу, наприклад Serial.println.');
+            next(); p = { k: 'mem', o: p, name: id.v, line: p.line, col: p.col };
+          } else if (is('++') || is('--')) {
+            next(); if (p.k !== 'id') throw new CErr(t.line, t.col, 'lvalue required as increment operand', '++ та -- працюють лише зі змінною.');
+            p = { k: 'inc', op: t.v, e: p, line: p.line, col: p.col };
+          } else if (is('[') || is('?') || is('::')) throw unsup(t);
+          else return p;
+        }
+      }
+      function prim() {
+        const t = peek();
+        if (t.t === 'num') { next(); return { k: 'num', v: t.v, line: t.line, col: t.col, s: t.s, e: t.e }; }
+        if (t.t === 'str') { next(); return { k: 'str', v: t.v, line: t.line, col: t.col }; }
+        if (t.t === 'chr') { next(); return { k: 'num', v: t.v.charCodeAt(0) || 0, line: t.line, col: t.col, s: t.s, e: t.e }; }
+        if (t.t === 'id') {
+          if (UNSUP.has(t.v)) throw unsup(t);
+          next();
+          if (t.v === 'true' || t.v === 'false') return { k: 'num', v: t.v === 'true' ? 1 : 0, bool: true, line: t.line, col: t.col, s: t.s, e: t.e };
+          return { k: 'id', name: t.v, line: t.line, col: t.col, s: t.s, e: t.e };
+        }
+        if (is('(')) { next(); const e = expr(); expect(')'); return e; }
+        throw new CErr(t.line, t.col, `expected primary-expression before ${desc(t)}`, 'Тут очікувалось значення: число, назва чи виклик функції.');
+      }
+
+      while (peek().t !== 'eof') {
+        const t = peek();
+        if (t.t === 'pp') { next(); directive(t); continue; }
+        if (is(';')) { next(); continue; }
+        const q = quals(), type = baseType(q);
+        if (!type) {
+          const b = peek();
+          if (b.t === 'id' && peek(1).t === 'op' && peek(1).v === '(') {
+            throw new CErr(b.line, b.col, `expected constructor, destructor, or type conversion before '(' token`,
+              'Команди пишуть лише всередині функцій. Можливо, цей рядок випав за межі setup() чи loop(): перевірте фігурні дужки.');
+          }
+          if (b.t === 'id') throw new CErr(b.line, b.col, `'${b.v}' does not name a type`, 'На верхньому рівні файлу бувають лише #define, змінні й функції. Можливо, тут опечатка в типі (void, int, bool) або команда опинилась поза функцією.');
+          throw new CErr(b.line, b.col, `expected unqualified-id before ${desc(b)}`, b.t === 'op' && b.v === '}' ? 'Зайва закривальна }: її пара { уже закрита.' : 'Тут очікувалось оголошення: тип і назва.');
+        }
+        let iram = false;
+        while (is('IRAM_ATTR')) { next(); iram = true; }
+        const nm = peek();
+        if (nm.t !== 'id') throw new CErr(nm.line, nm.col, `expected unqualified-id before ${desc(nm)}`, 'Після типу має йти назва.');
+        next();
+        if (is('(')) {
+          next();
+          if (!is(')')) { if (is('void') && is(')', 1)) next(); else throw unsup(peek(), 'function parameters'); }
+          expect(')');
+          if (type !== 'void') throw unsup(t, `a function returning '${type}'`);
+          if (prog.fns[nm.v]) throw new CErr(nm.line, nm.col, `redefinition of 'void ${nm.v}()'`, 'Функцію з такою назвою вже написано вище: дві однакові функції бути не може.');
+          if (is(';')) throw unsup(peek(), 'a separate function declaration');
+          const b = block();
+          prog.fns[nm.v] = { name: nm.v, body: b.stmts, line: t.line, col: t.col, endLine: b.endLine, iram, order: prog.items++ };
+        } else {
+          let init = null;
+          if (is('=')) { next(); init = expr(); }
+          if (is(',')) throw unsup(peek(), 'several variables in one declaration');
+          expect(';');
+          if (prog.globals.some((g) => g.name === nm.v)) throw new CErr(nm.line, nm.col, `redefinition of '${type} ${nm.v}'`, 'Змінну з такою назвою вже оголошено вище.');
+          prog.globals.push({ name: nm.v, type, vol: q.has('volatile'), cnst: q.has('const'), init, line: t.line, col: t.col, s: t.s, order: prog.items++ });
+        }
+      }
+      return prog;
+    }
+
+    // nearest known name for «did you mean …?» (case slips and 1–2 letter typos)
+    function near(name, names) {
+      let best = null, bd = 3;
+      for (const c of names) {
+        if (c.toLowerCase() === name.toLowerCase()) return c;
+        const a = name, b = c; if (Math.abs(a.length - b.length) > 2) continue;
+        const d = [];
+        for (let i = 0; i <= a.length; i++) { d[i] = [i]; for (let j = 1; j <= b.length; j++) d[i][j] = i ? Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+        if (d[a.length][b.length] < bd) { bd = d[a.length][b.length]; best = c; }
+      }
+      return best;
+    }
+
+    // semantic checks: names, calls, assignments; the lab's own rules via spec.check
+    function check(prog, spec) {
+      const warns = [];
+      const fail = (n, en, uk) => { throw new CErr(n.line, n.col, en, uk); };
+      const warn = (n, en, uk) => warns.push({ line: n.line, col: n.col, en, uk, kind: 'warning' });
+      const consts = spec.consts || {}, builtins = spec.builtins || {}, hidden = spec.globals || {};
+      const known = () => [...Object.keys(consts), ...Object.keys(builtins).map((b) => b.split('.')[0]), ...Object.keys(hidden), ...Object.keys(prog.defines), ...prog.globals.map((g) => g.name), ...Object.keys(prog.fns)];
+      const undeclared = (n, name) => {
+        const m = near(name, [...new Set(known())]);
+        fail(n, `'${name}' was not declared in this scope`, m ? `Такої назви компілятор не знає. Можливо, ви мали на увазі ${m}? Великі й малі літери різняться.`
+          : 'Такої назви компілятор не знає: її не оголошено ні в коді, ні в бібліотеці.');
+      };
+      for (const d of Object.values(prog.defines)) {
+        if (d.val && d.val.k === 'id' && !consts[d.val.v] && !prog.defines[d.val.v] && !hidden[d.val.v]) undeclared(d.val, d.val.v);
+      }
+      const kindOf = (name, locals, here) => {
+        if (locals && locals.has(name)) return locals.get(name);
+        const g = prog.globals.find((x) => x.name === name);
+        if (g && (here == null || g.order < here)) return { k: 'var', cnst: g.cnst, g };
+        if (prog.defines[name] && (here == null || prog.defines[name].order < here)) return { k: 'const' };
+        if (hidden[name]) return { k: 'var', hidden: true };
+        if (name in consts) return { k: 'const' };
+        const f = prog.fns[name];
+        if (f && (here == null || f.order <= here)) return { k: 'fn', f };
+        if (builtins[name]) return { k: 'builtin' };
+        if (g || f || prog.defines[name]) return { k: 'later' };
+        return null;
+      };
+      const exprC = (e, locals, here, ctx) => {
+        switch (e.k) {
+          case 'num': case 'str': return;
+          case 'id': {
+            const kd = kindOf(e.name, locals, here);
+            if (!kd) undeclared(e, e.name);
+            if (kd.k === 'later') fail(e, `'${e.name}' was not declared in this scope`, 'Це оголошено нижче, ніж використано. У файлі .cpp назву треба оголосити вище: перенесіть її над цією функцією.');
+            if (kd.k === 'builtin') fail(e, `invalid use of function '${e.name}'`, 'Щоб викликати функцію, потрібні дужки: delay(500);');
+            return;
+          }
+          case 'un': return exprC(e.e, locals, here, ctx);
+          case 'bin': exprC(e.l, locals, here, ctx); return exprC(e.r, locals, here, ctx);
+          case 'inc': case 'asg': {
+            const tg = e.k === 'inc' ? e.e : e.l;
+            const kd = kindOf(tg.name, locals, here);
+            if (!kd) undeclared(tg, tg.name);
+            if (kd.k === 'later') fail(tg, `'${tg.name}' was not declared in this scope`, 'Змінну оголошено нижче, ніж використано: перенесіть оголошення вище.');
+            if (kd.k === 'var' && kd.cnst) fail(tg, `assignment of read-only variable '${tg.name}'`, 'Це const: її значення змінювати не можна.');
+            if (kd.k !== 'var') fail(e, 'lvalue required as left operand of assignment', `${tg.name} — не змінна, а стала чи функція: присвоїти їй значення не можна.`);
+            if (e.k === 'asg') exprC(e.r, locals, here, ctx);
+            if (ctx.fn) ctx.writes.add(tg.name);
+            return;
+          }
+          case 'mem': fail(e, `invalid use of member function '${e.name}'`, 'Метод викликають з дужками: Serial.println("…");');
+          // falls through (fail throws)
+          case 'call': {
+            let name;
+            if (e.f.k === 'mem') {
+              if (e.f.o.k !== 'id') fail(e, 'unsupported in this lab model: chained member call', UNSUP_UK);
+              const obj = e.f.o.name;
+              const has = Object.keys(builtins).filter((b) => b.startsWith(obj + '.'));
+              if (!has.length) undeclared(e.f.o, obj);
+              name = obj + '.' + e.f.name;
+              if (!builtins[name]) {
+                const m = near(e.f.name, has.map((b) => b.split('.')[1]));
+                fail(e, `'${obj}' has no member named '${e.f.name}'`, m ? `У ${obj} немає такого методу. Можливо, ${obj}.${m}?` : `У ${obj} немає такого методу.`);
+              }
+            } else if (e.f.k === 'id') {
+              name = e.f.name;
+              const kd = kindOf(name, locals, here);
+              if (!kd) undeclared(e.f, name);
+              if (kd.k === 'later') fail(e.f, `'${name}' was not declared in this scope`, 'Цю функцію написано нижче, ніж викликано. У файлі .cpp (PlatformIO) функцію треба оголосити вище: перенесіть її над місцем виклику.');
+              if (kd.k === 'var' || kd.k === 'const') fail(e.f, `'${name}' cannot be used as a function`, `${name} — це значення, а не функція.`);
+              if (kd.k === 'fn') {
+                if (e.args.length) fail(e, `too many arguments to function 'void ${name}()'`, 'Ця функція не приймає аргументів: пишіть порожні дужки ().');
+                ctx.calls.add(name);
+                return;
+              }
+            } else fail(e, 'unsupported in this lab model: call of an expression', UNSUP_UK);
+            const b = builtins[name], [lo, hi] = Array.isArray(b.n) ? b.n : [b.n, b.n];
+            if (e.args.length < lo) fail(e, `too few arguments to function '${b.sig || name}'`, `${name} потребує ${lo === 1 ? 'одного аргументу' : lo + ' аргументів'} у дужках.`);
+            if (e.args.length > hi) fail(e, `too many arguments to function '${b.sig || name}'`, `${name} приймає ${hi === 0 ? 'порожні дужки ()' : hi === 1 ? 'лише один аргумент' : 'не більше ' + hi + ' аргументів'}.`);
+            e.args.forEach((a) => {
+              if (a.k === 'id' && prog.fns[a.name] && kindOf(a.name, locals, here)?.k === 'fn') { ctx.calls.add(a.name); return; }
+              exprC(a, locals, here, ctx);
+            });
+            if (b.check) b.check(e, { fail, warn, prog, ctx, locals });
+            return;
+          }
+          default: return;
+        }
+      };
+      const stmtsC = (list, locals, here, ctx) => {
+        const loc = new Map(locals);
+        for (const s of list) {
+          switch (s.k) {
+            case 'expr':
+              exprC(s.e, loc, here, ctx);
+              if (s.e.k !== 'call' && s.e.k !== 'asg' && s.e.k !== 'inc') warn(s, 'statement has no effect', 'Цей рядок нічого не робить: можливо, бракує дужок виклику ().');
+              break;
+            case 'decl':
+              if (s.init) exprC(s.init, loc, here, ctx);
+              if (loc.has(s.name) && loc.get(s.name).depth === ctx.depth) fail(s, `redeclaration of '${s.type} ${s.name}'`, 'Змінну з такою назвою вже оголошено в цьому блоці.');
+              loc.set(s.name, { k: 'var', cnst: s.cnst, local: true, depth: ctx.depth });
+              if (s.vol && ctx.fn) warn(s, 'volatile on a local variable', 'volatile потрібен змінним, які ділять loop() та ISR, а не локальним.');
+              break;
+            case 'if':
+              exprC(s.c, loc, here, ctx);
+              if (s.c.k === 'asg') warn(s.c, 'suggest parentheses around assignment used as truth value', 'У if стоїть присвоєння =, а не порівняння ==. Так змінна отримає нове значення, а не перевіриться.');
+              ctx.depth++; stmtsC([s.th], loc, here, ctx); if (s.el) stmtsC([s.el], loc, here, ctx); ctx.depth--;
+              break;
+            case 'block': ctx.depth++; stmtsC(s.stmts, loc, here, ctx); ctx.depth--; break;
+            default: break;
+          }
+        }
+      };
+      const info = {};
+      for (const g of prog.globals) if (g.init) exprC(g.init, null, g.order, { calls: new Set(), writes: new Set(), depth: 0 });
+      for (const f of Object.values(prog.fns)) {
+        const ctx = { fn: f.name, calls: new Set(), writes: new Set(), depth: 0 };
+        stmtsC(f.body, new Map(), f.order, ctx);
+        info[f.name] = ctx;
+      }
+      for (const r of spec.require || ['setup', 'loop']) {
+        if (!prog.fns[r]) throw new CErr(0, 0, `undefined reference to \`${r}()'`, `Ядро Arduino саме викликає ${r}(), тож ця функція має бути в програмі (хай навіть порожня). Перевірте назву: регістр літер важливий.`, 'ld');
+      }
+      prog.info = info;
+      if (spec.check) spec.check(prog, fail, warn);
+      return warns;
+    }
+
+    function compile(src, spec) {
+      try {
+        const prog = parse(src);
+        const warns = check(prog, spec);
+        return { ok: true, prog, warns };
+      } catch (e) {
+        if (!(e instanceof CErr)) throw e;
+        return { ok: false, err: e };
+      }
+    }
+
+    // walk every node (for the labs' own static questions: «is there a delay in loop?»)
+    function walk(list, fn, depth = 0) {
+      for (const s of list) {
+        fn(s, depth);
+        if (s.k === 'if') { walk([s.th], fn, depth + 1); if (s.el) walk([s.el], fn, depth + 1); }
+        if (s.k === 'block') walk(s.stmts, fn, depth);
+      }
+    }
+    const calls = (e, out = []) => {
+      if (!e) return out;
+      if (e.k === 'call') { out.push(e); e.args.forEach((a) => calls(a, out)); }
+      else if (e.k === 'bin') { calls(e.l, out); calls(e.r, out); }
+      else if (e.k === 'un' || e.k === 'inc') calls(e.e, out);
+      else if (e.k === 'asg') calls(e.r, out);
+      return out;
+    };
+    const callName = (c) => (c.f.k === 'mem' ? c.f.o.name + '.' + c.f.name : c.f.name);
+
+    function machine(prog, spec, hooks = {}) {
+      const consts = spec.consts || {}, builtins = spec.builtins || {};
+      const mem = {}, cache = {};
+      const isNum = (v) => typeof v === 'number';
+      const store = (type, v) => (type === 'bool' || type === 'boolean' ? (v ? 1 : 0) : isNum(v) && type !== 'float' && type !== 'double' ? (type === 'uint32_t' || type === 'unsigned' ? Math.trunc(v) >>> 0 : Math.trunc(v)) : v);
+      const defVal = (name, seen = 0) => {
+        const d = prog.defines[name];
+        if (!d.val) return 1;
+        if (d.val.k === 'num') return d.val.v;
+        const n = d.val.v;
+        if (prog.defines[n] && seen < 8) return defVal(n, seen + 1);
+        if (n in consts) return consts[n];
+        if (mem[n]) return mem[n].v;
+        return 0;
+      };
+      for (const [k, v] of Object.entries(spec.globals || {})) mem[k] = { v: v.v, type: v.type || 'int', vol: !!v.vol, hidden: true };
+      const ctx0 = { isr: false, locals: [] };
+      for (const g of prog.globals) mem[g.name] = { v: g.init ? store(g.type, evalSync(g.init, ctx0)) : 0, type: g.type, vol: g.vol, g };
+      // the loop task's «register copies» of plain (non-volatile) globals start with their initial values
+      for (const g of prog.globals) if (!g.vol) cache[g.name] = mem[g.name].v;
+      function evalSync(e, ctx) { const it = evalE(e, ctx); let r = it.next(); while (!r.done) r = it.next(); return r.value; }
+      const findLocal = (ctx, name) => { for (let i = ctx.locals.length - 1; i >= 0; i--) if (name in ctx.locals[i]) return ctx.locals[i]; return null; };
+      function read(name, ctx, node) {
+        const L = findLocal(ctx, name);
+        if (L) return L[name].v;
+        if (mem[name]) {
+          const g = mem[name];
+          if (hooks.read) hooks.read(name, ctx, g, node);
+          if (!ctx.isr && !g.vol && !g.hidden) { if (!(name in cache)) cache[name] = g.v; return cache[name]; }
+          return g.v;
+        }
+        if (prog.defines[name]) return defVal(name);
+        if (name in consts) return consts[name];
+        if (prog.fns[name]) return { fn: name };
+        return 0;
+      }
+      function write(name, v, ctx) {
+        const L = findLocal(ctx, name);
+        if (L) { L[name].v = store(L[name].type, v); return L[name].v; }
+        const g = mem[name];
+        g.v = store(g.type, v);
+        if (!ctx.isr && !g.vol && !g.hidden) cache[name] = g.v;
+        if (hooks.write) hooks.write(name, g.v, ctx);
+        return g.v;
+      }
+      const num = (v) => (isNum(v) ? v : v && v.fn ? 1 : Number(v) || 0);
+      function* evalE(e, ctx) {
+        switch (e.k) {
+          case 'num': return e.v;
+          case 'str': return e.v;
+          case 'id': return read(e.name, ctx, e);
+          case 'un': { const v = yield* evalE(e.e, ctx); return e.op === '!' ? (num(v) ? 0 : 1) : e.op === '-' ? -num(v) : num(v); }
+          case 'bin': {
+            if (e.op === '&&') return num(yield* evalE(e.l, ctx)) && num(yield* evalE(e.r, ctx)) ? 1 : 0;
+            if (e.op === '||') return num(yield* evalE(e.l, ctx)) || num(yield* evalE(e.r, ctx)) ? 1 : 0;
+            const a = yield* evalE(e.l, ctx), b = yield* evalE(e.r, ctx);
+            if (typeof a === 'string' || typeof b === 'string') return e.op === '==' ? (a === b ? 1 : 0) : e.op === '!=' ? (a !== b ? 1 : 0) : 0;
+            const x = num(a), y = num(b);
+            switch (e.op) {
+              case '+': return x + y; case '-': return x - y; case '*': return x * y;
+              case '/': if (!y) { if (hooks.fault) hooks.fault(e, 'ділення на нуль'); return 0; } return Math.trunc(x / y);
+              case '%': if (!y) { if (hooks.fault) hooks.fault(e, 'ділення на нуль'); return 0; } return x % y;
+              case '==': return x === y ? 1 : 0; case '!=': return x !== y ? 1 : 0;
+              case '<': return x < y ? 1 : 0; case '>': return x > y ? 1 : 0; case '<=': return x <= y ? 1 : 0; case '>=': return x >= y ? 1 : 0;
+              default: return 0;
+            }
+          }
+          case 'asg': {
+            const r = num(yield* evalE(e.r, ctx));
+            const v = e.op === '=' ? r : e.op === '+=' ? num(read(e.l.name, ctx, e.l)) + r : num(read(e.l.name, ctx, e.l)) - r;
+            return write(e.l.name, v, ctx);
+          }
+          case 'inc': { const v = num(read(e.e.name, ctx, e.e)); write(e.e.name, e.op === '++' ? v + 1 : v - 1, ctx); return v; }
+          case 'call': {
+            if (e.f.k === 'id' && prog.fns[e.f.name]) { yield* callFn(e.f.name, ctx); return 0; }
+            const name = callName(e), b = builtins[name];
+            const args = [];
+            for (const a of e.args) args.push(yield* evalE(a, ctx));
+            const r = b.f(args, { isr: ctx.isr, node: e, args: e.args, prog });
+            if (r && typeof r === 'object' && 'wait' in r) { yield { k: 'wait', ms: r.wait, node: e, why: r.why }; return r.ret ?? 0; }
+            return r ?? 0;
+          }
+          default: return 0;
+        }
+      }
+      function* execList(list, ctx) {
+        for (const s of list) { if ((yield* execS(s, ctx)) === 'ret') return 'ret'; }
+        return null;
+      }
+      function* execS(s, ctx) {
+        switch (s.k) {
+          case 'expr': yield* evalE(s.e, ctx); yield { k: 'did', line: s.line, node: s }; return null;
+          case 'decl': {
+            const v = s.init ? yield* evalE(s.init, ctx) : 0;
+            ctx.locals[ctx.locals.length - 1][s.name] = { v: store(s.type, v), type: s.type };
+            yield { k: 'did', line: s.line, node: s }; return null;
+          }
+          case 'if': {
+            const c = num(yield* evalE(s.c, ctx));
+            yield { k: 'cond', line: s.line, taken: !!c, node: s };
+            ctx.locals.push({});
+            const r = c ? yield* execS(s.th, ctx) : s.el ? yield* execS(s.el, ctx) : null;
+            ctx.locals.pop();
+            return r;
+          }
+          case 'block': { ctx.locals.push({}); const r = yield* execList(s.stmts, ctx); ctx.locals.pop(); return r; }
+          case 'ret': yield { k: 'did', line: s.line, node: s }; return 'ret';
+          default: return null;
+        }
+      }
+      function* callFn(name, ctx) {
+        const f = prog.fns[name], depth = (ctx.depth || 0) + 1;
+        if (depth > 24) { if (hooks.fault) hooks.fault(f, 'stack overflow'); yield { k: 'wait', ms: 1e9, node: f, why: 'crash' }; return; }
+        const c = { isr: ctx.isr, locals: [{}], depth };
+        yield { k: 'enter', fn: name, line: f.line };
+        yield* execList(f.body, c);
+        yield { k: 'exit', fn: name, line: f.endLine };
+      }
+      return {
+        mem, prog,
+        *task(skipSetup) {
+          if (prog.fns.setup && !skipSetup) yield* callFn('setup', ctx0);
+          for (;;) { yield* callFn('loop', ctx0); yield { k: 'pass' }; }
+        },
+        // an ISR runs to the end at once; built-ins that take time inside it only add up its duration
+        isr(name, onStep) {
+          let ms = 0;
+          const it = callFn(name, { isr: true, locals: [] });
+          let r = it.next(), guard = 0;
+          while (!r.done && guard++ < 2000) { if (r.value.k === 'wait') ms += r.value.ms; if (onStep) onStep(r.value); r = it.next(); }
+          return ms;
+        },
+        get: (name) => (mem[name] ? mem[name].v : undefined),
+        cached: (name) => (name in cache ? cache[name] : undefined),
+      };
+    }
+
+    // gcc-like report lines: [{ cls, txt }]
+    function report(spec, res) {
+      const L = [];
+      const where = (x) => (x.kind === 'ld' ? 'ld: ' : `${spec.file || 'src/main.cpp'}:${x.line}:${x.col}: `);
+      const push = (x) => {
+        L.push({ cls: x.kind === 'warning' ? 'warn' : 'err', txt: `${where(x)}${x.kind === 'warning' ? 'warning' : x.kind === 'ld' ? 'error' : 'error'}: ${x.en}` });
+        if (x.uk) L.push({ cls: 'uk', txt: '  ↳ ' + x.uk });
+      };
+      if (!res.ok) push(res.err);
+      else (res.warns || []).forEach(push);
+      return L;
+    }
+
+    // syntax colouring of one source line for the read-only view; numbers and a few words become editable tokens
+    const KW = new Set(['void', 'bool', 'int', 'long', 'unsigned', 'uint32_t', 'uint8_t', 'byte', 'volatile', 'const', 'static', 'if', 'else', 'return', 'true', 'false', 'IRAM_ATTR', '#include', '#define']);
+    function colour(line, off, editable) {
+      const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      let out = '', i = 0;
+      const tok = (cls, s, at, ed) => (ed ? `<span class="${cls} ce-tok" data-o="${off + at}" data-l="${s.length}">${esc(s)}</span>` : `<span class="${cls}">${esc(s)}</span>`);
+      while (i < line.length) {
+        const r = line.slice(i);
+        let m;
+        if ((m = /^\/\/.*/.exec(r)) || (m = /^\/\*.*?(\*\/|$)/.exec(r))) { out += tok('c', m[0], i); i += m[0].length; continue; }
+        if ((m = /^"(?:[^"\\]|\\.)*"?/.exec(r))) { out += tok('s', m[0], i); i += m[0].length; continue; }
+        if ((m = /^#\s*(include|define)\b/.exec(r))) { out += tok('k', m[0], i); i += m[0].length; continue; }
+        if ((m = /^\d+[uUlL]*/.exec(r)) && !/\w/.test(line[i - 1] || '')) { out += tok('n', m[0], i, true); i += m[0].length; continue; }
+        if ((m = /^[A-Za-z_]\w*/.exec(r))) {
+          const w = m[0];
+          out += KW.has(w) ? tok('k', w, i, w === 'volatile') : editable && editable.has(w) ? tok('id', w, i, true) : esc(w);
+          i += w.length; continue;
+        }
+        out += esc(line[i]); i++;
+      }
+      return out;
+    }
+
+    return { lex, parse, check, compile, machine, report, colour, walk, calls, callName, CErr };
+  })();
+
+  /* Code editor UI around a lab's code panel. opts: { root (the panel's box), view (element with the lines),
+     out (<pre> for build messages), spec, template() → source, editable: Set of words, snippets: [[label, code]],
+     onLoad(res, src, why) — called with a compiled program, render(src, res) — draws the read-only view } */
+  function codeEditor(opts) {
+    const { root, out } = opts;
+    const id = root.id || 'ce';
+    const bar = document.createElement('div');
+    bar.className = 'ce-bar';
+    bar.innerHTML = `<button type="button" class="btn sm ce-open" id="${id}-edit" aria-expanded="false">✎ Змінити код</button>
+      <span class="ce-state" id="${id}-state">оригінал</span>`;
+    const ed = document.createElement('div');
+    ed.className = 'ce-edit'; ed.hidden = true;
+    ed.innerHTML = `<label class="ce-lbl" for="${id}-ta">Ваш код (як у PlatformIO): змініть числа, назви чи рядки й натисніть «Завантажити»</label>
+      <textarea class="ce-ta" id="${id}-ta" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea>
+      ${opts.snippets && opts.snippets.length ? `<div class="ce-ins" role="group" aria-label="Вставити рядок у місце курсора"><span class="ce-ins-h">Вставити рядок:</span>${opts.snippets.map(([l], i) => `<button type="button" class="btn sm ghost" data-i="${i}">${l}</button>`).join('')}</div>` : ''}
+      <div class="ce-acts">
+        <button type="button" class="btn primary" data-a="up">⤓ Скомпілювати й завантажити</button>
+        <button type="button" class="btn" data-a="cancel">Скасувати</button>
+        <button type="button" class="btn ghost" data-a="orig">↺ Оригінал</button>
+      </div>`;
+    root.prepend(bar); opts.view.after(ed);
+    const ta = ed.querySelector('textarea'), openBtn = bar.querySelector('.ce-open'), state = bar.querySelector('.ce-state');
+    let src = opts.template(), custom = false;
+    const api = { uploads: 0, errors: 0, get src() { return src; }, get custom() { return custom; }, get isOpen() { return !ed.hidden; } };
+    const fit = () => { ta.rows = Math.max(6, ta.value.split('\n').length + 1); };
+    const show = (lines, ok) => {
+      out.hidden = !lines.length;
+      out.innerHTML = '';
+      out.classList.toggle('bad', !ok);
+      lines.forEach((l) => { const s = document.createElement('span'); s.className = l.cls || ''; s.textContent = l.txt + '\n'; out.appendChild(s); });
+    };
+    const setState = () => { state.textContent = custom ? 'ваша версія' : 'оригінал'; state.classList.toggle('mine', custom); };
+    function load(newSrc, why) {
+      const res = MiniC.compile(newSrc, opts.spec);
+      if (!res.ok) return res;
+      src = newSrc;
+      opts.render(src, res);
+      opts.onLoad(res, src, why);
+      return res;
+    }
+    function open(at, len) {
+      ta.value = src; fit();
+      ed.hidden = false; opts.view.hidden = true; openBtn.setAttribute('aria-expanded', 'true'); openBtn.textContent = '✎ Редагування…';
+      ta.focus({ preventScroll: true });
+      if (at != null) { try { ta.setSelectionRange(at, at + (len || 0)); } catch { /* old browser */ } }
+    }
+    function close() { ed.hidden = true; opts.view.hidden = false; openBtn.setAttribute('aria-expanded', 'false'); openBtn.textContent = '✎ Змінити код'; }
+    openBtn.addEventListener('click', () => (ed.hidden ? open() : close()));
+    ta.addEventListener('input', fit);
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); upload(); }
+      if (e.key === 'Escape') { e.preventDefault(); close(); openBtn.focus(); }
+    });
+    ed.querySelectorAll('.ce-ins button').forEach((b) => b.addEventListener('click', () => {
+      const code = opts.snippets[+b.dataset.i][1];
+      const v = ta.value, p = ta.selectionStart;
+      const ls = v.lastIndexOf('\n', p - 1) + 1, le = v.indexOf('\n', p) < 0 ? v.length : v.indexOf('\n', p);
+      const indent = /^\s*/.exec(v.slice(ls, le))[0] || '  ';
+      const ins = '\n' + indent + code;
+      ta.value = v.slice(0, le) + ins + v.slice(le);
+      const caret = le + ins.length;
+      ta.focus(); ta.setSelectionRange(caret, caret); fit();
+    }));
+    function upload() {
+      const res = MiniC.compile(ta.value, opts.spec);
+      if (!res.ok) {
+        api.errors++;
+        show([{ cls: 'dim', txt: 'Компіляція src/main.cpp…' }, ...MiniC.report(opts.spec, res),
+          { cls: 'err', txt: '✗ [FAILED] Прошивку не завантажено: плата далі виконує попередню версію.' }], false);
+        const e = res.err;
+        if (e.line > 0) {
+          const lines = ta.value.split('\n');
+          let p = 0; for (let i = 0; i < e.line - 1 && i < lines.length; i++) p += lines[i].length + 1;
+          p += Math.max(0, Math.min((lines[e.line - 1] || '').length, e.col - 1));
+          ta.focus(); try { ta.setSelectionRange(p, Math.min(ta.value.length, p + 1)); } catch { /* ignore */ }
+        }
+        return false;
+      }
+      api.uploads++;
+      custom = ta.value !== opts.template();
+      close();
+      load(ta.value, 'upload');
+      show([{ cls: 'dim', txt: 'Компіляція src/main.cpp…' }, ...MiniC.report(opts.spec, res),
+        { cls: 'ok', txt: '✓ [SUCCESS] Скомпільовано й завантажено: плата перезапустилась з новою прошивкою.' }], true);
+      setState();
+      return true;
+    }
+    ed.querySelector('[data-a="up"]').addEventListener('click', upload);
+    ed.querySelector('[data-a="cancel"]').addEventListener('click', () => { close(); openBtn.focus(); });
+    ed.querySelector('[data-a="orig"]').addEventListener('click', () => { ta.value = opts.template(); fit(); ta.focus(); });
+    // clicking a number or a marked word in the read-only view opens the editor with that token selected
+    opts.view.addEventListener('click', (e) => {
+      const t = e.target.closest && e.target.closest('.ce-tok');
+      if (!t) return;
+      open(+t.dataset.o, +t.dataset.l);
+    });
+    Object.assign(api, {
+      load, open, close, upload, show,
+      // the lab's own controls change the code: a patched source ('hot': the running model keeps its state) or a
+      // fresh template ('reset': new firmware). Returns the compiled result, or null when the source does not compile.
+      set(newSrc, isTemplate, how = 'reset') {
+        const res = MiniC.compile(newSrc, opts.spec);
+        if (!res.ok) return null;
+        custom = !isTemplate && newSrc !== opts.template();
+        load(newSrc, how);
+        setState(); out.hidden = true;
+        if (!ed.hidden) { ta.value = src; fit(); }
+        return res;
+      },
+      textarea: ta,
+    });
+    return api;
+  }
+  // replace [s, e) ranges in a string (ranges must not overlap)
+  const splice = (s, edits) => edits.sort((a, b) => b.s - a.s).reduce((acc, x) => acc.slice(0, x.s) + x.v + acc.slice(x.e), s);
+
+
   /* ==== lab: Blink on the drawn board — code line, pin level, LED, Serial, trace ==== */
   {
-    const board = $('#bl-board'), stage = $('#bl-stage'), lines = $$('#bl-code li'), mon = $('#bl-serial'), cv = $('#bl-tr');
+    const board = $('#bl-board'), stage = $('#bl-stage'), codeEl = $('#bl-code'), mon = $('#bl-serial'), cv = $('#bl-tr');
     const B = bench(board, 1100), esp = B.esp;
     const setEsp = setter(esp), setLed = setter(B.led);
     // the cable rises from the plug to the laptop above the bench; only the plugged port gets one
@@ -1224,25 +2005,29 @@ document.addEventListener('study:ready', () => {
     const rb = sv('g', { id: 'bl-rst-btn', class: 'bl-rst', role: 'button', tabindex: '0', 'aria-label': 'Кнопка RST: перезапустити чип' }, board);
     sv('rect', { class: 'bl-hit', x: rstAt.x - 42, y: rstAt.y - 36, width: 84, height: 72, rx: 12, 'stroke-width': 6 }, rb);
     const DLY = [10, 50, 100, 200, 500, 1000, 2000];
-    // PROG: one entry per statement; ln = line index in #bl-code
-    const PROG = [
-      { ln: 3, k: 'boot', msg: 'Чип стартував, ядро викликає setup() — один раз після кожного увімкнення чи RST.' },
-      { ln: 4, k: 'begin', msg: 'Serial.begin: відкрили Serial. У наших проєктах він іде через роз\'єм «USB».' },
-      { ln: 5, k: 'pm', msg: 'pinMode(LED_PIN, OUTPUT): вивід став виходом, поки що LOW.' },
-      { ln: 6, k: 'print', s: 'Blink: старт', msg: 'Serial.println: рядок «Blink: старт» пішов у монітор порту.' },
-      { ln: 7, k: 'esetup', msg: 'setup() закінчилась. До наступного скидання її не викличуть.' },
-      { ln: 8, k: 'loop', msg: 'Ядро викликає loop() — це вже {n}-й раз.' },
-      { ln: 9, k: 'hi', msg: 'HIGH: вивід з\'єднано з 3,3 В, струм тече через R1 і LED — світить.' },
-      { ln: 10, k: 'print', s: 'LED: HIGH', msg: 'Serial.println: «LED: HIGH» у монітор.' },
-      { ln: 11, k: 'delay', msg: 'delay: loop() чекає {d} мс. LED так і світить — вимкнути його нікому.' },
-      { ln: 12, k: 'lo', msg: 'LOW: вивід з\'єднано із землею, струму немає — LED темний.' },
-      { ln: 13, k: 'print', s: 'LED: LOW', msg: 'Serial.println: «LED: LOW» у монітор.' },
-      { ln: 14, k: 'delay', msg: 'delay: ще {d} мс очікування з темним LED.' },
-      { ln: 15, k: 'eloop', msg: 'Кінець loop(). Ядро одразу викликає її знову, без паузи.' },
-    ];
+    const RGB = 97;    // LED_BUILTIN on the YD-ESP32-S3: a virtual number (SOC_GPIO_PIN_COUNT + 48); the core lights the WS2812 on GPIO48
+    const OUTPUT = 3;
     const BOOT_MS = 300; // schematic start-up time of the model, not a datasheet value
-    const st = { power: true, port: 'usb', pin: '15', dly: 1000, slow: false, pc: 0, T: 0, boot: 0, wait: 0, level: 'z',
-      segs: [{ t: 0, v: 'z' }], ns: 0, nl: 0, clock: 0, hit: new Array(lines.length).fill(-1e9), cur: -1, pk: [], rstDown: false,
+    // the firmware is real code now: MiniC compiles the panel's source and runs it statement by statement
+    const tpl = (pin = '15', d = 1000) => `#include <Arduino.h>
+#define LED_PIN ${pin === 'b' ? 'LED_BUILTIN' : '15  // зовнішній LED'}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  Serial.println("Blink: старт");
+}
+void loop() {
+  digitalWrite(LED_PIN, HIGH);
+  Serial.println("LED: HIGH");
+  delay(${d});
+  digitalWrite(LED_PIN, LOW);
+  Serial.println("LED: LOW");
+  delay(${d});
+}`;
+    const st = { power: true, port: 'usb', pin: '15', watch: 15, slow: false, T: 0, boot: 0, wait: 0, level: 'z',
+      segs: [{ t: 0, v: 'z' }], ns: 0, nl: 0, clock: 0, hit: [], cur: -1, pk: [], rstDown: false,
+      modes: {}, lv: {}, rgb: false, passWait: 0, passMs: 2000, last: null, line: '',
       rsts: 0, sawCom: false, sawRgb: false }; // rsts / sawCom / sawRgb: only for the missions below
     const out = [];
     const serial = (txt, cls = '') => {
@@ -1253,47 +2038,142 @@ document.addEventListener('study:ready', () => {
     };
     const setLevel = (v) => { if (st.level === v) return; st.level = v; st.segs.push({ t: st.T, v }); if (st.segs.length > 400) st.segs.splice(0, 100); };
     const note = (m) => { $('#bl-note').textContent = m; };
-    const msgOf = (p) => p.msg.replace('{n}', st.nl).replace(/\{d\}/g, st.dly);
-    function exec() {
-      const p = PROG[st.pc];
-      st.cur = p.ln; st.hit[p.ln] = st.clock;
-      switch (p.k) {
-        case 'boot': st.ns++; st.wait = BOOT_MS; break;
-        case 'pm': setLevel('lo'); break;
-        case 'print': if (st.port === 'usb') { serial(p.s); st.pk.push(st.clock); } break;
-        case 'loop': st.nl++; break;
-        case 'hi': setLevel('hi'); break;
-        case 'lo': setLevel('lo'); break;
-        case 'delay': st.wait = st.dly; break;
-        default: break;
+    const pinName = (p) => (p === RGB ? 'LED_BUILTIN' : 'GPIO' + p);
+    const say = (k, m) => { if (!st.said[k]) { st.said[k] = true; note(m); } };
+    const sval = (v) => (typeof v === 'number' ? String(Math.trunc(v)) : v && v.fn ? v.fn : String(v ?? ''));
+    // built-ins of the Arduino core that this lab models
+    const spec = {
+      file: 'src/main.cpp', require: ['setup', 'loop'],
+      consts: { HIGH: 1, LOW: 0, OUTPUT, INPUT: 1, INPUT_PULLUP: 5, LED_BUILTIN: RGB, RGB_BUILTIN: RGB, true: 1, false: 0 },
+      builtins: {
+        'Serial.begin': { n: 1, sig: 'void HWCDC::begin(unsigned long)', f: () => { st.last = { k: 'begin' }; } },
+        'Serial.println': { n: [0, 1], sig: 'size_t Print::println(const char*)', f: (a) => { const s = st.line + (a.length ? sval(a[0]) : ''); st.line = ''; st.last = { k: 'print', s }; if (st.port === 'usb') { serial(s); st.pk.push(st.clock); } } },
+        'Serial.print': { n: 1, sig: 'size_t Print::print(const char*)', f: (a) => { st.line += sval(a[0]); st.last = { k: 'print0', s: sval(a[0]) }; } },
+        pinMode: { n: 2, sig: 'void pinMode(uint8_t, uint8_t)', f: ([p, m]) => {
+          st.modes[p] = m; st.last = { k: 'pm', p, m };
+          if (m === OUTPUT && p !== RGB) { st.lv[p] = 'lo'; if (p === st.watch) setLevel('lo'); }
+        } },
+        digitalWrite: { n: 2, sig: 'void digitalWrite(uint8_t, uint8_t)', f: ([p, v]) => {
+          const lv = v ? 'hi' : 'lo';
+          st.last = { k: 'dw', p, v: !!v, ok: true };
+          if (p === RGB) { st.rgb = !!v; if (p === st.watch) setLevel(lv); return; }
+          if (!(p >= 0 && p <= 48)) { st.last.ok = false; st.last.bad = true; say('badpin', `У ESP32-S3 виводи GPIO0–GPIO48, а ${sval(p)} — такого немає: ядро пише помилку й нічого не робить.`); return; }
+          if (st.modes[p] !== OUTPUT) { st.last.ok = false; say('nopm' + p, `digitalWrite(${pinName(p)}) без pinMode(…, OUTPUT): вивід не став виходом, тож LED не світить. Додайте pinMode у setup().`); return; }
+          st.lv[p] = lv; if (p === st.watch) setLevel(lv);
+        } },
+        digitalRead: { n: 1, sig: 'int digitalRead(uint8_t)', f: ([p]) => (st.lv[p] === 'hi' ? 1 : 0) },
+        delay: { n: 1, sig: 'void delay(uint32_t)', f: ([ms]) => { const d = Math.trunc(Number(ms) || 0) >>> 0; st.last = { k: 'delay', d }; return { wait: d }; } },
+        millis: { n: 0, sig: 'unsigned long millis()', f: () => Math.floor(st.T - st.boot) },
+      },
+      check(prog, fail, warn) {
+        MiniC.walk(prog.fns.setup ? prog.fns.setup.body : [], (s) => { if (s.k === 'expr' && s.e.k === 'call' && MiniC.callName(s.e) === 'delay' && s.e.args[0] && s.e.args[0].k === 'num' && s.e.args[0].v > 10000) warn(s, 'long delay() in setup()', 'Така довга пауза в setup(): loop() почнеться нескоро.'); });
+      },
+    };
+    // static facts about a compiled program: which pin LED_PIN names, does loop() switch the external LED / the RGB
+    const cval = (e, prog) => {
+      if (!e) return null;
+      if (e.k === 'num') return e.v;
+      if (e.k === 'id') { const d = prog.defines[e.name]; if (d) return d.val ? cval(d.val.k === 'num' ? { k: 'num', v: d.val.v } : { k: 'id', name: d.val.v }, prog) : 1; if (e.name in spec.consts) return spec.consts[e.name]; }
+      return null;
+    };
+    let P = null, M = null, task = null, lines = [];
+    function facts(prog) {
+      const f = { writes: new Set(), delays: [], watch: null };
+      for (const fn of Object.values(prog.fns)) MiniC.walk(fn.body, (s) => {
+        for (const c of MiniC.calls(s.e || s.init || s.c)) {
+          const n = MiniC.callName(c);
+          if (n === 'digitalWrite') { const p = cval(c.args[0], prog), v = cval(c.args[1], prog); f.writes.add(`${p}:${v ? 1 : 0}`); if (f.watch == null && p != null) f.watch = p; }
+          if (n === 'delay' && fn.name === 'loop') f.delays.push(c.args[0]);
+        }
+      });
+      if (prog.defines.LED_PIN) f.watch = cval({ k: 'id', name: 'LED_PIN' }, prog);
+      if (f.watch == null) f.watch = 15;
+      f.blinks = (p) => f.writes.has(`${p}:1`) && f.writes.has(`${p}:0`);
+      return f;
+    }
+    // the read-only view: one <li> per line, numbers and a few names can be clicked to edit them
+    const EDITABLE = new Set(['LED_PIN', 'HIGH', 'LOW', 'LED_BUILTIN', 'OUTPUT']);
+    function render(src) {
+      let off = 0;
+      codeEl.innerHTML = src.split('\n').map((ln) => {
+        const h = MiniC.colour(ln, off, EDITABLE); off += ln.length + 1;
+        // one child per <li>: the list items are flex boxes, and loose spaces between spans would collapse
+        return `<li${/^\s*#\s*define\s+LED_PIN\b/.test(ln) ? ' id="bl-def"' : ''}><span>${h}</span></li>`;
+      }).join('');
+      lines = $$('#bl-code li');
+      st.hit = new Array(lines.length).fill(-1e9);
+    }
+    function boot(skipSetup) {
+      M = MiniC.machine(P.prog, spec, { fault: (n, why) => note(`Збій під час роботи (рядок ${n.line}): ${why}. Плата зависла — виправте код.`) });
+      task = M.task(skipSetup);
+      st.passWait = 0; st.line = '';
+    }
+    // runs the program up to the next visible event (a statement done, a function entered or left)
+    function stepOne() {
+      if (!task) return null;
+      st.last = null;
+      for (let g = 0; g < 400; g++) {
+        const v = task.next().value;
+        if (v.k === 'wait') { st.wait = v.ms; st.passWait += v.ms; continue; }
+        if (v.k === 'pass') { st.passMs = st.passWait || 1; if (!st.passWait) st.wait = 1; st.passWait = 0; continue; }
+        if (v.k === 'enter') { if (v.fn === 'setup') { st.ns++; st.wait = BOOT_MS; } else if (v.fn === 'loop') st.nl++; }
+        st.cur = v.line - 1; st.hit[st.cur] = st.clock;
+        return v;
       }
-      st.pc = p.k === 'eloop' ? PROG.findIndex((q) => q.k === 'loop') : st.pc + 1;
-      return p;
+      return null;
+    }
+    const lit = () => (st.watch === RGB ? st.rgb : st.lv[st.watch] === 'hi');
+    function msgOf(v) {
+      if (!v) return '';
+      if (v.k === 'enter') return v.fn === 'setup' ? 'Чип стартував, ядро викликає setup() — один раз після кожного увімкнення чи RST.'
+        : v.fn === 'loop' ? `Ядро викликає loop() — це вже ${st.nl}-й раз.` : `Виклик вашої функції ${v.fn}().`;
+      if (v.k === 'exit') return v.fn === 'setup' ? 'setup() закінчилась. До наступного скидання її не викличуть.'
+        : v.fn === 'loop' ? 'Кінець loop(). Ядро одразу викликає її знову, без паузи.' : `${v.fn}() закінчилась: повертаємось туди, звідки її викликали.`;
+      if (v.k === 'cond') return `if: умова ${v.taken ? 'істинна — виконуємо блок' : 'хибна — блок пропускаємо'}.`;
+      const L = st.last;
+      if (!L || v.node.k !== 'expr') return v.node.k === 'decl' ? `Змінна ${v.node.name} отримала значення.` : 'Рядок виконано.';
+      st.last = null;
+      switch (L.k) {
+        case 'begin': return 'Serial.begin: відкрили Serial. У наших проєктах він іде через роз\'єм «USB».';
+        case 'pm': return L.m === OUTPUT ? `pinMode(${pinName(L.p)}, OUTPUT): вивід став виходом, поки що LOW.` : `pinMode(${pinName(L.p)}, …): вивід став входом — світлодіод ним не керуватимеш.`;
+        case 'print': return `Serial.println: «${L.s}» пішов у монітор порту.`;
+        case 'print0': return `Serial.print: «${L.s}» чекає кінця рядка (println).`;
+        case 'dw':
+          if (L.bad) return `digitalWrite: виводу ${sval(L.p)} на ESP32-S3 немає.`;
+          if (!L.ok) return `digitalWrite(${pinName(L.p)}): але pinMode(…, OUTPUT) для нього не було — вивід не вихід, LED не світить.`;
+          if (L.p === RGB) return L.v ? 'LED_BUILTIN HIGH: ядро вмикає RGB-світлодіод на GPIO48 білим.' : 'LED_BUILTIN LOW: ядро гасить RGB-світлодіод.';
+          if (L.p === 15) return L.v ? 'HIGH: вивід з\'єднано з 3,3 В, струм тече через R1 і LED — світить.' : 'LOW: вивід з\'єднано із землею, струму немає — LED темний.';
+          return `digitalWrite: на GPIO${L.p} тепер ${L.v ? 'HIGH' : 'LOW'}, але до цього виводу на макетці нічого не під'єднано.`;
+        case 'delay': return lit() ? `delay: loop() чекає ${L.d} мс. LED так і світить — вимкнути його нікому.` : `delay: ${L.d} мс очікування з темним LED.`;
+        default: return 'Рядок виконано.';
+      }
     }
     // advance virtual time by ms, executing statements (they take no time; delay and boot do)
     function advance(ms) {
       let guard = 0;
-      while (ms > 0 && guard++ < 500) {
+      while (ms > 0 && guard++ < 4000) {
         if (st.wait > 0) { const u = Math.min(st.wait, ms); st.wait -= u; ms -= u; st.T += u; continue; }
-        exec();
+        if (!stepOne()) break;
       }
-      if (st.wait <= 0 && guard < 500) { /* statements due at this instant run on the next frame */ }
     }
-    function powerUp() { st.pc = 0; st.wait = 0; st.boot = st.T; setLevel('z'); }
-    const fastBlink = () => 2 * st.dly < 80;
+    function powerUp() { boot(false); st.wait = 0; st.boot = st.T; st.modes = {}; st.lv = {}; st.rgb = false; st.said = {}; setLevel('z'); }
+    const period = () => st.passMs;
+    const fastBlink = () => period() < 80;
     function paint() {
-      const on = st.power && st.level === 'hi';
-      const avg = st.power && st.level !== 'z' && fastBlink() && st.nl > 1; // the eye sees the average
-      const ext = st.pin === '15', glow = avg ? 0.5 : on ? 1 : 0;
-      if (!ext && glow) st.sawRgb = true;
-      setLed({ on: ext ? glow : 0 });
+      if (!P) return;
+      const avg = st.power && fastBlink() && st.nl > 1; // the eye sees the average
+      const ext15 = st.power && st.modes[15] === OUTPUT && (avg && P.f.blinks(15) ? 0.5 : st.lv[15] === 'hi' ? 1 : 0);
+      const rgbOn = st.power && (avg && P.f.blinks(RGB) ? 0.5 : st.rgb ? 1 : 0);
+      if (rgbOn) st.sawRgb = true;
+      setLed({ on: ext15 || 0 });
       // LED_BUILTIN on our board = the WS2812 on GPIO48, lit white by the core
-      setEsp({ power: st.power, rgb: !ext && glow ? (avg ? '#9c9c9c' : '#ffffff') : null, rst: st.rstDown, highlight: ext ? ['GPIO15', 'GND'] : null });
+      setEsp({ power: st.power, rgb: rgbOn ? (rgbOn < 1 ? '#9c9c9c' : '#ffffff') : null, rst: st.rstDown, highlight: st.watch === 15 ? ['GPIO15', 'GND'] : null });
       cables.usb.toggleAttribute('hidden', st.port !== 'usb');
       cables.com.toggleAttribute('hidden', st.port !== 'com');
       cables[st.port].style.transform = st.power ? '' : 'translate(150px, -60px)'; // unplugged
       const lv = !st.power ? 'немає живлення' : st.level === 'hi' ? 'HIGH' : st.level === 'lo' ? 'LOW' : 'Z';
-      $('#bl-pin-st').textContent = 'GPIO15 · ' + (!ext ? 'Z' : !st.power ? '0 В' : st.level === 'hi' ? 'HIGH' : st.level === 'lo' ? 'LOW' : 'Z');
+      const l15 = st.lv[15];
+      $('#bl-pin-st').textContent = 'GPIO15 · ' + (!st.power ? '0 В' : l15 === 'hi' ? 'HIGH' : l15 === 'lo' ? 'LOW' : 'Z');
       $('#bl-pwr').textContent = st.power ? `● живлення є (${st.port === 'usb' ? 'USB' : 'COM'})` : '○ кабель від\'єднано';
       $('#bl-pwr').classList.toggle('muted', !st.power);
       // code highlight: the current line plus a short fading trail
@@ -1305,16 +2185,17 @@ document.addEventListener('study:ready', () => {
       // Serial packets travel along the cable towards the laptop
       pg.textContent = '';
       st.pk = st.pk.filter((t0) => st.clock - t0 < 0.6);
+      if (st.pk.length > 12) st.pk.splice(0, st.pk.length - 12);
       const cab = cables.usb.core, CL = cab.getTotalLength();
       if (st.power && st.port === 'usb') st.pk.forEach((t0) => { const q = cab.getPointAtLength((st.clock - t0) / 0.6 * CL); sv('circle', { class: 'bl-pkt', cx: q.x.toFixed(1), cy: q.y.toFixed(1), r: 13, 'stroke-width': 4 }, pg); });
       // readouts
       $('#bl-r-ln').textContent = st.power && st.cur >= 0 ? String(st.cur + 1) : '—';
       $('#bl-r-lv').textContent = lv;
-      $('#bl-r-p').textContent = `${fmt.num(2 * st.dly, 0)} мс`;
+      $('#bl-r-p').textContent = `${fmt.num(period(), 0)} мс`;
       $('#bl-r-n').textContent = `${st.ns} / ${st.nl}`;
       $('#bl-r-t').textContent = st.power ? fmt.num(st.T - st.boot, 0) : '—';
       const W = 4000, tEnd = Math.max(st.T, W);
-      plot(cv, { tStart: tEnd - W, tEnd, segs: st.segs, now: st.T, grid: 1000, rel: true, labels: ext ? ['3,3 В', '0 В'] : ['HIGH', 'LOW'] });
+      plot(cv, { tStart: tEnd - W, tEnd, segs: st.segs, now: st.T, grid: 1000, rel: true, labels: st.watch === RGB ? ['HIGH', 'LOW'] : ['3,3 В', '0 В'] });
     }
     let sim = null;
     const frame = (dt) => {
@@ -1332,8 +2213,8 @@ document.addEventListener('study:ready', () => {
       sim.pause(); syncPlay();
       if (st.wait > 0) { st.T += st.wait; st.wait = 0; }
       st.hit.fill(-1e9);
-      const p = exec();
-      note(msgOf(p)); paint();
+      const v = stepOne();
+      note(msgOf(v)); paint();
     });
     const reset = (why) => {
       powerUp(); st.cur = -1;
@@ -1355,23 +2236,52 @@ document.addEventListener('study:ready', () => {
       else { setLevel('off'); st.wait = 0; st.cur = -1; note('Кабель від\'єднано: чип вимкнувся, програма зупинилась. У flash вона лишилась — під\'єднайте знову.'); paint(); }
     });
     $('#bl-slow').addEventListener('switch', (e) => { st.slow = e.detail.on; note(st.slow ? 'Час іде вчетверо повільніше: видно кожен перехід.' : 'Реальний час.'); });
+    // the lab's controls and the editor share one program
+    const syncCtl = () => {
+      const ds = P.f.delays.map((a) => cval(a, P.prog));
+      const same = ds.length && ds.every((d) => d === ds[0]) ? ds[0] : null;
+      $('#bl-dly-o').textContent = same != null ? `${same} мс` : ds.length ? 'різні' : 'немає';
+      const k = DLY.indexOf(same); if (k >= 0) $('#bl-dly').value = String(k);
+      $$('#bl-led button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.p === st.pin)));
+      $('#bl-tr-cap').textContent = st.watch === 15 ? 'GPIO15 (LED_PIN) за останні 4 с — так його показав би осцилограф.'
+        : st.watch === RGB ? 'Логічний стан LED_BUILTIN за останні 4 с. На GPIO48 при цьому йдуть пакети даних WS2812, а не рівні HIGH/LOW.'
+          : `GPIO${st.watch} (LED_PIN) за останні 4 с. До цього виводу на макетці нічого не під'єднано.`;
+    };
+    const ce = codeEditor({
+      root: $('#bl-ce'), view: codeEl, out: $('#bl-cout'), spec, template: () => tpl(),
+      snippets: [['delay(250);', 'delay(250);'], ['digitalWrite HIGH', 'digitalWrite(LED_PIN, HIGH);'], ['digitalWrite LOW', 'digitalWrite(LED_PIN, LOW);'], ['Serial.println', 'Serial.println("…");']],
+      render,
+      onLoad(res, src, how) {
+        P = { prog: res.prog, f: facts(res.prog) };
+        st.watch = P.f.watch; st.pin = st.watch === 15 ? '15' : st.watch === RGB ? 'b' : String(st.watch);
+        const ds = P.f.delays.map((a) => cval(a, P.prog));
+        st.passMs = ds.every((d) => d != null) ? Math.max(1, ds.reduce((a, b) => a + b, 0)) : 2000;
+        syncCtl();
+        if (how === 'hot') { boot(true); st.wait = 0; return; }   // same firmware, new numbers: loop() starts over
+        if (!st.power) return;
+        if (how === 'upload') reset('Нову прошивку завантажено: чип перезапустився, setup() виконується з початку.');
+        else if (how === 'reset') reset(st.pin === '15' ? 'Нова прошивка: LED_PIN 15, світить зовнішній LED через 220 Ом.'
+          : st.pin === 'b' ? 'Нова прошивка: LED_BUILTIN. На нашій платі це не GPIO, а віртуальний номер: ядро вмикає RGB на GPIO48 білим.'
+            : 'Нова прошивка завантажена.');
+      },
+    });
     $('#bl-dly').addEventListener('input', (e) => {
-      st.dly = DLY[+e.target.value];
-      $('#bl-dly-o').textContent = `${st.dly} мс`;
-      $$('#bl-code [data-d]').forEach((n) => { n.textContent = st.dly; });
-      const P = 2 * st.dly;
-      note(`delay(${st.dly}) двічі: період ${P} мс, ${fmt.num(1000 / P, P >= 1000 ? 2 : 1)} спалаху за секунду.`
+      const d = DLY[+e.target.value];
+      const nums = P.f.delays.filter((a) => a.k === 'num');
+      if (!nums.length) { note('У loop() немає delay() з числом — повзунку нічого змінювати. Додайте delay(…) у редакторі.'); return; }
+      ce.set(splice(ce.src, nums.map((a) => ({ s: a.s, e: a.e, v: String(d) }))), !ce.custom, 'hot');
+      const P2 = period();
+      note(`delay(${d}): період ${P2} мс, ${fmt.num(1000 / P2, P2 >= 1000 ? 2 : 1)} спалаху за секунду.`
         + (fastBlink() ? ' Так швидко око миготіння не бачить: LED здається рівним, але тьмянішим.' : ''));
       paint();
     });
     $$('#bl-led button').forEach((b) => b.addEventListener('click', () => {
-      press($('#bl-led'), b); st.pin = b.dataset.p;
-      $('#bl-def').innerHTML = st.pin === '15' ? '<span class="k">#define</span> LED_PIN 15  <span class="c">// зовнішній LED</span>'
-        : '<span class="k">#define</span> LED_PIN LED_BUILTIN';
-      $('#bl-tr-cap').textContent = st.pin === '15' ? 'GPIO15 (LED_PIN) за останні 4 с — так його показав би осцилограф.'
-        : 'Логічний стан LED_BUILTIN за останні 4 с. На GPIO48 при цьому йдуть пакети даних WS2812, а не рівні HIGH/LOW.';
-      if (st.power) reset(st.pin === '15' ? 'Нова прошивка: LED_PIN 15, світить зовнішній LED через 220 Ом.'
-        : 'Нова прошивка: LED_BUILTIN. На нашій платі це не GPIO, а віртуальний номер: ядро вмикає RGB на GPIO48 білим.');
+      const want = b.dataset.p, d = P.prog.defines.LED_PIN;
+      if (!ce.custom || !d || !d.val) {
+        const ds = P.f.delays.map((a) => cval(a, P.prog));
+        if (ce.custom) note('Ваш код не має #define LED_PIN з одним значенням, тож завантажуємо приклад уроку.');
+        ce.set(tpl(want, ds.length && ds.every((x) => x === ds[0]) && ds[0] != null ? ds[0] : 1000), true, 'reset');
+      } else ce.set(splice(ce.src, [{ s: d.s, e: d.e, v: want === '15' ? '#define LED_PIN 15  // зовнішній LED' : '#define LED_PIN LED_BUILTIN' }]), false, 'reset');
     }));
     $$('#bl-port button').forEach((b) => b.addEventListener('click', () => {
       press($('#bl-port'), b); st.port = b.dataset.p;
@@ -1379,14 +2289,22 @@ document.addEventListener('study:ready', () => {
       if (st.power) reset(st.port === 'usb' ? 'Кабель у роз\'ємі «USB»: живлення і Serial програми.'
         : 'Кабель у «COM»: плата живиться і прошивається, але Serial наших проєктів сюди не пише — він іде через «USB».');
     }));
+    ce.set(tpl(), true, 'init');
     powerUp(); paint();
+    note('Плату щойно увімкнули: ядро викличе setup() один раз, а потім loop() — знову і знову.');
     Study.onTheme(paint);
     window.addEventListener('resize', paint);
-    // missions: each check reads the lab's own state (st)
+    // the last full HIGH and LOW stretch of LED_PIN (for the «маяк» mission)
+    const lastSpans = () => {
+      const s = st.segs, r = {};
+      for (let i = s.length - 2; i >= 0 && !(r.hi && r.lo); i--) if (!r[s[i].v]) r[s[i].v] = s[i + 1].t - s[i].t;
+      return r;
+    };
+    // missions: each check reads the lab's own state (st) and the program the board runs (P)
     Study.missions($('#bl-ms'), { key: 'blink', items: [
       { id: '1hz', text: 'Зробіть так, щоб зовнішній LED блимав рівно один раз на секунду (1&nbsp;Гц).',
         hint: 'Період = HIGH + LOW = 2 × delay. Для 1&nbsp;Гц період має бути 1000&nbsp;мс.',
-        check: () => st.power && st.pin === '15' && st.dly === 500 },
+        check: () => st.power && st.pin === '15' && P.f.blinks(15) && period() === 1000 && st.nl > 0 },
       { id: 'builtin', text: 'Перемкніть програму на <code>LED_BUILTIN</code> і дочекайтеся, поки засвітиться RGB-світлодіод на платі.',
         hint: 'Кнопка «LED_BUILTIN» під малюнком. На нашій платі це не GPIO, а RGB на GPIO48: ядро вмикає його білим.',
         check: () => st.sawRgb },
@@ -1398,7 +2316,13 @@ document.addEventListener('study:ready', () => {
         check: () => st.sawCom && st.port === 'usb' && st.power },
       { id: 'fuse', text: 'Зробіть миготіння таким швидким, щоб око бачило рівне, але тьмяніше світло зовнішнього LED.',
         hint: 'Крутіть delay вниз. Коли період менший за ≈&nbsp;80&nbsp;мс, око вже не бачить окремих спалахів.',
-        check: () => st.power && st.pin === '15' && fastBlink() && st.nl > 1 },
+        check: () => st.power && st.pin === '15' && P.f.blinks(15) && fastBlink() && st.nl > 1 },
+      { id: '2hz', text: 'Змініть <b>код</b> так, щоб зовнішній LED блимав 2 рази на секунду.',
+        hint: 'Натисніть «✎ Змінити код» (або клацніть число в delay). Період — це сума двох delay(): для 2 спалахів за секунду він має бути 500&nbsp;мс. Повзунок такого значення не має — лише редактор.',
+        check: () => st.power && P.f.blinks(15) && st.watch === 15 && period() === 500 && st.nl > 1 },
+      { id: 'beacon', text: 'Зробіть «маяк»: зовнішній LED спалахує на 100&nbsp;мс, потім 900&nbsp;мс темряви.',
+        hint: 'Дві затримки тепер різні: перша — після HIGH, друга — після LOW. Змініть кожне число окремо в редакторі й завантажте.',
+        check: () => { const r = lastSpans(); return st.power && st.watch === 15 && r.hi === 100 && r.lo === 900; } },
     ] });
   }
 

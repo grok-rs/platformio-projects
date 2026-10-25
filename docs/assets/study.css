@@ -997,7 +997,7 @@ button.sw:disabled { opacity: .55; cursor: not-allowed; }
 .hn-head b::before { content: "🔍 "; }
 .hn-n { font: 600 13px var(--f-mono); color: var(--muted); }
 .hn-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 18px 0; }
-.hn-tabs button { min-width: 40px; min-height: 40px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.hn-tabs button { min-width: 44px; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
 .hn-tabs button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .hn-tabs button.ok { background: color-mix(in srgb, var(--ok) 14%, var(--panel)); border-color: var(--ok); }
 .hn-tabs button.ok::after { content: "✓"; margin-left: 3px; color: var(--ok); }
@@ -1019,6 +1019,55 @@ button.sw:disabled { opacity: .55; cursor: not-allowed; }
 .hn-fb.ok { color: var(--ink); padding: 8px 12px; border-left: 3px solid var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--panel)); border-radius: 0 8px 8px 0; }
 .hn-fb.no { color: var(--bad); }
 .hn-nav { margin-top: 10px; display: flex; justify-content: flex-end; }
+.hn-head .hn-proj-btn { margin-left: auto; min-height: 44px; }
+.hn-head .hn-proj-btn::before { content: ""; display: inline-block; width: 15px; height: 11px; margin-right: 7px; vertical-align: -1px;
+  border: 1.5px solid currentColor; border-radius: 2px; box-shadow: 0 3px 0 -1.5px currentColor; }
+
+/* «На проєктор»: one case full screen, large type, A/B/C options for a chat vote (Study.hunt → projector) */
+.hn-proj { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+  background: var(--paper); color: var(--ink); overflow: hidden; }
+.hn-proj[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.hn-proj::backdrop { background: var(--paper); }
+.hp-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px clamp(12px, 2vw, 28px); border-bottom: 1px solid var(--line); background: var(--panel); }
+.hp-brand { font: 600 15px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--bad); }
+.hp-n { font: 600 clamp(15px, 1.3vw, 20px) var(--f-mono); color: var(--muted); }
+.hp-nav { display: flex; gap: 6px; margin-left: auto; }
+.hp-bar button { min-width: 48px; min-height: 48px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel);
+  color: var(--ink); font: 600 17px/1 var(--f-body); cursor: pointer; }
+.hp-bar button:hover { border-color: var(--accent); }
+.hp-bar button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.hp-bar .hp-prev, .hp-bar .hp-next { font-size: 24px; }
+.hp-bar .hp-fs[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.hp-bar kbd { margin-left: 6px; font-size: 13px; color: var(--muted); }
+.hp-body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: clamp(14px, 2vw, 32px); padding: clamp(12px, 2vw, 28px); min-height: 0; overflow: auto; }
+.hp-scene { min-width: 0; display: flex; align-items: center; }
+.hp-stage { flex: 1; min-width: 0; }
+.hn-proj .hp-stage > svg { max-height: calc(100dvh - 140px); }
+.hp-stage .hn-found { filter: drop-shadow(0 0 7px var(--ok)) drop-shadow(0 0 3px var(--ok)); }
+.hp-side { display: flex; flex-direction: column; gap: clamp(10px, 1.2vw, 18px); min-width: 0; }
+.hp-title { margin: 0; font: 700 clamp(26px, 2.6vw, 44px)/1.1 var(--f-display); }
+.hp-sym { margin: 0; padding: 10px 16px; font-size: clamp(19px, 1.7vw, 28px); line-height: 1.4; border-left: 4px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 6%, var(--panel)); border-radius: 0 10px 10px 0; }
+.hp-ask { margin: 0; font-size: clamp(16px, 1.3vw, 21px); color: var(--muted); }
+.hp-opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.hp-opts li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; margin: 0; max-width: none;
+  padding: 10px 16px; border: 1.5px solid var(--line-strong); border-radius: 12px; background: var(--panel);
+  font-size: clamp(19px, 1.7vw, 28px); line-height: 1.3; }
+.hp-l { display: grid; place-items: center; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--ink); color: var(--panel);
+  font: 700 1em/1 var(--f-mono); }
+.hn-proj.revealed .hp-opts li:not(.right) { opacity: .62; }
+.hp-opts li.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--panel)); }
+.hp-opts li.right .hp-l { background: var(--ok); color: var(--paper); }
+.hp-reveal { align-self: flex-start; min-height: 52px; font-size: clamp(17px, 1.4vw, 22px); }
+.hp-fb:empty { display: none; }
+.hp-fb.ok { padding: 10px 16px; font-size: clamp(17px, 1.4vw, 24px); line-height: 1.45; border-left: 4px solid var(--ok);
+  background: color-mix(in srgb, var(--ok) 8%, var(--panel)); border-radius: 0 10px 10px 0; }
+@media (max-width: 860px), (max-aspect-ratio: 1/1) {
+  .hp-body { grid-template-columns: minmax(0, 1fr); align-content: start; }
+  .hp-scene { display: block; }
+  .hn-proj .hp-stage > svg { max-height: 52dvh; }
+}
+@media (max-width: 520px) { .hp-brand { display: none; } .hp-bar kbd { display: none; } }
 
 /* soft predict gate: the widget works right away; this hint points back to the question until it is answered */
 .gate-hint { display: block; width: 100%; margin: 0 0 8px; padding: 8px 14px; border: 1px dashed color-mix(in srgb, var(--hi) 55%, var(--line));

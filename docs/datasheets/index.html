@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тренажер даташитів</title>
+<meta name="description" content="Справжні таблиці з даташитів BC547B, P2N2222A, 1N4007, червоного світлодіода 5 мм, ESP32-S3 і мультиметра UT136C+. Питання — а ви клацаєте потрібну клітинку й вчитеся читати Min/Typ/Max, умови вимірювання й абсолютні максимуми.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/study.css">
+<link rel="stylesheet" href="../site-nav.css">
+<link rel="stylesheet" href="datasheets.css">
+<script src="../site-theme.js"></script>
+</head>
+<body>
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="datasheets">
+  <a class="sn-home" href="../"><img src="../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub" id="main">
+  <header id="top">
+    <p class="eyebrow">Тренажер</p>
+    <h1>Тренажер <span>даташитів</span></h1>
+    <p class="lead">Даташит — паспорт деталі від виробника. Тут лежать уривки справжніх таблиць для деталей нашого курсу, передруковані вручну й звірені з оригіналами. Читаєте питання — клацаєте клітинку з відповіддю. Підказка після кожної спроби пояснює, як читати таблицю.</p>
+    <div class="actions"><a class="btn primary" href="#train">До тренажера</a><a class="btn ghost" href="#read">Як читати таблицю</a></div>
+  </header>
+
+  <section class="hs" id="read" aria-labelledby="read-h">
+    <h2 id="read-h"><span class="n">01</span> Чотири правила читання</h2>
+    <div class="ds-rules">
+      <article class="ds-rule">
+        <h3>Absolute Maximum ≠ робочий режим</h3>
+        <p><b>Absolute Maximum Ratings</b> — межа, за якою деталь може зіпсуватися. Працювати треба в межах <b>Recommended Operating Conditions</b> і з запасом.</p>
+      </article>
+      <article class="ds-rule">
+        <h3>Min · Typ · Max</h3>
+        <p><b>Min</b> і <b>Max</b> гарантовані для кожного екземпляра. <b>Typ</b> — типовий екземпляр без гарантії: половина партії може бути гіршою.</p>
+      </article>
+      <article class="ds-rule">
+        <h3>Умови вимірювання</h3>
+        <p>Число правдиве лише за умов у стовпці <b>Test conditions</b> або в назві рядка: струм, напруга, температура. Інші умови — інше число.</p>
+      </article>
+      <article class="ds-rule">
+        <h3>Одиниці й примітки</h3>
+        <p>mA чи A, V чи «× VDD»? Позначки <b>[1]</b>, <b>²</b>, <b>(1)</b> ведуть до приміток під таблицею, а там часто ховається головне.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="hs" id="train" aria-labelledby="train-h">
+    <h2 id="train-h"><span class="n">02</span> Тренажер</h2>
+    <p class="sub">25 завдань на шість деталей. Поступ зберігається в цьому браузері. Для заняття натисніть «На проєктор»: великий шрифт, а стрілки ← → гортають завдання.</p>
+    <div id="ds-trainer" class="ds-trainer wide">
+      <noscript><p class="missing">Тренажер працює з JavaScript. Самі даташити — у списку джерел нижче.</p></noscript>
+    </div>
+  </section>
+
+  <section class="hs" id="more" aria-labelledby="more-h">
+    <h2 id="more-h"><span class="n">03</span> Джерела</h2>
+    <p>Кожен рядок таблиць має посилання: <b>[1]</b>, <b>[2]</b>… — на перевірений факт з реєстру курсу, <b>[Д1]</b>… — на сам даташит, звірений вручну. Значень, які не вдалося перевірити, у таблицях немає; позначка <b>·</b> означає «не перенесено в цей уривок».</p>
+    <details class="more" id="src-box"><summary>Факти з реєстру курсу</summary><ol id="sources" class="sources"></ol></details>
+    <details class="more" id="docs-box"><summary>Даташити</summary><ol id="ds-docs" class="sources ds-docs"></ol></details>
+    <p><span class="checked-stamp">✓ Перевірено 25.10.2026</span></p>
+  </section>
+</main>
+<script src="../assets/course.js" defer></script>
+<script src="../assets/site-nav.js" defer></script>
+<script src="../assets/study.js" defer></script>
+<script src="datasheets.js" defer></script>
+</body>
+</html>
