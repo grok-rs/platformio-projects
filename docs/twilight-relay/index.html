@@ -144,7 +144,7 @@ figure, .panel[id] { scroll-margin-top: var(--bar-h, 70px); }
 .callout { border-left: 3px solid var(--accent); background: var(--panel); padding: 8px 12px; margin: 10px 0; font-size: 14.5px; border-radius: 0 6px 6px 0; }
 .callout.warn { border-left-color: var(--hi); }
 .callout.bad { border-left-color: var(--bad); }
-.formula { font: 13px/1.6 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; overflow-x: auto; white-space: pre; }
+.formula { font: 13px/1.6 var(--f-mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; white-space: pre-wrap; overflow-wrap: break-word; }
 
 /* ---------- task ---------- */
 .task { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
@@ -423,18 +423,20 @@ pre.cmd { background: var(--panel-2); border: 1px solid var(--line); border-radi
 .qfb.ok { color: var(--ok); } .qfb.no { color: var(--bad); }
 .score { font: 600 14px var(--f-mono); }
 
-.pop { position: absolute; z-index: 20; width: min(380px, calc(100vw - 24px)); max-height: 72vh; overflow: auto; background: var(--panel); border: 1.5px solid var(--hl); border-radius: 10px; box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .5); padding: 10px 12px 12px; font-size: 13.5px; }
+.pop { position: absolute; z-index: 20; width: min(380px, calc(100vw - 24px)); max-height: 72vh; overflow: hidden auto; background: var(--panel); border: 1.5px solid var(--hl); border-radius: 10px; box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .5); padding: 10px 12px 12px; font-size: 13.5px; }
 .pop h4 { font-size: 1.3rem; margin: 2px 26px 4px 0; }
-.pop-role { font: 600 11.5px var(--f-mono); color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+.pop-role { font: 600 13px var(--f-mono); color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
 .pop-x { position: absolute; top: 4px; right: 6px; border: 0; background: none; font: 600 22px/1 var(--f-body); color: var(--muted); cursor: pointer; padding: 4px 6px; }
 .pop-x:hover { color: var(--ink); }
 .pop p { margin: 6px 0 0; }
 .pop .what { color: var(--muted); }
 table.lv { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 2px; table-layout: fixed; }
-table.lv tr > :first-child { width: 56%; }
+table.lv tr > :first-child { width: 50%; }
 table.lv th { text-align: left; font: 600 .78rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 2px 4px; border-bottom: 1px solid var(--line); }
 table.lv td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.lv td.v { font: 600 13px var(--f-mono); text-align: right; white-space: nowrap; color: var(--hi); font-variant-numeric: tabular-nums; }
+/* a value that is words, not a number («від DD1 (перемичка знята)», «висить»): body font, wraps inside the card */
+table.lv td.v.txt { font: 600 13.5px/1.35 var(--f-body); white-space: normal; overflow-wrap: anywhere; text-wrap: balance; }
 table.lv tr.sum td { color: var(--ink); font-weight: 600; }
 .then { margin-top: 8px; color: var(--ink); background: var(--panel-2); border-left: 3px solid var(--accent); padding: 6px 9px; border-radius: 0 6px 6px 0; font-size: 13.5px; }
 .then.bad { border-left-color: var(--bad); }
@@ -1528,6 +1530,8 @@ const LIVE = {
 };
 const WIRE_V = { W1: 'v33', W2: 0, W3: 0, W4: 'v33', W5: 0, W6: 'adc', W7: 'g2', W8: 0, W9: 5, W10: 'c', W11: 5, W12: 0, W13: 5, W14: 'no', W15: 0, W16: 5, W17: 'v33', W18: 0, W19: 0, W20: 5 };
 const fVv = v => v === null || v === undefined ? 'не під\'єднано' : typeof v === 'string' ? v : Number.isNaN(v) ? 'висить' : Math.abs(v) < 1e-9 ? '0 В' : num(v, Math.abs(v) < 1 ? 3 : 2) + ' В';
+// value cell: numbers with units stay on one line (mono); a cell with real words (4+ letters — units are ≤ 3) wraps in the body font
+const vTd = (html) => `<td class="v${/[a-zа-яіїєґ]{4,}/i.test(String(html).replace(/<[^>]*>/g, '')) ? ' txt' : ''}">${html}</td>`;
 const fP = w => w < 1e-6 ? '0' : w < 1e-3 ? num(w * 1e6, 0) + ' мкВт' : w < 1 ? num(w * 1e3, w < 0.01 ? 2 : 1) + ' мВт' : num(w, 2) + ' Вт';
 // What the light does to GPIO2 right now — the answer to "what does GPIO2 output when the LDR resistance is high?"
 function thenHTML() {
@@ -1547,15 +1551,15 @@ function liveHTML(id) {
   const w = NET.find(n => n.id === id);
   if (w) {
     const v = WIRE_V[id], volts = typeof v === 'string' ? N[v] : v;
-    return `<table class="lv"><tr><td>напруга на дроті</td><td class="v">${fVv(volts)}</td></tr><tr><td>струм</td><td class="v">${w.flow ? fI(FI[w.flow]()) : '≈ 0'}</td></tr></table>`;
+    return `<table class="lv"><tr><td>напруга на дроті</td>${vTd(fVv(volts))}</tr><tr><td>струм</td>${vTd(w.flow ? fI(FI[w.flow]()) : '≈ 0')}</tr></table>`;
   }
   const L = LIVE[id] && LIVE[id](N);
   if (!L) return `<p class="lbl-sm">${partInfo(id).live()}</p>`;
-  let h = '<table class="lv"><tr><th>вивід</th><th style="text-align:right">напруга до GND</th></tr>' + L.rows.map(([k, v]) => `<tr><td>${k}</td><td class="v">${fVv(v)}</td></tr>`).join('');
-  if (L.drop !== undefined) h += `<tr class="sum"><td>напруга на деталі</td><td class="v">${fVv(L.drop)}</td></tr>`;
-  for (const [k, a] of L.I || []) h += `<tr><td>${k}</td><td class="v">${fI(a)}${a < -1e-7 ? ' (втікає)' : ''}</td></tr>`;
-  if (L.P !== undefined) h += `<tr><td>потужність</td><td class="v">${fP(L.P)}</td></tr>`;
-  for (const [k, v] of L.extra || []) h += `<tr><td>${k}</td><td class="v">${v}</td></tr>`;
+  let h = '<table class="lv"><tr><th>вивід</th><th style="text-align:right">напруга до GND</th></tr>' + L.rows.map(([k, v]) => `<tr><td>${k}</td>${vTd(fVv(v))}</tr>`).join('');
+  if (L.drop !== undefined) h += `<tr class="sum"><td>напруга на деталі</td>${vTd(fVv(L.drop))}</tr>`;
+  for (const [k, a] of L.I || []) h += `<tr><td>${k}</td>${vTd(fI(a) + (a < -1e-7 ? ' (втікає)' : ''))}</tr>`;
+  if (L.P !== undefined) h += `<tr><td>потужність</td>${vTd(fP(L.P))}</tr>`;
+  for (const [k, v] of L.extra || []) h += `<tr><td>${k}</td>${vTd(v)}</tr>`;
   return h + '</table>' + (THEN_PARTS.has(id) ? thenHTML() : '');
 }
 function openPop(id, x, y) {
