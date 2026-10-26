@@ -7,36 +7,23 @@ rust-version.workspace = true
 publish.workspace      = true
 default-run = "modes"
 
-# Два кроки ДЗ — два бінарники (аналог середовищ `blink` і `modes` у platformio.ini):
-#   cargo run --release              (modes: завдання 1–4)
-#   cargo run --release --bin blink  (завдання 1–2)
-[[bin]]
-name  = "modes"
-path  = "src/bin/modes.rs"
-test  = false
-bench = false
-
+# cargo run --release --bin blink   — завдання 1–2
+# cargo run --release               — завдання 1–4 (modes)
 [[bin]]
 name  = "blink"
 path  = "src/bin/blink.rs"
 test  = false
 bench = false
 
-[lib]
-test  = true
+[[bin]]
+name  = "modes"
+path  = "src/bin/modes.rs"
+test  = false
 bench = false
 
-# Логіка (src/lib.rs) — без заліза й без залежностей, тому збирається й тестується на ПК.
-# Embassy тут свідомо немає: тема ДЗ — superloop, тож main — звичайний нескінченний цикл.
-
-# Прошивка (src/hw.rs, src/bin/*.rs) — лише для ESP32-S3.
 [target.'cfg(target_arch = "xtensa")'.dependencies]
 esp-hal.workspace                = true
 esp-bootloader-esp-idf.workspace = true
 esp-backtrace.workspace          = true
 esp-println.workspace            = true
 critical-section.workspace       = true
-heapless.workspace               = true
-
-[lints]
-workspace = true

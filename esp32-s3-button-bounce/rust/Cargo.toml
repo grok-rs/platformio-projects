@@ -1,47 +1,29 @@
 [package]
 name        = "button-bounce"
-description = "Модуль 1.5: брязкіт кнопки на GPIO16 — кожен фронт із часом, звіт на подію, підсумок"
+description = "Модуль 1.5: брязкіт кнопки на GPIO16 — кожен фронт із часом, рядок на подію, підсумок"
 version.workspace      = true
 edition.workspace      = true
 rust-version.workspace = true
 publish.workspace      = true
 default-run = "bounce-lab"
 
-# Лабораторна прошивка: кожен фронт із часом, звіт на натискання, s/r/h у монітор:  cargo run --release
+# cargo run --release                      — лабораторна прошивка (CHANGE, рядок на подію)
 [[bin]]
 name  = "bounce-lab"
 path  = "src/bin/bounce-lab.rs"
 test  = false
 bench = false
 
-# Код з умови завдання без змін (FALLING-лічильник):  cargo run --release --bin homework-base
+# cargo run --release --bin homework-base  — код з умови завдання (FALLING-лічильник)
 [[bin]]
 name  = "homework-base"
 path  = "src/bin/homework-base.rs"
 test  = false
 bench = false
 
-[lib]
-test  = true
-bench = false
-
-# Логіка (src/lib.rs) — без заліза, тому збирається й тестується на ПК.
-[dependencies]
-heapless.workspace = true
-
-# Прошивка (src/bin/*.rs) — лише для ESP32-S3.
 [target.'cfg(target_arch = "xtensa")'.dependencies]
 esp-hal.workspace                = true
-esp-rtos.workspace               = true
 esp-bootloader-esp-idf.workspace = true
 esp-backtrace.workspace          = true
 esp-println.workspace            = true
-embassy-executor.workspace       = true
-embassy-time.workspace           = true
-embassy-futures.workspace        = true
-embedded-io-async.workspace      = true
 critical-section.workspace       = true
-static_cell.workspace            = true
-
-[lints]
-workspace = true

@@ -1,33 +1,20 @@
 [package]
 name        = "two-buttons"
-description = "Модуль 1.4: два світлодіоди, зовнішня кнопка та BOOT вибирають «липкий» режим миготіння"
+description = "Модуль 1.4: два світлодіоди, зовнішня кнопка та BOOT вибирають режим миготіння"
 version.workspace      = true
 edition.workspace      = true
 rust-version.workspace = true
 publish.workspace      = true
 
+# cargo run --release
 [[bin]]
 name  = "two-buttons"
 path  = "src/main.rs"
 test  = false
 bench = false
 
-[lib]
-bench = false
-
-# Логіка (src/lib.rs) — без заліза, тому збирається й тестується на ПК.
-[dependencies]
-embassy-time.workspace = true
-
-# Прошивка (src/main.rs) — лише для ESP32-S3.
 [target.'cfg(target_arch = "xtensa")'.dependencies]
 esp-hal.workspace                = true
-esp-rtos.workspace               = true
 esp-bootloader-esp-idf.workspace = true
 esp-backtrace.workspace          = true
 esp-println.workspace            = true
-embassy-executor.workspace       = true
-embassy-futures.workspace        = true
-
-[lints]
-workspace = true

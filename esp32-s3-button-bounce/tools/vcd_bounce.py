@@ -14,7 +14,7 @@ import argparse
 import re
 import sys
 
-QUIET_US = 50_000   # same as kQuietUs in src/main.cpp
+QUIET_US = 50_000   # same as QUIET_US in cpp/src/main.cpp
 SHOW_EDGES = 12
 
 

@@ -1,26 +1,20 @@
 [package]
 name        = "led-pwm"
-description = "Яскравість світлодіода через ШІМ: LEDC, 5 кГц, 8 біт"
+description = "Яскравість світлодіода через ШІМ: LEDC, 5 кГц, 8 біт, 25 %"
 version.workspace      = true
 edition.workspace      = true
 rust-version.workspace = true
 publish.workspace      = true
 
+# cargo run --release
 [[bin]]
 name  = "led-pwm"
 path  = "src/main.rs"
 test  = false
 bench = false
 
-# Логіки без заліза тут немає (три виклики LEDC), тому й src/lib.rs немає.
 [target.'cfg(target_arch = "xtensa")'.dependencies]
 esp-hal.workspace                = true
-esp-rtos.workspace               = true
 esp-bootloader-esp-idf.workspace = true
 esp-backtrace.workspace          = true
-embassy-executor.workspace       = true
-embassy-time.workspace           = true
-embedded-hal.workspace           = true
-
-[lints]
-workspace = true
+esp-println.workspace            = true

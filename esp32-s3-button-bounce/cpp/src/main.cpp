@@ -1,276 +1,97 @@
-// Модуль 1.5 — лабораторія брязкоту: що бачить ESP32-S3 через переривання (pio run -e bounce-lab).
-//
-//   GPIO16 ── кнопка ── GND      (INPUT_PULLUP: відпущена = HIGH, натиснута = LOW)
-//   GPIO16 ── канал D0 логічного аналізатора
-//   GPIO17 ── канал D1: «маркер ISR» — HIGH, поки виконується обробник переривання
-//
-// Код з умови рахує лише фронти FALLING. Тут переривання CHANGE: обробник записує КОЖЕН фронт
-// із часом у мікросекундах у кільцевий буфер, а loop() групує фронти в «події».
-// Подія — це натискання або відпускання разом з усім брязкотом. Вона закінчується, коли
-// 50 мс немає нових фронтів. Для кожної події друкується рядок, який можна прямо порівняти
-// з логічним аналізатором (той самий звіт будує tools/vcd_bounce.py із запису VCD).
-//
-// Команди в Serial Monitor: s — підсумок, r — скинути, h — довідка. Пояснення — у README.md.
-
 #include <Arduino.h>
-#include <soc/gpio_reg.h>
 
-namespace {
+// Модуль 1.5 — лабораторія брязкоту: переривання CHANGE записує час і рівень кожного фронту,
+// loop() після 50 мс тиші друкує рядок про подію — порівняйте з логічним аналізатором (D0).
+#define BUTTON     16     // кнопка на GND, INPUT_PULLUP: відпущена = HIGH
+#define ISR_MARKER 17     // D1 аналізатора: HIGH, поки працює обробник
+#define QUIET_US   50000  // 50 мс без фронтів = подія закінчилась
+#define MAX_EDGES  64
+#define SHOW_EDGES 12     // скільки фронтів розписати в рядку
 
-// --- Виводи --------------------------------------------------------------
-constexpr uint8_t kButtonPin    = 16;  // як в умові завдання
-constexpr uint8_t kIsrMarkerPin = 17;  // сусідній пін: зручно взяти другим каналом аналізатора
-static_assert(kButtonPin < 32 && kIsrMarkerPin < 32, "GPIO_IN_REG / GPIO_OUT_W1TS_REG cover GPIO0..31");
+// спільні з перериванням — тому volatile
+volatile uint32_t edgeUs[MAX_EDGES];
+volatile uint8_t edgeLevel[MAX_EDGES];
+volatile uint32_t edgeCount = 0;   // усі фронти події, навіть ті, що не влізли в масив
+volatile uint32_t lastEdgeUs = 0;
 
-// --- Групування фронтів -----------------------------------------------------
-// Скільки тиші вважати «кінцем брязкоту». Більше, ніж найдовший брязкіт (Ganssle: до ~6 мс у
-// більшості кнопок), і менше, ніж найкоротше натискання людини (~50…100 мс).
-constexpr uint32_t kQuietUs     = 50000;
-constexpr uint8_t  kShowEdges   = 12;   // скільки перших фронтів розписати в рядку події
-constexpr uint8_t  kSummaryEvery = 10;  // підсумок після кожних 10 натискань-відпускань (як у завданні)
+int stableLevel = HIGH;  // рівень після попередньої події
+uint32_t presses = 0, releases = 0, fallTotal = 0, pressMaxUs = 0, releaseMaxUs = 0;
 
-constexpr uint32_t kSerialBaud   = 115200;
-constexpr uint32_t kSerialWaitMs = 2000;
-
-// --- Кільцевий буфер фронтів (ISR пише, loop читає) ------------------------
-struct Edge {
-  uint32_t tUs;    // момент переривання, мкс від старту (esp_timer)
-  uint8_t  level;  // рівень на піні, прочитаний у самому обробнику: 0 = LOW, 1 = HIGH
-};
-
-constexpr uint32_t kRingSize = 512;  // степінь двійки: індекс = лічильник & (kRingSize - 1)
-static_assert((kRingSize & (kRingSize - 1)) == 0, "kRingSize must be a power of two");
-
-Edge              gRing[kRingSize];
-volatile uint32_t gHead    = 0;  // скільки фронтів записав ISR (лише зростає)
-volatile uint32_t gDropped = 0;  // скільки не влізло в буфер
-volatile uint32_t gTail    = 0;  // скільки фронтів уже прочитав loop()
-
-// Обробник переривання. Він має бути коротким і лежати в IRAM (IRAM_ATTR): переривання може
-// прийти, коли кеш флеш-пам'яті вимкнений. Тому тут немає Serial, digitalRead() і digitalWrite():
-// лише прямий доступ до регістрів GPIO, а це кілька тактів.
-void IRAM_ATTR onButtonEdge() {
-  REG_WRITE(GPIO_OUT_W1TS_REG, 1UL << kIsrMarkerPin);  // маркер ISR: HIGH
-
-  const uint32_t t     = static_cast<uint32_t>(esp_timer_get_time());
-  const uint8_t  level = (REG_READ(GPIO_IN_REG) >> kButtonPin) & 1U;
-
-  const uint32_t head = gHead;
-  if (head - gTail < kRingSize) {
-    gRing[head & (kRingSize - 1)] = {t, level};
-    gHead = head + 1;  // публікуємо запис лише після того, як він повністю заповнений
-  } else {
-    gDropped = gDropped + 1;
+// обробник: лише записати час і рівень, друкує loop()
+void IRAM_ATTR onEdge() {
+  digitalWrite(ISR_MARKER, HIGH);
+  uint32_t now = micros();
+  if (edgeCount < MAX_EDGES) {
+    edgeUs[edgeCount] = now;
+    edgeLevel[edgeCount] = digitalRead(BUTTON);
   }
-
-  REG_WRITE(GPIO_OUT_W1TC_REG, 1UL << kIsrMarkerPin);  // маркер ISR: LOW
+  edgeCount = edgeCount + 1;
+  lastEdgeUs = now;
+  digitalWrite(ISR_MARKER, LOW);
 }
 
-// --- Подія: натискання або відпускання разом із брязкотом ------------------------
-struct Event {
-  uint32_t firstUs   = 0;
-  uint32_t lastUs    = 0;
-  uint32_t edges     = 0;
-  uint32_t falling   = 0;      // фронти, після яких ISR прочитав LOW
-  uint32_t rising    = 0;      // фронти, після яких ISR прочитав HIGH
-  uint32_t minGapUs  = UINT32_MAX;  // найкоротший проміжок між сусідніми фронтами
-  uint8_t  lastLevel = 1;
-  uint32_t shownUs[kShowEdges];
-  uint8_t  shownLevel[kShowEdges];
-};
-
-struct Stats {
-  uint32_t presses = 0, releases = 0;
-  uint32_t pressEdges = 0, releaseEdges = 0;
-  uint32_t pressBounceSumUs = 0, releaseBounceSumUs = 0;
-  uint32_t pressBounceMaxUs = 0, releaseBounceMaxUs = 0;
-  uint32_t fallingTotal = 0;  // фронти з рівнем LOW — приблизно стільки нарахував би код з умови
-  uint32_t minGapUs = UINT32_MAX;
-};
-
-bool     gInEvent = false;
-Event    gEvent;
-Stats    gStats;
-uint8_t  gStableLevel = 1;  // рівень після останньої завершеної події (старт: відпущена)
-uint32_t gRowsPrinted = 0;
-
 void printHeader() {
-  Serial.println();
   Serial.println("  #  event    edges  fall  rise  bounce,us  min gap,us  edges, us from the first (v = LOW, ^ = HIGH)");
   Serial.println("---  -------  -----  ----  ----  ---------  ----------  ----------------------------------------------");
 }
 
-void startEvent(const Edge& e) {
-  gEvent   = Event{};
-  gEvent.firstUs = e.tUs;
-  gInEvent = true;
-}
-
-void addEdge(const Edge& e) {
-  if (!gInEvent) startEvent(e);
-  if (gEvent.edges > 0) {
-    const uint32_t gap = e.tUs - gEvent.lastUs;
-    if (gap < gEvent.minGapUs) gEvent.minGapUs = gap;
-  }
-  if (gEvent.edges < kShowEdges) {
-    gEvent.shownUs[gEvent.edges]    = e.tUs - gEvent.firstUs;
-    gEvent.shownLevel[gEvent.edges] = e.level;
-  }
-  ++gEvent.edges;
-  (e.level ? gEvent.rising : gEvent.falling)++;
-  gEvent.lastUs    = e.tUs;
-  gEvent.lastLevel = e.level;
-}
-
 void printSummary() {
-  const Stats& s = gStats;
-  Serial.println();
-  Serial.printf("=== summary: %lu presses, %lu releases ===\n",
-                static_cast<unsigned long>(s.presses), static_cast<unsigned long>(s.releases));
-  if (s.presses) {
-    Serial.printf("press:   edges avg %.1f, bounce avg %lu us, max %lu us\n",
-                  static_cast<float>(s.pressEdges) / s.presses,
-                  static_cast<unsigned long>(s.pressBounceSumUs / s.presses),
-                  static_cast<unsigned long>(s.pressBounceMaxUs));
-  }
-  if (s.releases) {
-    Serial.printf("release: edges avg %.1f, bounce avg %lu us, max %lu us\n",
-                  static_cast<float>(s.releaseEdges) / s.releases,
-                  static_cast<unsigned long>(s.releaseBounceSumUs / s.releases),
-                  static_cast<unsigned long>(s.releaseBounceMaxUs));
-  }
-  // Код з умови (FALLING) додає 1 на кожен фронт униз, який встиг помітити, — і на натисканні,
-  // і в брязкоті відпускання. Тут це наближення: фронти, після яких ISR прочитав LOW.
-  Serial.printf("edges read as LOW (~ homework FALLING counter): %lu for %lu presses\n",
-                static_cast<unsigned long>(s.fallingTotal), static_cast<unsigned long>(s.presses));
-  if (s.minGapUs != UINT32_MAX) {
-    Serial.printf("shortest gap between edges: %lu us\n", static_cast<unsigned long>(s.minGapUs));
-  }
-  const uint32_t worstUs = max(s.pressBounceMaxUs, s.releaseBounceMaxUs);
-  // Запас ×1.5 і округлення вгору до цілої мілісекунди.
-  const uint32_t debounceMs = (worstUs * 3 / 2 + 999) / 1000;
-  Serial.printf("debounce >= %lu ms (worst bounce %lu us x 1.5)\n",
-                static_cast<unsigned long>(debounceMs ? debounceMs : 1), static_cast<unsigned long>(worstUs));
-  if (gDropped) Serial.printf("WARNING: %lu edges dropped (ring buffer full)\n", static_cast<unsigned long>(gDropped));
-  Serial.println();
-  gRowsPrinted = 0;  // після підсумку — знову шапка
+  uint32_t worst = max(pressMaxUs, releaseMaxUs);
+  uint32_t debounceMs = (worst * 3 / 2 + 999) / 1000;  // запас ×1.5, вгору до мс
+  if (debounceMs == 0) debounceMs = 1;
+  Serial.printf("\n=== summary: %u presses, %u releases ===\n", presses, releases);
+  Serial.printf("max bounce: press %u us, release %u us\n", pressMaxUs, releaseMaxUs);
+  Serial.printf("edges read as LOW (~ homework FALLING counter): %u for %u presses\n", fallTotal, presses);
+  Serial.printf("debounce >= %u ms (worst bounce %u us x 1.5)\n\n", debounceMs, worst);
+  printHeader();
 }
-
-void finishEvent() {
-  gInEvent = false;
-  // Тип події — за рівнем, на якому все заспокоїлось. Якщо рівень не змінився (наприклад, лише
-  // голка-завада), це «glitch»: фронти були, а стан кнопки — той самий.
-  const bool  press   = gEvent.lastLevel == 0 && gStableLevel == 1;
-  const bool  release = gEvent.lastLevel == 1 && gStableLevel == 0;
-  const char* name    = press ? "PRESS" : release ? "release" : "glitch";
-  const uint32_t bounceUs = gEvent.lastUs - gEvent.firstUs;
-  gStableLevel = gEvent.lastLevel;
-
-  if (press) {
-    ++gStats.presses;
-    gStats.pressEdges += gEvent.edges;
-    gStats.pressBounceSumUs += bounceUs;
-    if (bounceUs > gStats.pressBounceMaxUs) gStats.pressBounceMaxUs = bounceUs;
-  } else if (release) {
-    ++gStats.releases;
-    gStats.releaseEdges += gEvent.edges;
-    gStats.releaseBounceSumUs += bounceUs;
-    if (bounceUs > gStats.releaseBounceMaxUs) gStats.releaseBounceMaxUs = bounceUs;
-  }
-  gStats.fallingTotal += gEvent.falling;
-  if (gEvent.minGapUs < gStats.minGapUs) gStats.minGapUs = gEvent.minGapUs;
-
-  if (gRowsPrinted % 20 == 0) printHeader();
-  ++gRowsPrinted;
-
-  char gap[12];
-  if (gEvent.edges > 1) {
-    snprintf(gap, sizeof gap, "%10lu", static_cast<unsigned long>(gEvent.minGapUs));
-  } else {
-    snprintf(gap, sizeof gap, "%10s", "-");
-  }
-  Serial.printf("%3lu  %-7s  %5lu  %4lu  %4lu  %9lu  %s  ",
-                static_cast<unsigned long>(press ? gStats.presses : release ? gStats.releases : 0), name,
-                static_cast<unsigned long>(gEvent.edges), static_cast<unsigned long>(gEvent.falling),
-                static_cast<unsigned long>(gEvent.rising), static_cast<unsigned long>(bounceUs), gap);
-  const uint8_t shown = gEvent.edges < kShowEdges ? gEvent.edges : kShowEdges;
-  for (uint8_t i = 0; i < shown; ++i) {
-    Serial.printf("%c%lu ", gEvent.shownLevel[i] ? '^' : 'v', static_cast<unsigned long>(gEvent.shownUs[i]));
-  }
-  if (gEvent.edges > kShowEdges) Serial.printf("... +%lu", static_cast<unsigned long>(gEvent.edges - kShowEdges));
-  Serial.println();
-
-  if (release && gStats.releases % kSummaryEvery == 0) {
-    printSummary();  // з loop(), коли подія вже завершена, тож жоден фронт не губиться
-  }
-}
-
-void resetStats() {
-  noInterrupts();
-  gTail    = gHead;
-  gDropped = 0;
-  interrupts();
-  gStats       = Stats{};
-  gInEvent     = false;
-  gStableLevel = (REG_READ(GPIO_IN_REG) >> kButtonPin) & 1U;
-  gRowsPrinted = 0;
-  Serial.println("--- reset ---");
-}
-
-void printHelp() {
-  Serial.println();
-  Serial.println("=== ESP32-S3: button bounce lab (module 1.5) ===");
-  Serial.printf("Button: GPIO%u -> GND, INPUT_PULLUP, interrupt CHANGE\n", kButtonPin);
-  Serial.printf("ISR marker: GPIO%u is HIGH while the ISR runs (logic analyzer channel 2)\n", kIsrMarkerPin);
-  Serial.printf("An event ends after %lu ms without edges. Keys: s = summary, r = reset, h = help\n",
-                static_cast<unsigned long>(kQuietUs / 1000));
-}
-
-void handleSerial() {
-  while (Serial.available()) {
-    switch (Serial.read()) {
-      case 's': printSummary(); break;
-      case 'r': resetStats(); break;
-      case 'h': printHelp(); break;
-      default: break;
-    }
-  }
-}
-
-void waitForSerial(uint32_t timeoutMs) {
-  const uint32_t start = millis();
-  while (!Serial && millis() - start < timeoutMs) {
-  }
-}
-
-}  // namespace
 
 void setup() {
-  Serial.begin(kSerialBaud);
-  waitForSerial(kSerialWaitMs);
-
-  pinMode(kButtonPin, INPUT_PULLUP);
-  pinMode(kIsrMarkerPin, OUTPUT);
-  digitalWrite(kIsrMarkerPin, LOW);
-  gStableLevel = digitalRead(kButtonPin);
-
-  printHelp();
-  attachInterrupt(digitalPinToInterrupt(kButtonPin), onButtonEdge, CHANGE);
+  Serial.begin(115200);
+  pinMode(BUTTON, INPUT_PULLUP);
+  pinMode(ISR_MARKER, OUTPUT);
+  stableLevel = digitalRead(BUTTON);
+  attachInterrupt(digitalPinToInterrupt(BUTTON), onEdge, CHANGE);
+  Serial.println("=== ESP32-S3: button bounce lab (module 1.5) ===");
+  Serial.println("Button GPIO16, interrupt CHANGE, ISR marker GPIO17, event ends after 50 ms of quiet");
+  printHeader();
 }
 
 void loop() {
-  // Забрати всі нові фронти з буфера. gHead читаємо один раз: ISR може дописувати далі,
-  // ці фронти заберемо на наступному проході.
-  const uint32_t head = gHead;
-  while (gTail != head) {
-    addEdge(gRing[gTail & (kRingSize - 1)]);
-    ++gTail;
-  }
+  if (edgeCount == 0 || micros() - lastEdgeUs < QUIET_US) return;  // подія ще триває
 
-  // Подія закінчилась, якщо kQuietUs немає нових фронтів.
-  if (gInEvent && static_cast<uint32_t>(esp_timer_get_time()) - gEvent.lastUs >= kQuietUs) {
-    finishEvent();
-  }
+  // забрати дані: на мить вимкнути переривання
+  uint32_t t[MAX_EDGES];
+  uint8_t lv[MAX_EDGES];
+  noInterrupts();
+  uint32_t count = edgeCount;
+  uint32_t n = min(count, (uint32_t)MAX_EDGES);
+  for (uint32_t i = 0; i < n; i++) { t[i] = edgeUs[i]; lv[i] = edgeLevel[i]; }
+  edgeCount = 0;
+  interrupts();
 
-  handleSerial();
+  // став LOW — натиснули, став HIGH — відпустили, не змінився — завада (glitch)
+  int level = digitalRead(BUTTON);
+  bool press = level == LOW && stableLevel == HIGH;
+  bool release = level == HIGH && stableLevel == LOW;
+  stableLevel = level;
+
+  uint32_t bounce = t[n - 1] - t[0];
+  uint32_t minGap = UINT32_MAX, fall = 0;
+  for (uint32_t i = 0; i < n; i++) {
+    if (lv[i] == LOW) fall++;
+    if (i > 0) minGap = min(minGap, t[i] - t[i - 1]);
+  }
+  fallTotal += fall;
+  if (press) { presses++; pressMaxUs = max(pressMaxUs, bounce); }
+  if (release) { releases++; releaseMaxUs = max(releaseMaxUs, bounce); }
+
+  Serial.printf("%3u  %-7s  %5u  %4u  %4u  %9u  ", press ? presses : release ? releases : 0,
+                press ? "PRESS" : release ? "release" : "glitch", count, fall, n - fall, bounce);
+  if (n > 1) Serial.printf("%10u  ", minGap); else Serial.printf("%10s  ", "-");
+  for (uint32_t i = 0; i < n && i < SHOW_EDGES; i++) Serial.printf("%c%u ", lv[i] ? '^' : 'v', t[i] - t[0]);
+  if (count > SHOW_EDGES) Serial.printf("... +%u", count - SHOW_EDGES);
+  Serial.println();
+
+  if (release && releases % 10 == 0) printSummary();  // підсумок на кожні 10 натискань
 }

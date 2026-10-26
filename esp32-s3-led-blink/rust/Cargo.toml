@@ -1,43 +1,27 @@
 [package]
 name        = "led-blink"
-description = "Червоний і синій світлодіоди по черзі; патерни, швидкості, кнопка BOOT і Serial-команди"
+description = "Червоний і синій світлодіоди по черзі: на двох GPIO або на одному"
 version.workspace      = true
 edition.workspace      = true
 rust-version.workspace = true
 publish.workspace      = true
-default-run = "led-blink"
 
-[features]
-# Обидва світлодіоди на ОДНОМУ виводі (GPIO7) — аналог середовища `esp32-s3-single-gpio`:
-#   cargo run --release --features single-gpio
-single-gpio = []
-
+# cargo run --release --bin two-gpio
 [[bin]]
-name  = "led-blink"
-path  = "src/main.rs"
+name  = "two-gpio"
+path  = "src/bin/two_gpio.rs"
 test  = false
 bench = false
 
-[lib]
-test  = true
+# cargo run --release --bin single-gpio
+[[bin]]
+name  = "single-gpio"
+path  = "src/bin/single_gpio.rs"
+test  = false
 bench = false
 
-# Логіка (src/lib.rs) — без заліза, тому збирається й тестується на ПК.
-[dependencies]
-bitflags.workspace     = true
-embassy-time.workspace = true
-
-# Прошивка (src/main.rs) — лише для ESP32-S3.
 [target.'cfg(target_arch = "xtensa")'.dependencies]
 esp-hal.workspace                = true
-esp-rtos.workspace               = true
 esp-bootloader-esp-idf.workspace = true
 esp-backtrace.workspace          = true
 esp-println.workspace            = true
-embassy-executor.workspace       = true
-embassy-futures.workspace        = true
-embassy-sync.workspace           = true
-embedded-io-async.workspace      = true
-
-[lints]
-workspace = true

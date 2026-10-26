@@ -1,47 +1,23 @@
-// Урок, крок 1 — світлодіод світить, поки кнопку тримають (ESP32-S3-DevKitC-1).
-//
-//   GPIO15 → резистор 220 Ω → анод LED → катод → GND
-//   GPIO21 → кнопка → GND, вхід INPUT_PULLUP (натиснута = LOW)
-//
-// Програма щоразу читає кнопку й копіює її стан на світлодіод. Схема — у README.md.
-
 #include <Arduino.h>
 
-namespace {
-
-constexpr uint8_t  kLedPin       = 15;
-constexpr uint8_t  kButtonPin    = 21;
-constexpr uint32_t kSerialBaud   = 115200;
-constexpr uint32_t kSerialWaitMs = 2000;  // чекати USB CDC, щоб не втратити банер
+// Крок 1: світлодіод світить, поки кнопку тримають
+#define LED 15  // GPIO15 → 220 Ом → LED → GND
+#define BTN 21  // GPIO21 → кнопка → GND (натиснута = LOW)
 
 bool wasPressed = false;
 
-void waitForSerial(uint32_t timeoutMs) {
-  const uint32_t start = millis();
-  while (!Serial && millis() - start < timeoutMs) {
-  }
-}
-
-}  // namespace
-
 void setup() {
-  Serial.begin(kSerialBaud);
-  waitForSerial(kSerialWaitMs);
-
-  pinMode(kLedPin, OUTPUT);
-  pinMode(kButtonPin, INPUT_PULLUP);  // внутрішній резистор ~45 кОм до 3.3 В
-  digitalWrite(kLedPin, LOW);
-
-  Serial.println();
+  Serial.begin(115200);
+  pinMode(LED, OUTPUT);
+  pinMode(BTN, INPUT_PULLUP);  // внутрішній резистор ~45 кОм до 3.3 В
   Serial.println("=== ESP32-S3: LED follows button (hold) ===");
-  Serial.printf("LED GPIO%u, button GPIO%u\n", kLedPin, kButtonPin);
 }
 
 void loop() {
-  const bool pressed = digitalRead(kButtonPin) == LOW;
-  digitalWrite(kLedPin, pressed ? HIGH : LOW);
+  bool pressed = digitalRead(BTN) == LOW;
+  digitalWrite(LED, pressed);  // просто копіюємо стан кнопки на LED
 
-  // Друкуємо лише зміни, інакше монітор заллє тисячами рядків на секунду.
+  // друкуємо лише зміни, інакше монітор заллє тисячами рядків
   if (pressed != wasPressed) {
     wasPressed = pressed;
     Serial.println(pressed ? "Button pressed  -> LED ON" : "Button released -> LED OFF");

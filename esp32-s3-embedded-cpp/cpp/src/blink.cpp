@@ -1,53 +1,53 @@
-// ДЗ модуля 2.1, завдання 1–2: «класичний Arduino blink», переписаний на Embedded C++.
-//
-//   Класичний blink                       Тут
-//   #define LED 15, delay(500)            Config::Led::kPin, kBlinkIntervalMs — constexpr
-//   digitalWrite(LED, HIGH / LOW)         enum class LedState + клас Led
-//   delay(500) — процесор стоїть          Blinker + millis(): loop() ніколи не чекає
-//
-//   GPIO15 → резистор 220 Ω → анод LED → катод → GND
-
 #include <Arduino.h>
 
-#include <cinttypes>
+// ДЗ 2.1, завдання 1–2: класичний blink без delay(), без магічних чисел і без глобальних змінних
 
-#include "blinker.h"
-#include "config.h"
-#include "console.h"
-#include "led.h"
-
-namespace {
-
-class BlinkApp {
- public:
-  void init() {
-    beginConsole(Config::Console::kBaud, Config::Console::kWaitMs);
-    led_.init();
-
-    Serial.println();
-    Serial.println("=== ESP32-S3: non-blocking blink ===");
-    Serial.printf("LED GPIO%u, interval %" PRIu32 " ms\n", Config::Led::kPin,
-                  Config::Led::kBlinkIntervalMs);
-
-    blinker_.restart(millis());
-    led_.set(blinker_.state());
-  }
-
-  // Один прохід superloop: порівняти час і, якщо пора, перемкнути LED. Без очікування.
-  void update() { led_.set(blinker_.update(millis())); }
-
- private:
-  Led     led_{Config::Led::kPin};
-  Blinker blinker_{Config::Led::kBlinkIntervalMs};
+// завдання 2: усі числа — в одній структурі, static constexpr (відомі під час компіляції, RAM не займають)
+struct Config {
+  static constexpr uint8_t  LED_PIN  = 15;      // GPIO15 → 220 Ом → LED → GND
+  static constexpr uint32_t BLINK_MS = 500;     // пів періоду: 1 Гц
+  static constexpr uint32_t BAUD     = 115200;
 };
 
-// Arduino ділить програму на setup() і loop(), тож стан, який живе між викликами loop(),
-// мусить лежати поза ними. Замість кількох глобальних змінних — один об'єкт, видимий лише
-// в цьому файлі (анонімний простір імен = внутрішнє зв'язування).
-BlinkApp app;
+// стан LED — enum class, а не bool чи HIGH/LOW: не переплутати з числом
+enum class LedState : uint8_t { Off, On };
 
-}  // namespace
+class Led {
+ public:
+  explicit Led(uint8_t pin) : pin_(pin) {}  // конструктор лише запам'ятовує пін
+  void init() { pinMode(pin_, OUTPUT); set(LedState::Off); }  // залізо — у setup()
+  void set(LedState s) { state_ = s; digitalWrite(pin_, s == LedState::On ? HIGH : LOW); }
+  LedState state() const { return state_; }
+
+ private:
+  uint8_t pin_;
+  LedState state_ = LedState::Off;
+};
+
+// стан, що живе між викликами loop(), — в одному об'єкті, а не в глобальних змінних
+class App {
+ public:
+  void init() {
+    Serial.begin(Config::BAUD);
+    led_.init();
+    Serial.println("=== ESP32-S3: non-blocking blink ===");
+  }
+
+  // один прохід superloop: «чи пора?» — і далі, без очікування
+  void update() {
+    uint32_t now = millis();
+    if (now - last_ >= Config::BLINK_MS) {
+      last_ = now;
+      led_.set(led_.state() == LedState::On ? LedState::Off : LedState::On);
+    }
+  }
+
+ private:
+  Led led_{Config::LED_PIN};
+  uint32_t last_ = 0;
+};
+
+static App app;  // єдиний об'єкт, видимий лише в цьому файлі
 
 void setup() { app.init(); }
-
 void loop() { app.update(); }

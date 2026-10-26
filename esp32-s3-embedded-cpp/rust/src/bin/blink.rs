@@ -1,39 +1,51 @@
-//! ДЗ модуля 2.1, завдання 1–2: неблокуючий blink (`cargo run --release --bin blink`).
-//!
-//!   GPIO15 → резистор 220 Ω → анод LED → катод → GND
-//!
-//! Без Embassy й без `delay`: `main` — звичайний нескінченний цикл, який на кожному проході
-//! питає `Blinker`, чи пора перемкнути LED.
+//! ДЗ 2.1, завдання 1–2 — те саме, що cpp/src/blink.cpp: blink без delay і без магічних чисел.
 
 #![no_std]
 #![no_main]
 
-use embedded_cpp::{
-    Blinker, config,
-    hw::{Led, millis},
-};
 use esp_backtrace as _;
-use esp_hal::{clock::CpuClock, main};
+use esp_hal::{
+    clock::CpuClock,
+    gpio::{Level, Output, OutputConfig},
+    main,
+    time::{Duration, Instant},
+};
 use esp_println::println;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
+// завдання 2: усі числа — в одній структурі (пін задає тип p.GPIO15)
+struct Config;
+impl Config {
+    const BLINK: Duration = Duration::from_millis(500); // пів періоду: 1 Гц
+}
+
+// стан LED — enum, а не bool
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LedState { Off, On }
+
+struct Led<'d> { pin: Output<'d>, state: LedState }
+
+impl Led<'_> {
+    fn set(&mut self, s: LedState) {
+        self.state = s;
+        self.pin.set_level(if s == LedState::On { Level::High } else { Level::Low });
+    }
+}
+
 #[main]
 fn main() -> ! {
-    let peripherals = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
-    let mut led = Led::new(peripherals.GPIO15); // config::led::PIN
-
-    println!();
+    let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
+    // GPIO15 → 220 Ом → LED → GND; створення = init(): ненастроєного LED не буває
+    let mut led = Led { pin: Output::new(p.GPIO15, Level::Low, OutputConfig::default()), state: LedState::Off };
     println!("=== ESP32-S3: non-blocking blink ===");
-    println!("LED GPIO{}, interval {} ms", config::led::PIN, config::led::BLINK_INTERVAL_MS);
 
-    // Стан — локальні змінні: `main` ніколи не повертається, тож глобальні не потрібні
-    // (в Arduino їх вимагає поділ на setup() і loop()).
-    let mut blinker = Blinker::new(config::led::BLINK_INTERVAL_MS);
-    blinker.restart(millis());
-    led.set(blinker.state());
-
+    // стан — локальні змінні: main ніколи не повертається, глобальні не потрібні
+    let mut last = Instant::now();
     loop {
-        led.set(blinker.update(millis()));
+        if last.elapsed() >= Config::BLINK {
+            last = Instant::now();
+            led.set(if led.state == LedState::On { LedState::Off } else { LedState::On });
+        }
     }
 }

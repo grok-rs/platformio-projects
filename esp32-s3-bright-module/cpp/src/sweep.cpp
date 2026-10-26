@@ -1,69 +1,45 @@
-// ТЗ-A, етап 3: заповнення LEDC плавно 0 → 255 → 0 з паузами на 255 і на 0.
-// На паузах мультиметр (DC) між колектором і GND показує: при 255 ≈ 0,1–0,2 В (ключ у
-// насиченні), при 0 — майже 5 В мінус падіння на LED. Під час розгону напруга плавно падає.
-
 #include <Arduino.h>
 
-#include <cinttypes>
+// ТЗ-A, етап 3: заповнення LEDC плавно 0 → 255, пауза 3 с, 255 → 0, пауза 3 с.
+// На паузі 255 мультиметр (DC) між колектором і GND показує ≈ 0,1–0,2 В (ключ у насиченні).
+#define PWM_PIN  5     // → 1 кОм → база 2N2222
+#define PWM_CH   0     // канал LEDC
+#define PWM_FREQ 5000  // 5 кГц
+#define PWM_BITS 8     // заповнення 0…255
+#define STEP_MS  12    // 255 кроків × 12 мс ≈ 3 с на розгін
+#define HOLD_MS  3000
 
-#include "config.h"
-#include "console.h"
-#include "ledc_output.h"
-#include "sweep.h"
+// фаза: 0 розгін, 1 пауза на 255, 2 спад, 3 пауза на 0
+const char* PHASES[] = {"ramp up", "hold duty 255, measure U(CE) ~0.2 V", "ramp down", "hold duty 0"};
+int phase = 0;
+int duty = 0;
+uint32_t last = 0;
 
-namespace {
+void setup() {
+  Serial.begin(115200);
+  ledcSetup(PWM_CH, PWM_FREQ, PWM_BITS);
+  ledcAttachPin(PWM_PIN, PWM_CH);
+  ledcWrite(PWM_CH, 0);
+  Serial.println("Етап 3: ШІМ 0 → 255 → 0, паузи по 3 с");
+  Serial.printf("Sweep: %s\n", PHASES[phase]);
+}
 
-class SweepApp {
- public:
-  void init() {
-    beginConsole(Config::Console::kBaud, Config::Console::kWaitMs);
-    const bool outputOk = output_.init();
+void loop() {
+  uint32_t now = millis();
 
-    Serial.println();
-    Serial.println("=== Bright module (TZ-A): stage 3, PWM sweep ===");
-    output_.describe(Serial);
-    Serial.printf("Ramp 0 -> 255 in %" PRIu32 " ms, hold %" PRIu32 " ms\n", sweep_.rampMs(),
-                  Config::Sweep::kHoldMs);
-    if (!outputOk) Serial.println("ERROR: PWM output init failed");
-
-    sweep_.restart(millis());
-  }
-
-  void update() {
-    const uint32_t nowMs = millis();
-    const uint8_t  duty  = sweep_.duty(nowMs);
-    if (duty != duty_) {  // писати в LEDC лише нове значення
-      output_.write(duty);
-      duty_ = duty;
+  if (phase == 0 || phase == 2) {  // розгін або спад: крок кожні 12 мс
+    if (now - last >= STEP_MS) {
+      last = now;
+      duty += (phase == 0) ? 1 : -1;
+      ledcWrite(PWM_CH, duty);  // 255 ядро саме робить 100 %
+      if (duty == 255 || duty == 0) {
+        phase++;
+        Serial.printf("Sweep: %s\n", PHASES[phase]);
+      }
     }
-    reportPhase(sweep_.phase(nowMs));
+  } else if (now - last >= HOLD_MS) {  // пауза скінчилась
+    last = now;
+    phase = (phase + 1) % 4;
+    Serial.printf("Sweep: %s\n", PHASES[phase]);
   }
-
- private:
-  void reportPhase(Sweep::Phase phase) {
-    if (phase == phase_ && reported_) return;
-    phase_    = phase;
-    reported_ = true;
-    switch (phase) {
-      case Sweep::Phase::RampUp:   tryPrintf("Sweep: ramp up\n"); break;
-      case Sweep::Phase::HoldHigh: tryPrintf("Sweep: hold duty 255, measure U(CE) ~0.2 V\n"); break;
-      case Sweep::Phase::RampDown: tryPrintf("Sweep: ramp down\n"); break;
-      case Sweep::Phase::HoldLow:  tryPrintf("Sweep: hold duty 0\n"); break;
-    }
-  }
-
-  LedcOutput   output_{Config::Pwm::kPin, Config::Pwm::kChannel, Config::Pwm::kFrequencyHz,
-                     Config::Pwm::kResolutionBits};
-  Sweep        sweep_{Config::Sweep::kStepMs, Config::Sweep::kHoldMs};
-  uint8_t      duty_     = 0;
-  Sweep::Phase phase_    = Sweep::Phase::RampUp;
-  bool         reported_ = false;  // перша фаза ще не надрукована
-};
-
-SweepApp app;
-
-}  // namespace
-
-void setup() { app.init(); }
-
-void loop() { app.update(); }
+}

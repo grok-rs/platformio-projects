@@ -1,51 +1,22 @@
-// ТЗ-A, етап 2: GPIO5 як звичайний цифровий вихід, без ШІМ — HIGH і LOW по 3 с.
-// Поки HIGH: LED світить, мультиметр між базою й емітером показує U(БЕ) ≈ 0,6–0,8 В,
-// між колектором і емітером — U(КЕ) насичення (рівень «+»).
-
 #include <Arduino.h>
 
-#include <cinttypes>
+// ТЗ-A, етап 2: GPIO5 — звичайний цифровий вихід, без ШІМ. HIGH і LOW по 3 с.
+// Поки HIGH: LED світить, мультиметр між базою й емітером — U(БЕ) ≈ 0,6–0,8 В.
+#define KEY_PIN 5  // → 1 кОм → база 2N2222
+#define HALF_MS 3000
 
-#include "config.h"
-#include "console.h"
+void setup() {
+  Serial.begin(115200);
+  pinMode(KEY_PIN, OUTPUT);
+  Serial.println("Етап 2: GPIO5 HIGH/LOW по 3 с — міряйте U(БЕ), поки HIGH");
+}
 
-namespace {
+void loop() {
+  digitalWrite(KEY_PIN, HIGH);
+  Serial.println("GPIO5 HIGH: LED on");
+  delay(HALF_MS);
 
-class SwitchApp {
- public:
-  void init() {
-    beginConsole(Config::Console::kBaud, Config::Console::kWaitMs);
-    pinMode(Config::Pwm::kPin, OUTPUT);
-
-    Serial.println();
-    Serial.println("=== Bright module (TZ-A): stage 2, GPIO switch ===");
-    Serial.printf("GPIO%u toggles every %" PRIu32 " ms: measure U(BE) while HIGH\n", Config::Pwm::kPin,
-                  Config::Switch::kHalfPeriodMs);
-
-    set(true, millis());
-  }
-
-  void update() {
-    const uint32_t nowMs = millis();
-    if (nowMs - lastToggleMs_ >= Config::Switch::kHalfPeriodMs) set(!high_, nowMs);
-  }
-
- private:
-  void set(bool high, uint32_t nowMs) {
-    digitalWrite(Config::Pwm::kPin, high ? HIGH : LOW);
-    high_         = high;
-    lastToggleMs_ = nowMs;
-    tryPrintf("GPIO%u %s\n", Config::Pwm::kPin, high ? "HIGH: LED on" : "LOW: LED off");
-  }
-
-  bool     high_         = false;
-  uint32_t lastToggleMs_ = 0;
-};
-
-SwitchApp app;
-
-}  // namespace
-
-void setup() { app.init(); }
-
-void loop() { app.update(); }
+  digitalWrite(KEY_PIN, LOW);
+  Serial.println("GPIO5 LOW: LED off");
+  delay(HALF_MS);
+}
