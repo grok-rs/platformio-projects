@@ -11,6 +11,8 @@
     { "path": "esp32-s3-embedded-cpp/cpp", "name": "embedded-cpp (C++)" },
     { "path": "esp32-s3-bright-module/cpp", "name": "bright-module (C++)" },
     { "path": "esp32-s3-site-bridge/cpp", "name": "site-bridge (C++)" },
+    { "path": "esp32-s3-three-rhythms/cpp", "name": "three-rhythms (C++)" },
+    { "path": "esp32-s3-multitask-device/cpp", "name": "multitask-device (C++)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {
