@@ -24,13 +24,20 @@
     "files.associations": {
       "*.ino": "cpp"
     },
-    // rust-analyzer: check the firmware for the ESP32-S3 target with the `esp` toolchain,
-    // but run the language server itself on stable.
-    "rust-analyzer.cargo.target": "xtensa-esp32s3-none-elf",
+    // rust-analyzer: check the firmware with the `esp` toolchain, run the language server itself on stable.
+    // No cargo.target: each Cargo workspace takes its target from its own .cargo/config.toml
+    // (root: xtensa-esp32s3-none-elf for esp-hal; vent-timer/rust and debounce-idf/rust: xtensa-esp32s3-espidf).
+    // LIBCLANG_PATH: esp-idf-sys generates its bindings with the clang from espup.
     "rust-analyzer.cargo.allTargets": false,
     "rust-analyzer.server.extraEnv": { "RUSTUP_TOOLCHAIN": "stable" },
-    "rust-analyzer.cargo.extraEnv": { "RUSTUP_TOOLCHAIN": "esp" },
-    "rust-analyzer.check.extraEnv": { "RUSTUP_TOOLCHAIN": "esp" }
+    "rust-analyzer.cargo.extraEnv": {
+      "RUSTUP_TOOLCHAIN": "esp",
+      "LIBCLANG_PATH": "/home/dromix/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-21.1.3_20260408/esp-clang/lib"
+    },
+    "rust-analyzer.check.extraEnv": {
+      "RUSTUP_TOOLCHAIN": "esp",
+      "LIBCLANG_PATH": "/home/dromix/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-21.1.3_20260408/esp-clang/lib"
+    }
   },
   "extensions": {
     "recommendations": [
