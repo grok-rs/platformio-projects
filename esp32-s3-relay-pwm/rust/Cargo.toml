@@ -1,0 +1,37 @@
+[package]
+name        = "relay-pwm"
+description = "Модуль 2.2, ДЗ: час спрацювання реле (переривання + micros), програмний ШІМ мотора від потенціометра, UART як ШІМ"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+publish.workspace      = true
+default-run = "relay"
+
+# Один бінарник на завдання (як env у platformio.ini):
+#   cargo run --release                   (relay: ДЗ 1)
+#   cargo run --release --bin motor       (ДЗ 2)
+#   cargo run --release --bin uart-pwm    (ДЗ 2, експеримент)
+[[bin]]
+name  = "relay"
+path  = "src/bin/relay.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "motor"
+path  = "src/bin/motor.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "uart-pwm"
+path  = "src/bin/uart_pwm.rs"
+test  = false
+bench = false
+
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+esp-hal.workspace                = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace          = true
+esp-println.workspace            = true
+critical-section.workspace       = true  # реле: вхід контакту спільний з обробником переривання
