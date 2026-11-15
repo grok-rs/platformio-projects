@@ -742,7 +742,7 @@ timerAlarmEnable(timer);</code></pre>
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-vent" class="kit-bench" viewBox="-180 -60 1880 1240" role="img" aria-label="Макетка: зліва MB102, нижні шини 5 В. Плата YD-ESP32-S3 у макетці, ліва гребінка в ряду i зі стовпчика 23, права в ряду b. Синій дріт від GPIO2 по доріжці над рядом a до R1, що стоїть через канавку у стовпчику 18; VT1 BC547B колектором у i17, базою в i18, емітером в i19, емітер чорним дротом на нижню шину мінус. R2 10 кОм від стовпчика 13 до колектора, стовпчик 13 червоним дротом на нижню шину плюс. Зелений дріт від колектора до IN модуля реле під макеткою, червоний VCC і чорний GND від нижніх шин. Зелений дріт від GPIO16 по доріжці під рядом j до R4 220 Ом і зеленого LED, жовтий дріт від GPIO15 вздовж нижнього краю до R3 220 Ом і червоного LED; катоди чорними дротами на шину мінус. Фіолетовий дріт від GPIO21 вздовж верхнього краю до кнопки S1, друга її ніжка на верхній шині мінус. COM реле червоним дротом на шину плюс, NO білим дротом на мотор, другий вивід мотора чорним дротом на шину мінус, діод 1N4007 на виводах мотора. GND плати чорним дротом на верхню шину мінус; розриви шин закривають короткі перемички."></svg>
+        <svg id="bb-vent" class="kit-bench" viewBox="-180 -60 1880 1240" role="img" aria-label="Макетка: зліва MB102, нижні шини 5 В. Плата YD-ESP32-S3 у макетці, ліва гребінка в ряду i зі стовпчика 23, права в ряду b. Синій дріт від GPIO2 по доріжці над рядом a до R1, що стоїть через канавку у стовпчику 18; VT1 BC547B колектором у i17, базою в i18, емітером в i19, емітер чорним дротом на нижню шину мінус. R2 10 кОм від стовпчика 13 до колектора, стовпчик 13 червоним дротом на нижню шину плюс. Зелений дріт від колектора до IN модуля реле під макеткою, червоний VCC і чорний GND від нижніх шин. Зелений дріт від GPIO16 по доріжці під рядом j до R4 220 Ом і зеленого LED, жовтий дріт від GPIO15 вздовж нижнього краю до R3 220 Ом і червоного LED; катоди чорними дротами на шину мінус. Фіолетовий дріт від GPIO21 вздовж верхнього краю до кнопки S1, друга її ніжка на верхній шині мінус. COM реле червоним дротом на шину плюс, NO білим дротом у стовпчик 12 (j12), плюс мотора помаранчевим дротом теж у стовпчик 12 (i12), мінус мотора чорним дротом на шину мінус. Діод 1N4007 стоїть через канавку в стовпчику 12: смужка в f12, друга ніжка в e12, а верхня половина стовпчика 12 чорним дротом іде на верхню шину мінус. GND плати чорним дротом на верхню шину мінус; розриви шин закривають короткі перемички."></svg>
       </div>
       <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Немає мотора? На контакт NO підійде LED + 220&nbsp;Ом, як у міні-проєкті 1.</figcaption>
     </figure>
@@ -825,7 +825,9 @@ void app_main(void) {
     gptimer_enable(timer);
     gptimer_start(timer);
 
-    esp_task_wdt_config_t wdt = {.timeout_ms = WDT_S * 1000, .trigger_panic = true};  // не погодували — перезавантаження
+    // Не погодували — перезавантаження. Idle-задачі обох ядер лишаються під наглядом, як за замовчуванням:
+    // якщо їх зняти, ESP-IDF при старті друкує одноразове «task_wdt: task not found» (гонка з idle-хуком)
+    esp_task_wdt_config_t wdt = {.timeout_ms = WDT_S * 1000, .idle_core_mask = (1 &lt;&lt; 0) | (1 &lt;&lt; 1), .trigger_panic = true};
     esp_task_wdt_reconfigure(&amp;wdt);  // сторож уже запущений ESP-IDF, міняємо час і реакцію
     esp_task_wdt_add(NULL);          // стежимо за app_main
 
@@ -849,7 +851,7 @@ void app_main(void) {
         vTaskDelay(1);  // 1 мс: віддаємо процесор іншим задачам
     }
 }</code></pre>
-    <p class="small">Це повний файл <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-vent-timer">esp32-s3-vent-timer</a>. Він на ESP-IDF (C) і Rust, обидва зібрані, але на платі ще не запускалися. Вивід нижче — очікування за кодом для <code>SPEEDUP 300</code>, а не запис із плати:</p>
+    <p class="small">Це повний файл <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-vent-timer">esp32-s3-vent-timer</a>. Він на ESP-IDF (C) і Rust. Rust-версія пройшла стенд 15.11.2026: цикл, LED, реле з мотором і кнопка працюють, <a href="https://github.com/grok-rs/platformio-projects/blob/main/esp32-s3-vent-timer/results/serial-rust.txt">лог</a>. Вивід нижче — очікування за кодом для <code>SPEEDUP 300</code>; на платі мілісекунди трохи інші:</p>
 <pre class="code"><code>Вентилятор: цикл 3600 с, робота 900 с, прискорення ×300, старт: звичайний
 [2000 мс] ПРАЦЮЄ, секунда циклу 600
 [3000 мс] чекає, секунда циклу 900
@@ -1510,9 +1512,11 @@ document.addEventListener('study:ready', () => {
     const mx = X(42) - 92, my = ry + 156 + 196;
     out.motor = K.part('tt-motor', { parent: svg, x: mx, y: my, mirror: true, title: 'Мотор TT: вентилятор' });
     const RP = out.relay.pins, MP = out.motor.pins;
-    // the tabs are reached from above and below, and the diode spans those two lanes, right of the motor's end cap
-    const yP = MP['+'].y - 44, yM = MP['-'].y + 44, xD = MP['+'].x + 80;
-    out.d = K.part('diode', { parent: svg, x: xD, y: yM, rot: -90, span: (yM - yP) / KP, title: 'VD1 1N4007: смуга до плюса мотора' });
+    // VD1 sits in the breadboard across the channel of column 12: the bottom half (f–j 12) is the motor + node where relay NO
+    // and the motor's + wire meet, so the stripe is in f12; the other leg is in e12, and the top half of column 12 goes to the
+    // − rail with a short black wire. The two long wires run in two lanes between the relay and the motor.
+    const yP = MP['+'].y - 44, yM = MP['-'].y + 44, yA = yP - KP * 0.9;
+    out.d = K.part('diode', { parent: svg, ...A('e12'), rot: 90, span: (Y('f') - Y('e')) / KP, title: 'VD1 1N4007 через канавку: смуга в f12 (плюс мотора), друга ніжка в e12 (мінус)' });
     const wires = mk('g', { class: 'kb-wires' }, svg);
     const w = (k, pts, col, net, cls) => {
       const g = K.route(wires, pts, col);
@@ -1546,7 +1550,9 @@ document.addEventListener('study:ready', () => {
     if (gg) w('gg', [A('a43'), A('top-43')], 'black', 'gnd', 'net-gnd');
     // load: COM up to the 5 В rail, NO to the motor, motor − to the ground rail
     w('com', [RP.COM, pt(X(59), RP.COM.y), A('bottom+59')], 'red', 'v5', 'net-5v');
-    w('no', [RP.NO, pt(X(63), RP.NO.y), pt(X(63), yP), pt(MP['+'].x, yP), MP['+']], '#d9d9d2', 'no', 'net-sig');
+    w('no', [RP.NO, pt(X(63), RP.NO.y), pt(X(63), yA), pt(X(12), yA), A('j12')], '#d9d9d2', 'no', 'net-sig');
+    w('mp', [MP['+'], pt(MP['+'].x, yP), pt(X(11), yP), pt(X(11), Y('i')), A('i12')], '#e8862a', 'no', 'net-sig');
+    w('dg', [A('a12'), A('top-12')], 'black', 'gnd', 'net-gnd');
     w('mm', [MP['-'], pt(MP['-'].x, yM), pt(X(64) + 6, yM), pt(X(64) + 6, A('bottom-61').y), A('bottom-61')], 'black', 'gnd', 'net-gnd');
     // labels
     const yT = -34;
@@ -1560,8 +1566,9 @@ document.addEventListener('study:ready', () => {
     pill(svg, X(52.5), laneT + 2, 'LED2');
     pill(svg, X(58.4), laneT + 2, 'LED1');
     pill(svg, X(62), Y('h'), 'S1');
-    pill(svg, X(40) + 212, ry + 188, 'реле');
-    pill(svg, mx + 250, my + 150, 'мотор, VD1');
+    pill(svg, X(26), ry + 150, 'реле');
+    pill(svg, mx + 250, my + 150, 'мотор');
+    pill(svg, X(14.4), Y('a'), 'VD1');
     svg.setAttribute('viewBox', `-180 -66 1880 ${my + 190 + 66}`);
     svg.style.overflow = 'hidden';
     return out;

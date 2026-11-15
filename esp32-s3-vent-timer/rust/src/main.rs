@@ -76,13 +76,14 @@ fn main() -> Result<(), EspError> {
     timer.enable()?;
     timer.start()?;
 
-    // Не погодували — перезавантаження. Стежимо лише за main, idle-задачі не підписуємо
+    // Не погодували — перезавантаження. Idle-задачі лишаються під наглядом, як за замовчуванням в ESP-IDF:
+    // якщо їх зняти, ESP-IDF при старті друкує одноразове «task_wdt: task not found» (гонка з idle-хуком)
     let mut twdt = TWDTDriver::new(
         p.twdt,
         &TWDTConfig {
             duration: Duration::from_secs(WDT_S),
             panic_on_trigger: true,
-            subscribed_idle_tasks: Default::default(),
+            ..TWDTConfig::new()
         },
     )?;
     let mut watch = twdt.watch_current_task()?;

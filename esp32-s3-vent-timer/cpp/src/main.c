@@ -67,7 +67,9 @@ void app_main(void) {
     gptimer_enable(timer);
     gptimer_start(timer);
 
-    esp_task_wdt_config_t wdt = {.timeout_ms = WDT_S * 1000, .trigger_panic = true};  // не погодували — перезавантаження
+    // Не погодували — перезавантаження. Idle-задачі обох ядер лишаються під наглядом, як за замовчуванням:
+    // якщо їх зняти, ESP-IDF при старті друкує одноразове «task_wdt: task not found» (гонка з idle-хуком)
+    esp_task_wdt_config_t wdt = {.timeout_ms = WDT_S * 1000, .idle_core_mask = (1 << 0) | (1 << 1), .trigger_panic = true};
     esp_task_wdt_reconfigure(&wdt);  // сторож уже запущений ESP-IDF, міняємо час і реакцію
     esp_task_wdt_add(NULL);          // стежимо за app_main
 
