@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="720" viewBox="0 0 1320 720">
+<rect width="1320" height="720" fill="#ffffff"/>
+<text x="40.0" y="42.0" font-size="20" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Завдання 4: машина станів кнопки, poll.c</text>
+<text x="40.0" y="66.0" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">Крок кожні 10 мс: прочитати рівень, подивитися на state, вирішити, куди далі. Ніхто не чекає. down — кнопка натиснута (LOW), up — відпущена (HIGH).</text>
+<ellipse cx="230" cy="260" rx="130" ry="66" fill="#eef2f7" stroke="#445" stroke-width="3"/>
+<text x="230.0" y="248.0" font-size="19" text-anchor="middle" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">IDLE</text>
+<text x="230.0" y="274.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">кнопка відпущена</text>
+<ellipse cx="660" cy="260" rx="130" ry="66" fill="#fff4e5" stroke="#e65100" stroke-width="3"/>
+<text x="660.0" y="248.0" font-size="19" text-anchor="middle" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">PRESSED</text>
+<text x="660.0" y="274.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">може, натискання,</text>
+<text x="660.0" y="292.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">може, брязкіт</text>
+<ellipse cx="1090" cy="260" rx="130" ry="66" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>
+<text x="1090.0" y="248.0" font-size="19" text-anchor="middle" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">HELD</text>
+<text x="1090.0" y="274.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">натискання зараховане</text>
+<ellipse cx="660" cy="540" rx="130" ry="66" fill="#e8f0fe" stroke="#1565c0" stroke-width="3"/>
+<text x="660.0" y="528.0" font-size="19" text-anchor="middle" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">RELEASE</text>
+<text x="660.0" y="554.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">може, відпускання,</text>
+<text x="660.0" y="572.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">може, брязкіт</text>
+<line x1="360.0" y1="240.0" x2="530.0" y2="240.0" stroke="#222" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="530.0,240.0 520.0,244.5 520.0,235.5" fill="#222"/>
+<text x="445.0" y="228.0" font-size="14" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans Mono, monospace">down</text>
+<text x="445.0" y="212.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans Mono, monospace">since = now</text>
+<line x1="790.0" y1="240.0" x2="960.0" y2="240.0" stroke="#2e7d32" stroke-width="3" stroke-linecap="round"/>
+<polygon points="960.0,240.0 950.0,244.5 950.0,235.5" fill="#2e7d32"/>
+<text x="875.0" y="212.0" font-size="14" text-anchor="middle" font-weight="bold" fill="#2e7d32" font-family="DejaVu Sans Mono, monospace">down ≥ 50 мс</text>
+<text x="875.0" y="192.0" font-size="12" text-anchor="middle" font-weight="bold" fill="#2e7d32" font-family="DejaVu Sans, Arial, sans-serif">presses++, LED, друк</text>
+<line x1="530.0" y1="280.0" x2="360.0" y2="280.0" stroke="#e65100" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="360.0,280.0 370.0,275.5 370.0,284.5" fill="#e65100"/>
+<text x="445.0" y="302.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#e65100" font-family="DejaVu Sans, Arial, sans-serif">up: відскочило</text>
+<text x="445.0" y="320.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans Mono, monospace">bounces++</text>
+<polyline points="1090.0,326.0 1090.0,540.0" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round"/>
+<line x1="1090.0" y1="540.0" x2="790.0" y2="540.0" stroke="#222" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="790.0,540.0 800.0,535.5 800.0,544.5" fill="#222"/>
+<text x="1100.0" y="440.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans Mono, monospace">up</text>
+<text x="1100.0" y="460.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans Mono, monospace">since = now</text>
+<polyline points="760.0,498.0 980.0,340.0" fill="none" stroke="#e65100" stroke-width="2.2" stroke-linejoin="round"/>
+<line x1="980.0" y1="340.0" x2="1000.0" y2="310.0" stroke="#e65100" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="1000.0,310.0 998.2,320.8 990.7,315.9" fill="#e65100"/>
+<text x="800.0" y="410.0" font-size="13" text-anchor="start" font-weight="bold" fill="#e65100" font-family="DejaVu Sans, Arial, sans-serif">down: брязкіт</text>
+<text x="800.0" y="428.0" font-size="13" text-anchor="start" font-weight="bold" fill="#e65100" font-family="DejaVu Sans, Arial, sans-serif">відпускання</text>
+<text x="800.0" y="446.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans Mono, monospace">bounces++</text>
+<polyline points="530.0,540.0 230.0,540.0 230.0,326.0" fill="none" stroke="#1565c0" stroke-width="2.2" stroke-linejoin="round"/>
+<line x1="230.0" y1="340.0" x2="230.0" y2="326.0" stroke="#1565c0" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="230.0,326.0 234.5,336.0 225.5,336.0" fill="#1565c0"/>
+<text x="250.0" y="480.0" font-size="14" text-anchor="start" font-weight="bold" fill="#1565c0" font-family="DejaVu Sans Mono, monospace">up ≥ 50 мс</text>
+<text x="250.0" y="502.0" font-size="13" text-anchor="start" font-weight="normal" fill="#1565c0" font-family="DejaVu Sans, Arial, sans-serif">час утримання:</text>
+<text x="250.0" y="520.0" font-size="13" text-anchor="start" font-weight="bold" fill="#1565c0" font-family="DejaVu Sans, Arial, sans-serif">&lt; 2 с коротке, ≥ 2 с довге</text>
+<text x="230.0" y="170.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">up: лишаємось</text>
+<text x="1090.0" y="170.0" font-size="13" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">down: лишаємось</text>
+<text x="40.0" y="640.0" font-size="15" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Реакція приходить лише один раз, на стрілці PRESSED → HELD: скільки б не тримали кнопку, другої не буде.</text>
+<text x="40.0" y="668.0" font-size="15" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Відпускання ніколи не дає реакції, бо з RELEASE немає стрілки зі словом presses++. Тому фантому завдання 2 тут взятися нізвідки.</text>
+<text x="40.0" y="696.0" font-size="15" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">Натискання коротше за 50 мс повертається з PRESSED в IDLE: це ціна за стабільність.</text>
+</svg>

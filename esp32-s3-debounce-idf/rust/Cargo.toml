@@ -1,0 +1,53 @@
+[package]
+name         = "debounce-idf"
+description  = "Модуль 2.4 / 2.6, ДЗ «Усунення брязкоту контактів»: завдання уроку 2.4 на ESP-IDF, по одній прошивці на завдання"
+version      = "0.1.0"
+edition      = "2024"
+publish      = false
+default-run  = "raw"
+
+# Окремий робочий простір: решта репозиторію — esp-hal без ОС, а тут std поверх ESP-IDF і FreeRTOS.
+[workspace]
+
+# Один бінарник на завдання (як env у platformio.ini):
+#   cargo run --release              (raw: завдання 1)
+#   cargo run --release --bin time   (завдання 2)
+#   cargo run --release --bin state  (завдання 3)
+#   cargo run --release --bin poll   (завдання 4)
+[[bin]]
+name  = "raw"
+path  = "src/bin/raw.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "time"
+path  = "src/bin/time.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "state"
+path  = "src/bin/state.rs"
+test  = false
+bench = false
+
+[[bin]]
+name  = "poll"
+path  = "src/bin/poll.rs"
+test  = false
+bench = false
+
+[dependencies]
+# Обгортки ESP-IDF: hal (GPIO, черги FreeRTOS) і sys (сирі C-функції) реекспортуються звідси.
+esp-idf-svc = "0.53"
+
+[build-dependencies]
+embuild = "0.33"  # знаходить зібраний ESP-IDF і передає його налаштування компілятору
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug     = true
+opt-level = "z"

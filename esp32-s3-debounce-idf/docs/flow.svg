@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="640" viewBox="0 0 1320 640">
+<rect width="1320" height="640" fill="#ffffff"/>
+<text x="40.0" y="42.0" font-size="20" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Шлях однієї події в кожній прошивці</text>
+<text x="275.0" y="84.0" font-size="15" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">Подія</text>
+<text x="550.0" y="84.0" font-size="15" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">Обробник ISR</text>
+<text x="820.0" y="84.0" font-size="15" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">Між ними</text>
+<text x="1115.0" y="84.0" font-size="15" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">Задача app_main</text>
+<text x="40.0" y="148.0" font-size="18" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">raw</text>
+<text x="40.0" y="170.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">завдання 1</text>
+<rect x="190.0" y="110.0" width="170.0" height="88.0" rx="8" fill="#e8f0fe" stroke="#1565c0" stroke-width="2"/>
+<text x="275.0" y="160.0" font-size="14" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">FALLING</text>
+<rect x="410.0" y="110.0" width="280.0" height="88.0" rx="8" fill="#fff4e5" stroke="#e65100" stroke-width="2"/>
+<text x="550.0" y="160.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans Mono, monospace">count++</text>
+<rect x="740.0" y="110.0" width="160.0" height="88.0" rx="8" fill="#f3e8ff" stroke="#6a1b9a" stroke-width="2"/>
+<text x="820.0" y="160.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">volatile</text>
+<rect x="950.0" y="110.0" width="330.0" height="88.0" rx="8" fill="#e6f4ea" stroke="#2e7d32" stroke-width="2"/>
+<text x="1115.0" y="160.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">щоразу, як змінився: друк і LED</text>
+<line x1="360.0" y1="154.0" x2="410.0" y2="154.0" stroke="#e65100" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="410.0,154.0 400.0,158.5 400.0,149.5" fill="#e65100"/>
+<line x1="690.0" y1="154.0" x2="740.0" y2="154.0" stroke="#6a1b9a" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="740.0,154.0 730.0,158.5 730.0,149.5" fill="#6a1b9a"/>
+<line x1="900.0" y1="154.0" x2="950.0" y2="154.0" stroke="#2e7d32" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="950.0,154.0 940.0,158.5 940.0,149.5" fill="#2e7d32"/>
+<text x="40.0" y="260.0" font-size="18" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">time</text>
+<text x="40.0" y="282.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">завдання 2</text>
+<rect x="190.0" y="222.0" width="170.0" height="88.0" rx="8" fill="#e8f0fe" stroke="#1565c0" stroke-width="2"/>
+<text x="275.0" y="272.0" font-size="14" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">FALLING</text>
+<rect x="410.0" y="222.0" width="280.0" height="88.0" rx="8" fill="#fff4e5" stroke="#e65100" stroke-width="2"/>
+<text x="550.0" y="272.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans Mono, monospace">час у чергу</text>
+<rect x="740.0" y="222.0" width="160.0" height="88.0" rx="8" fill="#f3e8ff" stroke="#6a1b9a" stroke-width="2"/>
+<text x="820.0" y="272.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">черга</text>
+<rect x="950.0" y="222.0" width="330.0" height="88.0" rx="8" fill="#e6f4ea" stroke="#2e7d32" stroke-width="2"/>
+<text x="1115.0" y="260.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">t − last &lt; 50 мс → ігнор,</text>
+<text x="1115.0" y="282.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">інакше реакція</text>
+<line x1="360.0" y1="266.0" x2="410.0" y2="266.0" stroke="#e65100" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="410.0,266.0 400.0,270.5 400.0,261.5" fill="#e65100"/>
+<line x1="690.0" y1="266.0" x2="740.0" y2="266.0" stroke="#6a1b9a" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="740.0,266.0 730.0,270.5 730.0,261.5" fill="#6a1b9a"/>
+<line x1="900.0" y1="266.0" x2="950.0" y2="266.0" stroke="#2e7d32" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="950.0,266.0 940.0,270.5 940.0,261.5" fill="#2e7d32"/>
+<text x="40.0" y="372.0" font-size="18" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">state</text>
+<text x="40.0" y="394.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">завдання 3</text>
+<rect x="190.0" y="334.0" width="170.0" height="88.0" rx="8" fill="#e8f0fe" stroke="#1565c0" stroke-width="2"/>
+<text x="275.0" y="384.0" font-size="14" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">FALLING</text>
+<rect x="410.0" y="334.0" width="280.0" height="88.0" rx="8" fill="#fff4e5" stroke="#e65100" stroke-width="2"/>
+<text x="550.0" y="384.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">«щось сталося»</text>
+<rect x="740.0" y="334.0" width="160.0" height="88.0" rx="8" fill="#f3e8ff" stroke="#6a1b9a" stroke-width="2"/>
+<text x="820.0" y="384.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">семафор</text>
+<rect x="950.0" y="334.0" width="330.0" height="88.0" rx="8" fill="#e6f4ea" stroke="#2e7d32" stroke-width="2"/>
+<text x="1115.0" y="372.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">чекає 50 мс; LOW → реакція,</text>
+<text x="1115.0" y="394.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">HIGH → нічого</text>
+<line x1="360.0" y1="378.0" x2="410.0" y2="378.0" stroke="#e65100" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="410.0,378.0 400.0,382.5 400.0,373.5" fill="#e65100"/>
+<line x1="690.0" y1="378.0" x2="740.0" y2="378.0" stroke="#6a1b9a" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="740.0,378.0 730.0,382.5 730.0,373.5" fill="#6a1b9a"/>
+<line x1="900.0" y1="378.0" x2="950.0" y2="378.0" stroke="#2e7d32" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="950.0,378.0 940.0,382.5 940.0,373.5" fill="#2e7d32"/>
+<text x="40.0" y="484.0" font-size="18" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans Mono, monospace">poll</text>
+<text x="40.0" y="506.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">завдання 4</text>
+<rect x="190.0" y="446.0" width="170.0" height="88.0" rx="8" fill="#e8f0fe" stroke="#1565c0" stroke-width="2"/>
+<text x="275.0" y="496.0" font-size="14" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">таймер тіків</text>
+<rect x="410.0" y="446.0" width="280.0" height="88.0" rx="8" fill="#f4f5f7" stroke="#b0b8c1" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="550.0" y="496.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">немає</text>
+<rect x="740.0" y="446.0" width="160.0" height="88.0" rx="8" fill="#f4f5f7" stroke="#b0b8c1" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="820.0" y="496.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">немає</text>
+<rect x="950.0" y="446.0" width="330.0" height="88.0" rx="8" fill="#e6f4ea" stroke="#2e7d32" stroke-width="2"/>
+<text x="1115.0" y="484.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">кожні 10 мс читає вивід,</text>
+<text x="1115.0" y="506.0" font-size="14" text-anchor="middle" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">крок машини станів</text>
+<polyline points="360.0,512.0 380.0,512.0 380.0,546.0 930.0,546.0 930.0,512.0" fill="none" stroke="#00796b" stroke-width="2" stroke-linejoin="round"/>
+<line x1="930.0" y1="512.0" x2="950.0" y2="512.0" stroke="#00796b" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="950.0,512.0 940.0,516.5 940.0,507.5" fill="#00796b"/>
+<text x="40.0" y="590.0" font-size="15" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Правило одне: ISR нічого не вирішує. Він лише повідомляє, а чекати, друкувати й думати може задача, бо vTaskDelay() зупиняє тільки її.</text>
+</svg>
