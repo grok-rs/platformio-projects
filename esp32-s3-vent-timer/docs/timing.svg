@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="950" viewBox="0 0 1320 950">
+<rect width="1320" height="950" fill="#ffffff"/>
+<text x="40.0" y="42.0" font-size="20" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Часові діаграми: цикл вентилятора, кнопка і сторож</text>
+<text x="40.0" y="82.0" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">А. Звичайний цикл: кожну годину 15 хвилин роботи</text>
+<line x1="240.0" y1="100.0" x2="240.0" y2="300.0" stroke="#9aa5b1" stroke-width="1.4" stroke-linecap="round"/>
+<text x="240.0" y="318.0" font-size="12" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">0</text>
+<line x1="351.4" y1="100.0" x2="351.4" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="351.4" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">15</text>
+<line x1="462.9" y1="100.0" x2="462.9" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="462.9" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">30</text>
+<line x1="574.3" y1="100.0" x2="574.3" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="574.3" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">45</text>
+<line x1="685.7" y1="100.0" x2="685.7" y2="300.0" stroke="#9aa5b1" stroke-width="1.4" stroke-linecap="round"/>
+<text x="685.7" y="318.0" font-size="12" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">60</text>
+<line x1="797.1" y1="100.0" x2="797.1" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="797.1" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">75</text>
+<line x1="908.6" y1="100.0" x2="908.6" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="908.6" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">90</text>
+<line x1="1020.0" y1="100.0" x2="1020.0" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1020.0" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">105</text>
+<line x1="1131.4" y1="100.0" x2="1131.4" y2="300.0" stroke="#9aa5b1" stroke-width="1.4" stroke-linecap="round"/>
+<text x="1131.4" y="318.0" font-size="12" text-anchor="middle" font-weight="bold" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">120</text>
+<line x1="1242.9" y1="100.0" x2="1242.9" y2="300.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1242.9" y="318.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">135</text>
+<text x="1280.0" y="336.0" font-size="12" text-anchor="end" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">хвилини</text>
+<text x="40.0" y="154.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">GPIO2, вентилятор</text>
+<rect x="240.0" y="116.0" width="111.4" height="34" fill="#fde8e8"/>
+<rect x="685.7" y="116.0" width="111.4" height="34" fill="#fde8e8"/>
+<rect x="1131.4" y="116.0" width="111.4" height="34" fill="#fde8e8"/>
+<polyline points="240.0,150.0 240.0,150.0 240.0,116.0 351.4,116.0 351.4,150.0 685.7,150.0 685.7,116.0 797.1,116.0 797.1,150.0 1131.4,150.0 1131.4,116.0 1242.9,116.0 1242.9,150.0 1280.0,150.0" fill="none" stroke="#c62828" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="40.0" y="209.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">GPIO15, червоний</text>
+<rect x="240.0" y="179.0" width="111.4" height="26" fill="#fde8e8"/>
+<rect x="685.7" y="179.0" width="111.4" height="26" fill="#fde8e8"/>
+<rect x="1131.4" y="179.0" width="111.4" height="26" fill="#fde8e8"/>
+<polyline points="240.0,205.0 240.0,205.0 240.0,179.0 351.4,179.0 351.4,205.0 685.7,205.0 685.7,179.0 797.1,179.0 797.1,205.0 1131.4,205.0 1131.4,179.0 1242.9,179.0 1242.9,205.0 1280.0,205.0" fill="none" stroke="#c62828" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="40.0" y="262.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">GPIO16, зелений</text>
+<rect x="351.4" y="232.0" width="334.3" height="26" fill="#e6f4ea"/>
+<rect x="797.1" y="232.0" width="334.3" height="26" fill="#e6f4ea"/>
+<rect x="1242.9" y="232.0" width="37.1" height="26" fill="#e6f4ea"/>
+<polyline points="240.0,258.0 351.4,258.0 351.4,232.0 685.7,232.0 685.7,258.0 797.1,258.0 797.1,232.0 1131.4,232.0 1131.4,258.0 1242.9,258.0 1242.9,232.0 1280.0,232.0 1280.0,258.0 1280.0,258.0" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="40.0" y="302.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">second</text>
+<polyline points="240.0,298.0 685.7,272.0 685.7,298.0 1131.4,272.0 1131.4,298.0 1280.0,289.3" fill="none" stroke="#1565c0" stroke-width="2" stroke-linejoin="round"/>
+<line x1="351.4" y1="291.5" x2="351.4" y2="298.0" stroke="#c62828" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 3"/>
+<text x="357.4" y="286.0" font-size="11" text-anchor="start" font-weight="bold" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">900 = ON_S</text>
+<text x="679.7" y="270.0" font-size="11" text-anchor="end" font-weight="bold" fill="#1565c0" font-family="DejaVu Sans, Arial, sans-serif">3599 → 0</text>
+<text x="40.0" y="372.0" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Б. Кнопка S1: під час чекання починає цикл, під час роботи ігнорується</text>
+<line x1="240.0" y1="392.0" x2="240.0" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="240.0" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">0</text>
+<line x1="351.4" y1="392.0" x2="351.4" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="351.4" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">15</text>
+<line x1="462.9" y1="392.0" x2="462.9" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="462.9" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">30</text>
+<line x1="574.3" y1="392.0" x2="574.3" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="574.3" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">45</text>
+<line x1="685.7" y1="392.0" x2="685.7" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="685.7" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">60</text>
+<line x1="797.1" y1="392.0" x2="797.1" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="797.1" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">75</text>
+<line x1="908.6" y1="392.0" x2="908.6" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="908.6" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">90</text>
+<line x1="1020.0" y1="392.0" x2="1020.0" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1020.0" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">105</text>
+<line x1="1131.4" y1="392.0" x2="1131.4" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1131.4" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">120</text>
+<line x1="1242.9" y1="392.0" x2="1242.9" y2="498.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1242.9" y="514.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">135</text>
+<text x="40.0" y="424.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">S1</text>
+<line x1="462.9" y1="396.0" x2="462.9" y2="420.0" stroke="#2e7d32" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="462.9,420.0 458.4,410.0 467.3,410.0" fill="#2e7d32"/>
+<line x1="522.3" y1="396.0" x2="522.3" y2="420.0" stroke="#c62828" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="522.3,420.0 517.8,410.0 526.8,410.0" fill="#c62828"/>
+<text x="456.9" y="410.0" font-size="12" text-anchor="end" font-weight="bold" fill="#2e7d32" font-family="DejaVu Sans, Arial, sans-serif">чекає: цикл спочатку</text>
+<text x="530.3" y="410.0" font-size="12" text-anchor="start" font-weight="bold" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">працює: нічого не змінює, 15 хвилин не подовжуються</text>
+<text x="40.0" y="486.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">GPIO2, вентилятор</text>
+<rect x="240.0" y="448.0" width="111.4" height="34" fill="#fde8e8"/>
+<rect x="462.9" y="448.0" width="111.4" height="34" fill="#fde8e8"/>
+<rect x="908.6" y="448.0" width="111.4" height="34" fill="#fde8e8"/>
+<polyline points="240.0,482.0 240.0,482.0 240.0,448.0 351.4,448.0 351.4,482.0 462.9,482.0 462.9,448.0 574.3,448.0 574.3,482.0 908.6,482.0 908.6,448.0 1020.0,448.0 1020.0,482.0 1280.0,482.0" fill="none" stroke="#c62828" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="900.6" y="472.0" font-size="12" text-anchor="end" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">наступна робота через годину від натискання</text>
+<text x="40.0" y="560.0" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">В. Сторож: годуємо, лише коли таймер цокає. Зупинилось щось одне, і через 5 с плата перезавантажується</text>
+<line x1="240.0" y1="580.0" x2="240.0" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="240.0" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">0</text>
+<line x1="314.3" y1="580.0" x2="314.3" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="314.3" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">1</text>
+<line x1="388.6" y1="580.0" x2="388.6" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="388.6" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">2</text>
+<line x1="462.9" y1="580.0" x2="462.9" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="462.9" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">3</text>
+<line x1="537.1" y1="580.0" x2="537.1" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="537.1" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">4</text>
+<line x1="611.4" y1="580.0" x2="611.4" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="611.4" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">5</text>
+<line x1="685.7" y1="580.0" x2="685.7" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="685.7" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">6</text>
+<line x1="760.0" y1="580.0" x2="760.0" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="760.0" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">7</text>
+<line x1="834.3" y1="580.0" x2="834.3" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="834.3" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">8</text>
+<line x1="908.6" y1="580.0" x2="908.6" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="908.6" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">9</text>
+<line x1="982.9" y1="580.0" x2="982.9" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="982.9" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">10</text>
+<line x1="1057.1" y1="580.0" x2="1057.1" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1057.1" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">11</text>
+<line x1="1131.4" y1="580.0" x2="1131.4" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1131.4" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">12</text>
+<line x1="1205.7" y1="580.0" x2="1205.7" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1205.7" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">13</text>
+<line x1="1280.0" y1="580.0" x2="1280.0" y2="736.0" stroke="#dde3e8" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="1280.0" y="752.0" font-size="12" text-anchor="middle" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">14</text>
+<text x="1280.0" y="770.0" font-size="12" text-anchor="end" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">секунди, SPEEDUP = 1</text>
+<text x="40.0" y="614.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">тіки таймера</text>
+<text x="40.0" y="664.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">годування</text>
+<text x="40.0" y="682.0" font-size="12" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">esp_task_wdt_reset()</text>
+<text x="40.0" y="716.0" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">лічильник сторожа</text>
+<line x1="314.3" y1="610.0" x2="314.3" y2="590.0" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="314.3" y1="636.0" x2="314.3" y2="660.0" stroke="#00796b" stroke-width="2" stroke-linecap="round"/>
+<polygon points="314.3,660.0 310.6,651.8 318.0,651.8" fill="#00796b"/>
+<line x1="388.6" y1="610.0" x2="388.6" y2="590.0" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="388.6" y1="636.0" x2="388.6" y2="660.0" stroke="#00796b" stroke-width="2" stroke-linecap="round"/>
+<polygon points="388.6,660.0 384.9,651.8 392.2,651.8" fill="#00796b"/>
+<line x1="462.9" y1="610.0" x2="462.9" y2="590.0" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="462.9" y1="636.0" x2="462.9" y2="660.0" stroke="#00796b" stroke-width="2" stroke-linecap="round"/>
+<polygon points="462.9,660.0 459.2,651.8 466.5,651.8" fill="#00796b"/>
+<line x1="537.1" y1="610.0" x2="537.1" y2="590.0" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="537.1" y1="636.0" x2="537.1" y2="660.0" stroke="#00796b" stroke-width="2" stroke-linecap="round"/>
+<polygon points="537.1,660.0 533.5,651.8 540.8,651.8" fill="#00796b"/>
+<line x1="611.4" y1="610.0" x2="611.4" y2="590.0" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="611.4" y1="636.0" x2="611.4" y2="660.0" stroke="#00796b" stroke-width="2" stroke-linecap="round"/>
+<polygon points="611.4,660.0 607.8,651.8 615.1,651.8" fill="#00796b"/>
+<line x1="685.7" y1="610.0" x2="685.7" y2="590.0" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="685.7" y1="636.0" x2="685.7" y2="660.0" stroke="#00796b" stroke-width="2" stroke-linecap="round"/>
+<polygon points="685.7,660.0 682.0,651.8 689.4,651.8" fill="#00796b"/>
+<line x1="699.7" y1="588.0" x2="735.7" y2="612.0" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="735.7" y1="588.0" x2="699.7" y2="612.0" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<text x="743.7" y="604.0" font-size="13" text-anchor="start" font-weight="bold" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">завис таймер або цикл</text>
+<polyline points="240.0,712.0 314.3,706.8 314.3,712.0 388.6,706.8 388.6,712.0 462.9,706.8 462.9,712.0 537.1,706.8 537.1,712.0 611.4,706.8 611.4,712.0 685.7,706.8 685.7,712.0 1057.1,686.0" fill="none" stroke="#e65100" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="240.0" y1="686.0" x2="1057.1" y2="686.0" stroke="#e65100" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="5 4"/>
+<text x="244.0" y="681.0" font-size="12" text-anchor="start" font-weight="bold" fill="#e65100" font-family="DejaVu Sans, Arial, sans-serif">5 с</text>
+<line x1="1057.1" y1="582.0" x2="1057.1" y2="736.0" stroke="#c62828" stroke-width="3" stroke-linecap="round"/>
+<text x="1065.1" y="730.0" font-size="13" text-anchor="start" font-weight="bold" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">RESET</text>
+<text x="1065.1" y="612.0" font-size="12" text-anchor="start" font-weight="normal" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">старт: після</text>
+<text x="1065.1" y="628.0" font-size="12" text-anchor="start" font-weight="normal" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">сторожа</text>
+<text x="40.0" y="808.0" font-size="16" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Г. Звідки числа</text>
+<text x="40.0" y="834.0" font-size="14" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">Тік лічильника: resolution_hz = 1 000 000, ESP-IDF ставить дільник 80 МГц / 80 = 1 МГц, тобто 1 мкс.</text>
+<text x="40.0" y="858.0" font-size="14" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">У роботі (SPEEDUP 1): будильник 1 000 000 тіків = 1 с. Цикл 3600 с = 1 год, робота 900 с = 15 хв.</text>
+<text x="40.0" y="882.0" font-size="14" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">Налагодження (SPEEDUP 300): будильник 1 000 000 / 300 = 3333 тіки ≈ 3,33 мс. Цикл ≈ 12 с, робота ≈ 3 с, форма та сама.</text>
+<text x="40.0" y="906.0" font-size="14" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">Автоперезавантаження робить залізо, тому затримка входу в on_tick() не накопичується: точність задає лише кварц плати.</text>
+</svg>

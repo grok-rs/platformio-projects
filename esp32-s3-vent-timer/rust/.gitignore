@@ -1,0 +1,3 @@
+# Збирання Rust на ESP-IDF: свій target/ і завантажений ESP-IDF (.embuild/)
+/target/
+/.embuild/

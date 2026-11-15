@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="830" viewBox="0 0 1320 830">
+<rect width="1320" height="830" fill="#ffffff"/>
+<text x="40" y="46" font-size="20" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Витяжний вентилятор: цикл 1 година, робота 15 хвилин, усе робить апаратний таймер</text>
+<rect x="40" y="90" width="270" height="570" rx="14" fill="#eef2f7" stroke="#334" stroke-width="2.5"/>
+<text x="60" y="126" font-size="22" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">ESP32-S3</text>
+<text x="60" y="150" font-size="14" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">YD-ESP32-S3 (N16R8)</text>
+<text x="60" y="184" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">живлення: USB-C «USB» від ПК</text>
+<text x="60" y="204" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">логіка 3,3 В</text>
+<rect x="304" y="294" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="296" y="306" font-size="17" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO2</text>
+<rect x="304" y="444" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="296" y="456" font-size="17" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO15</text>
+<rect x="304" y="524" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="296" y="536" font-size="17" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO16</text>
+<rect x="304" y="584" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="296" y="596" font-size="17" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GPIO21</text>
+<rect x="304" y="634" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="296" y="646" font-size="17" text-anchor="end" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<line x1="470" y1="120" x2="1150" y2="120" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<text x="610" y="108" font-size="14" text-anchor="start" font-weight="bold" fill="#c62828" font-family="DejaVu Sans, Arial, sans-serif">+5 В: шина «+» макетки, модуль живлення MB-102 (не від піна ESP32)</text>
+<line x1="316" y1="640" x2="1240" y2="640" stroke="#2e7d32" stroke-width="3.5" stroke-linecap="round"/>
+<text x="350" y="666" font-size="14" text-anchor="start" font-weight="bold" fill="#2e7d32" font-family="DejaVu Sans, Arial, sans-serif">СПІЛЬНА ЗЕМЛЯ: GND плати, «−» MB-102, GND модуля реле</text>
+<line x1="316" y1="300" x2="370" y2="300" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="370" y="288" width="90" height="24" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="415" y="280" font-size="15" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R1  10 кОм</text>
+<line x1="460" y1="300" x2="500" y2="300" stroke="#1565c0" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="530" cy="300" r="36" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="500" y1="300" x2="518" y2="300" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="518" y1="278" x2="518" y2="322" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>
+<line x1="518" y1="291" x2="542" y2="272" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="542" y1="272" x2="542" y2="254" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="518" y1="309" x2="542" y2="328" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="542" y1="328" x2="542" y2="346" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="528" y1="317" x2="540" y2="327" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+<polygon points="540.0,327.0 531.3,324.8 536.3,318.8" fill="#222"/>
+<text x="590" y="308" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">VT1 BC547B</text>
+<text x="590" y="328" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">NPN: 3,3 В → 5 В</text>
+<line x1="542" y1="346" x2="542" y2="362" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="522" y1="362" x2="562" y2="362" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="530" y1="369" x2="554" y2="369" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="537" y1="376" x2="547" y2="376" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="542" y1="254" x2="542" y2="220" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="530" y="130" width="24" height="70" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="564" y="160" font-size="15" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R2</text>
+<text x="564" y="180" font-size="15" text-anchor="start" font-weight="normal" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">10 кОм</text>
+<line x1="542" y1="120" x2="542" y2="130" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="542" cy="120" r="5" fill="#c62828"/>
+<line x1="542" y1="200" x2="542" y2="220" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="542" cy="220" r="5" fill="#6a1b9a"/>
+<rect x="760" y="140" width="280" height="320" rx="14" fill="#eaf3fc" stroke="#1f4e79" stroke-width="2.5"/>
+<text x="778" y="170" font-size="17" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">Модуль реле 5 В</text>
+<text x="778" y="192" font-size="13" text-anchor="start" font-weight="normal" fill="#445" font-family="DejaVu Sans, Arial, sans-serif">активний рівень IN — LOW</text>
+<rect x="754" y="214" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="774" y="226" font-size="16" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">IN</text>
+<line x1="542" y1="220" x2="754" y2="220" stroke="#6a1b9a" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="754" y="294" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="774" y="306" font-size="16" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">VCC</text>
+<rect x="754" y="414" width="12" height="12" fill="#c9a227" stroke="#7a5f00" stroke-width="1.5"/>
+<text x="774" y="426" font-size="16" text-anchor="start" font-weight="bold" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">GND</text>
+<line x1="754" y1="300" x2="730" y2="300" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="730" y1="300" x2="730" y2="120" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="730" cy="120" r="5" fill="#c62828"/>
+<line x1="754" y1="420" x2="700" y2="420" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="700" y1="420" x2="700" y2="640" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="700" cy="640" r="5" fill="#2e7d32"/>
+<text x="860" y="340" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">HIGH на GPIO2 →</text>
+<text x="860" y="360" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">IN ≈ 0 В → реле ON,</text>
+<text x="860" y="380" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">контакт COM–NO</text>
+<line x1="1040" y1="250" x2="1070" y2="250" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="1064" y="276" font-size="13" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">COM</text>
+<circle cx="1070" cy="250" r="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="1070" y1="250" x2="1070" y2="120" stroke="#c62828" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="1070" cy="120" r="5" fill="#c62828"/>
+<line x1="1074" y1="248" x2="1112" y2="226" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="1118" cy="250" r="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1118" y="276" font-size="13" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">NO</text>
+<line x1="1122" y1="250" x2="1150" y2="250" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="1150" y1="250" x2="1150" y2="400" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="1150" cy="400" r="5" fill="#222"/>
+<circle cx="1150" cy="450" r="24" fill="#fff" stroke="#222" stroke-width="2.5"/>
+<text x="1150" y="457" font-size="20" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">M</text>
+<line x1="1150" y1="400" x2="1150" y2="426" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="1150" y1="474" x2="1150" y2="640" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="1150" cy="640" r="5" fill="#2e7d32"/>
+<text x="1116" y="500" font-size="15" text-anchor="end" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">вентилятор</text>
+<text x="1116" y="520" font-size="13" text-anchor="end" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">мотор TT, 5 В</text>
+<line x1="1150" y1="400" x2="1230" y2="400" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="1230" y1="400" x2="1230" y2="425" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="1230" y1="425" x2="1230" y2="439" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="1230" y1="461" x2="1230" y2="475" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<polygon points="1216,461 1244,461 1230,439" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="1216" y1="439" x2="1244" y2="439" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+<line x1="1230" y1="475" x2="1230" y2="640" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="1230" cy="640" r="5" fill="#2e7d32"/>
+<text x="1248" y="446" font-size="14" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">VD1</text>
+<text x="1248" y="466" font-size="13" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">1N4007</text>
+<line x1="316" y1="450" x2="370" y2="450" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="370" y="438" width="90" height="24" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="415" y="430" font-size="15" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R3  220 Ом</text>
+<line x1="460" y1="450" x2="500" y2="450" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<polygon points="512,432 512,468 544,450" fill="#e53935" stroke="#222" stroke-width="2"/>
+<line x1="544" y1="432" x2="544" y2="468" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+<line x1="500" y1="450" x2="512" y2="450" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="544" y1="450" x2="560" y2="450" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="522" y1="428" x2="534" y2="412" stroke="#222" stroke-width="1.6" stroke-linecap="round"/>
+<polygon points="534.0,412.0 532.3,420.8 526.0,416.1" fill="#222"/>
+<line x1="534" y1="428" x2="546" y2="412" stroke="#222" stroke-width="1.6" stroke-linecap="round"/>
+<polygon points="546.0,412.0 544.3,420.8 538.0,416.1" fill="#222"/>
+<line x1="560" y1="450" x2="590" y2="450" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="590" y1="450" x2="590" y2="640" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="590" cy="640" r="5" fill="#2e7d32"/>
+<text x="604" y="455" font-size="14" text-anchor="start" font-weight="bold" fill="#b71c1c" font-family="DejaVu Sans, Arial, sans-serif">працює</text>
+<line x1="316" y1="530" x2="370" y2="530" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="370" y="518" width="90" height="24" fill="#fff6d5" stroke="#222" stroke-width="2"/>
+<text x="415" y="510" font-size="15" text-anchor="middle" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">R4  220 Ом</text>
+<line x1="460" y1="530" x2="500" y2="530" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<polygon points="512,512 512,548 544,530" fill="#43a047" stroke="#222" stroke-width="2"/>
+<line x1="544" y1="512" x2="544" y2="548" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+<line x1="500" y1="530" x2="512" y2="530" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="544" y1="530" x2="560" y2="530" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="522" y1="508" x2="534" y2="492" stroke="#222" stroke-width="1.6" stroke-linecap="round"/>
+<polygon points="534.0,492.0 532.3,500.8 526.0,496.1" fill="#222"/>
+<line x1="534" y1="508" x2="546" y2="492" stroke="#222" stroke-width="1.6" stroke-linecap="round"/>
+<polygon points="546.0,492.0 544.3,500.8 538.0,496.1" fill="#222"/>
+<line x1="560" y1="530" x2="590" y2="530" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="590" cy="530" r="5" fill="#222"/>
+<text x="604" y="535" font-size="14" text-anchor="start" font-weight="bold" fill="#2e7d32" font-family="DejaVu Sans, Arial, sans-serif">чекає</text>
+<line x1="316" y1="590" x2="370" y2="590" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="370" y1="590" x2="388" y2="590" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="432" y1="590" x2="450" y2="590" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="392" cy="590" r="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<circle cx="428" cy="590" r="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="392" y1="578" x2="428" y2="578" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="410" y1="578" x2="410" y2="566" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="402" y1="566" x2="418" y2="566" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="450" y1="590" x2="480" y2="590" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="480" y1="590" x2="480" y2="640" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="480" cy="640" r="5" fill="#2e7d32"/>
+<text x="370" y="616" font-size="13" text-anchor="start" font-weight="bold" fill="#222" font-family="DejaVu Sans, Arial, sans-serif">S1 «увімкнути зараз»</text>
+<text x="40" y="700" font-size="15" text-anchor="start" font-weight="bold" fill="#112" font-family="DejaVu Sans, Arial, sans-serif">Як це працює</text>
+<text x="40" y="724" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">gptimer (ESP-IDF): тік 1 мкс, спрацьовує раз на секунду циклу. Обробник сам рахує секунду циклу й перемикає GPIO2, GPIO15, GPIO16:</text>
+<text x="40" y="746" font-size="14" text-anchor="start" font-weight="normal" fill="#223" font-family="DejaVu Sans, Arial, sans-serif">другий цикл, loop() чи окрема задача для цього не потрібні. Під час налагодження SPEEDUP 300 робить з години 12 с, а з 15 хвилин 3 с.</text>
+<text x="40" y="774" font-size="14" text-anchor="start" font-weight="bold" fill="#7f1d1d" font-family="DejaVu Sans, Arial, sans-serif">Мотор не можна вішати на GPIO напряму. Живлення мотора — від MB-102, а не від плати, GND спільний. Діод VD1 — смугою до «+», паралельно мотору.</text>
+<text x="40" y="798" font-size="14" text-anchor="start" font-weight="normal" fill="#52606d" font-family="DejaVu Sans, Arial, sans-serif">Мотора немає? Замість нього підійде LED + 220 Ом на контакті NO, як у «Сутінковому перемикачі».</text>
+</svg>

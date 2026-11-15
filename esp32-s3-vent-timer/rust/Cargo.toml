@@ -1,0 +1,30 @@
+[package]
+name         = "vent-timer"
+description  = "Модуль 2.5, ДЗ «Таймери»: витяжний вентилятор щогодини вмикається на 15 хвилин. Rust на ESP-IDF"
+version      = "0.1.0"
+edition      = "2024"
+publish      = false
+
+# Окремий робочий простір: решта репозиторію — esp-hal без ОС, а тут std поверх ESP-IDF і FreeRTOS.
+[workspace]
+
+# cargo run --release
+[[bin]]
+name  = "vent-timer"
+path  = "src/main.rs"
+test  = false
+bench = false
+
+[dependencies]
+# Обгортки ESP-IDF: hal (GPIO, gptimer, сторож) і sys (сирі C-функції) реекспортуються звідси.
+esp-idf-svc = "0.53"
+
+[build-dependencies]
+embuild = "0.33"  # знаходить зібраний ESP-IDF і передає його налаштування компілятору
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug     = true
+opt-level = "z"
