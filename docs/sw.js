@@ -11,7 +11,7 @@
 // SHELL is pre-cached on install (~4 MB). Missing entries (a page not published yet) are skipped, not fatal.
 // Bump VERSION whenever this file or SHELL changes: the new worker installs, waits, and site-theme.js shows the
 // «Доступна нова версія — оновити» toast; «Оновити» sends SKIP_WAITING, the page reloads, old caches are deleted.
-const VERSION = 'v1-2026-11-15';
+const VERSION = 'v2-2026-11-15';
 const SHELL_CACHE = `esp-shell-${VERSION}`;
 const RUNTIME_CACHE = `esp-runtime-${VERSION}`;
 const FRESH_MS = 10 * 60 * 1000;
@@ -19,13 +19,13 @@ const TIMEOUT_MS = 4000;
 const STAMP = 'x-sw-fetched';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
-const LESSONS = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', 'mp1', 'mp1-review', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '6-1'];
+const LESSONS = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', 'mp1', 'mp1-review', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '3-1', '3-2', '6-1'];
 const GLOBALS = ['start', 'cards', 'warmup', 'team', 'review', 'cases', 'live', 'datasheets', 'kit', 'atlas',
   'schematics', 'bugs', 'glossary', 'teacher'];
 const DEEP = ['pull-resistors', 'lab', 'scope-signals', 'bounce-lab', 'bounce-bench', 'adc-light', 'ldr-lab',
   'twilight-relay', 'power-loads'];
-const DECKS = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', 'mp1', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '6-1', 'atlas', 'notation', 'symbols'];
-const QUIZZES = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', 'mp1', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '6-1'];
+const DECKS = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', 'mp1', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '3-1', '3-2', '6-1', 'atlas', 'notation', 'symbols'];
+const QUIZZES = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', 'mp1', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '3-1', '3-2', '6-1'];
 
 const SHELL = [
   './', 'manifest.webmanifest', 'site-theme.js', 'site-nav.css', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png',

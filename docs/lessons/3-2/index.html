@@ -1186,7 +1186,7 @@ document.addEventListener('study:ready', () => {
         answer: 0,
         explain: 'При 0&nbsp;дБ межа входу S3 — 950&nbsp;мВ<sup class="cite" data-fact="s3-adc-input-ranges"></sup>, а це менше третини від 3,3&nbsp;В. Вище АЦП видає 4095, хоч напруга й росте. Для всього ходу потенціометра — <code>ADC_ATTEN_DB_12</code>. 13 біт на S3 немає: максимальна розрядність — 12<sup class="cite" data-fact="s3-adc-units"></sup>.' },
       { title: 'Каліброване втричі менше',
-        symptom: 'RAW розумні, формула «× 3300» на середині ходу дає близько 1700&nbsp;мВ, мультиметр показує 1650. А <code>adc_cali_raw_to_voltage()</code> повертає лише кількасот мілівольтів, приблизно втричі менше.',
+        symptom: 'RAW розумні, формула «× 3300» на середині ходу дає близько 1700&nbsp;мВ, мультиметр показує 1650. А <code>adc_cali_raw_to_voltage()</code> повертає лише кількасот мілівольтів, приблизно втричі менше (це наша оцінка за шкалою 0&nbsp;дБ, а не число з документації).',
         build(st) {
           hkCode(st, 'src/main.c', [['adc_oneshot_chan_cfg_t chan = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};', 1], 'adc_oneshot_config_channel(adc, POT_CH, &amp;chan);', '', 'adc_cali_curve_fitting_config_t cfg = {', '    .unit_id = ADC_UNIT_1, .chan = POT_CH,', ['    .atten = ADC_ATTEN_DB_0, .bitwidth = ADC_BITWIDTH_12};', 0], 'adc_cali_create_scheme_curve_fitting(&amp;cfg, &amp;cali);', ['adc_cali_raw_to_voltage(cali, raw, &amp;mv);', 2]]);
         },
@@ -1194,7 +1194,7 @@ document.addEventListener('study:ready', () => {
           'Канал треба налаштовувати після створення схеми',
           '<code>adc_cali_raw_to_voltage()</code> повертає вольти, а не мілівольти'],
         answer: 0,
-        explain: 'Калібрування S3 залежить від ослаблення<sup class="cite" data-fact="idf-adc-cali-per-atten"></sup>. Схема для 0&nbsp;дБ перераховує те саме число на шкалу ≈950&nbsp;мВ, звідси втричі менше. Ослаблення в <code>chan</code> і <code>cfg</code> мають збігатися: заведіть одну константу <code>ATTEN</code>. Результат функції — мілівольти<sup class="cite" data-fact="idf-adc-cali-raw-to-voltage"></sup>.' },
+        explain: 'Калібрування S3 залежить від ослаблення<sup class="cite" data-fact="idf-adc-cali-per-atten"></sup>. Схема для 0&nbsp;дБ перераховує те саме число на шкалу ≈950&nbsp;мВ, звідси, за нашою оцінкою, приблизно втричі менше (≈950 / 3100). Ослаблення в <code>chan</code> і <code>cfg</code> мають збігатися: заведіть одну константу <code>ATTEN</code>. Результат функції — мілівольти<sup class="cite" data-fact="idf-adc-cali-raw-to-voltage"></sup>.' },
       { title: 'Не знайдено функцію',
         symptom: 'Код із прикладу для іншого чипа. Збирання падає: <code>unknown type name \'adc_cali_line_fitting_config_t\'</code> і <code>implicit declaration of function \'adc_cali_create_scheme_line_fitting\'</code>.',
         build(st) {

@@ -19,3 +19,6 @@ __pycache__/
 
 # Cargo build output (Rust workspace)
 /target/
+
+# Claude Code agent worktrees
+.claude/

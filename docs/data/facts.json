@@ -3493,13 +3493,13 @@
   },
   {
    "id": "idf-task-wdt-defaults",
-   "claim": "У чистому ESP-IDF сторож задач стандартно: 5 с, стежить за idle-задачею ядра 0, panic вимкнено. Якщо idle не отримує часу, у лозі з'являється «Task watchdog got triggered», а програма працює далі",
+   "claim": "У чистому ESP-IDF сторож задач стандартно: 5 с, стежить за idle-задачами обох ядер (CPU0 і CPU1), panic вимкнено. Якщо idle не отримує часу, у лозі з'являється «Task watchdog got triggered», а програма працює далі",
    "value": 5,
    "unit": "с",
    "source": "ESP-IDF 6.1.0 (локальний пакет framework-espidf 4.60100.0)",
-   "section": "components/esp_system/Kconfig: ESP_TASK_WDT_TIMEOUT_S, ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0, ESP_TASK_WDT_PANIC; components/esp_system/task_wdt/task_wdt.c",
+   "section": "components/esp_system/Kconfig: ESP_TASK_WDT_TIMEOUT_S, ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0, ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1, ESP_TASK_WDT_PANIC; components/esp_system/task_wdt/task_wdt.c",
    "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/wdts.html",
-   "checked": "2026-11-04",
+   "checked": "2026-11-15",
    "status": "verified",
    "note": ""
   },
