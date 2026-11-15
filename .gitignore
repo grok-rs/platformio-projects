@@ -3,6 +3,9 @@
 .vscode/
 .idea/
 CMakeLists.txt
+# …крім ESP-IDF-проєктів: там CMakeLists.txt — частина збирання
+!esp32-s3-debounce-idf/cpp/**/CMakeLists.txt
+!esp32-s3-vent-timer/cpp/**/CMakeLists.txt
 cmake-build-*/
 *.code-workspace.bak
 __pycache__/

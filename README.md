@@ -3,9 +3,10 @@
 Embedded projects for the ESP32-S3, kept short and in the course teacher's style (one small `.cpp` per
 firmware: `#define` pins, globals, `setup()`/`loop()`), each written twice so the two can be compared side by side:
 
-* `cpp/` — C++ on the Arduino core, built with [PlatformIO](https://platformio.org/) (own `platformio.ini`);
+* `cpp/` — C++ on the Arduino core, built with [PlatformIO](https://platformio.org/) (own `platformio.ini`); `esp32-s3-debounce-idf` and `esp32-s3-vent-timer` are the exceptions: their homework is done on ESP-IDF, so their `cpp/` holds C on ESP-IDF;
 * `rust/` — Rust on [esp-hal](https://github.com/esp-rs/esp-hal), a member of
-  the Cargo workspace in the repository root (see [Rust](#rust)).
+  the Cargo workspace in the repository root (see [Rust](#rust)); `esp32-s3-vent-timer/rust` and `esp32-s3-debounce-idf/rust` are the exceptions: Rust on
+  ESP-IDF ([esp-idf-hal](https://github.com/esp-rs/esp-idf-hal), `std`), each a separate Cargo workspace excluded from the root one.
 
 Both variants print the same text to Serial and run on the same breadboard wiring.
 Hardware notes, wiring and docs live once, at the project level:
@@ -30,8 +31,11 @@ esp32-s3-<project>/
 | [`esp32-s3-twilight-relay`](esp32-s3-twilight-relay/) | [C++](esp32-s3-twilight-relay/cpp/) · [Rust](esp32-s3-twilight-relay/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Mini-project 1 (lesson 18): twilight switch — LDR + 10 kΩ divider on GPIO4, two ADC thresholds with hysteresis, GPIO2 → BC547B level shifter (10 kΩ pull-up to 5 V) → active-LOW 5 V relay module → LED load; built-in USB-JTAG debugging configured; [study page](https://grok-rs.github.io/platformio-projects/twilight-relay/) |
 | [`esp32-s3-embedded-cpp`](esp32-s3-embedded-cpp/) | [C++](esp32-s3-embedded-cpp/cpp/) · [Rust](esp32-s3-embedded-cpp/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.1 homework, Embedded C++: Blink without `delay()` (`enum class LedState`, `class Led` with `init()`/`set()`, a `static constexpr` config struct, no globals); env `modes` adds superloop timing every 1000 passes and a button on a `FALLING` interrupt (`volatile` flag, debounce in `loop()`) cycling Blink → On → Off |
 | [`esp32-s3-bright-module`](esp32-s3-bright-module/) | [C++](esp32-s3-bright-module/cpp/) · [Rust](esp32-s3-bright-module/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.2 task ТЗ-A «Яскравий модуль»: GPIO5 → 1 kΩ → 2N2222 low-side switch, LED + 220 Ω powered from an MB-102 5 V module (common GND); LEDC 5 kHz / 8 bit, four levels (0/40/128/255) stepped by a button on GPIO6 (`INPUT_PULLDOWN`, `RISING` ISR flag, 50 ms debounce); one short firmware per stage (`switch`, `sweep`, `levels`, `softpwm`); [spec sheet](docs/power-loads/tz-a-spec.png) |
+| [`esp32-s3-relay-pwm`](esp32-s3-relay-pwm/) | [C++](esp32-s3-relay-pwm/cpp/) · [Rust](esp32-s3-relay-pwm/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.2 homework «Реле, час, переривання та PWM»: env `relay` — GPIO2 → BC547B → 5 V relay module, NO contact → GPIO5 (`INPUT_PULLUP`); a `CHANGE` ISR takes `micros()` of the first edge only (bounce is counted, not timed), 10 on/off cycles with avg/min/max; env `motor` — software PWM at 1 kHz with `delayMicroseconds()` on GPIO6 → 2N2222 → TT motor (1N4007 flyback), duty from a 10 kΩ pot on GPIO4 (ADC1); env `uart-pwm` — UART1 TX on GPIO6 sends 0x00 / 0x0F / 0x55 / 0xFF back to back as a PWM source; schematics and timing diagrams |
 | [`esp32-s3-three-rhythms`](esp32-s3-three-rhythms/) | [C++](esp32-s3-three-rhythms/cpp/) · [Rust](esp32-s3-three-rhythms/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Project A «Три ритми»: three LEDs (GPIO6/5/4, 220 Ω each) toggle every 200/500/1000 ms at the same time — three `millis()` timers in one short `loop()`, no `delay()`; loop passes per second printed to Serial |
 | [`esp32-s3-multitask-device`](esp32-s3-multitask-device/) | [C++](esp32-s3-multitask-device/cpp/) · [Rust](esp32-s3-multitask-device/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Final project «Мультизадачний пристрій»: LEDs on GPIO15/16/17 — LED3 every 1000 ms, LED2 speed cycled by BTN1 (GPIO21) 1000 → 500 → 200 ms, BTN2 (GPIO18) pauses with LED1 as indicator; buttons 3V3 → input (`INPUT_PULLDOWN`) with a 40 ms non-blocking edge debounce; events and loop passes per second on Serial; no `delay()` |
+| [`esp32-s3-vent-timer`](esp32-s3-vent-timer/) | [C (ESP-IDF)](esp32-s3-vent-timer/cpp/) · [Rust (ESP-IDF)](esp32-s3-vent-timer/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.5 homework: exhaust fan on for 15 minutes every hour — one hardware timer (`gptimer`) drives the whole cycle from its ISR (GPIO2 → BC547B → 5 V relay module → TT motor), the main task only logs and feeds the task watchdog; LEDs on GPIO15/16, start button on GPIO21 with re-start protection, `SPEEDUP` turns an hour into 12 s |
+| [`esp32-s3-debounce-idf`](esp32-s3-debounce-idf/) | [C (ESP-IDF)](esp32-s3-debounce-idf/cpp/) · [Rust (ESP-IDF)](esp32-s3-debounce-idf/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.6 homework (the tasks of lesson 2.4 on ESP-IDF): button on GPIO7 with a 10 kΩ pull-up — env `raw` counts interrupts, `time` filters by time in a task, `state` checks the level, `poll` samples every 10 ms into a state machine; task 5 adds a 100 Ω + 100 nF RC filter; comparison table in the README |
 | [`esp32-s3-site-bridge`](esp32-s3-site-bridge/) | [C++](esp32-s3-site-bridge/cpp/) · [Rust](esp32-s3-site-bridge/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Study site «Мій стенд»: streams JSON lines over USB CDC (LDR divider on GPIO4 via ADC1, button edges on GPIO21 with `micros()` timestamps) so the browser page can plot the real board next to the model (Web Serial) |
 
 ## Interactive study pages
@@ -95,7 +99,7 @@ From the repository root, `cargo build --release` builds every Rust firmware.
 ### Layout
 
 ```
-Cargo.toml            workspace: members = esp32-s3-*/rust, shared dependency versions, lints, profiles
+Cargo.toml            workspace: members = esp32-s3-*/rust (except the two ESP-IDF ones), shared versions, lints, profiles
 rust-toolchain.toml   channel = "esp"
 .cargo/config.toml    target xtensa-esp32s3-none-elf, linker script, espflash runner, build-std
 target/               one build directory for all firmwares (esp-hal is compiled once)

@@ -4,6 +4,8 @@
 [workspace]
 resolver = "3"
 members  = ["esp32-s3-*/rust"]
+# Rust на ESP-IDF (std, ціль xtensa-esp32s3-espidf) — окремий робочий простір зі своїм .cargo/config.toml
+exclude  = ["esp32-s3-vent-timer/rust", "esp32-s3-debounce-idf/rust"]
 
 [workspace.package]
 version      = "0.1.0"
