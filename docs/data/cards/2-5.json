@@ -1,0 +1,295 @@
+{
+  "deck": "2-5",
+  "title": "Урок 2.5 · Таймери",
+  "lesson": "2-5",
+  "version": 2,
+  "verified": "2026-11-04",
+  "cards": [
+    {
+      "id": "2-5-001",
+      "type": "term",
+      "front": "Таймер загального призначення",
+      "en": "general purpose timer",
+      "back": "Окрема схема в чипі: лічильник із дільником і будильником. Рахує такти сам, незалежно від програми. У ESP32-S3 їх чотири.",
+      "tags": [
+        "term",
+        "timer"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "s3-timers"
+    },
+    {
+      "id": "2-5-002",
+      "type": "term",
+      "front": "Дільник частоти",
+      "en": "prescaler",
+      "back": "Пропускає до лічильника кожен N-й такт. На ESP32-S3 N від 2 до 65536; у ядрі 2.0.17 аргумент uint16_t, тож до 65535.",
+      "tags": [
+        "term",
+        "timer"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "s3-timer-prescaler"
+    },
+    {
+      "id": "2-5-003",
+      "type": "term",
+      "front": "Тік",
+      "en": "tick",
+      "back": "Один крок лічильника таймера. Тривалість = дільник / частоту тактів: 80 / 80 МГц = 1 мкс.",
+      "tags": [
+        "term",
+        "timer"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "core-timer-2x-tick"
+    },
+    {
+      "id": "2-5-004",
+      "type": "term",
+      "front": "Будильник таймера",
+      "en": "alarm",
+      "back": "Значення лічильника, на якому таймер викликає переривання.",
+      "tags": [
+        "term",
+        "timer"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "s3-timer-alarm"
+    },
+    {
+      "id": "2-5-005",
+      "type": "term",
+      "front": "Автоперезавантаження",
+      "en": "auto-reload",
+      "back": "Залізо скидає лічильник у момент будильника, тому період не залежить від затримки обробника.",
+      "tags": [
+        "term",
+        "timer"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "s3-timer-alarm"
+    },
+    {
+      "id": "2-5-006",
+      "type": "term",
+      "front": "Дрейф",
+      "en": "drift",
+      "back": "Похибка, що накопичується від циклу до циклу. Приклад: <code>last = millis()</code> у завантаженому <code>loop()</code>.",
+      "tags": [
+        "term",
+        "time"
+      ],
+      "ref": "lessons/2-5/#poe"
+    },
+    {
+      "id": "2-5-007",
+      "type": "term",
+      "front": "Джитер",
+      "en": "jitter",
+      "back": "Випадкове тремтіння моменту події навколо правильного часу. Не накопичується, на відміну від дрейфу.",
+      "tags": [
+        "term",
+        "time"
+      ],
+      "ref": "lessons/2-5/#ideas"
+    },
+    {
+      "id": "2-5-008",
+      "type": "term",
+      "front": "Сторожовий таймер",
+      "en": "watchdog timer, WDT",
+      "back": "Таймер, який перезавантажує чип, якщо програма вчасно його не скинула. Захист від зависання.",
+      "tags": [
+        "term",
+        "wdt"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "idf-task-wdt-api"
+    },
+    {
+      "id": "2-5-009",
+      "type": "cloze",
+      "text": "Тривалість тіку = {{c1::дільник}} / {{c2::частота тактів}}.",
+      "extra": "80 / 80 МГц = 1 мкс.",
+      "tags": [
+        "timer",
+        "formula"
+      ],
+      "fact": "core-timer-2x-tick"
+    },
+    {
+      "id": "2-5-010",
+      "type": "cloze",
+      "text": "Період обробника = {{c1::значення будильника}} × {{c2::тривалість тіку}}.",
+      "extra": "1 000 000 × 1 мкс = 1 с.",
+      "tags": [
+        "timer",
+        "formula"
+      ]
+    },
+    {
+      "id": "2-5-011",
+      "type": "cloze",
+      "text": "Лічильник таймера ESP32-S3 має {{c1::54}} біти, а дільник {{c2::16}} бітів.",
+      "extra": "Чотири таймери: дві групи по два.",
+      "tags": [
+        "timer"
+      ],
+      "fact": "s3-timers"
+    },
+    {
+      "id": "2-5-012",
+      "type": "cloze",
+      "text": "У ядрі 2.0.17 третій аргумент <code>timerAttachInterrupt()</code> має бути {{c1::false}}.",
+      "extra": "З <code>true</code> ядро друкує попередження й однаково ставить LEVEL.",
+      "tags": [
+        "api"
+      ],
+      "fact": "core-timer-edge"
+    },
+    {
+      "id": "2-5-013",
+      "type": "cloze",
+      "text": "Щоб <code>millis()</code> не дрейфував, пишіть <code>last {{c1::+= PERIOD}}</code>, а не <code>last = millis()</code>.",
+      "extra": "Запізнення цього спрацювання тоді не переходить у наступний відлік.",
+      "tags": [
+        "millis"
+      ]
+    },
+    {
+      "id": "2-5-014",
+      "type": "cloze",
+      "text": "Сторож задач у ядрі 2.0.17: <code>esp_task_wdt_init({{c1::5}}, {{c2::true}})</code>: 5 с і перезавантаження.",
+      "extra": "Потім <code>esp_task_wdt_add(NULL)</code> у задачі й <code>esp_task_wdt_reset()</code> у циклі.",
+      "tags": [
+        "wdt",
+        "api"
+      ],
+      "fact": "idf-task-wdt-api"
+    },
+    {
+      "id": "2-5-015",
+      "type": "cloze",
+      "text": "У чистому ESP-IDF тік FreeRTOS стандартно {{c1::10}} мс, а в Arduino-ядрі {{c2::1}} мс.",
+      "extra": "За 100 Гц <code>pdMS_TO_TICKS(5)</code> дає нуль.",
+      "tags": [
+        "idf"
+      ],
+      "fact": "idf-freertos-hz"
+    },
+    {
+      "id": "2-5-016",
+      "type": "basic",
+      "front": "Скільки часу до переповнення 54-бітного лічильника при тіку 1 мкс?",
+      "back": "≈571 рік. При 80 МГц без дільника — ≈7,1 року.",
+      "tags": [
+        "timer"
+      ],
+      "fact": "s3-timer-overflow"
+    },
+    {
+      "id": "2-5-017",
+      "type": "basic",
+      "front": "Що робить <code>timerAlarmWrite(t, 3333, true)</code> при тіку 1 мкс?",
+      "back": "Викликає обробник кожні 3,333 мс і сам перезапускає лічильник.",
+      "tags": [
+        "api"
+      ],
+      "fact": "core-timer-2x-tick"
+    },
+    {
+      "id": "2-5-018",
+      "type": "basic",
+      "front": "Що станеться після будильника, якщо автоперезавантаження вимкнено?",
+      "back": "Обробник спрацює один раз. Лічильник рахуватиме далі, а будильник більше не спрацює, поки його не налаштують знову.",
+      "tags": [
+        "timer"
+      ],
+      "ref": "lessons/2-5/#ideas",
+      "fact": "s3-timer-alarm"
+    },
+    {
+      "id": "2-5-019",
+      "type": "basic",
+      "front": "Як у ESP-IDF 6.1 називається драйвер таймера?",
+      "back": "GPTimer: <code>driver/gptimer.h</code>. Старого <code>driver/timer.h</code> там уже немає.",
+      "tags": [
+        "idf"
+      ],
+      "fact": "idf-61-no-legacy-timer"
+    },
+    {
+      "id": "2-5-020",
+      "type": "basic",
+      "front": "Чим таймер у ядрі 3.x відрізняється від 2.0.17?",
+      "back": "<code>timerBegin(1000000)</code> бере частоту лічильника, <code>timerAlarm(t, 1000000, true, 0)</code> замінює дві функції, а <code>timerAttachInterrupt(t, fn)</code> має два аргументи.",
+      "tags": [
+        "api"
+      ],
+      "fact": "core-timer-api-3x"
+    },
+    {
+      "id": "2-5-021",
+      "type": "why",
+      "front": "Чому цикл вентилятора роблять на одному таймері, а не на двох?",
+      "back": "Обидва числа — це положення в циклі: достатньо лічильника секунд. Другий таймер довелося б запускати з обробника, а функції таймера в ядрі 2.0.17 для ISR не призначені.",
+      "tags": [
+        "design"
+      ],
+      "fact": "core-timer-fns-not-isr"
+    },
+    {
+      "id": "2-5-022",
+      "type": "why",
+      "front": "Чому годують сторожа лише тоді, коли <code>ticks</code> змінився?",
+      "back": "Годування стає доказом, що живі двоє: і <code>loop()</code>, і таймер. Без умови живий <code>loop()</code> кормитиме сторожа, поки таймер стоїть.",
+      "tags": [
+        "wdt"
+      ],
+      "ref": "lessons/2-5/#poe"
+    },
+    {
+      "id": "2-5-023",
+      "type": "why",
+      "front": "Чому прапорець від таймера не дає точного перемикання?",
+      "back": "Точний лише момент прапорця. Дію виконує <code>loop()</code>, коли дійде до перевірки. Для точної дії робіть її в обробнику.",
+      "tags": [
+        "isr"
+      ],
+      "fact": "lms-err-2-5-true-parallel"
+    },
+    {
+      "id": "2-5-024",
+      "type": "debug",
+      "front": "<code>timerAlarmWrite(timer, 1000000, false)</code>, а вентилятор перемкнувся лише раз. Чому?",
+      "back": "<code>false</code> вимикає автоперезавантаження: будильник спрацює один раз. Потрібно <code>true</code>.",
+      "tags": [
+        "debug",
+        "api"
+      ],
+      "fact": "s3-timer-alarm"
+    },
+    {
+      "id": "2-5-025",
+      "type": "debug",
+      "front": "Змінні <code>таймер</code> і <code>лічильник</code> дають <code>error: stray '\\321' in program</code>. Чому?",
+      "back": "Тулчейн наших проєктів — GCC 8.4, а UTF-8 в іменах з'явився в GCC 10. Коментарі пишіть українською, імена латиницею.",
+      "tags": [
+        "debug"
+      ],
+      "fact": "core-gcc-utf8-identifiers"
+    },
+    {
+      "id": "2-5-026",
+      "type": "debug",
+      "front": "<code>timerBegin(0, 80000, true)</code>: час іде зовсім не так, як пораховано. Чому?",
+      "back": "У ядрі 2.0.17 дільник має тип <code>uint16_t</code>, тож 80 000 обрізається до 14 464. Максимум — 65 535.",
+      "tags": [
+        "debug",
+        "api"
+      ],
+      "fact": "s3-timer-prescaler"
+    }
+  ]
+}

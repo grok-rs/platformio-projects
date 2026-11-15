@@ -1,0 +1,1792 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 2.6 · Debounce: надійний ввід</title>
+<meta name="description" content="П'ять способів проти брязкоту на 190 записаних подіях нашої кнопки: без debounce, за часом, за рівнем, опитування з машиною станів, RC-фільтр. Завдання 2.4 на ESP-IDF і порівняльна таблиця.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-b { fill: var(--ink); font: 600 14px var(--f-body); }
+.idea figure .svg-t, .idea figure .svg-m { font-size: 15px; }
+.idea figure .svg-b { font-size: 16px; }
+#why figure .svg-t, #why figure .svg-m { font-size: 15px; }
+.ctl-grid { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); margin: 4px 0 10px; }
+@media (min-width: 640px) { .ctl-grid { grid-template-columns: 1fr 1fr; } }
+.ctl-grid label { display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+.ctl-grid label b { color: var(--ink); font: 600 15px var(--f-mono); }
+.ctl-grid input[type="range"] { width: 100%; }
+.wcanvas { display: block; width: 100%; height: 250px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+#tvs-cv { height: 214px; }
+#rc-cv { height: 270px; }
+#fsm-cv { height: 110px; margin-top: 12px; }
+.readout { display: grid; gap: 6px; margin: 10px 0 0; font-size: 15px; }
+.readout b { font: 600 16px var(--f-mono); }
+.readout b.bad { color: var(--bad); } .readout b.ok { color: var(--ok); }
+.cnt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+@media (min-width: 640px) { .cnt { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cnt div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); }
+.cnt span { display: block; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.cnt b { font: 600 22px var(--f-mono); }
+.cnt .ok b { color: var(--ok); } .cnt .bad b { color: var(--bad); }
+pre.code { font-size: 13px; }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.fixlist li { margin: 6px 0; }
+.tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl-wrap { overflow-x: auto; }
+.tbl-modes code { white-space: nowrap; }
+.isr-badge { display: inline-block; font: 600 14px var(--f-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+.off { display: none; }
+
+/* ---------- idea figures ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.idea figure .idea-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: 100%; font-size: 14px; }
+.idea figure .idea-ctl input[type="range"] { width: 100%; }
+.idea-out { margin: 8px 0 0; font-size: 15px; min-height: 1.6em; }
+.idea-out b.ok { color: var(--ok); } .idea-out b.bad { color: var(--bad); }
+.idea:has(.idea-ctl) > figure { max-width: 460px; margin-inline: auto; }
+@media (max-width: 819px) { .hub .idea:has(.idea-ctl) figure :is(.svg-t, .svg-m, .svg-b) { font-size: 16px; } }
+
+/* ---------- lab «п'ять способів» (#dbl) ---------- */
+.dbl-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .dbl-grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); } }
+.dbl-nav { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; }
+.dbl-nav b { font: 600 15px var(--f-mono); font-variant-numeric: tabular-nums; min-width: 12.5em; }
+#dbl-cv { display: block; width: 100%; height: 336px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.dbl-bars { display: grid; gap: 6px; }
+.dbl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; min-height: 54px; padding: 7px 10px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 15px var(--f-body); }
+.dbl-row:hover { border-color: var(--accent); }
+.dbl-row[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.dbl-row .n { font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.dbl-track { grid-column: 1 / -1; display: flex; height: 9px; border-radius: 3px; overflow: hidden; background: var(--panel-2); }
+.dbl-track i { display: block; height: 100%; }
+.dbl-track .o { background: var(--ok); } .dbl-track .p { background: var(--bad); }
+.dbl-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 10px; font-size: 13px; color: var(--muted); }
+.dbl-key i { display: inline-block; width: 11px; height: 11px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+.dbl-code { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); min-width: 0; }
+.dbl-code-h { padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel-2); font: 600 13px var(--f-mono); color: var(--muted); }
+pre.dbl-src { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 8px 10px; font-size: 13px; line-height: 1.5; overflow-x: auto; background: var(--panel); white-space: pre; max-width: none; }
+.dbl-src-note { background: var(--panel-2); }
+
+/* ---------- state machine stepper (#w-fsm) ---------- */
+@media (max-width: 560px) {
+  #fsm-sc { display: grid; grid-template-columns: 1fr 1fr; }
+  #fsm-sc button { padding: 8px 6px; font: 600 14px var(--f-body); }
+  #fsm-sc button + button { border-left: 0; }
+}
+.fsm { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 720px) { .fsm { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.fsm li { border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel); transition: border-color var(--t2, .2s), background var(--t2, .2s); }
+.fsm b { display: block; font: 700 15px var(--f-mono); }
+.fsm span { display: block; font-size: 14px; line-height: 1.35; color: var(--muted); }
+.fsm li.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.fsm li.on span { color: var(--ink); }
+.fsm-last { margin: 8px 0 0; font-size: 15px; min-height: 3em; }
+pre.fsm-log { margin: 10px 0 0; min-height: 4.6em; max-height: 9em; overflow: auto; font-size: 13px; }
+
+/* ---------- Kit bench ---------- */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.kit-bench .kb-pill.lvl text { font-family: var(--f-mono); }
+.bb-db { display: block; width: 100%; max-width: 520px; max-height: 520px; height: auto; margin-inline: auto; }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+
+/* ---------- «Знайди несправність» code panel ---------- */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; overflow-x: auto; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+</style>
+</head>
+<body data-lesson="2-6">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:2-6">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 2 · Урок 2.6 · пн 02.11</p>
+    <h1>Debounce: <span>надійний ввід</span></h1>
+    <p class="lead">Одне натискання має давати одну реакцію. Проженемо справжні записи нашої кнопки через п'ять способів, виберемо чесно, за цифрами, і перепишемо завдання 2.4 на ESP-IDF.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: кнопка, 10&nbsp;кОм, 100&nbsp;Ом, 100&nbsp;нФ, LED, 220&nbsp;Ом</a></li>
+      <li><a class="chip" href="../2-4/">Спершу: урок 2.4 · переривання</a></li>
+      <li><a class="chip deep" href="../../bounce-bench/">Наші дані: 190 подій брязкоту</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ lab: five methods on the recorded edges (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="dbl" aria-labelledby="dbl-h">
+    <header class="lab-head"><h2 id="dbl-h">Лабораторія · п'ять способів проти брязкоту</h2><p>Справжні 190 подій з нашого стенду проходять через модель кожного способу. Виберіть спосіб, потім міняйте вікно й час утримання.</p></header>
+    <div class="lab-stage" id="dbl-stage">
+      <div class="dbl-grid">
+        <div>
+          <div class="dbl-nav">
+            <button type="button" class="btn ghost sm" id="dbl-prev" aria-label="Попереднє натискання">◀</button>
+            <b id="dbl-pos" aria-live="polite">Натискання 1 / 91</b>
+            <button type="button" class="btn ghost sm" id="dbl-next" aria-label="Наступне натискання">▶</button>
+            <button type="button" class="btn sm" id="dbl-jump">Наступне з фантомом</button>
+          </div>
+          <canvas id="dbl-cv" width="900" height="336" role="img" aria-label="Три доріжки, як у логічному аналізаторі. Зверху рівень GPIO7 за все натискання, вікно debounce і реакції способу: зелений трикутник — правильна, червоний — фантомна. Посередині LED, який перемикається на кожну реакцію. Знизу відпускання зблизька, де видно окремі фронти брязкоту."></canvas>
+        </div>
+        <div>
+          <div class="dbl-bars" id="dbl-bars" role="group" aria-label="Спосіб: увесь запис, 91 натискання"></div>
+          <div class="dbl-key" aria-hidden="true"><span><i style="background:var(--ok)"></i>правильні реакції</span><span><i style="background:var(--bad)"></i>фантомні</span></div>
+          <div class="dbl-code">
+            <div class="dbl-code-h" id="dbl-file">src/raw.c</div>
+            <pre class="dbl-src" id="dbl-src" tabindex="0" aria-label="Фрагмент прошивки цього способу"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <label class="lab-range">Вікно <input type="range" id="dbl-w" min="1" max="100" step="1" value="50" aria-label="Вікно debounce, мілісекунд"><output id="dbl-wout">50 мс</output></label>
+      <label class="lab-range">Тримання <input type="range" id="dbl-h2" min="20" max="800" step="10" value="300" aria-label="Скільки мілісекунд тримають кнопку"><output id="dbl-hout">300 мс</output></label>
+      <button type="button" class="btn primary sm" id="dbl-play">▶ Прогнати запис</button>
+    </div>
+    <div class="lab-read">
+      <div><b>Натискань</b><output id="dbl-real">91</output></div>
+      <div><b>Реакцій</b><output id="dbl-acc">0</output></div>
+      <div><b>Фантомних</b><output id="dbl-ph">0</output></div>
+      <div><b>Пропущено</b><output id="dbl-miss">0</output></div>
+      <div><b>Реакція, сер.</b><output id="dbl-lat">—</output></div>
+    </div>
+    <p class="lab-note" id="dbl-note" aria-live="polite"></p>
+    <p class="lab-note"><b>Це модель, а не вимір цих способів на платі.</b> Фронти справжні: запис стенду 17.10, кнопка 6×6 на GPIO21<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>. Паузу 0,5&nbsp;с між натисканнями і час утримання задає модель, бо в журналі їх точно немає. У 30 із 190 подій переривання пропустило фронти, тому числа — оцінка<sup class="cite" data-fact="class-replay-2026-11-04"></sup>. RC-модель рахує пороги 0,25 і 0,75·VDD і вважає, що контакт поводиться так само, як без конденсатора.</p>
+    <a class="lab-more" href="../../bounce-bench/">Справжні дані стенду: усі 190 подій →</a>
+    <div class="missions" id="dbl-ms"></div>
+  </section>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Ви рахуєте людей на вході, а лічильник додає двох за одного. Меню перескакує через пункт. Світло «не вмикається», бо перемкнулося двічі. У 2.4 ви вже бачили брязкіт і один спосіб дочекатися тиші. Сьогодні інше питання: <b>який спосіб вибрати і чому</b>. Відповідати будемо цифрами, а заразом уперше напишемо цей код без Arduino, на ESP-IDF.</p>
+    <figure>
+      <svg viewBox="0 0 340 118" role="img" aria-label="Часова діаграма. Кнопку натиснули й відпустили. На натисканні один спадаючий фронт, у брязкоті відпускання ще один. LED перемикається на обидва, тому після одного натискання він знову вимкнений.">
+        <text class="svg-m" x="4" y="14">кнопка</text>
+        <path d="M4 30H60V58H226V30H234V52H240V30H336" fill="none" stroke="var(--lvl-lo)" stroke-width="2.5"/>
+        <path d="M60 64l-5 8h10z" fill="var(--ok)"/>
+        <path d="M234 64l-5 8h10z" fill="var(--bad)"/>
+        <text class="svg-m" x="4" y="90">LED</text>
+        <path d="M60 110V96H234V110M4 110H60M234 110H336" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <text class="svg-t" x="248" y="72" style="fill:var(--bad)">зайвий фронт</text>
+      </svg>
+      <figcaption>Друга реакція прийшла від відпускання: LED повернувся, ніби натискання не було.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b>, чому брязкіт відпускання обходить фільтр за часом, і <b>показати</b> це на записі;</li>
+      <li><b>вибрати</b> вікно debounce між найдовшим брязкотом і найкоротшим натисканням;</li>
+      <li><b>написати</b> debounce за рівнем і машину станів IDLE → PRESSED → HELD → RELEASE;</li>
+      <li><b>розрахувати</b> RC-фільтр і час, за який вхід побачить HIGH;</li>
+      <li><b>перенести</b> Arduino-код на ESP-IDF: <code>app_main()</code>, <code>gpio_config()</code>, черга або семафор з ISR;</li>
+      <li><b>виміряти</b> п'ять способів і заповнити порівняльну таблицю.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ «Коротко»: an aside, not a section.hs, so the TOC skips it -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 10 хв основне · віджети й практика — ще ≈ 35 хв</p>
+    <ol>
+      <li>На нашому стенді брязкіт короткий: медіана 0,18&nbsp;мс, максимум 3,56&nbsp;мс без двох аномалій. Вікно беруть більшим за брязкіт і меншим за найкоротше натискання. <a href="#ideas">→ 04</a></li>
+      <li>Час не знає, що сталося, а рівень знає. Фільтр лише за часом пропускає спадаючий фронт із брязкоту відпускання. <a href="#ideas">→ 04</a></li>
+      <li>Debounce за рівнем дає рівно одну реакцію, але платить затримкою: реакція настає через вікно, а коротше натискання відкидається. <a href="#poe">→ 05</a></li>
+      <li>Машина станів не потребує переривань: чотири стани, опитування кожні 10&nbsp;мс, жодного очікування в коді. <a href="#poe">→ 05</a></li>
+      <li>RC-фільтр працює, поки τ порівнянна з паузами брязкоту: 10&nbsp;кОм × 100&nbsp;нФ = 1&nbsp;мс, а HIGH настає через ≈&nbsp;1,39&nbsp;τ. <a href="#ideas">→ 04</a></li>
+      <li>ESP-IDF: <code>app_main()</code> замість <code>setup()</code>, ISR шле подію в задачу, а тік FreeRTOS стандартно 10&nbsp;мс, тому <code>pdMS_TO_TICKS(5)</code> дає нуль. <a href="#example">→ 06</a></li>
+    </ol>
+  </aside>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Вікно живе між брязкотом і натисканням</h3>
+      <p>Спершу числа. LMS дає діапазони від 2&nbsp;мс до понад 100&nbsp;мс, але без джерела<sup class="cite" data-fact="lms-err-2-6-bounce-range"></sup>. Перевірні дані скромніші: даташит Omron B3F обіцяє до 5&nbsp;мс<sup class="cite" data-fact="btn-b3f-bounce"></sup>, Ганссл виміряв у середньому 1,6&nbsp;мс<sup class="cite" data-fact="bounce-ganssle"></sup>, а наш стенд — медіану 0,18&nbsp;мс і максимум 3,56&nbsp;мс, якщо не рахувати двох аномалій, довших за 10&nbsp;мс<sup class="cite" data-fact="class-bounce-bench-2026-10-17"></sup>.</p>
+      <p>Вікно debounce має накрити брязкіт, але не з'їсти справжнє натискання. Пересуньте його й подивіться, де воно перестає працювати.</p>
+      <figure>
+        <svg id="ws" viewBox="0 0 330 136" role="img" aria-label="Логарифмічна шкала часу від 0,1 до 1000 мілісекунд. Ліворуч смуга брязкоту стенду від 0,18 до 3,56 мс, праворуч смуга натискань від вашого найкоротшого. Між ними робоча зона вікна. Вертикальна риска показує вибране вікно.">
+          <rect id="ws-b" x="0" y="34" width="0" height="20" rx="3" fill="var(--bad)" opacity=".28"/>
+          <rect id="ws-z" x="0" y="34" width="0" height="20" fill="var(--ok)" opacity=".2"/>
+          <rect id="ws-p" x="0" y="34" width="0" height="20" rx="3" fill="var(--accent)" opacity=".28"/>
+          <text class="svg-t" x="8" y="22">брязкіт</text>
+          <text class="svg-t" x="324" y="22" text-anchor="end">натискання</text>
+          <path d="M6 66H324" stroke="var(--line-strong, var(--line))"/>
+          <g id="ws-ticks"></g>
+          <path id="ws-w" d="M0 26V60" stroke="var(--ink)" stroke-width="3"/>
+          <text class="svg-m" x="165" y="128" text-anchor="middle">час, мс (логарифмічна шкала)</text>
+        </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Вікно <input type="range" id="ws-s" min="0" max="100" step="1" value="68" aria-label="Вікно debounce, логарифмічна шкала"><output id="ws-out">50 мс</output></label>
+          <label class="lab-range">Найкоротше натискання <input type="range" id="ws-p-s" min="20" max="200" step="5" value="80" aria-label="Ваше найкоротше натискання, мілісекунд"><output id="ws-p-out">80 мс</output></label>
+        </div>
+        <p class="idea-out" id="ws-txt" aria-live="polite"></p>
+        <p class="idea-out small">80&nbsp;мс — лише приклад для початку. Виміряйте своє: прошивка <code>poll</code> покаже, чи встигаєте ви натиснути коротше за вікно.</p>
+      </figure>
+      <p class="key"><b>Головне</b>20–50&nbsp;мс — це не магія, а запас: у 5–15 разів більше за звичайний найдовший брязкіт нашої кнопки й менше за швидке натискання.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Час не знає, що сталося. Рівень знає</h3>
+      <p>Завдання 2 з ДЗ фільтрує за часом: менше ніж 50&nbsp;мс від попереднього переривання — ігноруємо. Брязкіт на самому натисканні справді зникає. Але подивіться, що приходить через 300&nbsp;мс: кнопку відпускають, контакт тремтить, і в цьому тремтінні є <b>спадаючий фронт</b>. Для фільтра це нова подія, бо минуло вже 300&nbsp;мс. У нашому записі такий фронт є в 35 із 91 відпускання<sup class="cite" data-fact="class-replay-2026-11-04"></sup>.</p>
+      <p>Завдання 3 ставить інше запитання: не «скільки минуло», а «що зараз на вході». Переривання лише будить задачу. Вона чекає, поки все затихне, і дивиться на рівень: LOW — кнопку тримають, це натискання. HIGH — це було відпускання або завада.</p>
+      <pre class="code"><code>vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));  // чекає лише ця задача, не весь чип
+
+if (gpio_get_level(BUTTON) != 0) {  // уже HIGH: це був брязкіт відпускання або завада
+    ignored++;
+    continue;
+}</code></pre>
+      <p class="key"><b>Головне</b>Фільтр за часом дивиться на годинник, а debounce за рівнем — на кнопку. Тому перший плутає відпускання з натисканням, а другий ні.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Машина станів: пам'ять замість очікування</h3>
+      <p>Попередній спосіб чекає всередині задачі: поки він чекає, ця задача більше нічого не робить. Машина станів не чекає ніколи. Кожні 10&nbsp;мс вона читає кнопку, дивиться, у якому стані була, вирішує, куди перейти, і одразу йде далі. Уся «пам'ять» — одна змінна <code>state</code> і час <code>since</code>.</p>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th>Стан</th><th>Що означає</th><th>Куди далі</th></tr></thead>
+        <tbody>
+          <tr><td><code>IDLE</code></td><td>кнопка відпущена</td><td>побачили LOW → <code>PRESSED</code></td></tr>
+          <tr><td><code>PRESSED</code></td><td>може, натискання, може, брязкіт</td><td>HIGH → назад в <code>IDLE</code>; 50&nbsp;мс LOW → <code>HELD</code>, реакція</td></tr>
+          <tr><td><code>HELD</code></td><td>натискання зараховане</td><td>побачили HIGH → <code>RELEASE</code></td></tr>
+          <tr><td><code>RELEASE</code></td><td>може, відпускання, може, брязкіт</td><td>LOW → назад у <code>HELD</code>; 50&nbsp;мс HIGH → <code>IDLE</code></td></tr>
+        </tbody>
+      </table></div>
+      <p>Переривань тут немає зовсім, і це не лінощі: кнопку тисне людина, а опитування кожні 10&nbsp;мс для неї миттєве. Зате код легко розширити: довге натискання, подвійне, комбінації. Спробуємо в розділі <a href="#poe">05</a>.</p>
+      <p class="key"><b>Головне</b>Машина станів запам'ятовує, де вона зараз, і тому ніколи не стоїть. <code>loop()</code> чи задача вільні для іншої роботи.</p>
+    </article>
+
+    <article class="idea">
+      <h3>RC-фільтр: брязкіт гасне ще до входу</h3>
+      <p>Попередні способи прибирають брязкіт програмою. Завдання 5 прибирає його залізом: конденсатор на вузлі кнопки не дає напрузі стрибнути миттєво. Коли контакт на мить розмикається, вузол починає заряджатися через підтяжку, але не встигає дійти до HIGH: контакт уже знову замкнувся.</p>
+      <p>Працює це лише тоді, коли стала часу τ&nbsp;=&nbsp;R·C порівнянна з паузами брязкоту. На схемі ДЗ заряд іде через R1, 10&nbsp;кОм&nbsp;×&nbsp;100&nbsp;нФ&nbsp;=&nbsp;1&nbsp;мс, а рівень HIGH (0,75·VDD<sup class="cite" data-fact="s3-vih"></sup>) настає через ≈&nbsp;1,39&nbsp;τ<sup class="cite" data-fact="rc-threshold-time"></sup>. Розряд іде через R2 і кнопку: 100&nbsp;Ом&nbsp;×&nbsp;100&nbsp;нФ&nbsp;=&nbsp;10&nbsp;мкс, тому натискання майже не запізнюється. Панель нижче дозволяє змінювати все це.</p>
+      <p class="key"><b>Головне</b>RC працює асиметрично: натискання майже миттєве, відпускання повільне. Саме це й потрібно, бо брязкоче в нас здебільшого відпускання.</p>
+    </article>
+
+    <div class="panel wide" id="w-rc">
+      <div class="ph"><h3>RC на вузлі кнопки</h3><span class="small">модель: ідеальні R і C, пороги з даташита</span></div>
+      <div class="pb">
+        <div class="btn-row" style="margin-bottom:10px">
+          <div class="seg" role="group" aria-label="Який перехід показати" id="rc-dir">
+            <button type="button" data-d="rel" aria-pressed="true">Відпускання</button>
+            <button type="button" data-d="press" aria-pressed="false">Натискання</button>
+          </div>
+          <div class="seg" role="group" aria-label="Готові значення" id="rc-preset">
+            <button type="button" data-p="hw" aria-pressed="true">ДЗ</button>
+            <button type="button" data-p="lms" aria-pressed="false">LMS</button>
+          </div>
+        </div>
+        <div class="ctl-grid">
+          <label>R1, підтяжка: <b id="rc-r1-out">10 кОм</b><input type="range" id="rc-r1" min="0" max="6" step="1" value="3"></label>
+          <label>R2, до кнопки: <b id="rc-r2-out">100 Ом</b><input type="range" id="rc-r2" min="0" max="4" step="1" value="1"></label>
+          <label>C1: <b id="rc-c-out">100 нФ</b><input type="range" id="rc-c" min="0" max="6" step="1" value="3"></label>
+          <label>Пауза брязкоту: <b id="rc-g-out">300 мкс</b><input type="range" id="rc-g" min="10" max="4000" step="10" value="300"></label>
+        </div>
+        <canvas id="rc-cv" class="wcanvas" width="900" height="270" role="img" aria-label="Графік напруги на вузлі кнопки в часі. Смуга посередині — зона між 0,25 і 0,75 VDD, де рівень не визначений. Вертикальні мітки показують сталу часу τ і момент, коли вузол досягає порогу."></canvas>
+        <div class="readout" aria-live="polite">
+          <span>τ відпускання <b id="rc-tr">–</b>, HIGH через <b id="rc-th">–</b>; τ натискання <b id="rc-tp">–</b></span>
+          <span>Рівень при натиснутій кнопці <b id="rc-vl">–</b></span>
+          <span id="rc-gap-row"></span>
+          <span>Паузи нашого запису коротші за час до HIGH: <b id="rc-share">–</b> із 104<sup class="cite" data-fact="class-replay-2026-11-04"></sup></span>
+        </div>
+        <p class="small" id="rc-note"></p>
+        <p class="small"><b>Застереження.</b> Між 0,25 і 0,75·VDD рівень не визначений<sup class="cite" data-fact="s3-vil"></sup>, а гістерезису входів ESP32-S3 документи не вказують<sup class="cite" data-fact="s3-no-input-hysteresis-spec"></sup>. Повільний фронт довго сидить у цій зоні, тому на переривання може прийти зайвий фронт саме там, де RC мав усе заспокоїти. Перевірте аналізатором, не вірте моделі на слово.</p>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>Детальніше: чому «Спосіб 3» з LMS не найкращий</summary>
+      <p>LMS називає «перериванням + таймером» код, де в ISR стоїть <code>if (currentTime - lastInterruptTime &gt; 50)</code>. Апаратного таймера там немає, лише <code>millis()</code>. Це той самий фільтр за часом, тільки всередині ISR, а отже, з тією самою бідою: спадаючий фронт відпускання проходить<sup class="cite" data-fact="lms-err-2-6-method3"></sup>. Про це прямо сказано в очікуваному результаті завдання 2 з ДЗ 2.4: «все ще можливі спрацювання при відпусканні».</p>
+      <p>Є й дрібніша різниця: текст LMS обіцяє, що час оновлюється навіть для брязкоту, а в коді він оновлюється лише для прийнятого натискання<sup class="cite" data-fact="lms-err-2-6-isr-text"></sup>. Наш <code>time.c</code> рахує від попереднього переривання, тож пачка фронтів, довша за вікно, теж не проб'є фільтр.</p>
+    </details>
+    <details class="more">
+      <summary>Для допитливих: debounce у вебі й відео про React</summary>
+      <p>Друге відео уроку — про веб. Слово те саме, ідея схожа, але світ інший: там не контакти, а події клавіатури чи прокрутки. Що переноситься: <b>trailing debounce</b> (виконати після паузи) — це наша «тиша» з уроку 2.4, а <b>leading debounce</b> (виконати на першій події, решту ігнорувати) — це наш <code>time.c</code>. Що не переноситься: <code>setTimeout</code> живе в черзі браузера, а не в ISR, і ніяких «спадаючих фронтів» там немає, тож проблему відпускання відео не зачіпає.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="2" data-gate="w-tvs"
+         data-why="Кнопку тримали 300 мс, тож фронт у брязкоті відпускання проходить вікно 50 мс і рахується як нове натискання. Наш запис має такий фронт у 35 із 91 відпускання. Вікно не допоможе, поки воно коротше за утримання. А якщо воно довше, постраждає наступне швидке натискання.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Фільтр за часом, вікно 50&nbsp;мс. На нашому записі кожне з 91 натискання тримають 300&nbsp;мс. Скільки зайвих спрацювань дасть <b>саме брязкіт відпускання</b>?</p>
+      <div class="opts">
+        <button class="opt">Жодного: вікно ж стоїть</button>
+        <button class="opt">Одне-два на весь запис</button>
+        <button class="opt">Близько 35</button>
+        <button class="opt">Близько 90: по одному на кожне</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-tvs">
+      <div class="ph"><h3>Час проти рівня на одному натисканні</h3><span class="small">модель: відпускання з одним відскоком, як у 35 із 91 подій запису</span></div>
+      <div class="pb">
+        <div class="ctl-grid">
+          <label>Скільки тримають кнопку: <b id="tvs-h-out">300 мс</b><input type="range" id="tvs-h" min="10" max="400" step="5" value="300"></label>
+          <label>Вікно: <b id="tvs-w-out">50 мс</b><input type="range" id="tvs-w" min="5" max="150" step="5" value="50"></label>
+        </div>
+        <canvas id="tvs-cv" class="wcanvas" width="900" height="214" role="img" aria-label="Три доріжки: рівень кнопки, рішення фільтра за часом і рішення debounce за рівнем. Зелений трикутник — правильна реакція, червоний — фантомна, сірий хрестик — відкинуто."></canvas>
+        <div class="cnt" aria-live="polite">
+          <div id="tvs-a"><span>За часом: реакцій</span><b id="tvs-at">–</b></div>
+          <div id="tvs-b"><span>За рівнем: реакцій</span><b id="tvs-lv">–</b></div>
+        </div>
+        <p class="small" id="tvs-note"></p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-fsm"
+         data-why="Автомат у стані RELEASE чекає 50 мс стабільного HIGH. Відскок LOW повертає його в HELD, тобто натискання все ще те саме, нового немає. Реакція відбувається лише на переході PRESSED → HELD, а на HELD → RELEASE → HELD її немає.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Машина станів, опитування 10&nbsp;мс, стабільність 50&nbsp;мс. Кнопку відпускають, автомат переходить у <code>RELEASE</code>, а через 30&nbsp;мс контакт на мить замикається, і опитування бачить LOW. Що зробить автомат?</p>
+      <div class="opts">
+        <button class="opt">Зарахує нове натискання</button>
+        <button class="opt">Повернеться в HELD: натискання лишається одне</button>
+        <button class="opt">Перейде в IDLE: відпускання закінчилось</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-fsm">
+      <div class="ph"><h3>Машина станів по кроках</h3><span class="small">модель прошивки <code>poll.c</code>: один крок — 10&nbsp;мс. Відскоки навмисне такі, щоб їх побачило опитування</span></div>
+      <div class="pb">
+        <div class="seg" role="group" aria-label="Сценарій" id="fsm-sc" style="margin-bottom:10px">
+          <button type="button" data-s="clean" aria-pressed="true">Чисте</button>
+          <button type="button" data-s="press" aria-pressed="false">Брязкіт натискання</button>
+          <button type="button" data-s="rel" aria-pressed="false">Брязкіт відпускання</button>
+          <button type="button" data-s="spike" aria-pressed="false">Голка 30 мс</button>
+          <button type="button" data-s="long" aria-pressed="false">Довге</button>
+        </div>
+        <ol class="fsm" id="fsm-st">
+          <li data-s="0"><b>IDLE</b><span>кнопка відпущена</span></li>
+          <li data-s="1"><b>PRESSED</b><span>чекаємо 50&nbsp;мс LOW</span></li>
+          <li data-s="2"><b>HELD</b><span>натискання зараховане</span></li>
+          <li data-s="3"><b>RELEASE</b><span>чекаємо 50&nbsp;мс HIGH</span></li>
+        </ol>
+        <div class="btn-row">
+          <button type="button" class="btn primary sm" id="fsm-step">Крок ▶ 10 мс</button>
+          <button type="button" class="btn sm" id="fsm-jump">До наступного переходу ▶▶</button>
+          <button type="button" class="btn ghost sm" id="fsm-reset">Спочатку</button>
+        </div>
+        <canvas id="fsm-cv" class="wcanvas" width="900" height="110" role="img" aria-label="Рівень кнопки в часі, точки — моменти опитування, вертикальна риска — поточний крок."></canvas>
+        <p class="fsm-last" id="fsm-last" aria-live="polite"></p>
+        <pre class="code fsm-log" id="fsm-log" tabindex="0" aria-label="Що надрукувала б прошивка"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: ESP-IDF і розрахунок</h2>
+    <p>Домашнє завдання 2.6 — це завдання 2.4, але на ESP-IDF. Це той самий фреймворк Espressif, на якому стоїть Arduino-ESP32, тільки без обгортки. Є різниця у версіях: наші Arduino-проєкти спираються на ESP-IDF 4.4<sup class="cite" data-fact="core-arduino-version"></sup>, а цей проєкт на 6.1, де старого <code>driver/timer.h</code> уже немає<sup class="cite" data-fact="idf-61-no-legacy-timer"></sup>. Приклади для старих версій можуть не зібратися.</p>
+    <div class="tbl-wrap"><table class="tbl-modes">
+      <thead><tr><th></th><th>Arduino</th><th>ESP-IDF</th></tr></thead>
+      <tbody>
+        <tr><td>Вхід у програму</td><td><code>setup()</code> + <code>loop()</code></td><td><code>app_main()</code>: звичайна задача FreeRTOS<sup class="cite" data-fact="idf-app-main-task"></sup></td></tr>
+        <tr><td>Вивід</td><td><code>pinMode(7, INPUT)</code></td><td><code>gpio_config()</code>: відразу на маску виводів</td></tr>
+        <tr><td>Переривання</td><td><code>attachInterrupt()</code></td><td><code>gpio_install_isr_service(0)</code>, потім <code>gpio_isr_handler_add()</code><sup class="cite" data-fact="idf-gpio-isr-service"></sup></td></tr>
+        <tr><td>Час</td><td><code>micros()</code>, 32 біти</td><td><code>esp_timer_get_time()</code>, 64 біти, мкс</td></tr>
+        <tr><td>Чекати</td><td><code>delay(50)</code></td><td><code>vTaskDelay(pdMS_TO_TICKS(50))</code></td></tr>
+        <tr><td>ISR → код</td><td><code>volatile bool</code></td><td>черга або семафор: <code>xQueueSendFromISR()</code>, <code>xSemaphoreGiveFromISR()</code></td></tr>
+        <tr><td>Друк</td><td><code>Serial.printf()</code></td><td><code>printf()</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Новий прийом тут один: ISR не ставить прапорець, а будить задачу. Задача спить у <code>xQueueReceive()</code> і не витрачає процесор, а прокидається одразу, якщо ISR попросить перемикання<sup class="cite" data-fact="idf-isr-yield"></sup>:</p>
+    <pre class="code"><code>static void IRAM_ATTR on_fall(void* arg) {
+    int64_t t = esp_timer_get_time();
+    BaseType_t woken = pdFALSE;
+    xQueueSendFromISR(edges, &amp;t, &amp;woken);
+    if (woken) portYIELD_FROM_ISR();
+}</code></pre>
+    <p class="note warn"><b>Пастка тіку.</b> У чистому ESP-IDF тік FreeRTOS дорівнює 10&nbsp;мс, а в Arduino 1&nbsp;мс<sup class="cite" data-fact="idf-freertos-hz"></sup>. <code>pdMS_TO_TICKS()</code> ділить націло, тож <code>pdMS_TO_TICKS(5)</code> за 100&nbsp;Гц дає 0 тіків, і задача зовсім не спить. Тому в нашому проєкті <code>sdkconfig.defaults</code> ставить <code>CONFIG_FREERTOS_HZ=1000</code>.</p>
+
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Схема ДЗ:</b> R1 = 10&nbsp;кОм, R2 = 100&nbsp;Ом, C1 = 100&nbsp;нФ. Стала часу відпускання: <span class="formula">τ = 10 000 Ом × 0,0000001 Ф = 0,001 с = 1 мс</span><span class="why">чому R1: кнопка розімкнена, тож заряд іде лише через підтяжку.</span></li>
+      <li><b>Час до HIGH:</b> рівень гарантований від 0,75·VDD: <span class="formula">1 − e^(−t/τ) = 0,75 → t = τ·ln 4 ≈ 1,39 мс</span><span class="why">чому: конденсатор за τ проходить ≈63 % шляху, а нам треба 75 %.</span></li>
+      <li><b>Натискання:</b> розряд іде через R2: <span class="formula">τ = 100 Ом × 100 нФ = 10 мкс</span><span class="why">чому: при замкненій кнопці R1 майже не впливає, він у 100 разів більший.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> беремо C1 = 1&nbsp;мкФ, решта без змін.</li>
+      <li>
+        <div class="try" data-ans="10" data-tol="0.02" data-unit="мс" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Яка стала часу відпускання τ, мс?</p>
+          <details><summary>Підказка</summary>10 000 Ом × 0,000001 Ф. Ємність зросла вдесятеро, отже, і τ.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="13.9" data-tol="0.03" data-unit="мс" data-dec="1">
+          <span class="tag">Ваша черга</span>
+          <p>Через скільки мілісекунд вхід гарантовано побачить HIGH?</p>
+          <details><summary>Підказка</summary>t ≈ 1,39·τ.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="0" data-tol="0.001" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>У чистому ESP-IDF тік 100&nbsp;Гц. Скільки тіків дасть <code>pdMS_TO_TICKS(9)</code>?</h4>
+      <details><summary>Підказка</summary>Формула: мілісекунди × 100 / 1000, ділення цілочисельне: дробова частина відкидається.</details>
+    </div>
+    <p class="note tip">Висновок із цього числа: за тіку 10&nbsp;мс будь-яка затримка, коротша за 10&nbsp;мс, зникає повністю.</p>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth" data-mc="E6">
+        <p class="seems"><code>delay(50)</code> у коді кнопки неправильний, бо зупиняє весь мікроконтролер і переривання.</p>
+        <p class="truth">На ESP32 <code>delay()</code> викликає <code>vTaskDelay()</code>: чекає лише ваша задача, а переривання й інші задачі працюють<sup class="cite" data-fact="core-delay"></sup>. Погано інше: поки <code>loop()</code> стоїть, він нічого більше не робить<sup class="cite" data-fact="lms-err-2-6-delay"></sup>.</p>
+        <p class="test">Поставте в <code>loop()</code> <code>delay(2000)</code>, а в ISR лічильник. Натискайте під час затримки: лічильник росте.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Поставив фільтр на 50&nbsp;мс, і брязкоту більше немає.</p>
+        <p class="truth">Зникає лише брязкіт одразу після натискання. Спадаючий фронт із брязкоту відпускання приходить через сотні мілісекунд і проходить вікно<sup class="cite" data-fact="class-replay-2026-11-04"></sup>.</p>
+        <p class="test">Лабораторія зверху: спосіб «За часом», натисніть «Наступне з фантомом».</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Чим більше вікно, тим надійніше.</p>
+        <p class="truth">Більше вікно означає більшу затримку реакції, а натискання, коротші за вікно, будуть відкинуті. Коротше за вікно — це для програми взагалі не натискання<sup class="cite" data-fact="lms-err-2-6-short-press"></sup>.</p>
+        <p class="test">Лабораторія: спосіб «За рівнем», тримання 40&nbsp;мс, вікно 50&nbsp;мс. Подивіться на «Пропущено».</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Опитування — це завжди гірше за переривання.</p>
+        <p class="truth">Для кнопки навпаки: людина не помітить 10&nbsp;мс, а опитування не отримує зливи фронтів. Завдання 4 з ДЗ прямо каже: найстабільніша поведінка.</p>
+        <p class="test">Порівняйте рядки «Polling» і «Без debounce» у своїй таблиці завдання 6.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">RC на 1&nbsp;кОм і 100&nbsp;нФ прибирає брязкіт 5–20&nbsp;мс.</p>
+        <p class="truth">τ тут 100&nbsp;мкс: у сотні разів менше за названий брязкіт<sup class="cite" data-fact="lms-err-2-6-rc-tau"></sup>. До того ж на схемі з LMS немає підтяжки, тому конденсатору нічим заряджатися<sup class="cite" data-fact="lms-err-2-6-rc-pullup"></sup>.</p>
+        <p class="test">Панель RC у розділі 04: кнопка «LMS» і паузи запису.</p>
+      </div>
+    </div>
+    <!-- «Знайди несправність»: the bench of section 08 + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-db"></div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Кнопка між GPIO7 і GND з підтяжкою 10&nbsp;кОм до 3,3&nbsp;В. Підтяжка зовнішня і незмінна, як просить завдання, тому внутрішню в коді вимкнено. LED на GPIO15 через 220&nbsp;Ом перемикається на кожну реакцію: на нього зручно дивитися і оком, і другим каналом аналізатора. GPIO35 із тексту уроку не беріть: на N16R8 він зайнятий PSRAM<sup class="cite" data-fact="lms-err-2-6-gpio35"></sup>.</p>
+    <figure class="dual wide" id="dual-db" data-nets="v33=3V3; gpio7=GPIO7 (вузол кнопки); gnd=GND; gpio15=GPIO15; led_a=Анод LED; sw_n=R2 до кнопки">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 340 226" role="img" aria-label="Схема: GPIO7 плати U1 з'єднаний з вузлом; від вузла резистор R1 10 кОм вгору до 3V3 і кнопка SW1 вниз до GND. З RC-фільтром між вузлом і кнопкою стоїть R2 100 Ом, а від вузла до GND конденсатор C1 100 нФ. GPIO15 через R3 220 Ом іде на анод LED1, катод на GND.">
+          <rect class="sch-w" x="10" y="44" width="60" height="150" rx="3"/>
+          <text class="sch-ref" x="10" y="34">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="80" transform="rotate(180 90 80)"/>
+          <text class="sch-pin net-sig" data-net="gpio7" x="62" y="72" text-anchor="end">GPIO7</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="124" transform="rotate(180 90 124)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="62" y="116" text-anchor="end">GND</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="184" transform="rotate(180 90 184)"/>
+          <text class="sch-pin net-sig2" data-net="gpio15" x="62" y="176" text-anchor="end">GPIO15</text>
+          <text class="sch-val" id="lvl7" x="96" y="72">HIGH</text>
+          <circle cx="150" cy="80" r="3.5" class="net-sig" data-net="gpio7" fill="currentColor"/>
+          <use class="sch-sym" href="#res" x="150" y="80" transform="rotate(-90 150 80)"/>
+          <text class="sch-ref" x="160" y="46">R1</text>
+          <text class="sch-val" x="160" y="62">10 кОм</text>
+          <path class="sch-w net-3v3" data-net="v33" d="M150 20V18"/>
+          <use class="sch-sym net-3v3" data-net="v33" href="#vcc" x="150" y="20"/>
+          <text class="sch-pin net-3v3" data-net="v33" x="166" y="12">3V3</text>
+          <g id="sch-plain">
+            <path class="sch-w net-sig" data-net="gpio7" d="M90 80H300"/>
+          </g>
+          <g id="sch-rc" class="off">
+            <path class="sch-w net-sig" data-net="gpio7" d="M90 80H220"/>
+            <circle cx="196" cy="80" r="3.5" class="net-sig" data-net="gpio7" fill="currentColor"/>
+            <use class="sch-sym" href="#cap" x="196" y="80" transform="rotate(90 196 80)"/>
+            <text class="sch-ref" x="178" y="104" text-anchor="end">C1</text>
+            <text class="sch-val" x="178" y="120" text-anchor="end">100 нФ</text>
+            <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="196" y="140"/>
+            <use class="sch-sym" href="#res" x="220" y="80"/>
+            <text class="sch-ref" x="250" y="60" text-anchor="middle">R2</text>
+            <text class="sch-val" x="250" y="104" text-anchor="middle">100 Ом</text>
+            <path class="sch-w net-sig3" data-net="sw_n" d="M280 80H300"/>
+          </g>
+          <use class="sch-sym" href="#btn" x="300" y="80" transform="rotate(90 300 80)"/>
+          <text class="sch-ref" x="284" y="130" text-anchor="end">SW1</text>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="300" y="140"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M90 124H110V130"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="110" y="130"/>
+          <path class="sch-w net-sig2" data-net="gpio15" d="M90 184H100"/>
+          <use class="sch-sym" href="#res" x="100" y="184"/>
+          <text class="sch-ref" x="130" y="170" text-anchor="middle">R3</text>
+          <text class="sch-val" x="130" y="208" text-anchor="middle">220 Ом</text>
+          <path class="sch-w net-sig3" data-net="led_a" d="M160 184H190"/>
+          <use class="sch-sym" href="#led" x="190" y="184" id="sch-led"/>
+          <text class="sch-ref" x="220" y="214" text-anchor="middle">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M250 184H270V190"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="270" y="190"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <div id="bb-plain"><svg id="bb-db" class="kit-bench bb-db" viewBox="-58 -410 890 958" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (3V3 у стовпчику 20, GPIO7 у 26, GPIO15 у 27, GND у 41). Кнопка SW1 через канавку, ніжки у стовпчиках 10 і 12. Жовтий дріт від GPIO7 під рядом j у стовпчик 12; R1 10 кОм у ряду h зі стовпчика 12 у 16, помаранчевий дріт уздовж ряду j з'єднує 16 з 3V3. Стовпчик 10 чорним дротом на нижню шину мінус. Зелений дріт від GPIO15 уздовж нижнього краю макетки у стовпчик 8, R3 220 Ом у ряду h з 8 у 4, червоний світлодіод анодом у 4, катодом у 3, стовпчик 3 чорним дротом на шину мінус. GND плати (стовпчик 41) коротким чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg></div>
+        <div id="bb-rc" hidden><svg id="bb-dbrc" class="kit-bench bb-db" viewBox="-58 -410 890 958" role="img" aria-label="Макетка з RC-фільтром: кнопка SW1 у стовпчиках 10 і 12. Вузол кнопки тепер у стовпчику 16: туди приходить жовтий дріт від GPIO7, R1 10 кОм у ряду h зі стовпчика 16 у 19, помаранчевий дріт з'єднує 19 з 3V3 у стовпчику 20. R2 100 Ом у ряду g зі стовпчика 12 у 16 веде від кнопки до вузла. Конденсатор C1 100 нФ (104) ніжками в f15 і f16, стовпчик 15 чорним дротом на шину мінус. LED і GND без змін."></svg></div>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <div class="seg" role="group" aria-label="Варіант схеми" id="rc-seg">
+        <button type="button" data-v="plain" aria-pressed="true">Завдання 1–4</button>
+        <button type="button" data-v="rc" aria-pressed="false">Завдання 5: RC</button>
+      </div>
+      <div class="seg" role="group" aria-label="Стан кнопки SW1" id="sw-seg">
+        <button type="button" data-s="up" aria-pressed="true">Відпущена</button>
+        <button type="button" data-s="down" aria-pressed="false">Натиснута</button>
+      </div>
+      <span class="isr-badge" id="sw-badge" aria-live="polite">GPIO7 = HIGH: кнопка відпущена</span>
+    </div>
+    <p class="small">RC міняє лише вузол кнопки: у завданні 5 прошивки ті самі, що й у завданнях 1–4. Конденсатор 104 — це 100&nbsp;нФ, полярності він не має.</p>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Домашнє завдання: п'ять способів на вашій кнопці</h2>
+    <p>Потрібно: плата YD-ESP32-S3, кнопка, резистори 10&nbsp;кОм, 100&nbsp;Ом, 220&nbsp;Ом, конденсатор 104, LED, макетка. Бажано логічний аналізатор: CH1 на GPIO7, CH2 на GPIO15. Завдання 2.4 дозволяло Arduino або ESP-IDF, завдання 2.6 вимагає ESP-IDF, тож одна робота закриває обидва.</p>
+    <div class="note"><b>Стан коду.</b> Прошивки <code>esp32-s3-debounce-idf</code> є на C (ESP-IDF 6.1.0) і на Rust (esp-idf-hal). Rust-версії пройшли стенд 15.11.2026: на 10 натискань без фільтра — 12 хибних у <code>raw</code>, 3 у <code>time</code>, 0 у <code>state</code> і <code>poll</code>. З RC-фільтром повільне відпускання дало 122 хибних у <code>raw</code> і 10 у <code>time</code>, а <code>state</code> і <code>poll</code> лишилися на нулі. Логи й таблиця — у <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-debounce-idf">README проєкту</a>. Ваша кнопка може поводитися інакше, тому вимірюйте свою.</div>
+    <ol>
+      <li>Зберіть схему розділу 08 без RC.</li>
+      <li><b>Спершу прогноз:</b> на аркуші запишіть, скільки хибних спрацювань дасть кожен спосіб на 25 натискань.</li>
+      <li>Завдання 1: <code>pio run -e raw -t upload &amp;&amp; pio device monitor</code>. Зробіть 20 спокійних натискань, кожне довше за 0,3&nbsp;с, і 5 довгих по 1–2&nbsp;с. Число після «переривань» мінус 25 — це хибні.</li>
+      <li>Завдання 2–4: те саме з <code>-e time</code>, <code>-e state</code>, <code>-e poll</code>. Реакцію друкує сама прошивка.</li>
+      <li>Завдання 5: додайте R2 і C1, повторіть усі чотири прошивки.</li>
+      <li>Завдання 6: заповніть таблицю. Код і результат — на GitHub, посилання на репозиторій — у LMS.</li>
+    </ol>
+    <p class="small">Перше збирання завантажує ESP-IDF із тулчейном, це кілька хвилин. Вивід у файл для звіту: <code>pio device monitor -f log2file</code>.</p>
+    <details class="more">
+      <summary>Очікуваний вивід (не запис із плати)</summary>
+<pre class="code"><code>Завдання 3: debounce за рівнем, 50 мс
+натискань: 1, відкинуто подій: 0, переривань: 1, реакція: 50100 мкс
+натискань: 2, відкинуто подій: 0, переривань: 3, реакція: 50100 мкс</code></pre>
+      <p class="small">Точні числа будуть інші: тут важливі рівно одна реакція на натискання і затримка близько вікна.</p>
+    </details>
+    <details class="more">
+      <summary>Код: завдання 1, src/raw.c</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "esp_attr.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// Завдання 1: переривання на FALLING лише рахує, debounce немає.
+// Очікуємо: одне натискання дає кілька переривань, і при відпусканні вони теж бувають.
+#define BUTTON GPIO_NUM_7   // кнопка на GND, підтяжка 10 кОм до 3V3
+#define LED    GPIO_NUM_15  // LED через 220 Ом: перемикається на кожне переривання
+
+static volatile uint32_t count = 0;  // пише ISR, читає app_main
+
+static void IRAM_ATTR on_fall(void* arg) {
+    count++;
+}
+
+void app_main(void) {
+    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON, .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_NEGEDGE};
+    gpio_config(&amp;button);
+    gpio_config_t led = {.pin_bit_mask = 1ULL &lt;&lt; LED, .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;led);
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON, on_fall, NULL);
+
+    printf("Завдання 1: лише переривання\n");
+    uint32_t shown = 0;
+    while (1) {
+        if (count != shown) {
+            shown = count;
+            gpio_set_level(LED, shown &amp; 1);
+            printf("переривань: %lu\n", shown);
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}</code></pre>
+    </details>
+    <details class="more">
+      <summary>Код: завдання 2, src/time.c</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "esp_attr.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
+
+// Завдання 2: debounce за часом. ISR лише кладе час переривання в чергу, а рішення приймає задача:
+// менше ніж DEBOUNCE_US від попереднього переривання — ігноруємо.
+// Очікуємо: хибних менше, але брязкіт відпускання все ще може дати зайве натискання.
+#define BUTTON      GPIO_NUM_7   // кнопка на GND, підтяжка 10 кОм до 3V3
+#define LED         GPIO_NUM_15  // LED через 220 Ом: перемикається на кожне прийняте натискання
+#define DEBOUNCE_US 50000
+#define QUIET_MS    200          // друкуємо підсумок, коли стало тихо
+
+static QueueHandle_t edges;
+
+static void IRAM_ATTR on_fall(void* arg) {
+    int64_t t = esp_timer_get_time();
+    BaseType_t woken = pdFALSE;
+    xQueueSendFromISR(edges, &amp;t, &amp;woken);
+    if (woken) portYIELD_FROM_ISR();
+}
+
+void app_main(void) {
+    edges = xQueueCreate(64, sizeof(int64_t));
+    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON, .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_NEGEDGE};
+    gpio_config(&amp;button);
+    gpio_config_t led = {.pin_bit_mask = 1ULL &lt;&lt; LED, .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;led);
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON, on_fall, NULL);
+
+    printf("Завдання 2: debounce за часом, %d мс\n", DEBOUNCE_US / 1000);
+    int64_t last = -DEBOUNCE_US, reaction = 0;
+    uint32_t accepted = 0, ignored = 0;
+    bool fresh = false;
+    while (1) {
+        int64_t t;
+        if (xQueueReceive(edges, &amp;t, pdMS_TO_TICKS(QUIET_MS)) != pdTRUE) {
+            if (fresh) printf("прийнято: %lu, відкинуто: %lu, реакція: %ld мкс\n", accepted, ignored, (long)reaction);
+            fresh = false;
+            continue;
+        }
+        fresh = true;
+        bool ok = t - last &gt;= DEBOUNCE_US;
+        last = t;  // рахуємо від попереднього переривання, не від прийнятого
+        if (!ok) {
+            ignored++;
+            continue;
+        }
+        accepted++;
+        gpio_set_level(LED, accepted &amp; 1);
+        reaction = esp_timer_get_time() - t;
+    }
+}</code></pre>
+    </details>
+    <details class="more">
+      <summary>Код: завдання 3, src/state.c</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "esp_attr.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "freertos/task.h"
+
+// Завдання 3: debounce за рівнем. ISR лише сигналізує «подія», а задача чекає, поки брязкіт затихне,
+// і приймає подію, тільки якщо кнопка досі натиснута. Відпускання нічого не робить.
+// Очікуємо: рівно 1 реакція на 1 натискання.
+#define BUTTON      GPIO_NUM_7   // кнопка на GND, підтяжка 10 кОм до 3V3
+#define LED         GPIO_NUM_15  // LED через 220 Ом: перемикається на кожне прийняте натискання
+#define DEBOUNCE_MS 50
+
+static SemaphoreHandle_t event;
+static volatile uint32_t edges = 0;  // скільки переривань було насправді
+
+static void IRAM_ATTR on_fall(void* arg) {
+    edges++;
+    BaseType_t woken = pdFALSE;
+    xSemaphoreGiveFromISR(event, &amp;woken);
+    if (woken) portYIELD_FROM_ISR();
+}
+
+void app_main(void) {
+    event = xSemaphoreCreateBinary();
+    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON, .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_NEGEDGE};
+    gpio_config(&amp;button);
+    gpio_config_t led = {.pin_bit_mask = 1ULL &lt;&lt; LED, .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;led);
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON, on_fall, NULL);
+
+    printf("Завдання 3: debounce за рівнем, %d мс\n", DEBOUNCE_MS);
+    uint32_t presses = 0, ignored = 0;
+    while (1) {
+        xSemaphoreTake(event, portMAX_DELAY);
+        int64_t t0 = esp_timer_get_time();
+        vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));  // чекає лише ця задача, не весь чип
+
+        if (gpio_get_level(BUTTON) != 0) {  // уже HIGH: це був брязкіт відпускання або завада
+            ignored++;
+            continue;
+        }
+
+        presses++;
+        gpio_set_level(LED, presses &amp; 1);
+        long reaction = esp_timer_get_time() - t0;
+        printf("натискань: %lu, відкинуто подій: %lu, переривань: %lu, реакція: %ld мкс\n",
+               presses, ignored, edges, reaction);
+
+        while (gpio_get_level(BUTTON) == 0) vTaskDelay(pdMS_TO_TICKS(10));  // довге утримання — одна реакція
+        vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));                             // брязкіт відпускання затихає
+        xSemaphoreTake(event, 0);                                           // і його подію теж прибираємо
+    }
+}</code></pre>
+    </details>
+    <details class="more">
+      <summary>Код: завдання 4, src/poll.c</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// Завдання 4: без переривань. Кожні POLL_MS читаємо кнопку, debounce — машина станів
+// IDLE → PRESSED → HELD → RELEASE → IDLE. Рівень мусить протриматися STABLE_US.
+// Очікуємо: найстабільніша поведінка, реакція трохи більша (STABLE_US + період опитування).
+#define BUTTON    GPIO_NUM_7   // кнопка на GND, підтяжка 10 кОм до 3V3
+#define LED       GPIO_NUM_15  // LED через 220 Ом: перемикається на кожне прийняте натискання
+#define POLL_MS   10
+#define STABLE_US 50000
+#define LONG_US   2000000      // довше — довге натискання
+
+typedef enum { IDLE, PRESSED, HELD, RELEASE } state_t;
+
+void app_main(void) {
+    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON, .mode = GPIO_MODE_INPUT};  // без intr_type
+    gpio_config(&amp;button);
+    gpio_config_t led = {.pin_bit_mask = 1ULL &lt;&lt; LED, .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;led);
+
+    printf("Завдання 4: опитування кожні %d мс + машина станів\n", POLL_MS);
+    state_t state = IDLE;
+    int64_t since = 0, pressed_at = 0;
+    uint32_t presses = 0, bounces = 0;
+    TickType_t wake = xTaskGetTickCount();
+    while (1) {
+        vTaskDelayUntil(&amp;wake, pdMS_TO_TICKS(POLL_MS));  // рівно кожні POLL_MS, скільки б не тривав код нижче
+        bool down = gpio_get_level(BUTTON) == 0;
+        int64_t now = esp_timer_get_time();
+
+        switch (state) {
+            case IDLE:
+                if (down) { state = PRESSED; since = now; }
+                break;
+            case PRESSED:
+                if (!down) { state = IDLE; bounces++; }  // відскочило: це ще брязкіт
+                else if (now - since &gt;= STABLE_US) {
+                    state = HELD;
+                    pressed_at = since;
+                    presses++;
+                    gpio_set_level(LED, presses &amp; 1);
+                    printf("натискань: %lu, відскоків: %lu, реакція: %ld мкс\n", presses, bounces, (long)(now - since));
+                }
+                break;
+            case HELD:
+                if (!down) { state = RELEASE; since = now; }
+                break;
+            case RELEASE:
+                if (down) { state = HELD; bounces++; }  // брязкіт відпускання
+                else if (now - since &gt;= STABLE_US) {
+                    state = IDLE;
+                    printf("%s натискання\n", since - pressed_at &lt; LONG_US ? "коротке" : "довге");
+                }
+                break;
+        }
+    }
+}</code></pre>
+    </details>
+    <div class="tbl">
+    <table class="measure" data-key="2-6-methods">
+      <caption>Завдання 6: порівняльна таблиця</caption>
+      <thead><tr><th>Метод</th><th>Кількість хибних спрацювань</th><th>Затримка</th><th>Складність</th><th>Коментар</th></tr></thead>
+      <tbody>
+        <tr><th>Без debounce</th><td data-col="fp"></td><td data-col="lat"></td><td data-col="cx"></td><td data-col="note"></td></tr>
+        <tr><th>Time-based</th><td data-col="fp"></td><td data-col="lat"></td><td data-col="cx"></td><td data-col="note"></td></tr>
+        <tr><th>State-based</th><td data-col="fp"></td><td data-col="lat"></td><td data-col="cx"></td><td data-col="note"></td></tr>
+        <tr><th>Polling</th><td data-col="fp"></td><td data-col="lat"></td><td data-col="cx"></td><td data-col="note"></td></tr>
+        <tr><th>Hardware RC</th><td data-col="fp"></td><td data-col="lat"></td><td data-col="cx"></td><td data-col="note"></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">Таблиця зберігається лише у вашому браузері. Числа мають бути ваші: модель зверху показує, чого чекати, а не що здавати.</p>
+    <p><b>Розширення: що якщо…</b> змінити вікно на 5&nbsp;мс? Натискати якомога швидше? Покласти плату поруч із мотором, який вмикається реле, і дивитися, чи є фантоми без натискань?</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="2-6" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="2-6" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Одна кнопка, три жести</h3>
+      <dl>
+        <dt>Мета</dt><dd>Одна кнопка на машині станів розрізняє три жести: коротке натискання перемикає LED, довге (понад 2&nbsp;с) вмикає режим миготіння, подвійне змінює швидкість. Без <code>delay()</code>, без жодної хибної реакції.</dd>
+        <dt>Здати</dt><dd>Код, діаграма станів і 20-секундне відео всіх трьох жестів.</dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: схема й машина станів;</li><li><b>Вимірювач</b>: по 20 спроб кожного жесту, таблиця «розпізнано / переплутано»;</li><li><b>Доповідач</b>: допис у «Командні виклики»;</li><li><b>Скептик</b>: шукає послідовність натискань, яка ламає машину станів іншої команди.</li></ul></dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>Усі три жести розпізнаються:</b> 2 — завжди, 1 — через раз, 0 — ні. <b>Фантоми за 60 спроб:</b> 2 — жодного, 1 — 1–2, 0 — більше. <b>Діаграма збігається з кодом:</b> 2 — так, 1 — майже, 0 — ні. <b>Без <code>delay()</code> в обробці кнопки:</b> 2 — так, 0 — ні.</p></details></dd>
+        <dt>Ускладнення</dt><dd>Зробіть те саме на ESP-IDF: окрема задача кнопки шле жести в чергу FreeRTOS.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «2.6 Одна кнопка, три жести · команда …».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: кнопку на GPIO7 із підтяжкою 10&nbsp;кОм, ESP-IDF уже встановлений (перше збирання <code>pio run -e raw</code> зробіть заздалегідь), перший віджет розділу 05 пройдений.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–18 хв</span><span class="cp-a">Збір, розминка, найменш зрозуміле з минулих квитків і короткий підсумок уроку 2.5 від студента за графіком</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">18–23 хв</span><span class="cp-a">Задача до теорії: кожен пише свій спосіб у чат і надсилає разом з усіма</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">23–36 хв</span><span class="cp-a">Лабораторія: прогоняємо запис без debounce і за часом, знаходимо фантом на відпусканні, перше голосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">36–46 хв</span><span class="cp-a">Прогноз → перевірка наживо: прошивка <code>raw</code> на камері, 10 натискань, ваш прогноз на «Стіні прогнозів»</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">46–55 хв</span><span class="cp-a">Рівень проти часу: голосування, двоє пояснюють, повторне голосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці, щоб отримати допомогу</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Пишемо разом <code>state.c</code> на ESP-IDF: <code>gpio_config()</code>, ISR, семафор, задача; контрольні точки кожні ~5&nbsp;хв. Потім машина станів по кроках</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">90–95 хв</span><span class="cp-a">Спринт на дошці: кожен малює діаграму станів для подвійного натискання</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108 хв</span><span class="cp-a">Видача виклику «Одна кнопка, три жести» (розділ 12), ролі тижня, 2&nbsp;хв з напарником: «з чого почнеш?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступне заняття</span><span class="cp-r">усі</span></li>
+    </ol>
+    <div class="tnote">
+      <p><b>Продуктивна невдача (5 хв, до теорії):</b> «Лічильник на вході додає двох за одного, але лише коли людина затримала палець на кнопці. Чому?» Збирайте ідеї «водоспадом»: усі пишуть у чат і надсилають одночасно. Очікувано: «брязкіт», «довше вікно», «таймер». Слово «відпускання» дайте лише після цього.</p>
+      <p><b>ConcepTest 1:</b> «Фільтр за часом 50&nbsp;мс, кнопку тримають 300&nbsp;мс. Звідки може взятися друге спрацювання?» А — брязкіт натискання; Б — спадаючий фронт у брязкоті відпускання; В — звідки завгодно: фільтр не працює.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Очікувано 40–55&nbsp;% за А: студенти думають про брязкіт лише як про натискання. Після голосування покажіть у лабораторії нижню доріжку.</p></details>
+      <p><b>ConcepTest 2 (E6):</b> «Що стоїть, поки йде <code>delay(50)</code> у <code>loop()</code>?» А — увесь чип; Б — лише задача <code>loopTask</code>; В — лише таймери.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Текст LMS стверджує інше, тож очікувано багато А. Покажіть <code>vTaskDelay()</code> у <code>esp32-hal-misc.c</code>.</p></details>
+      <p><b>POE (наживо, 8 хв):</b> студент-Збирач із прошивкою <code>raw</code> на камері. Стіна прогнозів: «скільки переривань дадуть 10 натискань?» (зони 10 / 11–15 / 16+). На нашому стенді співвідношення було ≈&nbsp;1,7 на натискання, але кнопка студента може бути іншою.</p>
+      <p><b>«Знайди помилку» (7 хв):</b> кейс «Тік 10&nbsp;мс» із розділу 07. Кожен пише в чат, який рядок винен.</p>
+      <table class="tbl-modes">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>0–18</td><td>Прихід, розминка, найменш зрозуміле з квитків, повтор уроку 2.5 студентом</td><td>розділ 03, квитки</td></tr>
+          <tr><td>18–23</td><td>Продуктивна невдача</td><td>розділ 01</td></tr>
+          <tr><td>23–36</td><td>Лабораторія + ConcepTest 1</td><td>лабораторія зверху</td></tr>
+          <tr><td>36–46</td><td>POE «скільки переривань»</td><td>камера</td></tr>
+          <tr><td>46–55</td><td>Рівень проти часу + ConcepTest 2</td><td>віджет 05, картка «Час не знає»</td></tr>
+          <tr><td>55–62</td><td>Перерва</td><td></td></tr>
+          <tr><td>62–90</td><td>Пишемо разом: <code>state.c</code>, машина станів</td><td>розділи 06 і 09, віджет 05</td></tr>
+          <tr><td>90–95</td><td>Спринт: діаграма станів</td><td>tldraw</td></tr>
+          <tr><td>95–108</td><td>Видача виклику</td><td>розділ 12</td></tr>
+          <tr><td>108–120</td><td>Квиток на вихід, ролі</td><td>розділ 14</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому фільтр лише за часом може зарахувати відпускання як натискання, а debounce за рівнем ні."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip deep" href="../../bounce-bench/">Брязкіт на стенді: 190 подій</a></li>
+      <li><a class="chip deep" href="../../bounce-lab/">Лабораторія брязкоту</a></li>
+      <li><a class="chip deep" href="../../scope-signals/#bounce">Осцилограф §07: брязкіт</a></li>
+      <li><a class="chip deep" href="../../scope-signals/#la">Осцилограф §08: логічний аналізатор</a></li>
+      <li><a class="chip" href="../2-4/">Урок 2.4 · Переривання</a></li>
+      <li><a class="chip" href="../2-5/">Урок 2.5 · Таймери</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s95aopu0813pyn92fis">Урок 2.6 у LMS</a> (потрібен вхід).</li>
+      <li><a href="https://www.youtube.com/watch?v=FiAY5b4TF08">Відео «ARDUINO в TinkerCAD. Урок 22. Брязкіт контактів»</a> (Олексій Воронкін). Що шукати: алгоритм «запам'ятати стан → почекати → перевірити ще раз». Майте на увазі: це Arduino Uno в симуляторі, а затримка в ньому 2&nbsp;мс.</li>
+      <li><a href="https://www.youtube.com/watch?v=MuCgtTNDP04">Відео «Debounce і Throttle»</a> про React. Що шукати: різницю між debounce і throttle. Що переноситься на кнопку, а що ні, — у блоці «Для допитливих» розділу 04.</li>
+      <li>Статті з LMS: <a href="https://www.allaboutcircuits.com/textbook/digital/chpt-4/contact-bounce/">All About Circuits: Contact Bounce</a>, <a href="https://www.switchdoc.com/2018/04/esp32-tutorial-debouncing-a-button-press-using-interrupts/">SwitchDoc: debouncing на ESP32</a> (задача FreeRTOS і критичні секції), <a href="https://yak.koshachek.com/articles/jak-pozbutisja-vid-brjazkotu-kontaktiv-pri.html">«Як позбутися від брязкоту»</a>, <a href="https://www.freecodecamp.org/ukrainian/news/debounce-yak-zatrymaty-vyklyk-funktsiyi-v-javascript-pryklad-js-es6/">debounce у JavaScript</a>.</li>
+      <li>Додатково: <a href="https://www.beningo.com/7-steps-to-create-a-reusable-debounce-algorithm/">Beningo: 7 кроків до багаторазового алгоритму</a>, <a href="https://www.edn.com/debouncing-push-buttons-using-a-state-machine-approach/">EDN: кнопки й машина станів</a>.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-debounce-idf">esp32-s3-debounce-idf</a>: чотири прошивки завдання на ESP-IDF і на Rust, по одному файлу на завдання.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-bounce-test">esp32-s3-bounce-test</a>: прошивка, що записала ті самі 190 подій.</li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на даташити й код</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 04.11.2026</span></p>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (11 пунктів)</summary>
+    <ol class="fixlist">
+      <li><code>delay()</code> не зупиняє мікроконтролер і переривання, а «конфліктів з іншими завданнями» не викликає: чекає лише поточна задача<sup class="cite" data-fact="lms-err-2-6-delay"></sup>.</li>
+      <li>GPIO35 на платі N16R8 зайнятий PSRAM<sup class="cite" data-fact="lms-err-2-6-gpio35"></sup>.</li>
+      <li>RC 1&nbsp;кОм + 100&nbsp;нФ дає τ = 100&nbsp;мкс, а це в сотні разів менше за брязкіт «5–20&nbsp;мс» із того ж тексту<sup class="cite" data-fact="lms-err-2-6-rc-tau"></sup>.</li>
+      <li>«Коливання тривають кілька мікросекунд» суперечить тим самим 5–20&nbsp;мс. На нашому стенді паузи всередині брязкоту — від одиниць мікросекунд до одиниць мілісекунд<sup class="cite" data-fact="class-replay-2026-11-04"></sup>.</li>
+      <li>На схемі RC у LMS немає підтяжки: при розімкненій кнопці конденсатор нічому заряджати<sup class="cite" data-fact="lms-err-2-6-rc-pullup"></sup>.</li>
+      <li>«Фазовий зсув» тут ні до чого: це термін для синусоїд. Для кнопки важить затримка фронту, τ·ln 4<sup class="cite" data-fact="rc-threshold-time"></sup>.</li>
+      <li>«Спосіб 3» не використовує апаратного таймера, а це <code>millis()</code> в ISR, і він не найкращий: брязкіт відпускання дає фантом<sup class="cite" data-fact="lms-err-2-6-method3"></sup>.</li>
+      <li>Текст обіцяє оновлення <code>lastInterruptTime</code> на брязкоті, а код цього не робить<sup class="cite" data-fact="lms-err-2-6-isr-text"></sup>.</li>
+      <li>Натискання «менш як 10&nbsp;мс» опитування кожні 10&nbsp;мс не гарантує, а вимога 50&nbsp;мс стабільності відкине все коротше<sup class="cite" data-fact="lms-err-2-6-short-press"></sup>.</li>
+      <li>Діапазони брязкоту наведено без джерела; дані з даташита й наші виміри значно менші<sup class="cite" data-fact="lms-err-2-6-bounce-range"></sup>.</li>
+      <li>Осцилограма з LMS намальована для 5&nbsp;В, а логіка ESP32-S3 — 3,3&nbsp;В, тож пороги HIGH і LOW на ній не наші<sup class="cite" data-fact="s3-vih"></sup>.</li>
+    </ol>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  let T = Study.tokens();
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const comma = (x, d = 1) => x.toFixed(d).replace('.', ',');
+  // µs → «84 мкс» / «1,39 мс» / «0,30 с»
+  const fmtUs = (us) => {
+    const a = Math.abs(us);
+    if (a >= 1e6) return comma(us / 1e6, 2) + ' с';
+    if (a >= 10000) return comma(us / 1000, 0) + ' мс';
+    if (a >= 1000) return comma(us / 1000, 2) + ' мс';
+    return comma(us, a >= 10 || a === 0 ? 0 : 1) + ' мкс';
+  };
+  const font = (w, s, f = 'mono') => `${w} ${s}px ${T['f-' + f]}`;
+  const tri = (c, x, y, col, up = true) => { c.fillStyle = col; c.beginPath(); c.moveTo(x, y); c.lineTo(x - 5, y + (up ? 9 : -9)); c.lineTo(x + 5, y + (up ? 9 : -9)); c.fill(); };
+  // Sizes a label's frame from its measured text (the same helper as lesson 2.4): nothing can stick out whatever the font.
+  const FIT = new Map();
+  const fitRO = 'ResizeObserver' in window ? new ResizeObserver((es) => es.forEach((e) => FIT.forEach(([t], r) => { if (e.target.contains(r)) fitFrame(r, t); }))) : null;
+  function fitFrame(r, t) {
+    if (!r || !t) return;
+    if (!r.dataset.w0) { r.dataset.w0 = r.getAttribute('width'); r.dataset.x0 = r.getAttribute('x'); }
+    FIT.set(r, [t]);
+    let tw = 0;
+    try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+    if (!tw) { if (fitRO && t.ownerSVGElement) fitRO.observe(t.ownerSVGElement); return; }
+    const x0 = +r.dataset.x0, w0 = +r.dataset.w0, rx = Math.min(+r.getAttribute('rx') || 0, (+r.getAttribute('height') || 0) / 2);
+    const w = Math.max(w0, Math.ceil(tw + 2 * (0.6 * rx + 6))), x = x0 + (w0 - w) / 2;
+    r.setAttribute('x', +x.toFixed(1)); r.setAttribute('width', w);
+    if (t.getAttribute('text-anchor') === 'middle') t.setAttribute('x', +(x + w / 2).toFixed(1));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => FIT.forEach(([t], r) => fitFrame(r, t)));
+
+  /* =====================================================================
+     The record: 190 events from the bench, 17.10 (the same array as bounce-bench/). [kind, edges, gaps µs, missed, start level]
+     kind: P press, R release, G pulse while the button was held. Gaps between the edges of one event only.
+     The model below is checked against class-replay-2026-11-04: 156 falling edges, 91 presses, 35 releases with a falling
+     edge, 100 of 104 gaps shorter than 1,39 ms.
+     ===================================================================== */
+  const DATA = [["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[131],1,0],["P",1,[],0,1],["R",2,[102],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",4,[386,8,578],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",3,[12,12],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[82],1,0],["P",1,[],0,1],["G",3,[5,7],1,0],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",4,[10,3,6],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",4,[3487,21,48177],1,0],["P",1,[],0,1],["R",3,[61,1744],0,0],["P",1,[],0,1],["G",3,[48,141],1,0],["R",1,[],0,0],["P",1,[],0,1],["R",6,[5,283,872,1382,1015],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[182],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[184],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",5,[134,44,6,45],0,0],["P",1,[],0,1],["R",4,[38,348,171],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",3,[15,349],0,0],["P",1,[],0,1],["R",4,[26,7,39],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["G",2,[27871],0,0],["R",3,[3,151],0,0],["P",1,[],0,1],["G",9,[3,607,9,420,59,343,116,21],1,0],["R",1,[],0,0],["P",1,[],0,1],["G",5,[132,163,43,258],1,0],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[85],1,0],["P",1,[],0,1],["G",2,[102],0,0],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",5,[311,165,33,71],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["G",2,[61],0,0],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",6,[5,225,93,20,253],1,0],["P",1,[],0,1],["R",4,[328,289,163],1,0],["P",1,[],0,1],["G",5,[11,210,178,3],1,0],["R",3,[4,114],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[1267],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",8,[20,709,30,438,306,258,188],1,0],["P",1,[],0,1],["R",2,[69],1,0],["P",2,[10],1,1],["R",1,[],0,0],["P",1,[],0,1],["R",3,[55,59],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",6,[125,60,107,33,115],1,0],["P",1,[],0,1],["R",3,[39,90],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[44],1,0],["P",1,[],0,1],["R",3,[177,4],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[82],1,0],["P",1,[],0,1],["R",3,[4,40],0,0],["P",1,[],0,1],["R",2,[242],1,0],["P",1,[],0,1],["R",2,[574],1,0],["P",1,[],0,1],["R",1,[],0,0],["P",1,[],0,1],["R",2,[627],1,0],["P",1,[],0,1],["R",2,[100],1,0]];
+  const GAPS = DATA.flatMap((d) => d[2]);
+/* MODEL:BEGIN */
+  const POLL_US = 10000, IDLE_US = 500000, VDD = 3.3, VIL = 0.25 * VDD, VIH = 0.75 * VDD;
+  const RC = { r1: 10000, r2: 100, c: 0.1 };               // Ом, Ом, мкФ: Ом·мкФ = мкс
+  // Timeline of the record: presses hold µs long, 0,5 s between them (the log has no exact pauses, so both are model
+  // parameters). G pulses happened while the button was held. Edges the ISR missed are added back as «silent» level
+  // changes, so the level stays true but no interrupt comes from them.
+  function timeline(DATA, holdMs) {
+    const hold = holdMs * 1000, ch = [], fall = [], presses = [];
+    let t = 200000, lvl = 1, cur = null;
+    const change = (at, to, rec) => {
+      if (to === lvl) return;
+      lvl = to; ch.push([at, to]);
+      if (rec && to === 0) fall.push(at);
+    };
+    const event = (t0, e, gaps, start, final) => {
+      if (lvl !== start) change(t0 - 1, start, false);
+      let at = t0, l = start;
+      for (let j = 0; j < e; j++) {
+        if (j) at += gaps[j - 1];
+        l ^= 1; change(at, l, true);
+      }
+      if (l !== final) { at += 1; change(at, final, false); }
+      return at;
+    };
+    DATA.forEach(([k, e, gaps, , start]) => {
+      if (k === 'P') {
+        cur = { t: t, rt: 0, end: 0, rel: null, gl: [] };
+        cur.end = event(t, e, gaps, start, 0);
+        presses.push(cur);
+      } else if (k === 'G') {
+        const t0 = Math.max(cur.t + hold / 2, cur.end + 1000);
+        cur.gl.push({ t: t0, e, gaps, start });
+        cur.end = event(t0, e, gaps, start, start);
+      } else {
+        const t0 = Math.max(cur.t + hold, cur.end + 1000);
+        cur.rt = t0; cur.rel = { t: t0, e, gaps, start };
+        cur.end = event(t0, e, gaps, start, 1);
+        t = cur.end + IDLE_US;
+      }
+    });
+    const level = (x) => {                                  // last change at or before x
+      let a = 0, b = ch.length;
+      while (a < b) { const m = (a + b) >> 1; if (ch[m][0] <= x) a = m + 1; else b = m; }
+      return a ? ch[a - 1][1] : 1;
+    };
+    return { ch, fall, presses, level, end: t };
+  }
+  // Each method returns the moments it reacted, µs. W = debounce window, µs. The code in the firmware of the same name.
+  const METHODS = {
+    raw: (tl) => tl.fall.slice(),
+    time(tl, W) {                                           // time.c: from the previous interrupt, not the accepted one
+      const acc = []; let last = -W;
+      for (const t of tl.fall) { if (t - last >= W) acc.push(t); last = t; }
+      return acc;
+    },
+    state(tl, W) {                                          // state.c: a binary semaphore, a wait, a look at the level
+      const acc = [], F = tl.fall; let i = 0, free = 0;
+      while (i < F.length) {
+        const t = Math.max(F[i], free);
+        while (i < F.length && F[i] <= t) i++;
+        const check = t + W;
+        if (tl.level(check) !== 0) { free = check; continue; }
+        acc.push(check);
+        let up = check;
+        while (tl.level(up) === 0) up += POLL_US;
+        free = up + W;
+        while (i < F.length && F[i] <= free) i++;           // xSemaphoreTake(event, 0) drops the release bounce
+      }
+      return acc;
+    },
+    poll(tl, W) {                                           // poll.c: IDLE → PRESSED → HELD → RELEASE
+      const acc = []; let st = 0, since = 0;
+      for (let t = 0; t < tl.end; t += POLL_US) {
+        const down = tl.level(t) === 0;
+        if (st === 0) { if (down) { st = 1; since = t; } }
+        else if (st === 1) { if (!down) st = 0; else if (t - since >= W) { st = 2; acc.push(t); } }
+        else if (st === 2) { if (!down) { st = 3; since = t; } }
+        else if (down) st = 2; else if (t - since >= W) st = 0;
+      }
+      return acc;
+    },
+    rc(tl) {                                                // raw.c behind R1, R2 and C1: FALLING on the filtered node
+      const acc = [], tOpen = RC.r1 * RC.c, rClosed = RC.r1 * RC.r2 / (RC.r1 + RC.r2), tClosed = rClosed * RC.c;
+      const vClosed = VDD * RC.r2 / (RC.r1 + RC.r2);
+      let v = VDD, d = 1, t0 = 0, open = 1;
+      const seg = (t1) => {
+        const vInf = open ? VDD : vClosed, tau = open ? tOpen : tClosed;
+        if (d === 1 && !open && v > VIL) {
+          const tc = t0 + tau * Math.log((v - vInf) / (VIL - vInf));
+          if (tc <= t1) { d = 0; acc.push(tc); }
+        } else if (d === 0 && open && v < VIH) {
+          const tc = t0 + tau * Math.log((v - vInf) / (VIH - vInf));
+          if (tc <= t1) d = 1;
+        }
+        v = vInf + (v - vInf) * Math.exp(-(t1 - t0) / tau);
+        t0 = t1;
+      };
+      for (const [t, l] of tl.ch) { seg(t); open = l; }
+      seg(tl.end);
+      return acc;
+    },
+  };
+  // The first reaction inside a press is the right one, every other is a phantom; a press without one is missed.
+  function score(tl, acc) {
+    const P = tl.presses, per = P.map(() => ({ ok: null, ph: [] })); let p = -1, sum = 0, ok = 0, stray = 0;
+    for (const a of acc) {
+      while (p + 1 < P.length && P[p + 1].t <= a) p++;
+      if (p < 0) { stray++; continue; }
+      const r = per[p];
+      if (a < P[p].rt && r.ok == null) { r.ok = a; ok++; sum += a - P[p].t; } else r.ph.push(a);
+    }
+    const phantom = per.reduce((s, r) => s + r.ph.length, 0) + stray;
+    return { acc, per, real: P.length, accepted: acc.length, ok, phantom, missed: P.length - ok, react: ok ? sum / ok : 0 };
+  }
+/* MODEL:END */
+
+  /* =====================================================================
+     LAB «п'ять способів» (#dbl)
+     ===================================================================== */
+  const dblCtl = (() => {
+    const ORDER = ['raw', 'time', 'state', 'poll', 'rc'];
+    const INFO = {
+      raw: { name: 'Без debounce', file: 'src/raw.c', task: 'завдання 1',
+        code: 'static void IRAM_ATTR on_fall(void* arg) {\n    count++;\n}',
+        note: 'Кожен спадаючий фронт — це реакція, включно з фронтами у брязкоті відпускання.' },
+      time: { name: 'За часом', file: 'src/time.c', task: 'завдання 2',
+        code: 'bool ok = t - last >= DEBOUNCE_US;\nlast = t;  // рахуємо від попереднього переривання, не від прийнятого\nif (!ok) {\n    ignored++;\n    continue;\n}',
+        note: 'Фронти ближче за вікно відкинуто. Фронт відпускання приходить пізніше за вікно, тому для фільтра це нова подія.' },
+      state: { name: 'За рівнем', file: 'src/state.c', task: 'завдання 3',
+        code: 'vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));\n\nif (gpio_get_level(BUTTON) != 0) {  // уже HIGH\n    ignored++;\n    continue;\n}',
+        note: 'Через вікно після події задача дивиться на рівень. Реакція завжди запізнюється на вікно.' },
+      poll: { name: 'Опитування', file: 'src/poll.c', task: 'завдання 4',
+        code: 'case PRESSED:\n    if (!down) { state = IDLE; bounces++; }\n    else if (now - since >= STABLE_US) {\n        state = HELD;\n        presses++;',
+        note: 'Переривань немає: кожні 10 мс автомат читає кнопку (точки на верхній доріжці).' },
+      rc: { name: 'RC-фільтр', file: 'src/raw.c + R2, C1', task: 'завдання 5',
+        code: '// Прошивка та сама, що й у завданні 1.\n// Змінилося залізо: C1 100 нФ на вузлі,\n// R2 100 Ом до кнопки, R1 10 кОм.',
+        note: 'Прошивка без змін. Нижня доріжка показує напругу на вузлі, пунктир — поріг HIGH: короткі розмикання не встигають до нього дійти. Вікно тут не діє.' },
+    };
+    const cfg = { m: 'raw', W: 50, hold: 300, i: 0 };
+    let tl, res = {}, played = null, run = 0;
+    const done = { raw: false, time: false, state: false, poll: false, rc: false };
+    const cv = $('#dbl-cv'), bars = $('#dbl-bars'), stage = $('#dbl-stage');
+    const rows = {};
+    const compute = () => {
+      tl = timeline(DATA, cfg.hold);
+      ORDER.forEach((k) => { res[k] = score(tl, METHODS[k](tl, cfg.W * 1000)); });
+    };
+    const firstPhantom = (from, step = 1) => {
+      const per = res[cfg.m].per, n = per.length;
+      for (let d = 1; d <= n; d++) { const i = (from + step * d + n * n) % n; if (per[i].ph.length) return i; }
+      return -1;
+    };
+    ORDER.forEach((k) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'dbl-row'; b.dataset.m = k;
+      b.innerHTML = `<span>${INFO[k].name}</span><span class="n"></span><span class="dbl-track" aria-hidden="true"><i class="o"></i><i class="p"></i></span>`;
+      b.addEventListener('click', () => { cfg.m = k; stopRun(); paint(); });
+      bars.appendChild(b);
+      rows[k] = { b, n: b.querySelector('.n'), o: b.querySelector('.o'), p: b.querySelector('.p') };
+    });
+    const tally = (r, n) => {
+      if (n == null) return r;
+      let ok = 0, ph = 0, sum = 0;
+      for (let i = 0; i < n; i++) {
+        const q = r.per[i];
+        if (q.ok != null) { ok++; sum += q.ok - tl.presses[i].t; }
+        ph += q.ph.length;
+      }
+      return { real: n, accepted: ok + ph, phantom: ph, missed: n - ok, react: ok ? sum / ok : 0 };
+    };
+    function paint() {
+      const r = res[cfg.m], s = tally(r, played), info = INFO[cfg.m];
+      const scale = Math.max(...ORDER.map((k) => res[k].accepted), 1);
+      ORDER.forEach((k) => {
+        const q = res[k], w = rows[k];
+        w.b.setAttribute('aria-pressed', String(k === cfg.m));
+        w.b.setAttribute('aria-label', `${INFO[k].name}: реакцій ${q.accepted}, фантомних ${q.phantom}, пропущено ${q.missed}`);
+        setTxt(w.n, `${q.ok} + ${q.phantom}`);
+        w.o.style.width = (q.ok / scale * 100) + '%';
+        w.p.style.width = (q.phantom / scale * 100) + '%';
+      });
+      setTxt($('#dbl-file'), `${info.file} · ${info.task}`);
+      setTxt($('#dbl-src'), info.code);
+      setTxt($('#dbl-real'), String(s.real));
+      setTxt($('#dbl-acc'), String(s.accepted));
+      const ph = $('#dbl-ph'), ms = $('#dbl-miss');
+      setTxt(ph, String(s.phantom)); ph.classList.toggle('bad', s.phantom > 0); ph.classList.toggle('ok', s.phantom === 0);
+      setTxt(ms, String(s.missed)); ms.classList.toggle('bad', s.missed > 0); ms.classList.toggle('ok', s.missed === 0);
+      setTxt($('#dbl-lat'), !s.accepted ? '—' : s.react < 1 ? '≈ 0' : fmtUs(s.react));
+      setTxt($('#dbl-pos'), `Натискання ${cfg.i + 1} / ${r.real}`);
+      setTxt($('#dbl-play'), played != null ? (sim.running ? '❚❚ Пауза' : '▶ Далі') : '▶ Прогнати запис');
+      const per = r.per[cfg.i];
+      const now = per.ok == null ? 'це натискання пропущено' : per.ph.length ? `зайвих реакцій: ${per.ph.length}` : 'рівно одна реакція';
+      const w = (cfg.m === 'time' && cfg.W > cfg.hold) ? ' Вікно довше за утримання: фільтр ковтає і відпускання, але так само проковтне швидке наступне натискання.'
+        : ((cfg.m === 'state' || cfg.m === 'poll') && r.missed) ? ' Кнопку тримають менше за вікно: для цього способу таких натискань не існує.'
+        : (cfg.m === 'rc' && r.phantom) ? ' Фантоми тут дають лише дві аномально довгі паузи запису: десятки мілісекунд RC не гасить.' : '';
+      setTxt($('#dbl-note'), `${info.name}. ${info.note} На цьому натисканні: ${now}.${w}`);
+      draw();
+    }
+    function stopRun() { played = null; run = 0; sim.pause(); }
+    function draw() {
+      const c = Study.fitCanvas(cv), Wd = c.w, Ht = c.h, pad = 10, p = tl.presses[cfg.i], r = res[cfg.m], per = r.per[cfg.i], m = cfg.m, W = cfg.W * 1000;
+      c.clearRect(0, 0, Wd, Ht);
+      const t0 = p.t - 40000, t1 = Math.max(p.end, p.rt) + Math.max(140000, W + 40000);
+      const X = (t) => pad + (t - t0) / (t1 - t0) * (Wd - 2 * pad);
+      const y1 = 26, y0 = 62, lane = (l) => (l ? y1 : y0);
+      c.font = font(600, 13); c.fillStyle = T.muted; c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+      c.fillText('GPIO7, усе натискання', pad, 15);
+      c.textAlign = 'right'; c.fillText(fmtUs(t1 - t0), Wd - pad, 15); c.textAlign = 'left';
+      // windows under the trace
+      const inView = tl.fall.filter((f) => f >= t0 && f <= t1);
+      c.fillStyle = T.accent; c.globalAlpha = 0.14;
+      if (m === 'time') inView.forEach((f) => c.fillRect(X(f), y1 - 6, Math.max(1, X(f + W) - X(f)), y0 - y1 + 12));
+      if (m === 'state' || m === 'poll') {
+        [per.ok, ...per.ph].filter((a) => a != null).forEach((a) => c.fillRect(X(a - W), y1 - 6, Math.max(1, X(a) - X(a - W)), y0 - y1 + 12));
+      }
+      c.globalAlpha = 1;
+      // trace
+      c.strokeStyle = T['lvl-lo'] || T.ink; c.lineWidth = 2.2; c.beginPath();
+      let lvl = tl.level(t0); c.moveTo(X(t0), lane(lvl));
+      tl.ch.forEach(([t, l]) => { if (t < t0 || t > t1) return; c.lineTo(X(t), lane(lvl)); c.lineTo(X(t), lane(l)); lvl = l; });
+      c.lineTo(X(t1), lane(lvl)); c.stroke();
+      if (m === 'poll') {
+        c.fillStyle = T.muted;
+        for (let t = Math.ceil(t0 / POLL_US) * POLL_US; t < t1; t += POLL_US) { c.beginPath(); c.arc(X(t), lane(tl.level(t)), 2, 0, 7); c.fill(); }
+      }
+      // interrupts (grey ticks) and reactions (triangles)
+      c.strokeStyle = T.muted; c.lineWidth = 1.5;
+      if (m !== 'poll' && m !== 'rc') inView.forEach((f) => { c.beginPath(); c.moveTo(X(f), y0 + 3); c.lineTo(X(f), y0 + 9); c.stroke(); });
+      if (per.ok != null) tri(c, X(per.ok), y0 + 11, T.ok);
+      per.ph.forEach((a) => tri(c, X(a), y0 + 11, T.bad));
+      // LED lane
+      const ly1 = 112, ly0 = 134;
+      c.font = font(600, 13); c.fillStyle = T.muted; c.fillText('LED, перемикається на кожну реакцію', pad, 102);
+      c.strokeStyle = T.accent; c.lineWidth = 2.2; c.beginPath(); c.moveTo(X(t0), ly0);
+      let led = 0;
+      [per.ok, ...per.ph].filter((a) => a != null).sort((a, b) => a - b).forEach((a) => { c.lineTo(X(a), led ? ly1 : ly0); led ^= 1; c.lineTo(X(a), led ? ly1 : ly0); });
+      c.lineTo(X(t1), led ? ly1 : ly0); c.stroke();
+      // close-up of the release
+      const rel = p.rel, dur = p.end - rel.t, Z = Math.max(dur * 1.12, 400), z0 = rel.t - Z * 0.08, z1 = rel.t + Z;
+      const ZX = (t) => pad + (t - z0) / (z1 - z0) * (Wd - 2 * pad);
+      const zy1 = 186, zy0 = 262, zl = (l) => (l ? zy1 : zy0);
+      const nEdges = tl.ch.filter(([t]) => t >= rel.t && t <= p.end).length;
+      c.font = font(600, 13); c.fillStyle = T.muted;
+      c.fillText(nEdges > 1 ? `Відпускання зблизька: ${nEdges} фронтів за ${fmtUs(dur)}` : 'Відпускання зблизька: один чистий фронт', pad, 170);
+      c.strokeStyle = T.line; c.lineWidth = 1; c.setLineDash([4, 4]);
+      if (m === 'rc') { const yV = zy0 - (zy0 - zy1) * 0.75; c.beginPath(); c.moveTo(pad, yV); c.lineTo(Wd - pad, yV); c.stroke(); }
+      c.setLineDash([]);
+      c.strokeStyle = m === 'rc' ? T.muted : (T['lvl-lo'] || T.ink); c.lineWidth = m === 'rc' ? 1.4 : 2.2; c.beginPath();
+      lvl = tl.level(z0); c.moveTo(ZX(z0), zl(lvl));
+      tl.ch.forEach(([t, l]) => { if (t < z0 || t > z1) return; c.lineTo(ZX(t), zl(lvl)); c.lineTo(ZX(t), zl(l)); lvl = l; });
+      c.lineTo(ZX(z1), zl(lvl)); c.stroke();
+      if (m === 'rc') {                                       // node voltage behind R1, R2, C1
+        const tauO = RC.r1 * RC.c, tauC = RC.r1 * RC.r2 / (RC.r1 + RC.r2) * RC.c, vC = VDD * RC.r2 / (RC.r1 + RC.r2);
+        let v = vC, t = z0, open = tl.level(z0);
+        c.strokeStyle = T.accent; c.lineWidth = 2.2; c.beginPath(); c.moveTo(ZX(z0), zy0 - (zy0 - zy1) * v / VDD);
+        const seg = (t2) => {
+          const inf = open ? VDD : vC, tau = open ? tauO : tauC, n = Math.max(2, Math.ceil((ZX(t2) - ZX(t)) / 3));
+          for (let i = 1; i <= n; i++) { const x = t + (t2 - t) * i / n; c.lineTo(ZX(x), zy0 - (zy0 - zy1) * (inf + (v - inf) * Math.exp(-(x - t) / tau)) / VDD); }
+          v = inf + (v - inf) * Math.exp(-(t2 - t) / tau); t = t2;
+        };
+        tl.ch.forEach(([x, l]) => { if (x <= z0 || x > z1) return; seg(x); open = l; });
+        seg(z1); c.stroke();
+      } else if (m !== 'poll') {
+        tl.fall.forEach((f) => {
+          if (f < z0 || f > z1) return;
+          const isPh = per.ph.some((a) => Math.abs(a - f) < 0.5);
+          if (isPh) tri(c, ZX(f), zy0 + 4, T.bad);
+          else { c.strokeStyle = T.muted; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ZX(f), zy0 + 4); c.lineTo(ZX(f), zy0 + 11); c.stroke(); }
+        });
+      }
+      c.font = font(500, 13); c.fillStyle = T.muted; c.textAlign = 'right'; c.fillText(fmtUs(Z), Wd - pad, Ht - 12); c.textAlign = 'left'; c.fillText('0', ZX(rel.t), Ht - 12);
+      if (p.gl.length) { c.textAlign = 'right'; c.fillText(`+ імпульс під час утримання`, Wd - pad, 102); c.textAlign = 'left'; }
+    }
+    const sim = Study.sim(stage, (dt) => {
+      if (!dt) return;
+      if (played == null) { played = 0; run = 0; }
+      run += dt * 16;
+      let moved = false;
+      while (run >= 1 && played < res[cfg.m].real) { run -= 1; played++; cfg.i = played - 1; moved = true; }
+      if (played >= res[cfg.m].real) { done[cfg.m] = true; stopRun(); moved = true; }
+      if (moved) paint();
+    });
+    sim.pause();
+    const playLabel = () => setTxt($('#dbl-play'), played != null && sim.running ? '❚❚ Пауза' : played != null ? '▶ Далі' : '▶ Прогнати запис');
+    stage.addEventListener('click', playLabel);          // runs after Study.sim's own toggle
+    $('#dbl-play').addEventListener('click', () => {
+      if (played != null) { if (sim.running) sim.pause(); else sim.play(); playLabel(); return; }
+      if (Study.reducedMotion()) { done[cfg.m] = true; cfg.i = res[cfg.m].real - 1; paint(); return; }
+      played = 0; run = 0; sim.play(); paint();
+    });
+    const step = (d) => { stopRun(); const n = res[cfg.m].real; cfg.i = (cfg.i + d + n) % n; paint(); };
+    $('#dbl-prev').addEventListener('click', () => step(-1));
+    $('#dbl-next').addEventListener('click', () => step(1));
+    $('#dbl-jump').addEventListener('click', () => {
+      stopRun();
+      const i = firstPhantom(cfg.i);
+      if (i >= 0) cfg.i = i;
+      paint();
+      if (i < 0) setTxt($('#dbl-note'), `${INFO[cfg.m].name}: на всьому записі немає жодного фантома за цих значень.`);
+    });
+    let q = 0;
+    const input = () => {
+      cfg.W = +$('#dbl-w').value; cfg.hold = +$('#dbl-h2').value;
+      setTxt($('#dbl-wout'), `${cfg.W} мс`); setTxt($('#dbl-hout'), `${cfg.hold} мс`);
+      if (played != null) stopRun();
+      if (!q) q = requestAnimationFrame(() => { q = 0; compute(); paint(); });
+    };
+    $('#dbl-w').addEventListener('input', input);
+    $('#dbl-h2').addEventListener('input', input);
+    compute();
+    cfg.i = Math.max(0, res.time.per.findIndex((p, i) => p.ph.length && tl.presses[i].rel.e >= 3));
+    paint();
+    window.addEventListener('resize', draw);
+    Study.onTheme(draw);
+    Study.missions($('#dbl-ms'), { key: 'dbl', items: [
+      { id: 'raw', text: 'Проженіть увесь запис без debounce. Скільки реакцій на 91 натискання?', hint: 'Рядок «Без debounce», потім «Прогнати запис». Це той самий результат, який дасть завдання 1, якщо ваша кнопка схожа на нашу.', check: () => done.raw },
+      { id: 'ph', text: 'Виберіть «За часом» і знайдіть натискання, де LED перемкнувся вдруге.', hint: 'Кнопка «Наступне з фантомом». Погляньте на нижню доріжку: червоний трикутник стоїть на спадаючому фронті відпускання.', check: () => cfg.m === 'time' && res.time.per[cfg.i].ph.length > 0 },
+      { id: 'zero', text: 'Приберіть усі фантоми зі способу «За часом». Яку ціну ви заплатили?', hint: 'Вікно має стати довшим за утримання. Отже, будь-яке натискання, довше за вікно, знову дасть фантом.', check: () => cfg.m === 'time' && res.time.phantom === 0 },
+      { id: 'miss', text: 'У способі «За рівнем» доможіться пропущених натискань.', hint: 'Зробіть тримання коротшим за вікно.', check: () => cfg.m === 'state' && res.state.missed > 0 },
+      { id: 'clean', text: 'Вікно 50 мс, тримання 300 мс: знайдіть спосіб без фантомів і пропусків.', hint: 'Таких два. Подивіться, чим вони платять: стовпчик «Реакція, сер.».', check: () => (cfg.m === 'state' || cfg.m === 'poll') && cfg.W === 50 && cfg.hold === 300 },
+      { id: 'rc', text: 'Увімкніть RC-фільтр і знайдіть, що його пробиває.', hint: 'Кнопка «Наступне з фантомом» у рядку «RC-фільтр». Це дві аномально довгі паузи запису: десятки мілісекунд.', check: () => cfg.m === 'rc' && res.rc.per[cfg.i].ph.length > 0 },
+    ] });
+  })();
+
+  /* =====================================================================
+     04 «Вікно живе між брязкотом і натисканням» (#ws): a log scale 0,1 … 1000 ms
+     ===================================================================== */
+  (() => {
+    const XS = (ms) => 6 + (Math.log10(ms) + 1) / 4 * 318, BMAX = 3.56;
+    const tk = $('#ws-ticks');
+    [0.1, 1, 10, 100, 1000].forEach((v) => {
+      mk('path', { d: `M${XS(v)} 62V70`, stroke: 'var(--muted)' }, tk);
+      const t = mk('text', { class: 'svg-m', x: XS(v), y: 88, 'text-anchor': v === 0.1 ? 'start' : v === 1000 ? 'end' : 'middle' }, tk);
+      t.textContent = v === 0.1 ? '0,1' : String(v);
+    });
+    const ms = () => 10 ** (+$('#ws-s').value / 100 * 3 - 1 + 0.0);
+    const put = (id, a, b) => { const r = $(id); r.setAttribute('x', XS(a)); r.setAttribute('width', Math.max(0, XS(b) - XS(a))); };
+    function up() {
+      const v = ms(), w = v < 10 ? +v.toFixed(1) : Math.round(v), press = +$('#ws-p-s').value;
+      put('#ws-b', 0.18, BMAX); put('#ws-z', BMAX, press); put('#ws-p', press, 1000);
+      $('#ws-w').setAttribute('d', `M${XS(v)} 26V60`);
+      setTxt($('#ws-out'), `${comma(w, w < 10 ? 1 : 0)} мс`);
+      setTxt($('#ws-p-out'), `${press} мс`);
+      const el = $('#ws-txt');
+      if (w < BMAX) el.innerHTML = '<b class="bad">Закоротке:</b> довгий брязкіт стенду (3,56 мс) пройде крізь вікно.';
+      else if (w >= press) el.innerHTML = '<b class="bad">Задовге:</b> натискання, коротше за вікно, буде відкинуте, а реакція запізниться.';
+      else el.innerHTML = '<b class="ok">Робоча зона:</b> вікно накриває брязкіт і не з\'їдає натискання.';
+    }
+    $('#ws-s').addEventListener('input', up); $('#ws-p-s').addEventListener('input', up);
+    $('#ws-s').value = Math.round((Math.log10(50) + 1) / 3 * 100);
+    up();
+  })();
+
+  /* =====================================================================
+     04 RC panel (#w-rc)
+     ===================================================================== */
+  (() => {
+    const R1S = [1000, 2200, 4700, 10000, 22000, 47000, 100000], R2S = [47, 100, 220, 470, 1000], CS = [0.01, 0.022, 0.047, 0.1, 0.22, 0.47, 1];
+    const cv = $('#rc-cv'), st = { dir: 'rel' };
+    const ohm = (r) => (r >= 1000 ? `${comma(r / 1000, r % 1000 ? 1 : 0)} кОм` : `${r} Ом`);
+    const far = (c) => (c >= 1 ? `${comma(c, 0)} мкФ` : `${Math.round(c * 1000)} нФ`);
+    const vals = () => ({ r1: R1S[+$('#rc-r1').value], r2: R2S[+$('#rc-r2').value], c: CS[+$('#rc-c').value], gap: +$('#rc-g').value });
+    function up() {
+      const { r1, r2, c, gap } = vals();
+      setTxt($('#rc-r1-out'), ohm(r1)); setTxt($('#rc-r2-out'), ohm(r2)); setTxt($('#rc-c-out'), far(c)); setTxt($('#rc-g-out'), fmtUs(gap));
+      const tauR = r1 * c, rP = r1 * r2 / (r1 + r2), tauP = rP * c, vLow = VDD * r2 / (r1 + r2);
+      // The readout uses τ·ln 4 (from 0 V), as the text and class-replay-2026-11-04 do; the mark on the curve is the exact crossing.
+      const lowOk = vLow < VIL, tHigh = tauR * Math.log(4), tCross = tauR * Math.log((VDD - vLow) / (VDD - VIH));
+      const vGap = VDD + (vLow - VDD) * Math.exp(-gap / tauR), passed = vGap >= VIH;
+      setTxt($('#rc-tr'), fmtUs(tauR)); setTxt($('#rc-th'), `≈ ${fmtUs(tHigh)}`); setTxt($('#rc-tp'), fmtUs(tauP));
+      const vl = $('#rc-vl'); setTxt(vl, `${comma(vLow, 2)} В`); vl.classList.toggle('bad', !lowOk); vl.classList.toggle('ok', lowOk);
+      $('#rc-gap-row').innerHTML = `Пауза ${fmtUs(gap)} піднімає вузол до <b class="${passed ? 'bad' : 'ok'}">${comma(vGap, 2)} В</b>: ${passed ? 'це вже HIGH, брязкіт пройшов' : 'до HIGH не дійшло'}`;
+      setTxt($('#rc-share'), String(GAPS.filter((g) => g < tHigh).length));
+      setTxt($('#rc-note'), !lowOk ? 'R2 завеликий: подільник R1 і R2 не пускає вузол нижче 0,25·VDD, тож натискання вхід не гарантовано побачить.'
+        : st.lms ? 'Значення з LMS: τ = 100 мкс. На схемі LMS підтяжки немає, тому тут 1 кОм поставлено на місце R1: так видно саме τ з тексту уроку.' : '');
+      const c2 = Study.fitCanvas(cv), W = c2.w, H = c2.h, L = 42, R = W - 12, Tp = 14, B = H - 30;
+      c2.clearRect(0, 0, W, H);
+      const span = st.dir === 'rel' ? Math.max(tauR * 3, Math.min(gap * 1.4, tauR * 12)) : Math.max(tauP * 5, 1);
+      const X = (t) => L + t / span * (R - L), Y = (v) => B - v / VDD * (B - Tp);
+      c2.fillStyle = T.hi; c2.globalAlpha = 0.14; c2.fillRect(L, Y(VIH), R - L, Y(VIL) - Y(VIH)); c2.globalAlpha = 1;
+      c2.strokeStyle = T.line; c2.lineWidth = 1; c2.strokeRect(L, Tp, R - L, B - Tp);
+      c2.fillStyle = T.muted; c2.font = font(500, 13); c2.textAlign = 'right';
+      [[VDD, '3,3 В'], [VIH, '2,5'], [VIL, '0,8'], [0, '0']].forEach(([v, s]) => c2.fillText(s, L - 5, Y(v) + 4));
+      c2.textAlign = 'left'; c2.fillText('рівень не визначений', L + 8, (Y(VIH) + Y(VIL)) / 2 + 4);
+      c2.textAlign = 'right'; c2.fillText(fmtUs(span), R, H - 10); c2.textAlign = 'left'; c2.fillText('0', L, H - 10);
+      const mark = (t, s, col) => {
+        if (t > span) return;
+        c2.strokeStyle = col; c2.lineWidth = 1.2; c2.setLineDash([4, 4]); c2.beginPath(); c2.moveTo(X(t), Tp); c2.lineTo(X(t), B); c2.stroke(); c2.setLineDash([]);
+        c2.fillStyle = col; c2.font = font(600, 13); c2.textAlign = X(t) > W - 70 ? 'right' : 'left'; c2.fillText(s, X(t) + (X(t) > W - 70 ? -4 : 4), Tp + 14); c2.textAlign = 'left';
+      };
+      c2.strokeStyle = T.accent; c2.lineWidth = 2.6; c2.beginPath();
+      for (let i = 0; i <= 160; i++) {
+        const t = span * i / 160, v = st.dir === 'rel' ? VDD + (vLow - VDD) * Math.exp(-t / tauR) : vLow + (VDD - vLow) * Math.exp(-t / tauP);
+        i ? c2.lineTo(X(t), Y(v)) : c2.moveTo(X(t), Y(v));
+      }
+      c2.stroke();
+      if (st.dir === 'rel') {
+        mark(tauR, 'τ', T.muted); mark(tCross, 'HIGH', T.ok);
+        if (gap <= span) {                                     // the pause ends: the contact closes again and the node falls
+          const n = 24; c2.strokeStyle = T.bad; c2.lineWidth = 2.2; c2.beginPath(); c2.moveTo(X(gap), Y(vGap));
+          for (let i = 1; i <= n; i++) { const t = gap + tauP * 5 * i / n; c2.lineTo(X(t), Y(vLow + (vGap - vLow) * Math.exp(-(t - gap) / tauP))); }
+          c2.stroke(); c2.fillStyle = T.bad; c2.beginPath(); c2.arc(X(gap), Y(vGap), 4.5, 0, 7); c2.fill();
+        }
+      } else if (lowOk) { mark(tauP * Math.log((VDD - vLow) / (VIL - vLow)), 'LOW', T.ok); }
+    }
+    ['#rc-r1', '#rc-r2', '#rc-c', '#rc-g'].forEach((s) => $(s).addEventListener('input', () => { st.lms = false; $$('#rc-preset button').forEach((b) => b.setAttribute('aria-pressed', 'false')); up(); }));
+    $$('#rc-dir button').forEach((b) => b.addEventListener('click', () => { st.dir = b.dataset.d; $$('#rc-dir button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); up(); }));
+    $$('#rc-preset button').forEach((b) => b.addEventListener('click', () => {
+      const lms = b.dataset.p === 'lms';
+      $('#rc-r1').value = lms ? 0 : 3; $('#rc-r2').value = 1; $('#rc-c').value = 3; st.lms = lms;
+      $$('#rc-preset button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      up();
+    }));
+    up();
+    window.addEventListener('resize', up);
+    Study.onTheme(up);
+  })();
+
+  /* =====================================================================
+     05 «Час проти рівня» (#w-tvs): one press with a typical release (one rebound with a falling edge)
+     ===================================================================== */
+  const tvsDraw = (() => {
+    const cv = $('#tvs-cv');
+    function up() {
+      const hold = +$('#tvs-h').value, W = +$('#tvs-w').value;
+      setTxt($('#tvs-h-out'), `${hold} мс`); setTxt($('#tvs-w-out'), `${W} мс`);
+      const c = Study.fitCanvas(cv), Wd = c.w, pad = 12, span = Math.max(hold + 160, W + 200);
+      c.clearRect(0, 0, Wd, c.h);
+      const X = (t) => pad + (t + 20) / (span + 20) * (Wd - 2 * pad);
+      const relFall = hold + 1;                                // the rebound: a falling edge just after the release
+      // lane 1: the button
+      c.font = font(600, 13); c.fillStyle = T.muted; c.textAlign = 'left'; c.fillText('кнопка', pad, 16);
+      c.strokeStyle = T['lvl-lo'] || T.ink; c.lineWidth = 2.2; c.beginPath();
+      c.moveTo(X(-20), 26); c.lineTo(X(0), 26); c.lineTo(X(0), 52); c.lineTo(X(hold), 52); c.lineTo(X(hold), 26);
+      c.lineTo(X(hold + 2), 26); c.lineTo(X(hold + 2), 44); c.lineTo(X(hold + 4), 44); c.lineTo(X(hold + 4), 26); c.lineTo(X(span), 26); c.stroke();
+      // lane 2: time
+      const yA = 92;
+      c.fillStyle = T.muted; c.fillText('за часом', pad, 76);
+      c.fillStyle = T.accent; c.globalAlpha = 0.16; c.fillRect(X(0), yA - 8, X(W) - X(0), 22);
+      const relPass = relFall >= W;
+      if (relPass) c.fillRect(X(relFall), yA - 8, X(relFall + W) - X(relFall), 22);
+      c.globalAlpha = 1;
+      tri(c, X(0), yA, T.ok);
+      if (relPass) tri(c, X(relFall), yA, T.bad);
+      else { c.strokeStyle = T.muted; c.lineWidth = 2; c.beginPath(); c.moveTo(X(relFall) - 4, yA); c.lineTo(X(relFall) + 4, yA + 8); c.moveTo(X(relFall) + 4, yA); c.lineTo(X(relFall) - 4, yA + 8); c.stroke(); }
+      // lane 3: level
+      const yB = 158, pressSeen = hold > W;
+      c.fillStyle = T.muted; c.fillText('за рівнем', pad, 142);
+      c.fillStyle = T.accent; c.globalAlpha = 0.16; c.fillRect(X(0), yB - 8, X(W) - X(0), 22); c.globalAlpha = 1;
+      if (pressSeen) {
+        tri(c, X(W), yB, T.ok);
+        c.fillStyle = T.accent; c.globalAlpha = 0.16; c.fillRect(X(relFall), yB - 8, X(relFall + W) - X(relFall), 22); c.globalAlpha = 1;
+        c.strokeStyle = T.muted; c.lineWidth = 2; const x = X(relFall + W); c.beginPath(); c.moveTo(x - 4, yB); c.lineTo(x + 4, yB + 8); c.moveTo(x + 4, yB); c.lineTo(x - 4, yB + 8); c.stroke();
+      } else {
+        c.strokeStyle = T.bad; c.lineWidth = 2; const x = X(W); c.beginPath(); c.moveTo(x - 4, yB); c.lineTo(x + 4, yB + 8); c.moveTo(x + 4, yB); c.lineTo(x - 4, yB + 8); c.stroke();
+      }
+      c.fillStyle = T.muted; c.font = font(500, 13); c.textAlign = 'right'; c.fillText(`${span} мс`, Wd - pad, c.h - 8); c.textAlign = 'left';
+      const at = relPass ? 2 : 1, lv = pressSeen ? 1 : 0;
+      setTxt($('#tvs-at'), String(at)); setTxt($('#tvs-lv'), String(lv));
+      $('#tvs-a').className = at === 1 ? 'ok' : 'bad'; $('#tvs-b').className = lv === 1 ? 'ok' : 'bad';
+      setTxt($('#tvs-note'), lv === 0 ? 'Кнопку відпустили раніше, ніж закінчилось вікно: через вікно рівень уже HIGH, і за рівнем натискання пропущено. За часом воно зараховане, а фронт відпускання потрапив у вікно.'
+        : at === 2 ? 'Фронт відпускання далі за вікно: фільтр за часом вважає його новим натисканням. За рівнем він прочитав HIGH і нічого не зробив, але перша реакція запізнилася на вікно.'
+        : 'Фронт відпускання всередині вікна, тому обидва способи дають одну реакцію. Так буває лише з натисканнями, коротшими за вікно, або майже рівними йому.');
+    }
+    $('#tvs-h').addEventListener('input', up); $('#tvs-w').addEventListener('input', up);
+    up();
+    window.addEventListener('resize', up);
+    return up;
+  })();
+  Study.onTheme(tvsDraw);
+
+  /* =====================================================================
+     05 state machine stepper (#w-fsm): poll.c, one step = 10 ms
+     ===================================================================== */
+  (() => {
+    const NAMES = ['IDLE', 'PRESSED', 'HELD', 'RELEASE'], POLL = 10, STABLE = 50, LONG = 2000;
+    const SC = {
+      clean: { lows: [[100, 300]], end: 420 },
+      press: { lows: [[100, 118], [122, 300]], end: 420 },
+      rel: { lows: [[100, 300], [328, 332]], end: 460 },
+      spike: { lows: [[100, 130]], end: 240 },
+      long: { lows: [[100, 2300]], end: 2420 },
+    };
+    const cv = $('#fsm-cv');
+    let sc = SC.clean, m;
+    const down = (t) => sc.lows.some(([a, b]) => t >= a && t < b);
+    const fresh = () => { m = { t: 0, st: 0, since: 0, pressedAt: 0, presses: 0, bounces: 0, samples: [], log: [], last: 'Автомат у стані IDLE. Натисніть «Крок».' }; };
+    function step() {
+      if (m.t >= sc.end) return false;
+      m.t += POLL;
+      const d = down(m.t), t = m.t, was = m.st;
+      switch (m.st) {
+        case 0: if (d) { m.st = 1; m.since = t; m.last = 'Опитування побачило LOW: може, натискання, може, брязкіт. Запускаємо відлік.'; } break;
+        case 1:
+          if (!d) { m.st = 0; m.bounces++; m.last = 'HIGH раніше за 50 мс: це був брязкіт, назад в IDLE, реакції немає.'; }
+          else if (t - m.since >= STABLE) {
+            m.st = 2; m.pressedAt = m.since; m.presses++;
+            m.last = '50 мс стабільного LOW: це справжнє натискання. Реакція!';
+            m.log.push(`натискань: ${m.presses}, відскоків: ${m.bounces}, реакція: ${(t - m.since) * 1000} мкс`);
+          }
+          break;
+        case 2: if (!d) { m.st = 3; m.since = t; m.last = 'Опитування побачило HIGH: може, відпустили, може, брязкіт.'; } break;
+        default:
+          if (d) { m.st = 2; m.bounces++; m.last = 'Знову LOW раніше за 50 мс: брязкіт відпускання, назад у HELD. Нового натискання немає.'; }
+          else if (t - m.since >= STABLE) {
+            m.st = 0;
+            m.last = '50 мс стабільного HIGH: кнопку справді відпустили.';
+            m.log.push(`${m.since - m.pressedAt < LONG ? 'коротке' : 'довге'} натискання`);
+          }
+      }
+      m.samples.push([t, d, m.st]);
+      return m.st !== was;
+    }
+    function draw() {
+      $$('#fsm-st li').forEach((li) => li.classList.toggle('on', +li.dataset.s === m.st));
+      setTxt($('#fsm-last'), `${m.t} мс · ${NAMES[m.st]}. ${m.last}`);
+      setTxt($('#fsm-log'), m.log.length ? m.log.join('\n') : '(поки що нічого не надруковано)');
+      const c = Study.fitCanvas(cv), W = c.w, H = c.h, pad = 12, y1 = 18, y0 = 62;
+      c.clearRect(0, 0, W, H);
+      const X = (t) => pad + t / sc.end * (W - 2 * pad);
+      c.strokeStyle = T['lvl-lo'] || T.ink; c.lineWidth = 2.2; c.beginPath(); c.moveTo(X(0), y1);
+      let lvl = 1;
+      sc.lows.forEach(([a, b]) => { c.lineTo(X(a), y1); c.lineTo(X(a), y0); c.lineTo(X(b), y0); c.lineTo(X(b), y1); lvl = 1; });
+      c.lineTo(X(sc.end), lvl ? y1 : y0); c.stroke();
+      const dense = (W - 2 * pad) / (sc.end / POLL) < 4;
+      m.samples.forEach(([t, d, s]) => {
+        if (dense && t % 100) return;
+        c.fillStyle = s === 1 || s === 3 ? T.hi : s === 2 ? T.accent : T.muted;
+        c.beginPath(); c.arc(X(t), d ? y0 : y1, 3.2, 0, 7); c.fill();
+      });
+      c.strokeStyle = T.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(X(m.t), 8); c.lineTo(X(m.t), 72); c.stroke();
+      c.fillStyle = T.muted; c.font = font(500, 13); c.textAlign = 'left'; c.fillText('0', pad, H - 10); c.textAlign = 'right'; c.fillText(`${sc.end} мс`, W - pad, H - 10); c.textAlign = 'left';
+    }
+    fresh();
+    $('#fsm-step').addEventListener('click', () => { step(); draw(); });
+    $('#fsm-jump').addEventListener('click', () => { while (m.t < sc.end && !step()); draw(); });
+    $('#fsm-reset').addEventListener('click', () => { fresh(); draw(); });
+    $$('#fsm-sc button').forEach((b) => b.addEventListener('click', () => {
+      sc = SC[b.dataset.s]; $$('#fsm-sc button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fresh(); draw();
+    }));
+    draw();
+    window.addEventListener('resize', draw);
+    Study.onTheme(draw);
+  })();
+
+  /* =====================================================================
+     08 Kit bench. The layout of lesson 2.4 (the board in the breadboard, parts on the free strips to its left).
+     rc: true moves the button's node to column 16: R1 h16–h19, R2 g12–g16 from the button, C1 f15–f16, column 15 to GND.
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const NETCOL = { 'net-3v3': 'n33', 'net-gnd': 'ngnd', 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3' };
+  function pill(parent, x, y, txt, w = 0, cls = '') {
+    const g = mk('g', { class: `kb-pill ${cls}`.trim(), 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 17 * txt.length;
+    mk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
+    const t = mk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+    t.textContent = txt;
+    g.text = t;
+    fitFrame(g.firstChild, t);
+    return g;
+  }
+  const BC = { c0: 20, v33: 20, g7: 26, g15: 27, gnd: 41, sw: 10, node: 12, pu: 16, r3: 8, an: 4, ca: 3, rcNode: 16, rcPu: 19, rcGnd: 15 };
+  function bench(svg, { nets = false, rc = false, pull = true, r2 = 100, label = '' } = {}) {
+    const C = BC, node = rc ? C.rcNode : C.node, pu = rc ? C.rcPu : C.pu;
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const H = (c, r) => bb.hole(c, r);
+    const strips = mk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(C.c0, 'i');
+    const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
+    const out = { bb, esp, wire: {} };
+    const strip = (net, cls, c, half) => {
+      if (!nets) return;
+      const a = H(c, half === 'top' ? 'a' : 'f');
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls, side, sign) => {
+      if (!nets) return;
+      const a = bb.rail(side, sign, 1), b = bb.rail(side, sign, 63);
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    const r1 = H(node, 'h');
+    if (pull) out.r1 = K.part('resistor', { parent: svg, ohms: 10000, x: r1.x, y: r1.y, span: pu - node, title: `R1 10 кОм (коричневий-чорний-помаранчевий): h${node} і h${pu}` });
+    const r3 = H(C.an, 'h');
+    out.r3 = K.part('resistor', { parent: svg, ohms: 220, x: r3.x, y: r3.y, title: `R3 220 Ом (червоний-червоний-коричневий): h${C.an} і h${C.r3}` });
+    const la = H(C.an, 'f');
+    out.led = K.part('led', { parent: svg, color: 'red', x: la.x, y: la.y, leg: 40, mirror: true, title: `Світлодіод LED1: анод f${C.an}, катод f${C.ca}` });
+    const yL = bb.size.h + 32;
+    out.yL = yL;
+    pill(svg, (H(C.ca, 'a').x + H(C.an, 'a').x) / 2, yL, 'LED1', 80);
+    const e = H(C.sw, 'e');
+    out.btn = K.part('button', { parent: svg, x: e.x, y: e.y, title: `Тактова кнопка: ніжки в стовпчиках ${C.sw} і ${C.node}` });
+    pill(svg, H(C.sw, 'c').x + KP, yL, label || 'SW1', 64);
+    if (rc) {
+      const g = H(C.node, 'g');
+      out.r2 = K.part('resistor', { parent: svg, ohms: r2, x: g.x, y: g.y, span: C.rcNode - C.node, title: `R2 ${r2} Ом: g${C.node} і g${C.rcNode}` });
+      const f = H(C.rcGnd, 'f');
+      out.c1 = K.part('cap-ceramic', { parent: svg, code: '104', x: f.x, y: f.y, title: `C1 100 нФ (напис 104): f${C.rcGnd} і f${C.rcNode}` });
+      pill(svg, H(C.rcNode - 0.5, 'a').x, yL, 'R2 · C1', 110);
+    }
+    rail('gnd', 'net-gnd', 'bottom', '-');
+    strip('v33', 'net-3v3', C.v33, 'bottom'); strip('v33', 'net-3v3', pu, 'bottom');
+    strip('gpio7', 'net-sig', node, 'bottom'); strip('gpio7', 'net-sig', C.g7, 'bottom');
+    if (rc) { strip('sw_n', 'net-sig3', C.node, 'top'); strip('sw_n', 'net-sig3', C.node, 'bottom'); strip('gnd', 'net-gnd', C.rcGnd, 'bottom'); }
+    else strip('gpio7', 'net-sig', C.node, 'top');
+    strip('gnd', 'net-gnd', C.sw, 'top'); strip('gnd', 'net-gnd', C.sw, 'bottom'); strip('gnd', 'net-gnd', C.gnd, 'bottom');
+    strip('gpio15', 'net-sig2', C.r3, 'bottom'); strip('gpio15', 'net-sig2', C.g15, 'bottom');
+    strip('led_a', 'net-sig3', C.an, 'bottom'); strip('gnd', 'net-gnd', C.ca, 'bottom');
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`; }
+      return g;
+    };
+    const J = (c) => bb.at('j' + c);
+    const lane = J(1).y + KP * 1.15, edge = J(1).y + KP * 4.67;
+    const U = (from, to, y) => { const a = J(from), b = J(to); return [a, { x: a.x, y }, { x: b.x, y }, b]; };
+    if (pull) out.wire.v33 = w([J(C.v33), J(pu)], 'orange', 'v33', 'net-3v3');
+    out.wire.g7 = w(U(C.g7, node, lane), 'yellow', 'gpio7', 'net-sig');
+    out.wire.g15 = w(U(C.g15, C.r3, edge), 'green', 'gpio15', 'net-sig2');
+    out.wire.sw = w([J(C.sw), bb.at('bottom-' + C.sw)], 'black', 'gnd', 'net-gnd');
+    out.wire.ca = w([J(C.ca), bb.at('bottom-' + C.ca)], 'black', 'gnd', 'net-gnd');
+    out.wire.gnd = w([J(C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd');
+    if (rc) out.wire.c1 = w([J(C.rcGnd), bb.at('bottom-' + C.rcGnd)], 'black', 'gnd', 'net-gnd');
+    out.wire.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');
+    const x0 = 0, x1 = H(C.gnd + 3, 'a').x;
+    svg.setAttribute('viewBox', `${x0 - 20} -20 ${x1 - x0 + 20} ${bb.size.h + 70}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
+  /* ================================================================ 08 dual figure */
+  const kbA = bench($('#bb-db'), { nets: true });
+  const kbB = bench($('#bb-dbrc'), { nets: true, rc: true });
+  const lvlA = pill($('#bb-db'), kbA.bb.hole(BC.node + 3.5, 'c').x, kbA.yL, 'HIGH', 84, 'lvl');
+  const lvlB = pill($('#bb-dbrc'), kbB.bb.hole(BC.rcNode + 5, 'c').x, kbB.yL, 'HIGH', 84, 'lvl');
+  let ledOn = false, swDown = false, withRc = false;
+  const badge = () => setTxt($('#sw-badge'), swDown
+    ? (withRc ? 'C1 розряджається через R2 за ≈ 10 мкс: GPIO7 = LOW' : 'GPIO7 = LOW: кнопка натиснута')
+    : (withRc ? 'C1 заряджається через R1: HIGH через ≈ 1,4 мс' : 'GPIO7 = HIGH: кнопка відпущена'));
+  function setSw(down) {
+    if (down === swDown) return;
+    swDown = down;
+    const lv = down ? 'LOW' : 'HIGH';
+    [kbA, kbB].forEach((k) => k.btn.set({ pressed: down }));
+    [lvlA, lvlB].forEach((p) => { p.text.textContent = lv; fitFrame(p.firstChild, p.text); });
+    setTxt($('#lvl7'), lv);
+    if (down) { ledOn = !ledOn; [kbA, kbB].forEach((k) => k.led.set({ on: ledOn ? 1 : 0 })); const sl = $('#sch-led'); if (sl) sl.style.color = ledOn ? 'var(--bad)' : ''; }
+    badge();
+  }
+  $$('#sw-seg button').forEach((b) => b.addEventListener('click', () => {
+    $$('#sw-seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    setSw(b.dataset.s === 'down');
+  }));
+  $$('#rc-seg button').forEach((b) => b.addEventListener('click', () => {
+    withRc = b.dataset.v === 'rc';
+    $$('#rc-seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#bb-plain').hidden = withRc; $('#bb-rc').hidden = !withRc;
+    $('#sch-plain').classList.toggle('off', withRc); $('#sch-rc').classList.toggle('off', !withRc);
+    badge();
+  }));
+
+  /* cite links point into the collapsed source list: open it first */
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    const d = el && el.closest('details');
+    if (d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', openTarget);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a[href^="#src-"]');
+    if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
+  });
+  openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-db): the bench of section 08 + the firmware; exactly one fault per case.
+     Lines of code and Kit parts/wires with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  {
+    const hkEsc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rem = (t) => `<span class="rem">${hkEsc(t)}</span>`;
+    const hkCode = (stage, file, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = `<div class="hk-h">${file}</div><pre>` + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, { label: 'S1', ...opts });
+    };
+    const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+    const OK = 'Макетка як у розділі 08: плата в макетці; кнопка S1 через канавку між вузлом GPIO7 (жовтий дріт) і шиною мінус; R1 10 кОм підтягує вузол до 3V3 (помаранчевий дріт); LED на GPIO15 (зелений дріт) через 220 Ом, катод на шині мінус.';
+    const RCB = (r) => `Макетка з RC-фільтром, як у розділі 08: вузол кнопки в стовпчику 16 (жовтий дріт від GPIO7), R1 10 кОм до 3V3, R2 ${r} від кнопки до вузла, C1 100 нФ (104) від вузла до шини мінус; LED на GPIO15 через 220 Ом.`;
+    Study.hunt($('#hunt-db'), { key: '2-6', cases: [
+      { title: 'Друге спрацювання',
+        symptom: 'Короткі кліки рахуються чесно. Але коли кнопку затримати на секунду, лічильник інколи додає 2, і друге +1 приходить саме в момент відпускання.',
+        build(st) {
+          const kb = hkBench(st, OK);
+          hkTag(kb.r1, 2);
+          hkCode(st, 'src/time.c', ['while (1) {', '    xQueueReceive(edges, &amp;t, portMAX_DELAY);', ['    bool ok = t - last &gt;= DEBOUNCE_US;', 0], '    last = t;', ['    if (!ok) continue;', 0], ['    accepted++;', 1], '}']);
+        },
+        options: ['Рішення приймає лише час, а фронт відпускання приходить пізніше за вікно',
+          'Лічильник <code>accepted</code> треба робити <code>volatile</code>',
+          'R1 10 кОм заслабкий для кнопки'],
+        answer: 0,
+        explain: 'Спадаючий фронт із брязкоту відпускання приходить через секунду після натискання, тож фільтр вважає його новою подією. Збільшувати вікно до секунди не можна. Потрібно перевіряти рівень: через вікно після події кнопка має бути досі натиснута, як у завданні 3. <code>accepted</code> змінює лише одна задача, тому <code>volatile</code> тут ні до чого.' },
+      { title: 'Тік 10 мс',
+        symptom: 'Чистий проєкт ESP-IDF без <code>sdkconfig.defaults</code>. Кнопка працює, але кожні 5&nbsp;с у лозі <code>task_wdt: Task watchdog got triggered</code>, а причина — <code>IDLE0</code>.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', ['void app_main(void) {', ['    gpio_config(&amp;button);', 1], '    while (1) {', ['        bool down = gpio_get_level(BUTTON) == 0;', 2], '        ' + rem('// ... машина станів ...'), ['        vTaskDelay(pdMS_TO_TICKS(5));', 0], '    }', '}']);
+        },
+        options: ['За тіку 10&nbsp;мс <code>pdMS_TO_TICKS(5)</code> дорівнює 0: задача не засинає',
+          '<code>gpio_config()</code> не можна викликати з <code>app_main()</code>',
+          '<code>gpio_get_level()</code> блокує задачу на 5&nbsp;с'],
+        answer: 0,
+        explain: 'Стандартний тік ESP-IDF — 10&nbsp;мс, а <code>pdMS_TO_TICKS(5)</code> ділить націло: 5 × 100 / 1000 = 0. <code>vTaskDelay(0)</code> не засинає, <code>app_main()</code> має вищий пріоритет за idle-задачу, тож idle не отримує часу, і сторож скаржиться<sup class="cite" data-fact="idf-task-wdt-defaults"></sup>. Рішення: <code>CONFIG_FREERTOS_HZ=1000</code> або затримка щонайменше на один тік.' },
+      { title: 'ISR мовчить',
+        symptom: 'Збирається без помилок, кнопка справна, на GPIO7 рівень падає. Але обробник не викликається жодного разу, а на старті в лозі <code>GPIO isr service is not installed</code>.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/raw.c', ['void app_main(void) {', ['    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON,', 1], ['        .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_NEGEDGE};', 1], '    gpio_config(&amp;button);', ['    gpio_isr_handler_add(BUTTON, on_fall, NULL);', 0], '    while (1) vTaskDelay(pdMS_TO_TICKS(10));', '}']);
+        },
+        options: ['Немає <code>gpio_install_isr_service(0)</code> перед <code>gpio_isr_handler_add()</code>',
+          '<code>GPIO_INTR_NEGEDGE</code> треба замінити на <code>GPIO_INTR_POSEDGE</code>',
+          'Задача не може спати, поки чекає на переривання'],
+        answer: 0,
+        explain: 'В Arduino <code>attachInterrupt()</code> робить обидва кроки сам. В ESP-IDF спершу встановлюємо сервіс переривань GPIO, потім додаємо обробник на вивід. Без сервісу <code>gpio_isr_handler_add()</code> повертає <code>ESP_ERR_INVALID_STATE</code><sup class="cite" data-fact="idf-gpio-isr-service"></sup>. Сон задачі перериванням не заважає: саме так вони й мають жити.' },
+      { title: 'Кнопка перестала працювати',
+        symptom: 'Після того як додали RC, кнопка не реагує взагалі. Мультиметр на вузлі: при відпущеній кнопці 3,3&nbsp;В, при натиснутій близько 1,1&nbsp;В.',
+        build(st) {
+          const kb = hkBench(st, RCB('4,7 кОм'), { rc: true, r2: 4700 });
+          hkTag(kb.r2, 0); hkTag(kb.c1, 1); hkTag(kb.r1, 2);
+        },
+        options: ['R2 4,7&nbsp;кОм замість 100&nbsp;Ом: подільник не пускає вузол нижче порогу LOW',
+          'C1 вставлено не тією стороною',
+          'R1 10 кОм має стояти між кнопкою і GND'],
+        answer: 0,
+        explain: 'При натиснутій кнопці R1 і R2 утворюють подільник: 3,3&nbsp;В × 4,7 / 14,7 ≈ 1,05&nbsp;В. Це вище за 0,25·VDD ≈ 0,83&nbsp;В<sup class="cite" data-fact="s3-vil"></sup>, тож LOW не гарантований. Смужки на резисторі: жовтий-фіолетовий-червоний замість коричневий-чорний-коричневий. У керамічного конденсатора полярності немає.' },
+      { title: 'Вузол без підтяжки',
+        symptom: 'Зібрано за схемою з тексту уроку: кнопка, резистор, конденсатор. Вхід увесь час читається як LOW, натискань не видно, а мультиметр на вузлі показує близько 0&nbsp;В, хоч кнопка відпущена.',
+        build(st) {
+          const kb = hkBench(st, 'Макетка: кнопка S1, R2 1 кОм від кнопки до вузла GPIO7 у стовпчику 16, C1 100 нФ від вузла до шини мінус; резистора R1 і помаранчевого дроту до 3V3 немає; LED на GPIO15 через 220 Ом.', { rc: true, pull: false, r2: 1000 });
+          hkTag(kb.c1, 1); hkTag(kb.r2, 2);
+          hkCode(st, 'src/raw.c', [['    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON,', 0], ['        .mode = GPIO_MODE_INPUT, .intr_type = GPIO_INTR_NEGEDGE};', 0], '    gpio_config(&amp;button);']);
+        },
+        options: ['Немає підтяжки: ні R1, ні внутрішньої, тож C1 нічому заряджати',
+          'C1 100&nbsp;нФ замалий, потрібно 100&nbsp;мкФ',
+          'R2 має стояти між вузлом і GND'],
+        answer: 0,
+        explain: 'Конденсатор заряджати нічому: <code>gpio_config_t</code> з нулями вимикає внутрішню підтяжку, а зовнішньої немає. Вузол не повертається в HIGH, отже, спадаючому фронту нізвідки взятися. На схемі в LMS саме так<sup class="cite" data-fact="lms-err-2-6-rc-pullup"></sup>. Поверніть R1 10&nbsp;кОм до 3V3.' },
+    ] });
+  }
+});
+</script>
+</body>
+</html>

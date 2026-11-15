@@ -29,7 +29,7 @@
     lmsBase: 'https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/',
     repo: 'https://github.com/grok-rs/platformio-projects',
     site: 'https://grok-rs.github.io/platformio-projects/',
-    verified: '2026-10-24',
+    verified: '2026-11-04',
     exitTicketUrl: null, // [ВИКЛАДАЧ] optional Google Form URL for exit tickets
     giscus: { repo: 'grok-rs/platformio-projects', repoId: 'R_kgDOUZinEw', category: 'Уроки', categoryId: 'DIC_kwDOUZinE84DJhi6' }, // [ВЛАСНИК]
 
@@ -79,8 +79,12 @@
           { cards: 28, quiz: 11, deep: [D('bounce-lab', 'Лаба: що бачить ISR', 'mcu'), D('bounce-bench', 'Наші дані: що бачить переривання', 'isr'),
                    D('scope-signals', 'Осцилограф: брязкіт і аналізатор', 'bounce')],
             repo: ['esp32-s3-bounce-test', 'esp32-s3-embedded-cpp'], challenge: 'Аварійна кнопка' }),
-        L('2-5', '2.5', 'Таймери', 'Таймери', '2026-10-31', null, 'planned'),
-        L('2-6', '2.6', 'Debounce', 'Debounce', '2026-11-02', null, 'planned'),
+        L('2-5', '2.5', 'Таймери: як MCU точно відміряє час', 'Таймери', '2026-10-31', 'cmruq1s90aopq0813bx3cp5ru', 'ready',
+          { cards: 26, quiz: 12, repo: ['esp32-s3-vent-timer', 'esp32-s3-three-rhythms'], challenge: 'Гонка годинників' }),
+        L('2-6', '2.6', 'Debounce: надійний ввід', 'Debounce', '2026-11-02', 'cmruq1s95aopu0813pyn92fis', 'ready',
+          { cards: 25, quiz: 12, deep: [D('bounce-bench', 'Наші дані: 190 подій брязкоту'), D('bounce-lab', 'Лаба: брязкіт'),
+                   D('scope-signals', 'Осцилограф: брязкіт і аналізатор', 'bounce')],
+            repo: ['esp32-s3-debounce-idf', 'esp32-s3-bounce-test'], challenge: 'Одна кнопка, три жести' }),
         L('mp2', 'МП2', 'Міні-проєкт 2', 'Міні-проєкт 2', '2026-11-04', null, 'planned'),
         L('mp2-review', 'МП2', 'Розбір міні-проєкту 2', 'Розбір', '2026-11-07', null, 'planned'),
         L('flex2', '—', 'Гнучкий слот', 'Гнучкий слот', '2026-11-09', null, 'planned', { nav: false }),
@@ -157,9 +161,9 @@
     deepPages: {
       'pull-resistors': { lesson: '1-4', lessons: ['1-4'], title: 'Підтяжка входу', short: 'Підтяжка' },
       'lab': { lesson: '1-4', lessons: ['1-4', '1-3', '2-3'], title: 'Стенд ESP32-S3', short: 'Стенд' },
-      'scope-signals': { lesson: '1-5', lessons: ['1-5', '2-4'], title: 'Осцилограф і кнопка', short: 'Осцилограф' },
-      'bounce-lab': { lesson: '1-5', lessons: ['1-5', '2-4'], title: 'Лабораторія брязкоту', short: 'Лаба: брязкіт' },
-      'bounce-bench': { lesson: '1-5', lessons: ['1-5', '2-4'], title: 'Брязкіт на стенді', short: 'Брязкіт на стенді' },
+      'scope-signals': { lesson: '1-5', lessons: ['1-5', '2-4', '2-6'], title: 'Осцилограф і кнопка', short: 'Осцилограф' },
+      'bounce-lab': { lesson: '1-5', lessons: ['1-5', '2-4', '2-6'], title: 'Лабораторія брязкоту', short: 'Лаба: брязкіт' },
+      'bounce-bench': { lesson: '1-5', lessons: ['1-5', '2-4', '2-6'], title: 'Брязкіт на стенді', short: 'Брязкіт на стенді' },
       'adc-light': { lesson: '1-6', lessons: ['1-6'], title: 'АЦП і світло', short: 'Теорія: АЦП' },
       'ldr-lab': { lesson: '1-6', lessons: ['1-6'], title: 'Люксметр на ESP32-S3', short: 'Лаба: люксметр' },
       'twilight-relay': { lesson: 'mp1', lessons: ['mp1', '2-2'], title: 'Сутінковий перемикач', short: 'Перемикач' },
@@ -188,6 +192,10 @@
         desc: 'Blink без delay(), класи без купи й глобальних змінних, час проходу суперциклу, кнопка на перериванні, тести на ПК.' },
       { folder: 'esp32-s3-bright-module', title: 'ТЗ-A «Яскравий модуль»', lessons: ['2-2'],
         desc: 'Транзисторний ключ 2N2222 від живлення MB-102, ШІМ з чотирма рівнями й кнопкою, порівняння з програмним ШІМ.' },
+      { folder: 'esp32-s3-vent-timer', title: 'Витяжний вентилятор', lessons: ['2-5'],
+        desc: 'ESP-IDF: цикл 1 година / 15 хвилин веде апаратний gptimer, перемикає сам обробник, app_main() лише друкує стан і годує сторожа.' },
+      { folder: 'esp32-s3-debounce-idf', title: 'Debounce на ESP-IDF', lessons: ['2-4', '2-6'],
+        desc: 'Завдання 2.4 на ESP-IDF: сирі переривання, debounce за часом, за рівнем, опитування з машиною станів і RC-фільтр.' },
     ],
   };
 })();

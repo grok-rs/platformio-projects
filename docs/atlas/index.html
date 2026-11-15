@@ -239,7 +239,7 @@
       <div class="fchips" role="group" aria-label="Тип деталі"><button type="button" class="fchip" data-cat="all" aria-pressed="true">Усі</button><button type="button" class="fchip" data-cat="pass" aria-pressed="false">Пасивні</button><button type="button" class="fchip" data-cat="semi" aria-pressed="false">Напівпровідники</button><button type="button" class="fchip" data-cat="mech" aria-pressed="false">Кнопки й реле</button><button type="button" class="fchip" data-cat="proto" aria-pressed="false">Макетування й живлення</button><button type="button" class="fchip" data-cat="tools" aria-pressed="false">Прилади</button></div>
       <div class="ftools">
         <label class="ctl fcheck"><input type="checkbox" id="f-pol"> лише полярні</label>
-        <label class="ctl"><span>урок</span> <select id="f-les"><option value="">усі уроки</option><option value="1-1">1.1 Мультиметр</option><option value="1-2">1.2 Резистор для LED</option><option value="1-3">1.3 Blink</option><option value="1-4">1.4 GPIO</option><option value="1-5">1.5 Сигнали</option><option value="1-6">1.6 АЦП</option><option value="mp1">МП1 Перемикач</option><option value="2-1">2.1 C++</option><option value="2-2">2.2 Навантаження</option><option value="2-3">2.3 Суперцикл</option><option value="2-4">2.4 Переривання</option></select></label>
+        <label class="ctl"><span>урок</span> <select id="f-les"><option value="">усі уроки</option><option value="1-1">1.1 Мультиметр</option><option value="1-2">1.2 Резистор для LED</option><option value="1-3">1.3 Blink</option><option value="1-4">1.4 GPIO</option><option value="1-5">1.5 Сигнали</option><option value="1-6">1.6 АЦП</option><option value="mp1">МП1 Перемикач</option><option value="2-1">2.1 C++</option><option value="2-2">2.2 Навантаження</option><option value="2-3">2.3 Суперцикл</option><option value="2-4">2.4 Переривання</option><option value="2-5">2.5 Таймери</option><option value="2-6">2.6 Debounce</option></select></label>
         <label class="ctl fcheck"><input type="checkbox" id="f-open"> розгорнути всі</label>
         <label class="ctl fcheck"><input type="checkbox" id="f-recall"> сховати назви (самоперевірка)</label>
         <button type="button" class="btn sm" id="f-print">Друкувати вибране (A6, 4 на аркуш)</button>
@@ -247,7 +247,7 @@
       <p class="fcount" aria-live="polite">Показано <b id="f-count">16 з 16</b></p>
     </div>
     <div class="atl-grid wide" id="atl-grid">
-    <article class="atl" id="resistor" data-cat="pass" data-pol="0" data-lessons="1-1 1-2 1-6 2-2">
+    <article class="atl" id="resistor" data-cat="pass" data-pol="0" data-lessons="1-1 1-2 1-6 2-2 2-6">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">R</span>
         <div class="atl-title"><h3 class="atl-name">Резистор</h3><p class="atl-en" lang="en">resistor · вивідний, 5 смуг</p></div>
@@ -332,7 +332,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/1-3/">1.3 Blink</a><a class="chip" href="../lessons/1-4/">1.4 GPIO</a></p>
     </article>
-    <article class="atl" id="button" data-cat="mech" data-pol="0" data-lessons="1-4 1-5 2-3 2-4">
+    <article class="atl" id="button" data-cat="mech" data-pol="0" data-lessons="1-4 1-5 2-3 2-4 2-6">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">SW</span>
         <div class="atl-title"><h3 class="atl-name">Тактова кнопка</h3><p class="atl-en" lang="en">tactile switch · 6×6 мм</p></div>
@@ -415,7 +415,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/mp1/">МП1 Перемикач</a></p>
     </article>
-    <article class="atl" id="cap-ceramic" data-cat="pass" data-pol="0" data-lessons="1-5 2-2">
+    <article class="atl" id="cap-ceramic" data-cat="pass" data-pol="0" data-lessons="1-5 2-2 2-6">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">C</span>
         <div class="atl-title"><h3 class="atl-name">Керамічний конденсатор</h3><p class="atl-en" lang="en">ceramic capacitor · «104»</p></div>
@@ -491,7 +491,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
     </article>
-    <article class="atl" id="diodes" data-cat="semi" data-pol="1" data-lessons="2-2 mp1">
+    <article class="atl" id="diodes" data-cat="semi" data-pol="1" data-lessons="2-2 mp1 2-5">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">D</span>
         <div class="atl-title"><h3 class="atl-name">Діод 1N4148 / 1N4007</h3><p class="atl-en" lang="en">diode · сигнальний / випрямний</p></div>
@@ -533,7 +533,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/2-2/">2.2 Навантаження</a><a class="chip" href="../lessons/mp1/">МП1 Перемикач</a></p>
     </article>
-    <article class="atl" id="npn-transistor" data-cat="semi" data-pol="1" data-lessons="mp1 2-2">
+    <article class="atl" id="npn-transistor" data-cat="semi" data-pol="1" data-lessons="mp1 2-2 2-5">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">Q</span>
         <div class="atl-title"><h3 class="atl-name">NPN-транзистор BC547 / 2N2222</h3><p class="atl-en" lang="en">NPN BJT · TO-92</p></div>
@@ -624,7 +624,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
     </article>
-    <article class="atl" id="relay-module" data-cat="mech" data-pol="1" data-lessons="mp1 2-2">
+    <article class="atl" id="relay-module" data-cat="mech" data-pol="1" data-lessons="mp1 2-2 2-5">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">K</span>
         <div class="atl-title"><h3 class="atl-name">Модуль реле 5 В</h3><p class="atl-en" lang="en">relay module · SRD-05VDC-SL-C</p></div>
@@ -798,7 +798,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-1/">1.1 Мультиметр</a><a class="chip" href="../lessons/1-2/">1.2 Резистор для LED</a><a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/2-2/">2.2 Навантаження</a></p>
     </article>
-    <article class="atl" id="esp32-board" data-cat="proto" data-pol="1" data-lessons="1-3 1-4 1-5 1-6 mp1 2-1 2-3 2-4">
+    <article class="atl" id="esp32-board" data-cat="proto" data-pol="1" data-lessons="1-3 1-4 1-5 1-6 mp1 2-1 2-3 2-4 2-5 2-6">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">U</span>
         <div class="atl-title"><h3 class="atl-name">Плата YD-ESP32-S3 N16R8</h3><p class="atl-en" lang="en">ESP32-S3 dev board</p></div>
@@ -839,7 +839,7 @@
       </details>
       <p class="atl-les"><span class="k">Уроки:</span> <a class="chip" href="../lessons/1-3/">1.3 Blink</a><a class="chip" href="../lessons/1-4/">1.4 GPIO</a><a class="chip" href="../lessons/1-5/">1.5 Сигнали</a><a class="chip" href="../lessons/1-6/">1.6 АЦП</a><a class="chip" href="../lessons/mp1/">МП1 Перемикач</a><a class="chip" href="../lessons/2-1/">2.1 C++</a><a class="chip" href="../lessons/2-3/">2.3 Суперцикл</a><a class="chip" href="../lessons/2-4/">2.4 Переривання</a></p>
     </article>
-    <article class="atl" id="logic-analyzer" data-cat="tools" data-pol="1" data-lessons="1-5 2-4">
+    <article class="atl" id="logic-analyzer" data-cat="tools" data-pol="1" data-lessons="1-5 2-4 2-6">
       <header class="atl-h">
         <span class="atl-ref" aria-label="Позначення на схемі">—</span>
         <div class="atl-title"><h3 class="atl-name">Логічний аналізатор</h3><p class="atl-en" lang="en">logic analyzer · 8 каналів, FX2</p></div>

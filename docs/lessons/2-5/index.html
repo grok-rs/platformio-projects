@@ -1,0 +1,1673 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 2.5 · Таймери</title>
+<meta name="description" content="Апаратний таймер ESP32-S3: такти, дільник, лічильник, будильник і автоперезавантаження; дрейф millis(), прапорець чи дія в обробнику, сторожовий таймер і вентилятор, що щогодини вмикається сам.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-b { fill: var(--ink); font: 600 14px var(--f-body); }
+.idea figure .svg-t, .idea figure .svg-m { font-size: 15px; }
+.idea figure .svg-b { font-size: 16px; }
+#why figure .svg-t, #why figure .svg-m { font-size: 15px; }
+.ctl-grid { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); margin: 4px 0 10px; }
+@media (min-width: 640px) { .ctl-grid { grid-template-columns: 1fr 1fr; } }
+.ctl-grid label { display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+.ctl-grid label b { color: var(--ink); font: 600 15px var(--f-mono); }
+.ctl-grid input[type="range"] { width: 100%; }
+.wcanvas { display: block; width: 100%; height: 250px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.readout { display: grid; gap: 6px; margin: 10px 0 0; font-size: 15px; }
+.readout b { font: 600 16px var(--f-mono); }
+.cnt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+@media (min-width: 640px) { .cnt { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cnt div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); min-width: 0; }
+.cnt span { display: block; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.cnt b { font: 600 22px var(--f-mono); }
+.cnt .ok b { color: var(--ok); } .cnt .bad b { color: var(--bad); }
+.code2 { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .code2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.code2 h4 { margin: 0 0 6px; font-size: 15px; }
+.code2 pre { margin: 0; font-size: 13px; }
+pre.code { font-size: 13px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.fixlist li { margin: 6px 0; }
+.tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl-wrap { overflow-x: auto; }
+
+/* ---------- lab «таймер зсередини» (#tm) ---------- */
+.tm-chain { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 0 10px; padding: 0; list-style: none; }
+.tm-chain > li { position: relative; min-width: 0; display: grid; align-content: start; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.tm-chain > li.tm-wide { grid-column: 1 / -1; }
+.tm-k { font: 600 13px var(--f-body); color: var(--muted); }
+.tm-v { font: 650 19px/1.25 var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tm-s { font: 500 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tm-bar { height: 8px; margin: 3px 0 1px; border-radius: 4px; background: var(--sunk); overflow: hidden; }
+.tm-bar > span { display: block; height: 100%; width: 0; background: var(--accent); }
+#tm-isr.fire { border-color: var(--hi); background: color-mix(in srgb, var(--hi) 22%, var(--panel)); }
+.tm-led { display: inline-block; width: 13px; height: 13px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; background: var(--sunk); box-shadow: 0 0 0 1px var(--line-strong); }
+.tm-led.on { background: var(--hi); box-shadow: 0 0 0 1px var(--hi), 0 0 8px var(--hi); }
+@media (min-width: 760px) {
+  .tm-chain { grid-template-columns: .8fr .9fr 1.5fr 1fr .9fr; gap: 20px; }
+  .tm-chain > li.tm-wide { grid-column: auto; }
+  .tm-chain > li + li::before { content: "→"; position: absolute; left: -17px; top: 50%; transform: translateY(-50%); color: var(--muted); font: 600 15px var(--f-mono); }
+}
+.tm-cv { display: block; width: 100%; height: 190px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.tm-num { display: inline-flex; align-items: center; gap: 8px; font: 600 14px var(--f-body); }
+.tm-num input { width: 9.2em; min-height: 42px; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); }
+#tm-alarm { width: 11.5em; }
+.tm-err { color: var(--bad); font-weight: 600; }
+.tm-codebox { margin: 0; padding: 10px 18px 12px; border-top: 1px solid var(--line); }
+.tm-codebox pre { margin: 0; font-size: 13px; }
+.tm-speed { font: 500 13px var(--f-mono); color: var(--muted); }
+
+/* ---------- ideas ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 8px; }
+.idea-ctl .seg button { font-size: 14px; }
+.idea-out { margin: 8px 0 0; font-size: 15px; }
+.idea-out.small { font-size: 14px; color: var(--muted); }
+
+/* ---------- three clocks ---------- */
+.ck-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.ck-legend i { display: inline-block; width: 22px; margin-right: 6px; border-top: 3px solid var(--c); vertical-align: 4px; }
+.ck-legend i.dash { border-top-style: dashed; }
+
+/* ---------- fan timelapse ---------- */
+.fan-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: center; }
+@media (min-width: 720px) { .fan-grid { grid-template-columns: 240px minmax(0, 1fr); } }
+.fan-dial { display: block; width: 100%; max-width: 240px; height: auto; margin-inline: auto; }
+.fan-dial .d-track { fill: none; stroke: var(--sunk); stroke-width: 18; }
+.fan-dial .d-on { fill: none; stroke: var(--accent); stroke-width: 18; }
+.fan-dial .d-ptr { fill: var(--ink); stroke: var(--sheet); stroke-width: 3; }
+.fan-dial .d-big { fill: var(--ink); font: 700 19px var(--f-body); text-anchor: middle; }
+.fan-dial .d-sm { fill: var(--muted); font: 500 14px var(--f-mono); text-anchor: middle; }
+#fan-kit { display: block; width: 100%; height: auto; max-width: 620px; margin-inline: auto; }
+.fan-side { display: grid; gap: 8px; min-width: 0; }
+.fan-chips { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font-size: 15px; }
+.fan-chips i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; background: var(--sunk); box-shadow: 0 0 0 1px var(--line-strong); }
+.fan-chips i.r.on { background: #e8262a; box-shadow: 0 0 7px #e8262a; }
+.fan-chips i.g.on { background: #2fa84f; box-shadow: 0 0 7px #2fa84f; }
+pre.fan-log { margin: 10px 0 0; min-height: 7.6em; max-height: 9.5em; overflow: auto; padding: 8px 12px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fan-log .mute { color: var(--muted); }
+
+/* ---------- watchdog ---------- */
+.wd-grid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .wd-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.wd-grid > div { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.wd-grid b { display: block; font: 600 18px var(--f-mono); overflow-wrap: anywhere; }
+.wd-grid span { font-size: 13px; color: var(--muted); }
+.wd-grid .bad b { color: var(--bad); } .wd-grid .ok b { color: var(--ok); }
+.wd-bar { height: 10px; margin: 10px 0 0; border-radius: 5px; background: var(--sunk); overflow: hidden; }
+.wd-bar > span { display: block; height: 100%; width: 100%; background: var(--ok); }
+.wd-bar.low > span { background: var(--bad); }
+.wd-stage.boot .wd-grid { opacity: .4; }
+
+/* ---------- breadboard + hunt ---------- */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 30px var(--f-body); }
+.kit-bench .kb-pill.lvl text { font-family: var(--f-mono); }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+.kb-edge { fill: none; stroke: var(--line-strong); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.kb-halo { fill: none; stroke: currentColor; stroke-width: 26; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.kit-wire.net-on .kb-halo { opacity: .45; }
+figure.dual#dual-vent { grid-template-columns: minmax(0, 1fr); }
+#dual-vent [data-view="sch"] svg { max-width: 640px; margin-inline: auto; }
+#bb-vent { width: 100%; max-width: none; max-height: none; }
+.st-badge { display: inline-block; font: 600 14px var(--f-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+.st-badge.fire { border-color: var(--hi); color: var(--hi-ink); }
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: 100%; overflow-x: auto; font-size: 13px; line-height: 1.55; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--hi) 16%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+</style>
+</head>
+<body data-lesson="2-5">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:2-5">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 2 · Урок 2.5 · сб 31.10</p>
+    <h1>Таймери: <span>час, що не залежить від коду</span></h1>
+    <p class="lead">Окрема схема в чипі рахує такти сама, хоч би чим був зайнятий loop(). Налаштуємо її, зробимо вентилятор, що щогодини вмикається без участі програми, і поставимо сторожа від зависань.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 30 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: реле, BC547B, 2 LED, кнопка, мотор або LED</a></li>
+      <li><a class="chip" href="../2-4/">Спершу: урок 2.4 · переривання</a></li>
+      <li><a class="chip" href="../2-3/">Згадати: урок 2.3 · millis()</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ lab: inside the timer (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="tm" aria-labelledby="tm-h">
+    <header class="lab-head"><h2 id="tm-h">Лабораторія · таймер зсередини</h2><p>Такти йдуть зліва направо: дільник пропускає кожен N-й, лічильник рахує, будильник кличе обробник. Міняйте числа й дивіться, що виходить.</p></header>
+    <div class="lab-stage" id="tm-stage">
+      <ul class="tm-chain" aria-label="Шлях сигналу в таймері">
+        <li><span class="tm-k">Такти APB</span><span class="tm-v">80 МГц</span><span class="tm-s">12,5 нс на такт</span></li>
+        <li><span class="tm-k">Дільник</span><span class="tm-v" id="tm-dv">÷ 80</span><span class="tm-s" id="tm-ds">кожен 80-й такт</span></li>
+        <li class="tm-wide"><span class="tm-k">Лічильник, 54 біти</span><span class="tm-v" id="tm-count">0</span><span class="tm-bar" aria-hidden="true"><span id="tm-bar"></span></span></li>
+        <li><span class="tm-k">Будильник</span><span class="tm-v" id="tm-al">1 000 000</span><span class="tm-s" id="tm-as">тіків</span></li>
+        <li id="tm-isr"><span class="tm-k">Обробник onTick()</span><span class="tm-v" id="tm-isrn">× 0</span><span class="tm-s"><i class="tm-led" id="tm-led"></i>LED</span></li>
+      </ul>
+      <canvas id="tm-cv" class="tm-cv" width="900" height="190" role="img" aria-label="Графік за часом: лічильник росте до будильника й скидається на нуль, у момент будильника спрацьовує обробник, а вивід LED під графіком перемикається на кожне спрацювання. Новіше праворуч."></canvas>
+    </div>
+    <div class="lab-ctl">
+      <label class="tm-num">Дільник <input type="number" id="tm-div" min="2" max="65535" step="1" value="80" inputmode="numeric" aria-label="Дільник, від 2 до 65535"></label>
+      <div class="seg" role="group" aria-label="Швидкий вибір дільника" id="tm-divs">
+        <button type="button" data-d="80" aria-pressed="true">80</button>
+        <button type="button" data-d="800" aria-pressed="false">800</button>
+        <button type="button" data-d="8000" aria-pressed="false">8000</button>
+      </div>
+      <label class="tm-num">Будильник, тіків <input type="number" id="tm-alarm" min="1" step="1" value="1000000" inputmode="numeric" aria-label="Значення будильника в тіках"></label>
+      <button type="button" class="sw" id="tm-reload" aria-checked="true">Автоперезавантаження</button>
+      <button type="button" class="btn ghost sm" id="tm-play">❚❚ Пауза</button>
+      <span class="tm-speed" id="tm-speed"></span>
+    </div>
+    <div class="lab-read">
+      <div><b>Тік</b><output id="tm-tick">1 мкс</output></div>
+      <div><b>Лічильник</b><output id="tm-fc">1 МГц</output></div>
+      <div><b>Період</b><output id="tm-t">1 с</output></div>
+      <div><b>Обробник</b><output id="tm-f">1 Гц</output></div>
+      <div><b>54 біти</b><output id="tm-ov">≈571 рік</output></div>
+    </div>
+    <p class="lab-note" id="tm-note" aria-live="polite">80 МГц / 80 = тік 1 мкс, тож 1 000 000 тіків — це рівно секунда.</p>
+    <div class="tm-codebox"><pre class="code"><code id="tm-code"></code></pre></div>
+    <p class="lab-note">Модель: час на екрані уповільнено або прискорено, щоб період було видно. Лічильник і будильник рахуються за справжніми формулами ядра 2.0.17<sup class="cite" data-fact="core-timer-2x-tick"></sup>.</p>
+    <div class="missions" id="tm-ms"></div>
+  </section>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Витяжка у ванній має вмикатися щогодини на 15 хвилин. Можна рахувати час у <code>loop()</code>, але тоді графік залежить від усього, що там відбувається: довгого друку, мережі, випадкового <code>while</code>. Апаратний таймер вирішує це інакше: окрема схема рахує такти сама, а процесор дізнається про час лише тоді, коли час настав. <code>loop()</code> може робити що завгодно, а вентилятор увімкнеться вчасно.</p>
+    <figure>
+      <svg viewBox="0 0 340 116" role="img" aria-label="Дві доріжки з поділками правильного часу. Перевірка в loop() кожного разу приходить із запізненням, і воно накопичується. Спрацювання апаратного таймера стоять точно на поділках.">
+        <text class="svg-m" x="4" y="16">loop()</text>
+        <path d="M4 40H336" stroke="var(--line)" stroke-width="2"/>
+        <g stroke="var(--muted)" stroke-width="2"><path d="M40 34v12M120 34v12M200 34v12M280 34v12"/></g>
+        <g stroke="var(--bad)" stroke-width="4" stroke-linecap="round"><path d="M46 26v28M136 26v28M226 26v28M318 26v28"/></g>
+        <text class="svg-t" x="336" y="16" text-anchor="end" style="fill:var(--bad)">щоразу пізніше</text>
+        <text class="svg-m" x="4" y="74">таймер</text>
+        <path d="M4 98H336" stroke="var(--line)" stroke-width="2"/>
+        <g stroke="var(--muted)" stroke-width="2"><path d="M40 92v12M120 92v12M200 92v12M280 92v12"/></g>
+        <g stroke="var(--ok)" stroke-width="4" stroke-linecap="round"><path d="M40 84v28M120 84v28M200 84v28M280 84v28"/></g>
+        <text class="svg-t" x="336" y="74" text-anchor="end" style="fill:var(--ok)">точно за розкладом</text>
+      </svg>
+      <figcaption>Сірі поділки — правильний час. Схематично: скільки набіжить насправді, порахуємо в розділі 05.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b>, з чого складається таймер: такти, дільник, лічильник, будильник;</li>
+      <li><b>розрахувати</b> дільник і значення будильника для потрібного періоду;</li>
+      <li><b>налаштувати</b> таймер у ядрі 2.0.17 і <b>прочитати</b> те саме в ядрі 3.x та ESP-IDF;</li>
+      <li><b>відрізнити</b> дрейф від джитера й <b>вибрати</b> між <code>millis()</code> та апаратним таймером;</li>
+      <li><b>вирішити</b>, що робити прямо в обробнику, а що лишити <code>loop()</code>;</li>
+      <li><b>поставити</b> сторожа, який стереже і <code>loop()</code>, і сам таймер.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ «Коротко»: an aside, not a section.hs, so the TOC skips it -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 10 хв основне · віджети й практика — ще ≈ 35 хв</p>
+    <ol>
+      <li>Таймер — це окрема схема: такти → дільник → лічильник → будильник → обробник. Він рахує, хоч би що робив <code>loop()</code>. <a href="#ideas">→ 04</a></li>
+      <li>80&nbsp;МГц / 80 = тік 1&nbsp;мкс, тому в <code>timerAlarmWrite()</code> пишемо мікросекунди. ESP32-S3 має 4 таймери по 54 біти. <a href="#ideas">→ 04</a></li>
+      <li>Автоперезавантаження робить залізо, тому період не пливе. У <code>timerAttachInterrupt()</code> третій аргумент у ядрі 2.0.17 — <code>false</code>. <a href="#example">→ 06</a></li>
+      <li><code>last = millis()</code> у завантаженому <code>loop()</code> дрейфує, <code>last += PERIOD</code> і апаратний таймер ні. <a href="#poe">→ 05</a></li>
+      <li>Точний лише той код, що в обробнику. Прапорець точний, а дія в <code>loop()</code> чекає свого проходу. Спільний лічильник читайте в критичній секції. <a href="#ideas">→ 04</a></li>
+      <li>Сторож на ESP32-S3 — це <code>esp_task_wdt</code>. Годуйте його, лише коли програма справді здорова: <code>ticks</code> виріс. <a href="#poe">→ 05</a></li>
+    </ol>
+  </aside>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Таймер — це лічильник, що працює без процесора</h3>
+      <p>В ESP32-S3 є чотири таймери загального призначення: дві групи по два, кожен із 54-бітним лічильником і 16-бітним дільником<sup class="cite" data-fact="s3-timers"></sup>. Це окрема схема. Такти надходять на неї напряму, а процесор про неї не згадує, поки вона сама його не покличе.</p>
+      <p>Тому таймеру байдуже, що робить <code>loop()</code>. Не заважає йому і <code>delay()</code>: на ESP32-S3 це <code>vTaskDelay()</code>, який зупиняє лише поточну задачу<sup class="cite" data-fact="core-delay"></sup>. У лабораторії вгорі видно весь шлях: такти, дільник, лічильник, будильник, обробник.</p>
+      <p class="key"><b>Головне</b>Програма лише налаштовує таймер. Рахує він сам, а про подію повідомляє перериванням.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Дільник перетворює такти на зручний тік</h3>
+      <p>Шина APB дає 80&nbsp;мільйонів тактів на секунду, і рахувати їх напряму незручно. Дільник пропускає до лічильника кожен N-й такт<sup class="cite" data-fact="core-timer-2x-tick"></sup>. Один крок лічильника називають <b>тіком</b>. Залізо приймає N від 2 до 65536<sup class="cite" data-fact="s3-timer-prescaler"></sup>, а в ядрі 2.0.17 дільник передається як <code>uint16_t</code><sup class="cite" data-fact="core-timer-api-2x"></sup>, тож там максимум 65535. Більше число обріжеться без жодного слова: 80&nbsp;000 перетвориться на 14&nbsp;464.</p>
+      <figure>
+        <svg id="dv" viewBox="0 0 330 106" role="img" aria-label="Дві доріжки імпульсів. Вгорі такти, внизу тіки: дільник пропускає кожен N-й такт, тому нижні імпульси в N разів рідші.">
+          <text class="svg-m" x="4" y="14">такти</text>
+          <g id="dv-a" fill="none" stroke="var(--muted)" stroke-width="2"></g>
+          <text class="svg-m" x="4" y="64">тіки</text>
+          <g id="dv-b" fill="none" stroke="var(--accent)" stroke-width="3"></g>
+        </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Дільник N <input type="range" id="dv-n" min="2" max="8" step="1" value="4" aria-label="Дільник на схемі"><output id="dv-out">4</output></label>
+        </div>
+        <p class="idea-out" id="dv-txt" aria-live="polite"></p>
+      </figure>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th>Дільник</th><th>Лічильник</th><th>Тік</th><th>Зручно для</th></tr></thead>
+        <tbody>
+          <tr><td>80</td><td>1&nbsp;МГц</td><td>1&nbsp;мкс</td><td>майже всього: тіки дорівнюють мікросекундам</td></tr>
+          <tr><td>800</td><td>100&nbsp;кГц</td><td>10&nbsp;мкс</td><td>мілісекундних періодів</td></tr>
+          <tr><td>8000</td><td>10&nbsp;кГц</td><td>100&nbsp;мкс</td><td>секундних періодів</td></tr>
+        </tbody>
+      </table></div>
+      <p class="key"><b>Головне</b>Тік = дільник / 80&nbsp;МГц. З дільником 80 скільки мікросекунд потрібно, стільки й тіків.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Будильник і автоперезавантаження: час не пливе</h3>
+      <p><b>Будильник</b> (alarm) — це число: коли лічильник до нього доходить, таймер викликає переривання. З <b>автоперезавантаженням</b> лічильник одразу починає спочатку, і робить це залізо в момент будильника<sup class="cite" data-fact="s3-timer-alarm"></sup>. Ось де ховається вся точність. Обробник стартує із затримкою, але наступний період відлічується не від нього.</p>
+      <p>Якби перезапускав лічильник ваш код, кожен період подовжувався б на цю затримку. Порівняйте:</p>
+      <figure>
+        <svg id="ar" viewBox="0 0 330 124" role="img" aria-label="Три доріжки по десять періодів. Поділки правильного часу; спрацювання при автоперезавантаженні точно на поділках; спрацювання при перезапуску з коду щоразу далі від поділок.">
+          <text class="svg-m" x="4" y="14">правильний час</text>
+          <g id="ar-a" stroke="var(--muted)" stroke-width="2"></g>
+          <text class="svg-m" x="4" y="58">залізо</text>
+          <g id="ar-b" stroke="var(--ok)" stroke-width="3"></g>
+          <text class="svg-m" x="4" y="100">перезапуск кодом</text>
+          <g id="ar-c" stroke="var(--bad)" stroke-width="3"></g>
+        </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Затримка входу <input type="range" id="ar-l" min="0" max="50" step="5" value="20" aria-label="Затримка входу в обробник, відсотків від періоду на схемі"><output id="ar-out">20 мкс</output></label>
+        </div>
+        <p class="idea-out" id="ar-txt" aria-live="polite"></p>
+        <p class="idea-out small">Модель: на схемі затримку перебільшено, а число затримки взято для прикладу, це не вимірювання.</p>
+      </figure>
+      <p>Є два слова для похибок часу. <b>Джитер</b> — це тремтіння: подія то раніше, то пізніше, але середнє на місці. <b>Дрейф</b> накопичується: кожен наступний раз пізніше за попередній. Автоперезавантаження дає трохи джитера й ніякого дрейфу.</p>
+      <p class="key"><b>Головне</b>Період рахує залізо. Затримка обробника не додається до наступного періоду, тому похибка не накопичується.</p>
+    </article>
+
+    <article class="idea">
+      <h3><code>millis()</code> чи апаратний таймер</h3>
+      <p>Апаратний таймер не скасовує <code>millis()</code>. На ESP32-S3 <code>millis()</code> — це <code>esp_timer_get_time()</code>, поділений на 1000<sup class="cite" data-fact="core-millis"></sup>, тобто теж апаратний лічильник. Різниця в іншому: перевірку часу робить <code>loop()</code>, коли дійде до неї. Кілька незалежних ритмів це не заважає тримати: у проєкті <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a> три таймери на <code>millis()</code> живуть в одному <code>loop()</code>.</p>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th>Завдання</th><th>Беремо</th><th>Чому</th></tr></thead>
+        <tbody>
+          <tr><td>Блимання, датчик раз на секунду</td><td><code>millis()</code> у <code>loop()</code></td><td>просто, а запізнення на прохід нікому не шкодить</td></tr>
+          <tr><td>Подія не має залежати від <code>loop()</code></td><td>апаратний таймер</td><td>спрацює, навіть якщо <code>loop()</code> зайнятий чи завис</td></tr>
+          <tr><td>Дія має статися точно в момент</td><td>таймер + дія в обробнику</td><td>прапорець чекав би своєї черги</td></tr>
+          <tr><td>Постійний сигнал на виводі</td><td>LEDC</td><td>вивід перемикає залізо, урок 1.3</td></tr>
+        </tbody>
+      </table></div>
+      <p class="key"><b>Головне</b>Якщо запізнення на прохід <code>loop()</code> не важить, вистачить <code>millis()</code>. Таймер беріть, коли подія не має залежати від того, що робить програма.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Прапорець точний, а дія ні</h3>
+      <p>В обробнику таймера діють ті самі п'ять правил з <a href="../2-4/#ideas">уроку 2.4</a>. Тому є два шляхи. Обробник ставить <b>прапорець</b>, а роботу робить <code>loop()</code>: можна друкувати й ходити в мережу, але дія чекає кінця поточного проходу. Або <b>дія прямо в обробнику</b>: точно за часом, зате лише коротка й безпечна, як <code>digitalWrite()</code> звичайного виводу.</p>
+      <p>Обробник перериває <code>loop()</code> на тому самому ядрі, тож це не «істинна паралельність». Таймер точний, а <code>loop()</code> зі своїм прапорцем ні<sup class="cite" data-fact="lms-err-2-5-true-parallel"></sup>.</p>
+      <figure>
+        <svg id="fi" viewBox="0 0 330 150" role="img" aria-label="Три доріжки. Вгорі будильники через рівні проміжки. Посередині вивід, який перемикає обробник: фронти точно під будильниками. Внизу вивід, який перемикає loop() за прапорцем: фронти запізнюються на різну величину.">
+          <text class="svg-m" x="4" y="14">будильник</text>
+          <g id="fi-t" stroke="var(--hi)" stroke-width="3"></g>
+          <text class="svg-m" x="4" y="62">дія в обробнику</text>
+          <path id="fi-a" fill="none" stroke="var(--ok)" stroke-width="2.5"/>
+          <text class="svg-m" x="4" y="112">дія в loop()</text>
+          <path id="fi-b" fill="none" stroke="var(--bad)" stroke-width="2.5"/>
+        </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Прохід loop() <input type="range" id="fi-w" min="0" max="200" step="10" value="100" aria-label="Найбільша тривалість проходу loop(), мілісекунд"><output id="fi-out">100 мс</output></label>
+          <button type="button" class="btn sm" id="fi-new">Інші проходи</button>
+        </div>
+        <p class="idea-out" id="fi-txt" aria-live="polite"></p>
+      </figure>
+      <p class="key"><b>Головне</b>Точний лише той код, що в обробнику. Вентилятор перемикаємо там, а друкуємо в <code>loop()</code>.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Спільний лічильник: прочитати й обнулити разом</h3>
+      <p>Приклад з LMS рахує спрацювання в обробнику, а <code>loop()</code> раз на секунду друкує лічильник і обнуляє його. Між друком і обнуленням обробник може спрацювати, і його +1 зітреться. <code>volatile</code> від цього не рятує, це ми розібрали в <a href="../2-4/#ideas">уроці 2.4</a>. Зробіть копію в критичній секції<sup class="cite" data-fact="idf-critical-section"></sup>, а друкуйте вже її:</p>
+<pre class="code"><code>hw_timer_t* timer = nullptr;
+volatile uint32_t count = 0;
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR onTimer() {
+  portENTER_CRITICAL_ISR(&amp;mux);
+  count = count + 1;
+  portEXIT_CRITICAL_ISR(&amp;mux);
+  digitalWrite(LED, !digitalRead(LED));
+}
+
+void loop() {
+  delay(1000);
+  portENTER_CRITICAL(&amp;mux);
+  uint32_t n = count;   // копія і обнуління разом
+  count = 0;
+  portEXIT_CRITICAL(&amp;mux);
+  Serial.println(n);    // друк уже поза секцією
+}</code></pre>
+      <p class="key"><b>Головне</b>Двокрокова дія зі спільною змінною — лише в критичній секції. А друк і все довге — поза нею.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Сторож перезавантажує, якщо програма змовкла</h3>
+      <p><b>Сторож</b> (watchdog) — ще один таймер, але рахує він до перезавантаження. Програма має регулярно його скидати, «годувати». Не встигла — чип перезавантажиться: це краще, ніж вічно застиглий пристрій, до якого ніхто не дійде.</p>
+      <p>У ядрі 2.0.17 сторож задач чекає 5&nbsp;с і стежить лише за idle-задачею ядра 0, а за <code>loop()</code> стандартно не стежить<sup class="cite" data-fact="core-task-wdt"></sup>. Отже, зависший <code>loop()</code> сам плату не перезавантажить. Підпишіть його на сторожа<sup class="cite" data-fact="idf-task-wdt-api"></sup>:</p>
+<pre class="code"><code>#include &lt;esp_task_wdt.h&gt;
+
+esp_task_wdt_init(5, true);   // у setup(): 5 с, true = перезавантаження
+esp_task_wdt_add(NULL);       // стежимо за поточною задачею, тобто loop()
+
+esp_task_wdt_reset();         // у loop(): погодували</code></pre>
+      <p>Приклад із GyverWDT у LMS на ESP32-S3 не збереться: ця бібліотека лише для AVR<sup class="cite" data-fact="gyverwdt-avr"></sup>. Сторож задач у нас апаратний: він працює на окремому сторожовому таймері групи&nbsp;0<sup class="cite" data-fact="s3-wdt-groups"></sup> і чотирьох таймерів загального призначення не займає.</p>
+      <p class="key"><b>Головне</b>Сторож ловить мовчання. Годуйте його лише там, де програма довела, що вона здорова.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: Arduino Uno, CTC і правильна формула</summary>
+      <p>LMS описує таймери Arduino Uno: регістр <code>OCR</code> і режим CTC, Clear Timer on Compare Match. Це не «захоплення-порівняння»: захоплення (capture) — окрема функція<sup class="cite" data-fact="lms-err-2-5-capture-compare"></sup>. Період переривання в CTC дорівнює<sup class="cite" data-fact="avr-ctc-period"></sup>:</p>
+      <p><span class="formula">T = N · (OCR + 1) / F</span></p>
+      <p>Для 1&nbsp;кГц на Uno (F = 16&nbsp;МГц, N = 64): <span class="formula">OCR = 16 000 000 / (64 · 1000) − 1 = 249</span>. Формула з множником 2, яка стоїть у LMS, дає частоту меандру на виводі: вивід перемикається раз на збіг, тож його повний період — це два збіги. Тому приклад LMS сам себе спростовує: <span class="formula">(124 + 1) · 64 / 16 000 000 = 0,5 мс</span>, а не 1&nbsp;мс<sup class="cite" data-fact="lms-err-2-5-ocr-example"></sup>.</p>
+      <p>На ESP32-S3 немає ні OCR, ні CTC, ні вектора <code>ISR(TIMER1_COMPA_vect)</code>. Роль збігу виконує будильник, а скидання робить автоперезавантаження<sup class="cite" data-fact="s3-timer-alarm"></sup>.</p>
+    </details>
+    <details class="more">
+      <summary>Детальніше: той самий таймер у ядрі 3.x і ESP-IDF</summary>
+      <p>Наші проєкти на ядрі 2.0.17<sup class="cite" data-fact="core-arduino-version"></sup>. Новий проєкт без версії платформи отримає ядро 3.x<sup class="cite" data-fact="core-platform-8-core-3x"></sup> з іншим API<sup class="cite" data-fact="core-timer-api-3x"></sup>, а в ESP-IDF 6.1 лишився лише драйвер GPTimer: старого <code>driver/timer.h</code> там немає<sup class="cite" data-fact="idf-61-no-legacy-timer"></sup>. Тож посилання LMS на документацію v4.3 описує API, якого в нас уже немає.</p>
+      <div class="code2">
+        <div><h4>Ядро 3.x</h4>
+<pre><code>timer = timerBegin(1000000);          // частота лічильника, Гц
+timerAttachInterrupt(timer, &amp;onTick);
+timerAlarm(timer, 1000000, true, 0);  // тіки, повтор, без ліміту</code></pre></div>
+        <div><h4>ESP-IDF 6.1, GPTimer (зібрано, на платі не запускали)</h4>
+<pre><code>gptimer_handle_t timer = NULL;
+gptimer_config_t config = {
+    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = 1000000,  // тік 1 мкс
+};
+gptimer_new_timer(&amp;config, &amp;timer);
+gptimer_event_callbacks_t callbacks = {.on_alarm = on_alarm};
+gptimer_register_event_callbacks(timer, &amp;callbacks, NULL);
+gptimer_enable(timer);
+gptimer_alarm_config_t alarm = {
+    .alarm_count = 1000000,
+    .reload_count = 0,
+    .flags.auto_reload_on_alarm = true,
+};
+gptimer_set_alarm_action(timer, &amp;alarm);
+gptimer_start(timer);</code></pre></div>
+      </div>
+      <p>Сторож теж змінився: у ESP-IDF 5+ <code>esp_task_wdt_init()</code> приймає структуру, а не два числа<sup class="cite" data-fact="idf-task-wdt-api"></sup>.</p>
+    </details>
+    <details class="more">
+      <summary>Для допитливих: таймери STM32</summary>
+      <p>У STM32 таймери поділені на три сорти: базові (TIM6, TIM7) лише рахують і викликають переривання, загальні (TIM2–TIM5) ще вміють захоплення, порівняння й ШІМ, розширені (TIM1, TIM8) зроблені для трифазних двигунів. Точний набір залежить від моделі, а налаштовують їх зазвичай у графічному конфігураторі CubeIDE. Тут STM32 лише для порівняння: в курсі ми працюємо з ESP32-S3.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="2" data-gate="w-clocks"
+         data-why="Перевірка в loop() щоразу трохи спізнюється. Запис last = millis() робить це запізнення початком нового відліку, тож кожна секунда виходить довшою: за 10 хвилин у моделі набігає близько хвилини. Запис last += 1000 ставить наступний відлік за розкладом, тож запізнення не накопичуються. Апаратний таймер ні від чого не залежить. Перевірте на моделі.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Три годинники по 1&nbsp;с у завантаженому <code>loop()</code>: проходи тривають 150–300&nbsp;мс. Минуло 10&nbsp;хвилин, тобто 600&nbsp;с. Скільки нарахує кожен?</p>
+      <div class="opts">
+        <button class="opt">Усі 600: <code>millis()</code> точний</button>
+        <button class="opt">Обидва на <code>millis()</code> ≈&nbsp;540, таймер 600</button>
+        <button class="opt"><code>last = millis()</code> ≈&nbsp;540, а <code>last += 1000</code> і таймер ≈&nbsp;600</button>
+        <button class="opt">Усі ≈&nbsp;540: завантаження однакове</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-clocks">
+      <div class="ph"><h3>Три годинники</h3><span class="small">модель: 10 хвилин за 12 секунд; торкніться графіка, щоб зупинити або запустити</span></div>
+      <div class="pb">
+        <div class="ctl-grid">
+          <label>Прохід loop() до: <b id="ck-out">300 мс</b><input type="range" id="ck-load" min="0" max="500" step="10" value="300"></label>
+          <div class="btn-row" style="align-self:end"><button type="button" class="btn primary sm" id="ck-run">Запустити знову</button></div>
+        </div>
+        <canvas id="ck-cv" class="wcanvas" width="900" height="250" role="img" aria-label="Графік: наскільки кожен годинник відстає від справжнього часу. Лінія last = millis() рівно зростає, а last += 1000 і апаратний таймер лишаються біля нуля."></canvas>
+        <div class="ck-legend" aria-hidden="true"><span><i id="ck-la"></i><code>last = millis()</code></span><span><i class="dash" id="ck-lb"></i><code>last += 1000</code></span><span><i id="ck-lc"></i>апаратний таймер</span></div>
+        <div class="cnt" aria-live="polite">
+          <div><span>Минуло, с</span><b id="ck-t">0</b></div>
+          <div class="bad"><span><code>last = millis()</code></span><b id="ck-a">0</b></div>
+          <div class="ok"><span><code>last += 1000</code></span><b id="ck-b">0</b></div>
+          <div class="ok"><span>апаратний таймер</span><b id="ck-c">0</b></div>
+        </div>
+<pre class="code"><code>// дрейфує: запізнення цього спрацювання стає початком наступного відліку
+if (millis() - lastA &gt;= 1000) { lastA = millis(); a++; }
+// не дрейфує: наступний відлік стоїть за розкладом
+if (millis() - lastB &gt;= 1000) { lastB += 1000;   b++; }</code></pre>
+        <p class="small">Приклад LMS написаний першим способом (<code>останній_час = millis()</code>), тому в завантаженому <code>loop()</code> він дрейфує. Це модель: кожен прохід триває випадково від половини заданого часу до всього часу. Похибку кварцу вона не враховує. Справжню гонку на платі запускає <a href="#challenge">командний виклик</a>.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-fan"
+         data-why="Вентилятор веде обробник таймера, а не loop(). Коли loop() завис, цикл іде далі без жодної різниці. Замовкає лише Serial, бо друкує саме loop(). Саме тому в справжній прошивці є сторож: він помітить, що loop() змовк.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Вентилятор чекає, і тут <code>loop()</code> зависає в нескінченному циклі. Сторожа поки немає. Що буде на наступній годині?</p>
+      <div class="opts">
+        <button class="opt">Нічого: вентилятор більше не ввімкнеться</button>
+        <button class="opt">Увімкнеться вчасно, але Serial мовчатиме</button>
+        <button class="opt">Плата одразу перезавантажиться</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-fan">
+      <div class="ph"><h3>Вентилятор за часовою лупою</h3><span class="small">модель прошивки; <code>SPEEDUP</code> стискає годину, сторожа тут вимкнено</span></div>
+      <div class="pb">
+        <div class="fan-grid" id="fan-stage">
+          <svg class="fan-dial" id="fan-dial" viewBox="0 0 220 220" role="img" aria-label="Циферблат циклу на одну годину: чверть кола, перші 15 хвилин, виділена. Кружок на колі показує поточну секунду циклу.">
+            <circle class="d-track" cx="110" cy="110" r="92"/>
+            <path class="d-on" d="M110 18A92 92 0 0 1 202 110"/>
+            <circle class="d-ptr" id="fan-ptr" cx="110" cy="18" r="12"/>
+            <text class="d-big" id="fan-st" x="110" y="108">ПРАЦЮЄ</text>
+            <text class="d-sm" id="fan-sec" x="110" y="132">0 с / 3600</text>
+          </svg>
+          <div class="fan-side">
+            <svg id="fan-kit" class="kit-bench" viewBox="0 0 1000 300" role="img" aria-label="Модуль реле з набору, контакт вмикає мотор TT з колесом."></svg>
+            <ul class="fan-chips" aria-hidden="true">
+              <li><i class="r" id="fan-lr"></i>GPIO15 · працює</li>
+              <li><i class="g" id="fan-lg"></i>GPIO16 · чекає</li>
+            </ul>
+          </div>
+        </div>
+        <div class="dual-ctl">
+          <div class="seg" role="group" aria-label="Прискорення часу, SPEEDUP" id="fan-speed">
+            <button type="button" data-s="60" aria-pressed="false">×60</button>
+            <button type="button" data-s="300" aria-pressed="true">×300</button>
+            <button type="button" data-s="900" aria-pressed="false">×900</button>
+          </div>
+          <button type="button" class="btn sm" id="fan-btn">S1: увімкнути зараз</button>
+          <button type="button" class="sw" id="fan-hang" aria-checked="false">loop() завис</button>
+          <button type="button" class="btn ghost sm" id="fan-play">❚❚ Пауза</button>
+        </div>
+        <div class="cnt" aria-live="off">
+          <div><span>Цикл №</span><b id="fan-n">1</b></div>
+          <div><span>Тіків таймера</span><b id="fan-t">0</b></div>
+          <div><span>Цикл триває</span><b id="fan-d">12 с</b></div>
+          <div><span>Натискань S1 проігноровано</span><b id="fan-ig">0</b></div>
+        </div>
+        <pre class="fan-log" id="fan-log" aria-label="Монітор порту"></pre>
+        <p class="small" id="fan-note" aria-live="polite">Обробник спрацьовує раз на секунду циклу. Натисніть S1 під час роботи й під час паузи: це захист від повторного запуску.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-wdt"
+         data-why="Якщо годувати сторожа в кожному проході, він стереже лише loop(). loop() живий, сторож ситий, а вентилятор застиг. Коли годування залежить від ticks, сторож стереже обох: зупинився хтось один, і годування припинилось.">
+      <span class="tag">Спрогнозуйте</span>
+      <p><code>esp_task_wdt_reset()</code> стоїть просто в <code>loop()</code>, без умов. Через помилку таймер зупинився, а <code>loop()</code> працює далі. Що зробить сторож?</p>
+      <div class="opts">
+        <button class="opt">Через 5&nbsp;с перезавантажить плату</button>
+        <button class="opt">Нічого: його годують, а вентилятор застиг назавжди</button>
+        <button class="opt">Сам запустить таймер знову</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-wdt">
+      <div class="ph"><h3>Сторож на посту</h3><span class="small">модель; тайм-аут 5 с як у прошивці</span></div>
+      <div class="pb wd-stage" id="wd-stage">
+        <div class="wd-grid" aria-live="off">
+          <div id="wd-c1"><span>Таймер</span><b id="wd-tm">іде</b><span id="wd-ticks">тіків: 0</span></div>
+          <div id="wd-c2"><span><code>loop()</code></span><b id="wd-lp">працює</b><span id="wd-feed">годує сторожа</span></div>
+          <div><span>Сторож, до перезавантаження</span><b id="wd-left">5,0 с</b></div>
+          <div><span>Перезавантажень</span><b id="wd-boots">0</b></div>
+        </div>
+        <div class="wd-bar" id="wd-barw" aria-hidden="true"><span id="wd-bar"></span></div>
+      </div>
+      <div class="pb">
+        <div class="dual-ctl">
+          <div class="seg" role="group" aria-label="Коли годувати сторожа" id="wd-mode">
+            <button type="button" data-m="ticks" aria-pressed="true">якщо ticks виріс</button>
+            <button type="button" data-m="always" aria-pressed="false">у кожному проході</button>
+          </div>
+          <button type="button" class="btn sm" id="wd-hang">Повісити loop()</button>
+          <button type="button" class="btn sm" id="wd-stop">Зупинити таймер</button>
+          <button type="button" class="btn ghost sm" id="wd-reset">Усе працює</button>
+        </div>
+        <pre class="fan-log" id="wd-log" aria-label="Монітор порту"></pre>
+<pre class="code"><code>static unsigned long seen = 0;
+if (ticks != seen) {          // таймер живий, і loop() дійшов сюди
+  seen = ticks;
+  esp_task_wdt_reset();
+}</code></pre>
+      </div>
+      <div class="missions" id="wd-ms"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: від години до тіків</h2>
+    <p>Завдання: вентилятор щогодини працює 15&nbsp;хвилин, усе робить таймер, час задано макросами, а для налагодження годину можна стиснути. Здавалося б, потрібні два таймери: «раз на годину» і «15 хвилин». Але обидва числа — це просто положення в циклі, тому вистачає одного. Обробник рахує секунди циклу, а вентилятор працює, поки <code>second &lt; 900</code>:</p>
+<pre class="code"><code>void IRAM_ATTR onTick() {
+  ticks++;
+  if (++second &gt;= PERIOD_S) second = 0;
+  bool on = second &lt; ON_S;
+  digitalWrite(FAN, on);
+  digitalWrite(LED_RUN, on);
+  digitalWrite(LED_WAIT, !on);
+}</code></pre>
+    <p class="note tip">Другий таймер довелося б запускати з обробника першого, а <code>timerAlarmWrite()</code> і <code>timerAlarmEnable()</code> у ядрі 2.0.17 не призначені для ISR<sup class="cite" data-fact="core-timer-fns-not-isr"></sup>. Один таймер обходить цю проблему. Цикл вентилятора тут — окремий лічильник секунд, а не окремий таймер.</p>
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Тік:</b> таймер рахує від APB 80&nbsp;МГц<sup class="cite" data-fact="core-timer-2x-tick"></sup>: <span class="formula">80 МГц / 80 = 1 МГц, тік 1 мкс</span><span class="why">чому: дільник 80 робить тіки мікросекундами.</span></li>
+      <li><b>Будильник на секунду циклу:</b> <span class="formula">1 с / 1 мкс = 1 000 000 тіків</span><span class="why">чому: alarm задають у тіках, а не в секундах.</span></li>
+      <li><b>Цикл у секундах:</b> <span class="formula">PERIOD_S = 3600, ON_S = 900</span><span class="why">чому: 1 година і 15 хвилин, усе інше робить порівняння <code>second &lt; ON_S</code>.</span></li>
+      <li><b>Налагодження:</b> чекати годину ніхто не хоче. Ділимо будильник: <span class="formula">1 000 000 / SPEEDUP = 1 000 000 / 300 = 3333</span><span class="why">чому: коротша секунда циклу, а логіка та сама. Ділення цілочисельне: 3333 мкс, а не 3333,3.</span></li>
+      <li><b>Перевірка:</b> <span class="formula">3600 · 3,333 мс ≈ 12 с, 900 · 3,333 мс ≈ 3 с</span><span class="why">чому: завдання дозволяє замінити годину кількома секундами, і пропорція зберігається.</span></li>
+    </ol>
+<pre class="code"><code>timer = timerBegin(0, 80, true);                 // 80 МГц / 80 = 1 тік за 1 мкс
+timerAttachInterrupt(timer, &amp;onTick, false);     // ядро 2.0.17 вміє лише false (LEVEL)
+timerAlarmWrite(timer, 1000000 / SPEEDUP, true); // повтор перезапускає залізо
+timerAlarmEnable(timer);</code></pre>
+    <p class="small">Третій аргумент <code>timerAttachInterrupt()</code> — <code>false</code>: з <code>true</code>, як у прикладі LMS, ядро 2.0.17 друкує попередження й однаково ставить LEVEL<sup class="cite" data-fact="core-timer-edge"></sup>.</p>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> той самий вентилятор, але цикл 30&nbsp;хвилин, а робота 5&nbsp;хвилин.</li>
+      <li>
+        <div class="try" data-ans="1800" data-tol="0.001" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Яке значення <code>PERIOD_S</code>?</p>
+          <details><summary>Підказка</summary>У хвилині 60 секунд.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="300" data-tol="0.001" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Яке значення <code>ON_S</code>?</p>
+          <details><summary>Підказка</summary>5 хвилин у секундах.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="16666" data-tol="0.0001" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Цикл 1&nbsp;година, <code>SPEEDUP 60</code>. Яке число отримає <code>timerAlarmWrite()</code>?</h4>
+      <details><summary>Підказка</summary>1 000 000 / 60 у цілих числах: дробову частину C++ відкидає. Година тоді триватиме ≈ 60 с.</details>
+    </div>
+    <p class="note tip">Для «раз на 10&nbsp;с» у звичайній програмі апаратний таймер не потрібен: вистачить <code>millis()</code> з <code>last += 10000</code>. Таймер у домашньому завданні потрібен, бо умова вимагає циклу без участі <code>loop()</code>.</p>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth" data-mc="E6">
+        <p class="seems"><code>delay()</code> зупиняє весь мікроконтролер: переривання й таймери теж чекають.</p>
+        <p class="truth"><code>delay()</code> — це <code>vTaskDelay()</code>: чекає лише поточна задача, а таймери, переривання й інші задачі працюють<sup class="cite" data-fact="lms-err-2-5-delay"></sup>. Погано в <code>delay()</code> інше: стоїть сам <code>loop()</code>.</p>
+        <p class="test">Додайте в <code>loop()</code> прошивки вентилятора <code>delay(3000)</code>: цикл на GPIO2 не зміниться ні на тік.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Апаратний таймер дає справжню паралельність: усе, що за ним, виконується точно.</p>
+        <p class="truth">Точно спрацьовує лише обробник, та й він перериває <code>loop()</code> на тому самому ядрі. Дія за прапорцем чекає свого проходу<sup class="cite" data-fact="lms-err-2-5-true-parallel"></sup>.</p>
+        <p class="test">Перемикайте один вивід в обробнику, другий за прапорцем у <code>loop()</code> з <code>delay(100)</code>. Аналізатор покаже: перший рівний, другий тремтить.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Якщо <code>millis()</code> точний, то годинник на ньому теж точний.</p>
+        <p class="truth">Точне джерело не рятує від помилки в записі: <code>last = millis()</code> накопичує запізнення кожного спрацювання. Пишіть <code>last += PERIOD</code>.</p>
+        <p class="test">Віджет «Три годинники» в розділі 05 або командний виклик на платі.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Сторож є, значить плата сама відновиться після будь-якої біди.</p>
+        <p class="truth">Сторож бачить лише те, що ви йому доводите. Годування без умови доводить тільки те, що <code>loop()</code> ще крутиться.</p>
+        <p class="test">Зупиніть таймер у коді й погодуйте сторожа без умови: вентилятор застигне, а перезавантаження не буде.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Назви змінних можна писати українською, як у прикладі LMS.</p>
+        <p class="truth">Наш тулчейн — GCC 8.4, а UTF-8 в іменах з'явився лише в GCC 10. Ми зібрали приклад LMS: <code>error: stray '\321' in program</code>, а з латинськими іменами він збирається<sup class="cite" data-fact="core-gcc-utf8-identifiers"></sup>.</p>
+        <p class="test">Коментарі пишіть українською, а імена латиницею.</p>
+      </div>
+    </div>
+    <!-- «Знайди несправність»: the section 08 bench + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-tm"></div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Ключ той самий, що в <a href="../mp1/">міні-проєкті 1</a>: GPIO2 через R1 керує BC547B, а той зсуває рівень 3,3&nbsp;В до входу IN модуля реле з активним рівнем LOW<sup class="cite" data-fact="relay-module-active-low"></sup>. HIGH на GPIO2 вмикає реле, контакт COM–NO подає 5&nbsp;В на мотор. Мотор живиться від MB102, а не від плати (<a href="../2-2/">урок 2.2</a>), усі GND спільні. Діод VD1 стоїть паралельно мотору, смугою до «+»<sup class="cite" data-fact="d1n4007-polarity"></sup>. LED на GPIO15 і GPIO16 дублюють стан, а кнопка S1 на GPIO21 запускає цикл вручну.</p>
+    <figure class="dual wide" id="dual-vent" data-nets="v5=+5 В від MB102; gpio2=GPIO2; base=База VT1; in=IN реле; gpio15=GPIO15; gpio16=GPIO16; gpio21=GPIO21; no=Контакт NO → мотор; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 500 350" role="img" aria-label="Схема: GPIO2 через R1 10 кОм на базу VT1 BC547B, емітер на GND, колектор через R2 10 кОм на +5 В і на вхід IN модуля реле. Модуль живиться від +5 В. Контакт COM на +5 В, NO на мотор M1, другий вивід мотора на GND, паралельно мотору діод VD1 катодом до NO. GPIO15 через R3 220 Ом на LED1, GPIO16 через R4 220 Ом на LED2, катоди на GND. GPIO21 через кнопку S1 на GND.">
+          <rect class="sch-w" x="10" y="34" width="66" height="304" rx="3"/>
+          <text class="sch-ref" x="10" y="24">U1 · ESP32-S3</text>
+          <g>
+            <use class="sch-sym" href="#mcu-pin" x="96" y="110" transform="rotate(180 96 110)"/><text class="sch-pin net-sig" data-net="gpio2" x="68" y="102" text-anchor="end">GPIO2</text>
+            <use class="sch-sym" href="#mcu-pin" x="96" y="190" transform="rotate(180 96 190)"/><text class="sch-pin net-sig2" data-net="gpio15" x="68" y="182" text-anchor="end">GPIO15</text>
+            <use class="sch-sym" href="#mcu-pin" x="96" y="235" transform="rotate(180 96 235)"/><text class="sch-pin net-sig3" data-net="gpio16" x="68" y="227" text-anchor="end">GPIO16</text>
+            <use class="sch-sym" href="#mcu-pin" x="96" y="280" transform="rotate(180 96 280)"/><text class="sch-pin net-sig" data-net="gpio21" x="68" y="272" text-anchor="end">GPIO21</text>
+            <use class="sch-sym" href="#mcu-pin" x="96" y="322" transform="rotate(180 96 322)"/><text class="sch-pin net-gnd" data-net="gnd" x="68" y="314" text-anchor="end">GND</text>
+          </g>
+          <!-- key -->
+          <path class="sch-w net-sig" data-net="gpio2" d="M96 110H110"/>
+          <use class="sch-sym" href="#res" x="110" y="110"/>
+          <text class="sch-ref" x="140" y="92" text-anchor="middle">R1 10 кОм</text>
+          <path class="sch-w net-sig3" data-net="base" d="M170 110H190"/>
+          <use class="sch-sym" href="#npn" x="190" y="110"/>
+          <text class="sch-ref" x="236" y="118">VT1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M220 140V146"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="220" y="146"/>
+          <use class="sch-sym" href="#res" x="220" y="80" transform="rotate(-90 220 80)"/>
+          <text class="sch-ref" x="212" y="44" text-anchor="end">R2 10 кОм</text>
+          <circle cx="220" cy="80" r="3.5" class="net-sig2" data-net="in" fill="currentColor"/>
+          <!-- +5 V -->
+          <path class="sch-w net-5v" data-net="v5" d="M220 20H420V80H392"/>
+          <text class="sch-pin net-5v" data-net="v5" x="300" y="13">+5 В від MB102</text>
+          <circle cx="256" cy="20" r="3.5" class="net-5v" data-net="v5" fill="currentColor"/>
+          <path class="sch-w net-5v" data-net="v5" d="M256 20V106H286"/>
+          <!-- relay module -->
+          <rect class="sch-w" x="286" y="52" width="106" height="110" rx="3"/>
+          <text class="sch-ref" x="286" y="176">U2 · модуль реле</text>
+          <path class="sch-w net-sig2" data-net="in" d="M220 80H286"/>
+          <text class="sch-pin" x="294" y="84">IN</text>
+          <text class="sch-pin" x="294" y="110">VCC</text>
+          <text class="sch-pin" x="294" y="136">GND</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M286 132H268V146"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="268" y="146"/>
+          <use class="sch-sym" href="#relay-no" x="372" y="80" transform="rotate(90 372 80)"/>
+          <path class="sch-w" d="M372 80H392"/>
+          <!-- load -->
+          <path class="sch-w net-sig" data-net="no" d="M372 140H440V166"/>
+          <circle class="sch-w" cx="440" cy="186" r="20" fill="none" stroke="var(--ink)"/>
+          <text class="sch-ref" x="440" y="191" text-anchor="middle">M</text>
+          <text class="sch-ref" x="414" y="191" text-anchor="end">M1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M440 206V252"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="440" y="252"/>
+          <path class="sch-w net-sig" data-net="no" d="M440 150H476V162"/>
+          <circle cx="440" cy="150" r="3.5" class="net-sig" data-net="no" fill="currentColor"/>
+          <use class="sch-sym" href="#diode" x="476" y="222" transform="rotate(-90 476 222)"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M476 222V238H440"/>
+          <circle cx="440" cy="238" r="3.5" class="net-gnd" data-net="gnd" fill="currentColor"/>
+          <text class="sch-ref" x="496" y="296" text-anchor="end">VD1 1N4007</text>
+          <!-- indicators -->
+          <path class="sch-w net-sig2" data-net="gpio15" d="M96 190H110"/>
+          <use class="sch-sym" href="#res" x="110" y="190"/>
+          <text class="sch-ref" x="140" y="174" text-anchor="middle">R3 220 Ом</text>
+          <path class="sch-w net-sig2" data-net="gpio15" d="M170 190H190"/>
+          <use class="sch-sym" href="#led" x="190" y="190" id="sch-ledr"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M250 190H262V196"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="262" y="196"/>
+          <text class="sch-val" x="284" y="208">LED1 працює</text>
+          <path class="sch-w net-sig3" data-net="gpio16" d="M96 235H110"/>
+          <use class="sch-sym" href="#res" x="110" y="235"/>
+          <text class="sch-ref" x="140" y="219" text-anchor="middle">R4 220 Ом</text>
+          <path class="sch-w net-sig3" data-net="gpio16" d="M170 235H190"/>
+          <use class="sch-sym" href="#led" x="190" y="235" id="sch-ledg"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M250 235H262V241"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="262" y="241"/>
+          <text class="sch-val" x="284" y="253">LED2 чекає</text>
+          <!-- button, ground pin -->
+          <path class="sch-w net-sig" data-net="gpio21" d="M96 280H110"/>
+          <use class="sch-sym" href="#btn" x="110" y="280"/>
+          <text class="sch-ref" x="140" y="256" text-anchor="middle">S1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M170 280H186V286"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="186" y="286"/>
+          <text class="sch-val" x="208" y="298">увімкнути зараз</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M96 322H110V324"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="110" y="324"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-vent" class="kit-bench" viewBox="-180 -60 1880 1240" role="img" aria-label="Макетка: зліва MB102, нижні шини 5 В. Плата YD-ESP32-S3 у макетці, ліва гребінка в ряду i зі стовпчика 23, права в ряду b. Синій дріт від GPIO2 по доріжці над рядом a до R1, що стоїть через канавку у стовпчику 18; VT1 BC547B колектором у i17, базою в i18, емітером в i19, емітер чорним дротом на нижню шину мінус. R2 10 кОм від стовпчика 13 до колектора, стовпчик 13 червоним дротом на нижню шину плюс. Зелений дріт від колектора до IN модуля реле під макеткою, червоний VCC і чорний GND від нижніх шин. Зелений дріт від GPIO16 по доріжці під рядом j до R4 220 Ом і зеленого LED, жовтий дріт від GPIO15 вздовж нижнього краю до R3 220 Ом і червоного LED; катоди чорними дротами на шину мінус. Фіолетовий дріт від GPIO21 вздовж верхнього краю до кнопки S1, друга її ніжка на верхній шині мінус. COM реле червоним дротом на шину плюс, NO білим дротом на мотор, другий вивід мотора чорним дротом на шину мінус, діод 1N4007 на виводах мотора. GND плати чорним дротом на верхню шину мінус; розриви шин закривають короткі перемички."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Немає мотора? На контакт NO підійде LED + 220&nbsp;Ом, як у міні-проєкті 1.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <div class="seg" role="group" aria-label="Стан циклу" id="st-seg">
+        <button type="button" data-s="wait" aria-pressed="false">Чекає</button>
+        <button type="button" data-s="run" aria-pressed="true">Працює</button>
+      </div>
+      <span class="st-badge fire" id="st-badge" aria-live="polite">GPIO2 = HIGH: реле ввімкнене, мотор крутиться</span>
+    </div>
+
+    <details class="more">
+    <summary>Код до схеми: src/main.c (ESP-IDF 6.1)</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "driver/gptimer.h"
+#include "esp_attr.h"
+#include "esp_system.h"
+#include "esp_task_wdt.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// Модуль 2.5, ДЗ «Таймери»: витяжний вентилятор щогодини вмикається на 15 хвилин. ESP-IDF.
+// Цикл веде апаратний таймер (gptimer): перемикає вентилятор сам обробник, app_main лише друкує стан і годує сторожа.
+#define FAN      GPIO_NUM_2   // GPIO2 → 10 кОм → BC547B → IN модуля реле; 1 = вентилятор працює
+#define LED_RUN  GPIO_NUM_15  // червоний: вентилятор працює
+#define LED_WAIT GPIO_NUM_16  // зелений: вентилятор чекає
+#define BUTTON   GPIO_NUM_21  // кнопка на GND: «увімкнути зараз»
+
+#define PERIOD_S 3600  // довжина циклу: 1 година
+#define ON_S     900   // з них вентилятор працює: 15 хвилин
+#define SPEEDUP  300   // налагодження: 300 = година за 12 с і 15 хв за 3 с; у роботі поставте 1
+#define WDT_S    5     // сторож: стільки секунд без тіків таймера — і перезавантаження
+
+static volatile uint32_t second = 0;  // де ми в циклі, 0 … PERIOD_S − 1
+static volatile uint32_t ticks = 0;   // скільки разів спрацював таймер: доказ, що він живий
+
+// Весь цикл вентилятора — тут: раз на секунду циклу, незалежно від того, що робить app_main
+static bool IRAM_ATTR on_tick(gptimer_handle_t timer, const gptimer_alarm_event_data_t* event, void* arg) {
+    ticks++;
+    if (++second &gt;= PERIOD_S) second = 0;
+    bool on = second &lt; ON_S;
+    gpio_set_level(FAN, on);
+    gpio_set_level(LED_RUN, on);
+    gpio_set_level(LED_WAIT, !on);
+    return false;  // жодну задачу будити не треба
+}
+
+// Захист від повторного запуску: поки вентилятор працює, кнопка нічого не робить
+// (15 хвилин не подовжуються, брязкіт теж безпечний). Якщо чекає — наступний тік почне цикл спочатку.
+static void IRAM_ATTR on_button(void* arg) {
+    if (second &gt;= ON_S) second = PERIOD_S - 1;
+}
+
+void app_main(void) {
+    // FAN як INPUT_OUTPUT: тоді gpio_get_level() читає справжній стан виходу
+    gpio_config_t fan = {.pin_bit_mask = 1ULL &lt;&lt; FAN, .mode = GPIO_MODE_INPUT_OUTPUT};
+    gpio_config(&amp;fan);
+    gpio_config_t leds = {.pin_bit_mask = (1ULL &lt;&lt; LED_RUN) | (1ULL &lt;&lt; LED_WAIT), .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;leds);
+    gpio_set_level(FAN, 1);  // цикл починається з роботи: second = 0 &lt; ON_S
+    gpio_set_level(LED_RUN, 1);
+
+    gpio_config_t button = {.pin_bit_mask = 1ULL &lt;&lt; BUTTON, .mode = GPIO_MODE_INPUT,
+                            .pull_up_en = GPIO_PULLUP_ENABLE, .intr_type = GPIO_INTR_NEGEDGE};
+    gpio_config(&amp;button);
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON, on_button, NULL);
+
+    gptimer_handle_t timer;
+    gptimer_config_t config = {.clk_src = GPTIMER_CLK_SRC_DEFAULT, .direction = GPTIMER_COUNT_UP,
+                               .resolution_hz = 1000000};  // 1 тік за 1 мкс
+    gptimer_new_timer(&amp;config, &amp;timer);
+    gptimer_event_callbacks_t callbacks = {.on_alarm = on_tick};
+    gptimer_register_event_callbacks(timer, &amp;callbacks, NULL);
+    gptimer_alarm_config_t alarm = {.alarm_count = 1000000 / SPEEDUP,  // раз на секунду циклу
+                                    .flags.auto_reload_on_alarm = true};  // повтор робить залізо: похибка не накопичується
+    gptimer_set_alarm_action(timer, &amp;alarm);
+    gptimer_enable(timer);
+    gptimer_start(timer);
+
+    esp_task_wdt_config_t wdt = {.timeout_ms = WDT_S * 1000, .trigger_panic = true};  // не погодували — перезавантаження
+    esp_task_wdt_reconfigure(&amp;wdt);  // сторож уже запущений ESP-IDF, міняємо час і реакцію
+    esp_task_wdt_add(NULL);          // стежимо за app_main
+
+    vTaskDelay(pdMS_TO_TICKS(2000));  // монітор порту встигає під'єднатися після прошивки
+    printf("Вентилятор: цикл %d с, робота %d с, прискорення ×%d, старт: %s\n", PERIOD_S, ON_S, SPEEDUP,
+           esp_reset_reason() == ESP_RST_TASK_WDT ? "після сторожа" : "звичайний");
+
+    bool shown = false;  // що вже надруковано
+    uint32_t seen = 0;   // останній побачений тік
+    while (1) {
+        if (ticks != seen) {  // годуємо, лише якщо таймер живий: стереже і app_main, і таймер
+            seen = ticks;
+            esp_task_wdt_reset();
+        }
+
+        bool on = gpio_get_level(FAN);
+        if (on != shown) {
+            shown = on;
+            printf("[%lld мс] %s, секунда циклу %lu\n", esp_timer_get_time() / 1000, on ? "ПРАЦЮЄ" : "чекає", second);
+        }
+        vTaskDelay(1);  // 1 мс: віддаємо процесор іншим задачам
+    }
+}</code></pre>
+    <p class="small">Це повний файл <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-vent-timer">esp32-s3-vent-timer</a>. Він на ESP-IDF (C) і Rust, обидва зібрані, але на платі ще не запускалися. Вивід нижче — очікування за кодом для <code>SPEEDUP 300</code>, а не запис із плати:</p>
+<pre class="code"><code>Вентилятор: цикл 3600 с, робота 900 с, прискорення ×300, старт: звичайний
+[2000 мс] ПРАЦЮЄ, секунда циклу 600
+[3000 мс] чекає, секунда циклу 900
+[12000 мс] ПРАЦЮЄ, секунда циклу 0
+[15000 мс] чекає, секунда циклу 900</code></pre>
+    <p class="small">Перший рядок стану з'являється лише після <code>vTaskDelay(pdMS_TO_TICKS(2000))</code> на старті, тому секунда циклу там уже не 0. Сама пауза циклу не заважає: таймер у цей час уже рахує.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Міні-лаба вдома: вентилятор на прискореному часі</h2>
+    <p>Потрібно: плата YD-ESP32-S3, макетка, MB102, модуль реле 5&nbsp;В, BC547B, 2×10&nbsp;кОм, 2×220&nbsp;Ом, 2 LED, кнопка, мотор TT і 1N4007 (або LED + 220&nbsp;Ом замість них). Якщо є логічний аналізатор, підключіть CH1 до GPIO2: так період видно точно.</p>
+    <div class="note warn">Схему міняйте лише при вимкненому живленні. Мотор ніколи не вішайте на GPIO напряму, а +5&nbsp;В із MB102 не заводьте на піни ESP32.</div>
+    <ol>
+      <li>Зберіть схему з розділу 08 і залийте <code>esp32-s3-vent-timer/cpp</code>.</li>
+      <li><b>Спершу прогноз:</b> запишіть у таблицю очікувані часи для <code>SPEEDUP 300</code>.</li>
+      <li>Виміряйте цикл і час роботи: секундоміром по LED або аналізатором на GPIO2. Заодно збережіть вивід: <code>pio device monitor -f log2file</code>.</li>
+      <li>Натисніть S1 під час роботи: нічого не має змінитися. Натисніть під час паузи: цикл почнеться спочатку.</li>
+      <li>Додайте в <code>loop()</code> рядок <code>while (true) {}</code> і заміряйте час до перезавантаження. У першому рядку Serial має бути <code>старт: після сторожа</code>.</li>
+      <li>Поверніть код і порівняйте таблицю. Це і є результат домашнього завдання 2.5.</li>
+    </ol>
+    <div class="tbl">
+    <table class="measure" data-key="2-5-vent" data-calc="diff">
+      <caption>Вентилятор, SPEEDUP 300</caption>
+      <thead><tr><th>Що міряємо</th><th>Прогноз</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>Повний цикл, с</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Вентилятор працює, с</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Зависання → перезавантаження, с</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><b>Розширення: що якщо…</b> поставити <code>timerAlarmWrite(timer, 1000000 / SPEEDUP, false)</code>? Або додати в <code>loop()</code> <code>delay(3000)</code>: що станеться з циклом, а що зі сторожем? Спершу напишіть прогноз.</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="2-5" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="2-5" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Гонка годинників</h3>
+      <dl>
+        <dt>Мета</dt><dd>На одній платі йдуть три годинники по 1&nbsp;с: <code>last = millis()</code>, <code>last += 1000</code> і апаратний таймер. <code>loop()</code> завантажений випадковою роботою до 300&nbsp;мс. Через 10&nbsp;хвилин порівняйте, скільки секунд нарахував кожен.</dd>
+        <dt>Здати</dt><dd>Код, таблиця «годинник / секунд за 10&nbsp;хв / дрейф» і одне речення, чому переміг саме цей годинник.</dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: прошивка з трьома годинниками;</li><li><b>Вимірювач</b>: запуск на 10 хвилин, таблиця дрейфу;</li><li><b>Доповідач</b>: допис у «Командні виклики»;</li><li><b>Скептик</b>: перевіряє код іншої команди: чи читання спільних змінних захищене.</li></ul></dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>Три годинники</b> працюють одночасно: 2 — усі, 1 — два, 0 — один. <b>Спільні змінні</b> читаються в критичній секції: 2 — скрізь, 1 — частково, 0 — ні. <b>Дрейф виміряно</b>, а не вгадано: 2 — є таблиця, 1 — лише одне число, 0 — немає. <b>Пояснення</b> збігається з числами: 2 — так, 1 — частково, 0 — ні.</p></details></dd>
+        <dt>Ускладнення</dt><dd>Звірте апаратний таймер із секундоміром телефона за годину й оцініть точність кварцу в ppm.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «2.5 Гонка годинників · команда …».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: схему з розділу 08 (хоча б LED без реле), прошивку <code>esp32-s3-vent-timer</code> і пройдену першу місію лабораторії.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–18 хв</span><span class="cp-a">Збір, розминка, найменш зрозуміле з минулих квитків і короткий підсумок уроку 2.4 від студента за графіком</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">18–23 хв</span><span class="cp-a">Задача до теорії: кожен пише свою ідею в чат і надсилає разом з усіма</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">23–36 хв</span><span class="cp-a">Такти, дільник, тік, будильник: лабораторія на екрані, перше голосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">36–48 хв</span><span class="cp-a">Прогноз → перевірка: стіна прогнозів для трьох годинників, потім віджет, потім «чому?»</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">48–55 хв</span><span class="cp-a">Прапорець чи дія в обробнику, спільний лічильник: голосування, двоє пояснюють, переголосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці, щоб отримати допомогу</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Пишемо разом <code>onTick()</code>, потім кнопку, лог і сторожа: ви повторюєте вдома, контрольні точки кожні ~5&nbsp;хв</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">90–95 хв</span><span class="cp-a">«Знайди несправність»: один випадок на проєкторі, номер рядка в чат</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">95–108 хв</span><span class="cp-a">Видача командного виклику «Гонка годинників» (розділ 12), ролі тижня, 2&nbsp;хв з напарником: «з чого почнеш?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступне заняття</span><span class="cp-r">усі</span></li>
+    </ol>
+    <div class="tnote">
+      <p><b>Продуктивна невдача (5 хв, до теорії):</b> «Вентилятор має вмикатися щогодини, навіть якщо <code>loop()</code> завис. Як?» Збирайте ідеї «водоспадом»: усі пишуть відповідь у чат і надсилають одночасно. Очікувано: «<code>millis()</code>», «окрема задача», «переривання». Слово «апаратний таймер» дайте лише після цього.</p>
+      <p><b>ConcepTest 1 (E6):</b> «Таймер раз на секунду, а в <code>loop()</code> стоїть <code>delay(5000)</code>. Що з обробником?» А — чекає кінця <code>delay()</code>; Б — спрацьовує раз на секунду; В — спрацює п'ять разів поспіль.</p>
+      <details class="t-spoiler"><summary>Відповідь</summary><p>Б. Міф із розділу 07: <code>delay()</code> зупиняє лише поточну задачу.</p></details>
+      <p><b>ConcepTest 2 (дрейф):</b> «Прохід <code>loop()</code> триває 200&nbsp;мс. <code>last = millis()</code> чи <code>last += 1000</code>: який годинник відстане за годину?» А — обидва; Б — лише перший; В — жоден.</p>
+      <details class="t-spoiler"><summary>Відповідь</summary><p>Б. Якщо голоси розділилися, це вдала зона для «публічної пари»: двоє з різними відповідями по 60&nbsp;с, потім переголосування й віджет «Три годинники».</p></details>
+      <p><b>POE (наживо, 8 хв):</b> стіна прогнозів «скільки нарахує <code>last = millis()</code> за 10 хвилин?» (зони 600 / 570 / 540 / менше). Потім модель на екрані, далі «чому?».</p>
+      <table class="tbl-modes">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>0–18</td><td>Прихід, розминка, квитки, повтор уроку 2.4 студентом</td><td>розділ 03, квитки</td></tr>
+          <tr><td>18–23</td><td>Продуктивна невдача</td><td>розділ 01</td></tr>
+          <tr><td>23–36</td><td>Будова таймера + ConcepTest 1</td><td>лабораторія, розділ 04</td></tr>
+          <tr><td>36–48</td><td>POE «три годинники» + ConcepTest 2</td><td>розділ 05</td></tr>
+          <tr><td>48–55</td><td>Прапорець, спільний лічильник</td><td>розділ 04</td></tr>
+          <tr><td>55–62</td><td>Перерва</td><td></td></tr>
+          <tr><td>62–90</td><td>Пишемо разом: цикл, кнопка, лог, сторож</td><td>розділи 06 і 08</td></tr>
+          <tr><td>90–95</td><td>Знайди несправність</td><td>розділ 07</td></tr>
+          <tr><td>95–108</td><td>Видача виклику «Гонка годинників»</td><td>розділ 12</td></tr>
+          <tr><td>108–120</td><td>Квиток на вихід, ролі на наступне заняття</td><td>розділ 14</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому автоперезавантаження не дає часу пливти, навіть якщо обробник стартує із запізненням."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip" href="../2-3/">Урок 2.3 · суперцикл і <code>millis()</code></a></li>
+      <li><a class="chip" href="../2-4/">Урок 2.4 · переривання</a></li>
+      <li><a class="chip" href="../2-6/">Урок 2.6 · Debounce</a></li>
+      <li><a class="chip deep" href="../../power-loads/">Потужне навантаження: реле й мотор</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/">Сутінковий перемикач: той самий ключ</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s90aopq0813bx3cp5ru">Урок 2.5 у LMS</a> (потрібен вхід).</li>
+      <li><a href="https://www.youtube.com/watch?v=IdL0_ZJ7V2s">Відео Electronic Basics #30: Microcontroller (Arduino) Timers</a> (GreatScott!). Що шукати: дільник, CTC і чому таймер кращий за <code>delay()</code>. Майте на увазі: це ATmega328P, регістрів OCR на ESP32-S3 немає.</li>
+      <li><a href="https://www.youtube.com/watch?v=QLZhfZHLMfY">Відео «Arduino Таймер на 7-ми сегментних індикаторах»</a> (Robotics4School). Що шукати: два режими таймера, одноразовий і циклічний. Це таймер на <code>millis()</code> на Arduino Uno, а не апаратний.</li>
+      <li><a href="https://www.youtube.com/watch?v=KyjyszEGFvM">Відео «Програмування модуля TIMER в STM32»</a> (Ihor Pluhatyrov). Що шукати: формули періоду й конфігуратор. Це STM32: ідеї ті самі, а регістри й інструменти інші.</li>
+      <li>Статті з LMS: <a href="https://geekmatic.in.ua/ua/vstup-do-taimeriv-esp32">Geekmatic: вступ до таймерів ESP32</a>, <a href="https://circuitdigest.com/microcontroller-projects/esp32-timers-and-timer-interrupts">Circuit Digest: ESP32 timers</a> (обидві на API ядра 2.x), <a href="https://hackyourmom.com/osvita/stm32-chastyna-5-tajmery-osnovy-ta-pryklady-vykorystannya/">HackYourMom: таймери STM32</a>.</li>
+      <li><a href="https://docs.espressif.com/projects/esp-idf/en/v4.3/esp32/api-reference/peripherals/timer.html">Документація ESP-IDF v4.3: Timer</a>. Обережно: це старе API для класичного ESP32. Сучасна сторінка: <a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/gptimer.html">GPTimer для ESP32-S3</a>.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-vent-timer">esp32-s3-vent-timer</a>: домашнє завдання 2.5, цикл на апаратному таймері, лог, LED, захист від повторного запуску й сторож (cpp/ і rust/).</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a>: три незалежні ритми на <code>millis()</code> в одному <code>loop()</code>.</li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на даташити й код ядра</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 04.11.2026</span></p>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (17 пунктів)</summary>
+    <ol class="fixlist">
+      <li>Timer0 і «точність 1–4 мс» — це Arduino Uno. На ESP32 <code>millis()</code> рахує esp_timer, а не Timer0<sup class="cite" data-fact="lms-err-2-5-millis-timer0"></sup><sup class="cite" data-fact="avr-millis-timer0"></sup>.</li>
+      <li>Кілька незалежних часових завдань на <code>millis()</code> можливі: проєкт <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a> тримає три в одному <code>loop()</code>.</li>
+      <li>Затримка обслуговування не «практично нульова»: момент у колбеку таймера може відрізнятися від значення будильника через затримку обробника<sup class="cite" data-fact="s3-timer-alarm"></sup>. Період від цього не пливе.</li>
+      <li>Приклад OCR хибний: (124 + 1) × 64 / 16&nbsp;000&nbsp;000 = 0,5&nbsp;мс, а не 1&nbsp;мс. Для 1&nbsp;кГц потрібен OCR = 249<sup class="cite" data-fact="lms-err-2-5-ocr-example"></sup>.</li>
+      <li>CTC — це Clear Timer on Compare Match, а не «захоплення-порівняння». На ESP32-S3 його немає, є будильник з автоперезавантаженням<sup class="cite" data-fact="lms-err-2-5-capture-compare"></sup>.</li>
+      <li>Таймери ESP32-S3 54-бітні, а не 64-бітні<sup class="cite" data-fact="lms-err-2-4-timer-width"></sup>.</li>
+      <li>2⁶⁴ тактів при 80&nbsp;МГц — це ≈7311 років, а не ≈6000; а ESP32-S3 при 80&nbsp;МГц переповниться через ≈7,1 року<sup class="cite" data-fact="lms-err-2-5-overflow-years"></sup>.</li>
+      <li>Дільник ESP32-S3 — від 2 до 65536, а не від 1<sup class="cite" data-fact="s3-timer-prescaler"></sup>; у ядрі 2.0.17 максимум 65535 через <code>uint16_t</code>.</li>
+      <li><code>timerAttachInterrupt(…, true)</code> в ядрі 2.0.17 дає попередження й LEVEL: пишемо <code>false</code><sup class="cite" data-fact="core-timer-edge"></sup>.</li>
+      <li>Приклад із кириличними змінними в нас не компілюється. Ми зібрали його на espressif32 7.1.0: <code>stray '\321'</code>, а з латинськими іменами все гаразд<sup class="cite" data-fact="core-gcc-utf8-identifiers"></sup>.</li>
+      <li><code>Serial.println(лічильник); лічильник = 0;</code> втрачає тіки: читати й обнуляти треба в критичній секції<sup class="cite" data-fact="idf-critical-section"></sup>.</li>
+      <li><code>ISR(TIMER1_COMPA_vect)</code> — вектор AVR, на ESP32-S3 він не існує<sup class="cite" data-fact="s3-timer-alarm"></sup>.</li>
+      <li>Прапорець від таймера не дає «істинної паралельності»: дія чекає на <code>loop()</code><sup class="cite" data-fact="lms-err-2-5-true-parallel"></sup>.</li>
+      <li><code>delay()</code> не зупиняє мікроконтролер: чекає лише поточна задача<sup class="cite" data-fact="lms-err-2-5-delay"></sup>.</li>
+      <li>Приклад з <code>останній_час = millis()</code> дрейфує в завантаженому <code>loop()</code>: пишемо <code>+= інтервал</code>.</li>
+      <li>GyverWDT працює лише на AVR, порядок аргументів у ньому інший, а <code>WDT_2S</code> у його README немає. На ESP32-S3 беремо <code>esp_task_wdt</code><sup class="cite" data-fact="lms-err-2-5-gyverwdt"></sup><sup class="cite" data-fact="gyverwdt-avr"></sup>.</li>
+      <li>Посилання на ESP-IDF v4.3 веде до старого API класичного ESP32. В ESP-IDF 6.1 лише GPTimer<sup class="cite" data-fact="idf-61-no-legacy-timer"></sup>.</li>
+    </ol>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  let T = Study.tokens();
+  Study.onTheme((t) => { T = t; });
+  const K = window.Kit, KP = K.P;
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const prng = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const NB = ' ';
+  const YEAR = 3.156e7;
+  const group = (n) => Math.floor(n).toLocaleString('en-US', { useGrouping: true, maximumFractionDigits: 0 }).replace(/,/g, NB);
+  const short = (x) => String(Number(x.toPrecision(4))).replace('.', ',');
+  const years = (n) => { const a = n % 100, b = n % 10; return a >= 11 && a <= 14 ? 'років' : b === 1 ? 'рік' : b >= 2 && b <= 4 ? 'роки' : 'років'; };
+  const fmtT = (s) => {
+    if (s < 1e-6) return short(s * 1e9) + NB + 'нс';
+    if (s < 1e-3) return short(s * 1e6) + NB + 'мкс';
+    if (s < 1) return short(s * 1e3) + NB + 'мс';
+    if (s < 120) return short(s) + NB + 'с';
+    if (s < 7200) return short(s / 60) + NB + 'хв';
+    if (s < 172800) return short(s / 3600) + NB + 'год';
+    if (s < 2 * YEAR) return short(s / 86400) + NB + 'діб';
+    const y = Math.round(s / YEAR);
+    return '≈' + group(y) + NB + years(y);
+  };
+  const fmtF = (f) => (f >= 1e6 ? short(f / 1e6) + NB + 'МГц' : f >= 1e3 ? short(f / 1e3) + NB + 'кГц' : short(f) + NB + 'Гц');
+  const pressed = (box, on) => $$('button', box).forEach((b) => b.setAttribute('aria-pressed', String(b === on)));
+  // Sizes a label's frame from its measured text (see lesson 2.4): a hidden figure keeps the drawn size until it is laid out.
+  const FIT = new Map();
+  const fitRO = 'ResizeObserver' in window ? new ResizeObserver((es) => es.forEach((e) => FIT.forEach(([t], r) => { if (e.target.contains(r)) fitFrame(r, t); }))) : null;
+  function fitFrame(r, t) {
+    if (!r || !t) return;
+    if (!r.dataset.w0) { r.dataset.w0 = r.getAttribute('width'); r.dataset.x0 = r.getAttribute('x'); }
+    FIT.set(r, [t]);
+    let tw = 0;
+    try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+    if (!tw) { if (fitRO && t.ownerSVGElement) fitRO.observe(t.ownerSVGElement); return; }
+    const x0 = +r.dataset.x0, w0 = +r.dataset.w0, rx = Math.min(+r.getAttribute('rx') || 0, (+r.getAttribute('height') || 0) / 2);
+    const w = Math.max(w0, Math.ceil(tw + 2 * (0.6 * rx + 6)));
+    const x = x0 + (w0 - w) / 2;
+    r.setAttribute('x', +x.toFixed(1)); r.setAttribute('width', w);
+    t.setAttribute('x', +(x + w / 2).toFixed(1));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => FIT.forEach(([t], r) => fitFrame(r, t)));
+
+  /* =====================================================================
+     LAB «таймер зсередини» (#tm). The numbers are the real ones of core 2.0.17: APB 80 МГц / divider = tick,
+     alarm · tick = period; only the on-screen speed is scaled so that one period stays visible.
+     With auto-reload off the counter runs on past the alarm and the alarm fires once.
+     ===================================================================== */
+  (() => {
+    const F = 80e6, MAX_ALARM = 2 ** 54;
+    const divI = $('#tm-div'), alI = $('#tm-alarm'), rel = $('#tm-reload'), play = $('#tm-play');
+    const cv = $('#tm-cv'), bar = $('#tm-bar'), box = $('#tm-isr'), led = $('#tm-led');
+    const s = { div: 80, alarm: 1e6, reload: true, t: 0, fired: 0, isr: 0, led: 0, flash: 0, err: '', triedBad: false, onceDone: false };
+    const tick = () => s.div / F, period = () => s.alarm * tick();
+    const speed = () => { const P = period(); return P >= 0.4 && P <= 4 ? 1 : P / 1.6; };
+
+    function restart() {
+      const P = period();
+      s.t = 0; s.fired = 0; s.isr = 0; s.led = 0;
+      if (Study.reducedMotion()) step(2.4 * P);
+    }
+    function step(dts) {
+      const P = period();
+      s.t += dts;
+      const n = Math.floor(s.t / P), lim = s.reload ? n : Math.min(n, 1);
+      if (lim > s.fired) {
+        const d = lim - s.fired;
+        s.isr += d; s.led ^= d & 1; s.fired = lim; s.flash = 0.22;
+        if (!s.reload) s.onceDone = true;
+      }
+    }
+    function draw() {
+      const c = Study.fitCanvas(cv), W = c.w, H = c.h;
+      c.clearRect(0, 0, W, H);
+      const P = period(), span = 3 * P, t1 = s.t, t0 = t1 - span, L = 8, R = W - 8, top = 30, base = H - 56, lo = H - 12, hi = H - 34;
+      const X = (t) => L + (t - t0) / span * (R - L), Y = (v) => base - v * (base - top);
+      const mono = `500 13px ${T['f-mono'] || 'monospace'}`;
+      c.font = mono; c.textBaseline = 'alphabetic';
+      c.strokeStyle = T.line; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(L, base + .5); c.lineTo(R, base + .5); c.stroke();
+      c.strokeStyle = T.hi; c.lineWidth = 1.5; c.setLineDash([6, 5]);
+      c.beginPath(); c.moveTo(L, Y(1)); c.lineTo(R, Y(1)); c.stroke(); c.setLineDash([]);
+      c.fillStyle = T.muted;
+      c.fillText('будильник', L + 2, Y(1) - 6);
+      c.fillText('вивід LED', L + 2, hi - 6);
+      const marks = [];
+      c.strokeStyle = T.accent; c.lineWidth = 2.5; c.lineJoin = 'round';
+      c.beginPath();
+      if (s.reload) {
+        const k0 = Math.max(0, Math.floor(t0 / P)), k1 = Math.floor(t1 / P);
+        for (let k = k0; k <= k1; k++) {
+          const a = Math.max(k * P, Math.max(t0, 0)), b = Math.min((k + 1) * P, t1);
+          c.moveTo(X(a), Y((a - k * P) / P)); c.lineTo(X(b), Y((b - k * P) / P));
+          if (b >= (k + 1) * P - 1e-15) { c.lineTo(X(b), Y(0)); marks.push(b); }
+        }
+      } else {
+        const a = Math.max(0, t0);
+        c.moveTo(X(a), Y(Math.min(a / P, 1.18))); c.lineTo(X(t1), Y(Math.min(t1 / P, 1.18)));
+        if (t1 >= P && P >= t0) marks.push(P);
+      }
+      c.stroke();
+      c.strokeStyle = T.hi; c.lineWidth = 3;
+      marks.forEach((m) => { c.beginPath(); c.moveTo(X(m), top - 6); c.lineTo(X(m), base + 4); c.stroke(); });
+      // LED: toggled by every handler call, so its full period is two alarms
+      const level = (t) => (s.reload ? Math.floor(t / P) % 2 : (t >= P ? 1 : 0));
+      c.strokeStyle = T.ok; c.lineWidth = 2;
+      c.beginPath();
+      const a0 = Math.max(t0, 0);
+      let l = level(a0);
+      c.moveTo(X(a0), l ? hi : lo);
+      for (const m of [...marks].sort((u, v) => u - v)) { c.lineTo(X(m), l ? hi : lo); l = l ? 0 : 1; c.lineTo(X(m), l ? hi : lo); }
+      c.lineTo(X(t1), l ? hi : lo);
+      c.stroke();
+    }
+    function paint() {
+      const P = period(), phase = s.reload ? (s.t / P) % 1 : Math.min(s.t / P, 1);
+      setTxt($('#tm-count'), group(s.reload ? phase * s.alarm : s.t / tick()));
+      bar.style.width = (phase * 100).toFixed(1) + '%';
+      setTxt($('#tm-isrn'), '× ' + group(s.isr));
+      box.classList.toggle('fire', s.flash > 0);
+      led.classList.toggle('on', !!s.led);
+      draw();
+    }
+    function texts() {
+      const P = period(), sp = speed(), tk = fmtT(tick());
+      setTxt($('#tm-dv'), '÷' + NB + group(s.div));
+      setTxt($('#tm-ds'), `кожен ${group(s.div)}-й такт`);
+      setTxt($('#tm-al'), group(s.alarm));
+      setTxt($('#tm-as'), s.reload ? 'тіків, з повтором' : 'тіків, один раз');
+      setTxt($('#tm-tick'), tk);
+      setTxt($('#tm-fc'), fmtF(F / s.div));
+      setTxt($('#tm-t'), fmtT(P));
+      setTxt($('#tm-f'), s.reload ? fmtF(1 / P) : 'один раз');
+      setTxt($('#tm-ov'), fmtT(2 ** 54 * tick()));
+      setTxt($('#tm-speed'), sp === 1 ? 'справжній час' : sp < 1 ? `на екрані в ${group(1 / sp)} разів повільніше` : `на екрані в ${group(sp)} разів швидше`);
+      setTxt($('#tm-code'), `timer = timerBegin(0, ${s.div}, true);\t// тік ${tk}\ntimerAttachInterrupt(timer, &onTick, false);\ntimerAlarmWrite(timer, ${s.alarm}, ${s.reload});\t// ${fmtT(P)}${s.reload ? ', з повтором' : ', один раз'}\ntimerAlarmEnable(timer);`.replace(/\t/g, '  '));
+      note();
+    }
+    function note() {
+      const n = $('#tm-note');
+      n.classList.toggle('tm-err', !!s.err);
+      if (s.err) { setTxt(n, s.err); return; }
+      if (!s.reload) { setTxt(n, s.onceDone ? 'Будильник спрацював один раз. Лічильник рахує далі, а обробника більше не буде, поки таймер не налаштують знову.' : 'Автоперезавантаження вимкнено: обробник спрацює лише один раз.'); return; }
+      setTxt(n, `80 МГц / ${group(s.div)} = тік ${fmtT(tick())}, тож ${group(s.alarm)} тіків — це ${fmtT(period())}. LED перемикається на кожне спрацювання, тому його повний період вдвічі довший.`);
+    }
+    function read() {
+      let d = Math.floor(+divI.value), a = Math.floor(+alI.value);
+      s.err = '';
+      if (!Number.isFinite(d) || d < 2) { s.err = 'Дільник 0 і 1 залізо не приймає: мінімум 2.'; s.triedBad = true; d = 2; }
+      else if (d > 65535) { const cut = d % 65536; s.err = `${group(d)} не влазить у uint16_t: ядро 2.0.17 мовчки обріже його до ${group(cut)}.`; s.triedBad = true; d = Math.max(cut, 2); }
+      if (!Number.isFinite(a) || a < 1) { s.err = 'Будильник — це хоча б один тік.'; a = 1; }
+      if (a > MAX_ALARM) { s.err = 'Лічильник 54-бітний: більше за 2⁵⁴ він не дорахує.'; a = MAX_ALARM; }
+      s.div = d; s.alarm = a;
+      $$('#tm-divs button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.d === d)));
+      restart(); texts(); paint();
+    }
+    const sim = Study.sim($('#tm-stage'), (dt) => { step(dt * speed()); s.flash = Math.max(0, s.flash - dt); if (!s.reload) note(); paint(); });
+    const syncPlay = () => setTxt(play, sim.running ? '❚❚ Пауза' : '▶ Пуск');
+    play.addEventListener('click', () => { sim.toggle(); syncPlay(); });
+    $('#tm-stage').addEventListener('click', () => setTimeout(syncPlay));
+    [divI, alI].forEach((i) => i.addEventListener('input', read));
+    $$('#tm-divs button').forEach((b) => b.addEventListener('click', () => { divI.value = b.dataset.d; read(); }));
+    rel.addEventListener('switch', (e) => { s.reload = e.detail.on; read(); });
+    syncPlay(); restart(); texts(); paint();
+    Study.missions($('#tm-ms'), { key: 'tm', items: [
+      { id: 'sec', text: 'Зробіть обробник рівно раз на секунду й дочекайтеся двох спрацювань.', hint: 'Дільник 80 дає тік 1 мкс. Скільки мікросекунд у секунді?', check: () => s.reload && Math.abs(period() - 1) < 1e-9 && s.isr >= 2 },
+      { id: 'q250', text: 'Зробіть 250&nbsp;мс із дільником 8000.', hint: '80 МГц / 8000 = 10 кГц, тобто тік 100 мкс. Поділіть 250 мс на тік.', check: () => s.div === 8000 && s.alarm === 2500 },
+      { id: 'khz', text: 'Зробіть обробник з частотою 1&nbsp;кГц.', hint: 'Період 1 мс. З дільником 80 це 1000 тіків.', check: () => s.reload && Math.abs(period() - 1e-3) < 1e-12 },
+      { id: 'once', text: 'Вимкніть автоперезавантаження й подивіться, що буде після першого будильника.', hint: 'Лічильник рахує далі, але обробник не повторюється.', check: () => s.onceDone },
+      { id: 'bad', text: 'Спробуйте дільник 1 або 80000 і прочитайте, що станеться.', hint: 'Залізо приймає від 2, а ядро 2.0.17 передає дільник як uint16_t.', check: () => s.triedBad },
+    ] });
+    Study.onTheme(() => draw());
+    addEventListener('resize', draw, { passive: true });
+  })();
+
+  /* ================================================================ 04 divider sketch */
+  (() => {
+    const a = $('#dv-a'), b = $('#dv-b'), inp = $('#dv-n');
+    const draw = () => {
+      const n = +inp.value, N = 32, dx = 314 / N;
+      a.replaceChildren(); b.replaceChildren();
+      for (let i = 0; i < N; i++) {
+        const x = (8 + i * dx).toFixed(1);
+        mk('path', { d: `M${x} 46V22` }, a);
+        if (i % n === 0) mk('path', { d: `M${x} 98V72` }, b);
+      }
+      setTxt($('#dv-out'), String(n));
+      setTxt($('#dv-txt'), `80 МГц / ${n} = ${fmtF(80e6 / n)}, тік ${fmtT(n / 80e6)}. Тіків у ${n} рази менше, ніж тактів.`.replace(/у (\d) рази/, (m, v) => (+v >= 5 ? `у ${v} разів` : m)));
+    };
+    inp.addEventListener('input', draw);
+    draw();
+  })();
+
+  /* ================================================================ 04 auto-reload vs restart from code */
+  (() => {
+    const a = $('#ar-a'), b = $('#ar-b'), c = $('#ar-c'), inp = $('#ar-l');
+    const draw = () => {
+      const L = +inp.value;
+      [a, b, c].forEach((g) => g.replaceChildren());
+      for (let i = 0; i < 10; i++) {
+        const x = 8 + i * 34;
+        mk('path', { d: `M${x} 18V34` }, a);
+        mk('path', { d: `M${x} 62V80` }, b);
+        const xc = x + i * L * 0.3;
+        if (xc <= 326) mk('path', { d: `M${xc} 104V122` }, c);
+      }
+      setTxt($('#ar-out'), `${L} мкс`);
+      setTxt($('#ar-txt'), L ? `Якщо кожна секунда довша на ${L} мкс, за годину набіжить ${short(3.6 * L)} мс, а за добу ${short(0.0864 * L)} с. Із залізом зсуву немає.` : 'Без затримки обидва способи збігаються. Але нульової затримки не буває.');
+    };
+    inp.addEventListener('input', draw);
+    draw();
+  })();
+
+  /* ================================================================ 04 flag vs action in the handler */
+  (() => {
+    const inp = $('#fi-w');
+    let seed = 7;
+    const draw = () => {
+      const W = +inp.value, r = prng(seed), n = 6, x0 = 10, dx = 52, ms = dx / 500;
+      const tg = $('#fi-t'); tg.replaceChildren();
+      const delays = [];
+      for (let i = 0; i < n; i++) { mk('path', { d: `M${x0 + i * dx} 20V40` }, tg); delays.push(r() * W); }
+      const wave = (y1, y0, off) => {
+        let lvl = 0, d = `M4 ${y0}`;
+        for (let i = 0; i < n; i++) { const x = (x0 + i * dx + off(i)).toFixed(1); d += `H${x}V${lvl ? y0 : y1}`; lvl ^= 1; }
+        return d + 'H326';
+      };
+      $('#fi-a').setAttribute('d', wave(70, 92, () => 0));
+      $('#fi-b').setAttribute('d', wave(120, 142, (i) => delays[i] * ms));
+      setTxt($('#fi-out'), `${W} мс`);
+      const worst = Math.round(Math.max(...delays));
+      setTxt($('#fi-txt'), W ? `Будильник раз на 500 мс. Дія в loop() спізнилася щонайбільше на ${worst} мс і щоразу на різний час, а наступний будильник усе одно прийшов за розкладом: це джитер, а не дрейф.` : 'Коли loop() вільний, перевірка майже завжди встигає. Запізнення з’являється разом із роботою.');
+    };
+    inp.addEventListener('input', draw);
+    $('#fi-new').addEventListener('click', () => { seed += 11; draw(); });
+    draw();
+  })();
+
+  /* =====================================================================
+     05 «Три годинники» (#w-clocks): a model of loop() passes. Every pass lasts a random time from half the load to the
+     full load, then both millis() clocks check the time; the hardware clock is simply floor(t / 1000).
+     The whole run is computed first, so the same result can be shown at once under reduced motion.
+     ===================================================================== */
+  (() => {
+    const cv = $('#ck-cv'), inp = $('#ck-load'), DUR = 600, PLAY = 12;
+    let data = [], p = 0, seed = 2026, open = false;   // p = 0: no spoiler before the prediction
+    function compute() {
+      const load = +inp.value, r = prng(seed), out = [];
+      let t = 0, a = 0, b = 0, lastA = 0, lastB = 0, next = 0;
+      while (t < DUR * 1000) {
+        t += load / 2 + r() * load / 2 + 0.05;
+        const m = Math.floor(t);
+        if (m - lastA >= 1000) { lastA = m; a++; }
+        if (m - lastB >= 1000) { lastB += 1000; b++; }
+        if (t >= next) { out.push({ t: t / 1000, a, b, c: Math.floor(t / 1000) }); next += 2000; }
+      }
+      out.push({ t: DUR, a, b, c: DUR });
+      data = out;
+    }
+    const at = () => data[Math.min(data.length - 1, Math.floor(p * (data.length - 1)))];
+    function draw() {
+      const c = Study.fitCanvas(cv), W = c.w, H = c.h, L = 44, R = W - 12, top = 14, bot = H - 26;
+      c.clearRect(0, 0, W, H);
+      const last = data[data.length - 1], maxLag = Math.max(5, last.t - last.a) * 1.1;
+      const X = (t) => L + t / DUR * (R - L), Y = (s) => bot - s / maxLag * (bot - top);
+      c.font = `500 13px ${T['f-mono'] || 'monospace'}`;
+      c.strokeStyle = T.line; c.fillStyle = T.muted; c.lineWidth = 1;
+      c.textAlign = 'right';
+      const stepY = maxLag > 60 ? 20 : maxLag > 20 ? 10 : maxLag > 8 ? 5 : 2;
+      for (let v = 0; v <= maxLag; v += stepY) { const y = Math.round(Y(v)) + .5; c.beginPath(); c.moveTo(L, y); c.lineTo(R, y); c.stroke(); c.fillText(String(v), L - 6, y + 4); }
+      c.textAlign = 'left'; c.fillText('відставання, с', L + 4, top + 12);
+      c.textAlign = 'center';
+      for (let m = 0; m <= 10; m += 2) c.fillText(m + ' хв', Math.min(R - 14, Math.max(L + 12, X(m * 60))), H - 8);
+      c.textAlign = 'left';
+      const n = Math.max(1, Math.floor(p * (data.length - 1)));
+      const line = (key, col, dash, w) => {
+        c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash);
+        c.beginPath();
+        for (let i = 0; i <= n; i++) { const d = data[i], x = X(d.t), y = Y(Math.max(0, d.t - d[key])); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+        c.stroke(); c.setLineDash([]);
+      };
+      line('c', T.ok, [], 3); line('b', T.accent, [7, 5], 2); line('a', T.bad, [], 3);
+      const d = at();
+      setTxt($('#ck-t'), group(d.t)); setTxt($('#ck-a'), group(d.a)); setTxt($('#ck-b'), group(d.b)); setTxt($('#ck-c'), group(d.c));
+    }
+    const legend = () => { $('#ck-la').style.setProperty('--c', T.bad); $('#ck-lb').style.setProperty('--c', T.accent); $('#ck-lc').style.setProperty('--c', T.ok); };
+    compute();
+    const sim = Study.sim(cv, (dt) => {
+      if (open && dt && p < 1) { p = Math.min(1, p + dt / PLAY); if (p >= 1) sim.pause(); }
+      draw();
+    });
+    sim.pause();
+    const run = () => { compute(); if (Study.reducedMotion()) { p = 1; draw(); } else { p = 0; sim.play(); } };
+    $('#w-clocks').addEventListener('predict', (e) => {
+      open = true;
+      if (e.detail && e.detail.restored || Study.reducedMotion()) { compute(); p = 1; draw(); } else run();
+    });
+    cv.addEventListener('click', () => { if (p >= 1 && open) { p = 0; sim.play(); } });
+    inp.addEventListener('input', () => { setTxt($('#ck-out'), `${inp.value} мс`); compute(); p = 1; sim.pause(); draw(); });
+    $('#ck-run').addEventListener('click', () => { seed += 17; run(); });
+    legend(); draw();
+    Study.onTheme(() => { legend(); draw(); });
+    addEventListener('resize', draw, { passive: true });
+  })();
+
+  /* =====================================================================
+     05 «Вентилятор за часовою лупою» (#w-fan): the firmware's logic, tick by tick. onTick() runs SPEEDUP times per second;
+     loop() only prints, so hanging it silences Serial and changes nothing else. The watchdog is off here: the next widget has it.
+     ===================================================================== */
+  (() => {
+    const PERIOD = 3600, ON = 900;
+    const f = { second: 0, ticks: 0, acc: 0, speedup: 300, hang: false, shown: false, cycle: 1, ignored: 0, ms: 0, lines: [] };
+    const svg = $('#fan-kit'), logEl = $('#fan-log'), hang = $('#fan-hang'), play = $('#fan-play');
+    const relay = K.part('relay-module', { parent: svg, x: 60, y: 120, xray: true, title: 'Модуль реле 5 В' });
+    const motor = K.part('tt-motor', { parent: svg, x: 838, y: 150, scale: 0.42, wheel: true, title: 'Мотор TT: вентилятор' });
+    const RP = relay.pins, MP = motor.pins, pt = (x, y) => ({ x, y });
+    relay.set({ power: true });
+    const cw = (pts, col) => {
+      const g = K.route(svg, pts, col);
+      if (col === 'black') { const e = g.path.cloneNode(false); e.removeAttribute('stroke'); e.setAttribute('class', 'kb-edge'); g.insertBefore(e, g.firstChild); }
+      return g;
+    };
+    cw([RP.NO, pt(MP['+'].x - 40, RP.NO.y), pt(MP['+'].x - 40, MP['+'].y), MP['+']], '#d9d9d2');
+    cw([MP['-'], pt(MP['-'].x - 18, MP['-'].y), pt(MP['-'].x - 18, 262)], 'black');
+    cw([RP.COM, pt(556, RP.COM.y), pt(556, 16), pt(640, 16)], 'red');
+    pill(svg, 700, 18, '+5 В');
+    pill(svg, 646, 264, 'GND');
+    const log = (s) => { f.lines.push(s); if (f.lines.length > 40) f.lines.shift(); setTxt(logEl, f.lines.slice(-6).join('\n')); logEl.scrollTop = logEl.scrollHeight; };
+    const header = () => log(`Вентилятор: цикл ${PERIOD} с, робота ${ON} с, прискорення ×${f.speedup}, старт: звичайний`);
+    function onTick() {
+      f.ticks++;
+      if (++f.second >= PERIOD) { f.second = 0; f.cycle++; }
+    }
+    function loopPass() {
+      if (f.hang) return;
+      const on = f.second < ON;
+      if (on !== f.shown) { f.shown = on; log(`[${group(f.ms).replace(/ /g, '')} мс] ${on ? 'ПРАЦЮЄ' : 'чекає'}, секунда циклу ${f.second}`); }
+    }
+    function paint() {
+      const on = f.second < ON;
+      $('#fan-ptr').setAttribute('transform', `rotate(${(f.second / PERIOD * 360).toFixed(1)} 110 110)`);
+      setTxt($('#fan-st'), on ? 'ПРАЦЮЄ' : 'чекає');
+      setTxt($('#fan-sec'), `${f.second} с / ${PERIOD}`);
+      $('#fan-lr').classList.toggle('on', on); $('#fan-lg').classList.toggle('on', !on);
+      if (relay.state.on !== on) relay.set({ on });
+      const rpm = on ? 40 : 0;
+      if (motor.state.rpm !== rpm) motor.set({ rpm });
+      setTxt($('#fan-n'), String(f.cycle)); setTxt($('#fan-t'), group(f.ticks)); setTxt($('#fan-ig'), String(f.ignored));
+      setTxt($('#fan-d'), `${short(PERIOD / f.speedup)} с`);
+    }
+    header();
+    const sim = Study.sim($('#fan-stage'), (dt) => {
+      f.ms += dt * 1000; f.acc += dt * f.speedup;
+      while (f.acc >= 1) { f.acc -= 1; onTick(); }
+      loopPass(); paint();
+      if (motor.tick && !Study.reducedMotion()) motor.tick(dt);
+    });
+    const syncPlay = () => setTxt(play, sim.running ? '❚❚ Пауза' : '▶ Пуск');
+    function reset() { Object.assign(f, { second: 0, ticks: 0, acc: 0, shown: false, cycle: 1, ignored: 0, ms: 0, lines: [] }); header(); loopPass(); paint(); }
+    $$('#fan-speed button').forEach((b) => b.addEventListener('click', () => { pressed($('#fan-speed'), b); f.speedup = +b.dataset.s; reset(); }));
+    hang.addEventListener('switch', (e) => {
+      f.hang = e.detail.on;
+      setTxt($('#fan-note'), f.hang ? 'loop() завис. Serial мовчить, а цикл іде: вентилятор веде обробник таймера. У справжній прошивці за 5 с спрацював би сторож.' : 'loop() знову живий і надолужує друк. Цикл увесь цей час ішов за розкладом.');
+    });
+    $('#fan-btn').addEventListener('click', () => {
+      if (f.second >= ON) { f.second = PERIOD - 1; setTxt($('#fan-note'), 'Вентилятор чекав: наступний тік почне цикл спочатку.'); if (!sim.running) { onTick(); loopPass(); paint(); } }
+      else { f.ignored++; setTxt($('#fan-note'), 'Вентилятор уже працює: натискання проігноровано, 15 хвилин не подовжились. Це і є захист від повторного запуску.'); paint(); }
+    });
+    play.addEventListener('click', () => { sim.toggle(); syncPlay(); });
+    $('#fan-stage').addEventListener('click', () => setTimeout(syncPlay));
+    syncPlay();
+  })();
+
+  /* =====================================================================
+     05 «Сторож на посту» (#w-wdt): feed always, or feed only when ticks advanced. Timeout 5 s as in the firmware; one
+     model tick every 0,25 s. A reboot restarts everything and prints the firmware's first line.
+     ===================================================================== */
+  (() => {
+    const TO = 5;
+    const w = { timer: true, loop: true, mode: 'ticks', ticks: 0, seen: 0, left: TO, boots: 0, boot: 0, acc: 0, frozen: 0, byLoop: false, byTimer: false, lines: [] };
+    const stage = $('#wd-stage'), logEl = $('#wd-log');
+    const log = (s) => { w.lines.push(s); setTxt(logEl, w.lines.slice(-5).join('\n')); };
+    function paint() {
+      const boot = w.boot > 0;
+      stage.classList.toggle('boot', boot);
+      setTxt($('#wd-tm'), boot ? '…' : w.timer ? 'іде' : 'стоїть');
+      setTxt($('#wd-ticks'), `тіків: ${group(w.ticks)}`);
+      setTxt($('#wd-lp'), boot ? '…' : w.loop ? 'працює' : 'завис');
+      const fed = w.loop && (w.mode === 'always' || w.timer);
+      setTxt($('#wd-feed'), boot ? 'перезавантаження' : fed ? 'годує сторожа' : 'не годує');
+      setTxt($('#wd-left'), `${Math.max(0, w.left).toFixed(1).replace('.', ',')} с`);
+      setTxt($('#wd-boots'), String(w.boots));
+      $('#wd-c1').className = !w.timer ? 'bad' : 'ok'; $('#wd-c2').className = !w.loop ? 'bad' : 'ok';
+      $('#wd-bar').style.width = `${Math.max(0, w.left) / TO * 100}%`;
+      $('#wd-barw').classList.toggle('low', w.left < 1.5);
+    }
+    function reboot() {
+      if (w.loop) w.byTimer = true; else w.byLoop = true;
+      w.boots++; w.boot = 1.2; w.left = 0;
+      log('E (…) task_wdt: перезавантаження');
+    }
+    function up() {
+      Object.assign(w, { timer: true, loop: true, ticks: 0, seen: 0, left: TO, acc: 0 });
+      log(`Вентилятор: цикл 3600 с, робота 900 с, старт: після сторожа`);
+    }
+    const sim = Study.sim(stage, (dt) => {
+      if (!dt) { paint(); return; }
+      if (w.boot > 0) { w.boot -= dt; if (w.boot <= 0) { w.boot = 0; up(); } paint(); return; }
+      if (w.timer) { w.acc += dt; while (w.acc >= 0.25) { w.acc -= 0.25; w.ticks++; } }
+      if (w.loop) {
+        if (w.mode === 'always') w.left = TO;
+        else if (w.ticks !== w.seen) { w.seen = w.ticks; w.left = TO; }
+      }
+      if (!w.timer && w.loop && w.mode === 'always') w.frozen += dt;
+      w.left -= dt;
+      if (w.left <= 0) reboot();
+      paint();
+    });
+    $$('#wd-mode button').forEach((b) => b.addEventListener('click', () => { pressed($('#wd-mode'), b); w.mode = b.dataset.m; paint(); }));
+    $('#wd-hang').addEventListener('click', () => { if (w.boot) return; w.loop = false; log('loop(): while (true) {}'); sim.play(); paint(); });
+    $('#wd-stop').addEventListener('click', () => { if (w.boot) return; w.timer = false; log('таймер зупинився: тіків більше немає'); sim.play(); paint(); });
+    $('#wd-reset').addEventListener('click', () => { Object.assign(w, { timer: true, loop: true, left: TO, boot: 0, seen: w.ticks, frozen: 0 }); sim.play(); paint(); });
+    log('Вентилятор: цикл 3600 с, робота 900 с, старт: звичайний');
+    paint();
+    Study.missions($('#wd-ms'), { key: 'wd', items: [
+      { id: 'hang', text: 'Повісьте <code>loop()</code> і дочекайтеся перезавантаження.', check: () => w.byLoop },
+      { id: 'tmr', text: 'Годування «якщо ticks виріс»: зупиніть таймер і дочекайтеся перезавантаження.', check: () => w.byTimer },
+      { id: 'blind', text: 'Годування «у кожному проході»: зупиніть таймер і подивіться 6 с, як сторож нічого не робить.', hint: 'Натисніть «Усе працює», виберіть другий режим і зупиніть таймер.', check: () => w.frozen >= 6 },
+    ] });
+  })();
+
+  /* =====================================================================
+     Kit bench of section 08, laid out like the mini-project's: MB102 on the left (bottom rails 5 В), board in the holes
+     (3V3 in column 23), key left of the board, relay module under it. Rails are split at 31/33, so they are bridged.
+       GPIO2 a27 → top lane → a18; R1 d18–f18; VT1 C i17, B i18, E i19; R2 f13–f17.
+       GPIO16 j31 → lane under row j → R4 h48–h52, LED2 A f52 / K f53.
+       GPIO15 j30 → bottom edge → R3 h55–h59, LED1 A f59 / K f60.
+       GPIO21 a40 → top edge → a63; S1 joins columns 61 and 63; a61 → top «−» (the rails end at column 61).
+     ===================================================================== */
+  const NETCOL = { 'net-5v': 'n5', 'net-gnd': 'ngnd', 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3' };
+  function pill(parent, x, y, txt, w, cls = '') {
+    const g = mk('g', { class: `kb-pill ${cls}`.trim(), 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 19 * txt.length;
+    mk('rect', { x: x - W / 2, y: y - 22, width: W, height: 44, rx: 10 }, g);
+    const t = mk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+    t.textContent = txt;
+    g.text = t;
+    fitFrame(g.firstChild, t);
+    return g;
+  }
+  function bench(svg, { nets = false, gg = true } = {}) {
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const A = (s) => bb.at(s), X = (c) => bb.hole(c, 'a').x, Y = (r) => bb.hole(1, r).y, pt = (x, y) => ({ x, y });
+    const laneT = Y('a') - KP * 1.15, laneG = Y('j') + KP * 1.15, laneV = A('bottom-1').y + KP * 1.1, laneE = A('top+1').y - KP * 1.1;
+    const out = { bb, wire: {} };
+    const pm = K.part('power-module', { parent: svg, ...A('top+3'), title: 'Модуль живлення MB102: нижні шини 5 В' });
+    pm.set({ on: true, top: 'OFF', bottom: '5V' });
+    const e0 = bb.hole(23, 'i');
+    out.esp = K.part('esp32s3', { parent: svg, x: e0.x, y: e0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i зі стовпчика 23, права в ряду b' });
+    out.r1 = K.part('resistor', { parent: svg, ohms: 10000, ...A('d18'), rot: 90, title: 'R1 10 кОм: GPIO2 → база' });
+    out.q = K.part('npn', { parent: svg, ...A('i17'), leg: 20, model: 'BC547B', legLabels: false, title: 'VT1 BC547B: C i17, B i18, E i19' });
+    out.r2 = K.part('resistor', { parent: svg, ohms: 10000, ...A('f13'), title: 'R2 10 кОм: колектор → +5 В' });
+    out.r4 = K.part('resistor', { parent: svg, ohms: 220, ...A('h48'), title: 'R4 220 Ом' });
+    out.ledG = K.part('led', { parent: svg, color: 'green', ...A('f52'), leg: 40, title: 'LED2 зелений: чекає' });
+    out.r3 = K.part('resistor', { parent: svg, ohms: 220, ...A('h55'), title: 'R3 220 Ом' });
+    out.ledR = K.part('led', { parent: svg, color: 'red', ...A('f59'), leg: 40, title: 'LED1 червоний: працює' });
+    const e = bb.hole(61, 'e');
+    out.btn = K.part('button', { parent: svg, x: e.x, y: e.y, title: 'Кнопка S1: ніжки в стовпчиках 61 і 63' });
+    const ry = 26 * KP;
+    out.relay = K.part('relay-module', { parent: svg, x: X(40), y: ry, title: 'Модуль реле 5 В' });
+    out.relay.set({ power: true });
+    const mx = X(42) - 92, my = ry + 156 + 196;
+    out.motor = K.part('tt-motor', { parent: svg, x: mx, y: my, mirror: true, title: 'Мотор TT: вентилятор' });
+    const RP = out.relay.pins, MP = out.motor.pins;
+    // the tabs are reached from above and below, and the diode spans those two lanes, right of the motor's end cap
+    const yP = MP['+'].y - 44, yM = MP['-'].y + 44, xD = MP['+'].x + 80;
+    out.d = K.part('diode', { parent: svg, x: xD, y: yM, rot: -90, span: (yM - yP) / KP, title: 'VD1 1N4007: смуга до плюса мотора' });
+    const wires = mk('g', { class: 'kb-wires' }, svg);
+    const w = (k, pts, col, net, cls) => {
+      const g = K.route(wires, pts, col);
+      if (nets && net) {
+        g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`;
+        const h = g.path.cloneNode(false); h.removeAttribute('stroke'); h.setAttribute('class', 'kb-halo'); g.insertBefore(h, g.firstChild);
+      }
+      if (col === 'black') { const ed = g.path.cloneNode(false); ed.removeAttribute('stroke'); ed.setAttribute('class', 'kb-edge'); g.insertBefore(ed, g.firstChild); }
+      out.wire[k] = g;
+      return g;
+    };
+    // rails: bridged over the split
+    w('br5', [A('bottom+31'), A('bottom+33')], 'red', 'v5', 'net-5v');
+    w('brg', [A('bottom-31'), A('bottom-33')], 'black', 'gnd', 'net-gnd');
+    w('brt', [A('top-31'), A('top-33')], 'black', 'gnd', 'net-gnd');
+    // key
+    w('g2', [A('a27'), pt(X(27), laneT), pt(X(18), laneT), A('a18')], 'blue', 'gpio2', 'net-sig');
+    w('e', [A('j19'), A('bottom-19')], 'black', 'gnd', 'net-gnd');
+    w('r2', [A('j13'), A('bottom+13')], 'red', 'v5', 'net-5v');
+    // relay module
+    w('in', [A('j17'), pt(X(17), RP.IN.y), RP.IN], 'green', 'in', 'net-sig2');
+    w('vcc', [A('bottom+22'), pt(X(22), RP.VCC.y), RP.VCC], 'red', 'v5', 'net-5v');
+    w('mgnd', [A('bottom-21'), pt(X(21), RP.GND.y), RP.GND], 'black', 'gnd', 'net-gnd');
+    // indicators, button, board ground
+    w('g16', [A('j31'), pt(X(31), laneG), pt(X(48), laneG), A('j48')], 'green', 'gpio16', 'net-sig3');
+    w('g15', [A('j30'), pt(X(30), laneV), pt(X(55), laneV), A('j55')], 'yellow', 'gpio15', 'net-sig2');
+    w('lg', [A('j53'), A('bottom-53')], 'black', 'gnd', 'net-gnd');
+    w('lr', [A('j60'), A('bottom-60')], 'black', 'gnd', 'net-gnd');
+    w('g21', [A('a40'), pt(X(40), laneE), pt(X(63), laneE), A('a63')], 'purple', 'gpio21', 'net-sig');
+    w('s1', [A('a61'), A('top-61')], 'black', 'gnd', 'net-gnd');
+    if (gg) w('gg', [A('a43'), A('top-43')], 'black', 'gnd', 'net-gnd');
+    // load: COM up to the 5 В rail, NO to the motor, motor − to the ground rail
+    w('com', [RP.COM, pt(X(59), RP.COM.y), A('bottom+59')], 'red', 'v5', 'net-5v');
+    w('no', [RP.NO, pt(X(63), RP.NO.y), pt(X(63), yP), pt(MP['+'].x, yP), MP['+']], '#d9d9d2', 'no', 'net-sig');
+    w('mm', [MP['-'], pt(MP['-'].x, yM), pt(X(64) + 6, yM), pt(X(64) + 6, A('bottom-61').y), A('bottom-61')], 'black', 'gnd', 'net-gnd');
+    // labels
+    const yT = -34;
+    pill(svg, A('top+3').x + 10, yT, 'MB102');
+    pill(svg, X(18), yT, 'R1');
+    pill(svg, X(33), yT, 'YD-ESP32-S3');
+    pill(svg, X(15), Y('c'), 'R2');
+    pill(svg, X(14.6), laneG + KP * 3.4, 'VT1');
+    pill(svg, X(50), laneG + 2, 'R4');
+    pill(svg, X(57.5), laneG + 2, 'R3');
+    pill(svg, X(52.5), laneT + 2, 'LED2');
+    pill(svg, X(58.4), laneT + 2, 'LED1');
+    pill(svg, X(62), Y('h'), 'S1');
+    pill(svg, X(40) + 212, ry + 188, 'реле');
+    pill(svg, mx + 250, my + 150, 'мотор, VD1');
+    svg.setAttribute('viewBox', `-180 -66 1880 ${my + 190 + 66}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
+  /* ================================================================ 08 dual figure */
+  (() => {
+    const kb = bench($('#bb-vent'), { nets: true });
+    const paint = (run) => {
+      kb.relay.set({ on: run });
+      kb.ledR.set({ on: run ? 1 : 0 }); kb.ledG.set({ on: run ? 0 : 1 });
+      const r = $('#sch-ledr'), g = $('#sch-ledg');
+      if (r) r.style.color = run ? 'var(--bad)' : ''; if (g) g.style.color = run ? '' : 'var(--ok)';
+      const badge = $('#st-badge');
+      badge.textContent = run ? 'GPIO2 = HIGH: реле ввімкнене, мотор крутиться' : 'GPIO2 = LOW: реле вимкнене, світиться зелений LED';
+      badge.classList.toggle('fire', run);
+    };
+    $$('#st-seg button').forEach((b) => b.addEventListener('click', () => { pressed($('#st-seg'), b); paint(b.dataset.s === 'run'); }));
+    paint(true);
+  })();
+
+  /* cite links point into the collapsed source list: open it first */
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    const d = el && el.closest('details');
+    if (d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', openTarget);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a[href^="#src-"]');
+    if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
+  });
+  openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-tm): the section 08 bench + the firmware; exactly one fault per case.
+     Lines of code and Kit parts/wires with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  {
+    const hkEsc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rem = (t) => `<span class="rem">${hkEsc(t)}</span>`;
+    const hkCode = (stage, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = '<div class="hk-h">src/main.cpp</div><pre>' + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt ? (txt.includes('class="rem"') ? txt : hkEsc(txt)) : ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, opts);
+    };
+    const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+    const OK = 'Макетка як у розділі 08: плата в макетці, ключ на BC547B, модуль реле, мотор, два LED і кнопка S1.';
+    const TICK = ['void IRAM_ATTR onTick() {', '  ticks++;', '  if (++second >= PERIOD_S) second = 0;', '  digitalWrite(FAN, second < ON_S);', '}'];
+    Study.hunt($('#hunt-tm'), { key: '2-5', cases: [
+      { title: 'Цикл не повторюється',
+        symptom: 'Після старту вентилятор працює, але <code>second</code> дійшов до 1 і застиг. У Serial більше нічого не з’являється.',
+        build(st) {
+          hkCode(st, [...TICK, 'void setup() {', ['  timer = timerBegin(0, 80, true);', 1], ['  timerAttachInterrupt(timer, &onTick, false);', 2],
+            ['  timerAlarmWrite(timer, 1000000, false);', 0], '  timerAlarmEnable(timer);', '}']);
+        },
+        options: ['<code>false</code> у <code>timerAlarmWrite()</code>: автоперезавантаження вимкнено', 'Дільник 80 завеликий', '<code>false</code> у <code>timerAttachInterrupt()</code> вимикає переривання'],
+        answer: 0,
+        explain: 'Третій аргумент <code>timerAlarmWrite()</code> — це автоперезавантаження. З <code>false</code> будильник спрацює один раз, лічильник рахуватиме далі, а обробника більше не буде. У <code>timerAttachInterrupt()</code> якраз потрібен <code>false</code>: ядро 2.0.17 інакше друкує попередження. Дільник 80 — правильний.' },
+      { title: 'Година за шість хвилин',
+        symptom: '<code>SPEEDUP</code> дорівнює 1, але повний цикл триває не годину, а 6 хвилин. LED і реле перемикаються правильно.',
+        build(st) {
+          hkCode(st, ['#define PERIOD_S 3600', '#define ON_S     900', ['#define SPEEDUP  1', 1], '', 'void setup() {', ['  timer = timerBegin(0, 8, true);', 0],
+            '  timerAttachInterrupt(timer, &onTick, false);', ['  timerAlarmWrite(timer, 1000000 / SPEEDUP, true);', 2], '  timerAlarmEnable(timer);', '}']);
+        },
+        options: ['Дільник 8 замість 80: тік 0,1 мкс, усе вдесятеро швидше', '<code>SPEEDUP</code> має бути 10', 'Ділення <code>1000000 / SPEEDUP</code> неправильне'],
+        answer: 0,
+        explain: '80 МГц / 8 = 10 МГц, тобто тік 0,1 мкс. Секунда циклу триває 0,1 с, а цикл 360 с. Значення будильника правильне для тіку 1 мкс, тому виправляти треба дільник: <code>timerBegin(0, 80, true)</code>.' },
+      { title: 'Падає на першому тіку',
+        symptom: 'Плата запускається, через секунду падає й перезавантажується. І так по колу. Якщо прибрати один рядок, усе працює.',
+        build(st) {
+          hkCode(st, ['void IRAM_ATTR onTick() {', ['  ticks++;', 1], ['  if (++second >= PERIOD_S) second = 0;', 2], '  digitalWrite(FAN, second < ON_S);', ['  delay(10);  ' + rem('// дати реле час спрацювати'), 0], '}']);
+        },
+        options: ['<code>delay()</code> в обробнику: він викликає <code>vTaskDelay()</code>', '<code>ticks++</code> в обробнику заборонено', 'Обробник не має змінювати <code>second</code>'],
+        answer: 0,
+        explain: '<code>delay()</code> на ESP32-S3 викликає <code>vTaskDelay()</code>, а обробнику переривання чекати не можна. Лічити змінні в обробнику можна, це його робота. Реле час не потрібен: обробник лише перемикає вивід.' },
+      { title: 'Реле мовчить',
+        symptom: 'LED перемикаються за розкладом, мультиметр між GPIO2 і GND плати показує 3,3&nbsp;В, а реле не клацає. Модуль реле живий: червоний LED на ньому світиться.',
+        build(st) {
+          const kb = hkBench(st, 'Макетка: те саме, що в розділі 08, але чорного дроту від GND плати на шину мінус немає.', { gg: false });
+          hkTag(kb.r1, 1); hkTag(kb.q, 2);
+        },
+        options: ['Немає спільної землі: GND плати не з’єднаний із GND MB102', 'R1 10 кОм завеликий для бази', 'BC547B згорів'],
+        answer: 0,
+        explain: 'Струм бази має повернутися на GND плати. Без дроту між GND плати й шиною мінус йому немає куди текти, тому VT1 закритий. Це той самий випадок, що й у міні-проєкті 1. R1 10 кОм дає досить струму, а транзистор тут ні до чого: спочатку перевіряйте землю.' },
+      { title: 'Застиг, а сторож мовчить',
+        symptom: 'Після помилки в коді таймер зупинився. Вентилятор застиг, <code>loop()</code> працює, а сторож за 5&nbsp;с плату не перезавантажив.',
+        build(st) {
+          hkCode(st, ['void setup() {', ['  esp_task_wdt_init(WDT_S, true);', 1], ['  esp_task_wdt_add(NULL);', 2], '}', 'void loop() {', ['  esp_task_wdt_reset();', 0], '  ' + rem('// друк стану'), '}']);
+        },
+        options: ['Сторожа годують без умови: живий <code>loop()</code> годує, хоч таймер стоїть', '<code>esp_task_wdt_init()</code> треба викликати в <code>loop()</code>', '<code>esp_task_wdt_add(NULL)</code> нічого не підписує'],
+        answer: 0,
+        explain: 'Сторож бачить лише годування. Щоб він стеріг і таймер, годуйте його тільки тоді, коли <code>ticks</code> виріс. <code>NULL</code> в <code>esp_task_wdt_add()</code> означає поточну задачу, це правильно.' },
+    ] });
+  }
+});
+</script>
+</body>
+</html>
