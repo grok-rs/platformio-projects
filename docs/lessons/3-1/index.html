@@ -1,0 +1,1301 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 3.1 · Аналогові сигнали</title>
+<meta name="description" content="Як АЦП ESP32-S3 перетворює напругу з датчика на число: дискретизація і теорема відліків, квантування і LSB, ослаблення, SAR, oneshot в ESP-IDF. ДЗ: LDR, ковзне середнє і два пороги.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-b { fill: var(--ink); font: 600 14px var(--f-body); }
+.idea figure .svg-t, .idea figure .svg-m { font-size: 15px; }
+#why figure .svg-t, #why figure .svg-m { font-size: 15px; }
+.ctl-grid { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); margin: 4px 0 10px; }
+@media (min-width: 640px) { .ctl-grid { grid-template-columns: 1fr 1fr; } }
+.ctl-grid label { display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+.ctl-grid label b { color: var(--ink); font: 600 15px var(--f-mono); }
+.ctl-grid input[type="range"] { width: 100%; }
+.ctl-grid input:disabled { opacity: .45; }
+.wcanvas { display: block; width: 100%; height: 250px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+#sar-cv { height: 230px; }
+#sma-cv { height: 300px; }
+.readout { display: grid; gap: 6px; margin: 10px 0 0; font-size: 15px; }
+.readout b { font: 600 16px var(--f-mono); }
+.readout b.bad { color: var(--bad); } .readout b.ok { color: var(--ok); }
+.cnt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+@media (min-width: 640px) { .cnt { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cnt div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); }
+.cnt span { display: block; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.cnt b { font: 600 22px var(--f-mono); }
+.cnt .ok b { color: var(--ok); } .cnt .bad b { color: var(--bad); }
+pre.code { font-size: 13px; }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.dual-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; flex: 1 1 260px; font-size: 15px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.fixlist li { margin: 6px 0; }
+.tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl-wrap { overflow-x: auto; }
+.tbl-modes code { white-space: nowrap; }
+.st-badge { display: inline-block; font: 600 14px var(--f-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+
+/* ---------- idea figures ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.idea figure .idea-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; font-size: 14px; }
+.idea figure .idea-ctl input[type="range"] { width: 100%; }
+.idea-out { margin: 8px 0 0; font-size: 15px; min-height: 1.6em; }
+.idea-out b.ok { color: var(--ok); } .idea-out b.bad { color: var(--bad); }
+.idea:has(.idea-ctl) > figure { max-width: 520px; margin-inline: auto; }
+.bits { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; margin: 6px 0 0; }
+.bits span { display: grid; place-items: center; min-height: 34px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); font: 700 15px var(--f-mono); color: var(--muted); }
+.bits span.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.bits span.cur { box-shadow: 0 0 0 2px var(--hi); }
+.bits span.wait { color: transparent; background: var(--panel-2); }
+.bits-n { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; font: 500 11px var(--f-mono); color: var(--muted); text-align: center; }
+.att-bar { position: relative; height: 26px; margin: 8px 0 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); overflow: hidden; }
+.att-bar i { position: absolute; top: 0; bottom: 0; left: 0; display: block; }
+.att-bar .rng { background: color-mix(in srgb, var(--ok) 22%, transparent); border-right: 2px solid var(--ok); }
+.att-bar .cal { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+.att-bar .v { width: 3px; background: var(--ink); }
+.att-scale { display: flex; justify-content: space-between; font: 500 12px var(--f-mono); color: var(--muted); }
+
+/* ---------- lab «дискретизація і квантування» (#dsl) ---------- */
+#dsl-cv { display: block; width: 100%; height: 320px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.dsl-key { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.dsl-key i { display: inline-block; width: 16px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 3px solid; }
+.dsl-key .k-sig { border-color: var(--muted); }
+.dsl-key .k-q { border-color: var(--accent); }
+.dsl-key .k-al { border-top-style: dashed; border-color: var(--bad); }
+.dsl-key .k-dot { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--ink); }
+
+/* ---------- SAR stepper (#w-sar) ---------- */
+.sar-log { margin: 10px 0 0; font-size: 15px; min-height: 3em; }
+
+/* ---------- Kit bench ---------- */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.kit-bench .kb-pill.lvl text { font-family: var(--f-mono); }
+.bb-db { display: block; width: 100%; max-width: 560px; max-height: 560px; height: auto; margin-inline: auto; }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+
+/* ---------- «Знайди несправність» code panel ---------- */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; overflow-x: auto; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+</style>
+</head>
+<body data-lesson="3-1">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:3-1">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 3 · Урок 3.1 · ср 11.11</p>
+    <h1>Аналогові сигнали: <span>від напруги до числа</span></h1>
+    <p class="lead">Датчик дає плавну напругу, а програма бачить лише цілі числа, взяті в окремі моменти. Розберемо, що губиться на цьому шляху: як часто міряти, скільки рівнів має АЦП ESP32-S3, чому 12 біт ще не означає точність. Потім заспокоїмо шумний фоторезистор ковзним середнім і двома порогами.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: LDR, 10&nbsp;кОм, LED, 220&nbsp;Ом</a></li>
+      <li><a class="chip" href="../1-6/">Спершу: урок 1.6 · АЦП і світло</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/">Згадати: гістерезис у міні-проєкті 1</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ lab: sampling + quantization (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="dsl" aria-labelledby="dsl-h">
+    <header class="lab-head"><h2 id="dsl-h">Лабораторія · дискретизація і квантування</h2><p>Сіра лінія — справжня напруга, точки — що встиг побачити АЦП, кольорова сходинка — числа, з якими працює програма. Міняйте частоту сигналу, частоту відліків і кількість біт.</p></header>
+    <div class="lab-stage" id="dsl-stage">
+      <canvas id="dsl-cv" width="900" height="320" role="img" aria-label="Графік напруги за одну секунду, від 0 до 3,1 вольта. Сіра синусоїда — справжній сигнал. Точки — відліки АЦП у моменти дискретизації, кольорова сходинка — квантовані значення між відліками. Якщо відліків замало, червона пунктирна синусоїда показує повільнішу частоту, яку бачить програма. Горизонтальні риски — рівні АЦП, коли біт мало."></canvas>
+      <div class="dsl-key" aria-hidden="true"><span><i class="k-sig"></i>справжній сигнал</span><span><i class="k-dot"></i>відлік</span><span><i class="k-q"></i>що бачить програма</span><span><i class="k-al"></i>фальшива частота</span></div>
+    </div>
+    <div class="lab-ctl">
+      <label class="lab-range">Сигнал <input type="range" id="dsl-f" min="1" max="40" step="1" value="3" aria-label="Частота сигналу, герц"><output id="dsl-fout">3 Гц</output></label>
+      <label class="lab-range">Відліків за секунду <input type="range" id="dsl-fs" min="2" max="100" step="1" value="40" aria-label="Частота дискретизації, відліків за секунду"><output id="dsl-fsout">40 Гц</output></label>
+      <label class="lab-range">Біти <input type="range" id="dsl-b" min="1" max="12" step="1" value="4" aria-label="Розрядність АЦП, біт"><output id="dsl-bout">4</output></label>
+      <label class="lab-range">Фаза <input type="range" id="dsl-ph" min="0" max="180" step="5" value="30" aria-label="Фаза сигналу, градусів"><output id="dsl-phout">30°</output></label>
+    </div>
+    <div class="lab-read">
+      <div><b>Відліків на період</b><output id="dsl-per">—</output></div>
+      <div><b>Частота Найквіста</b><output id="dsl-ny">—</output></div>
+      <div><b>Програма бачить</b><output id="dsl-see">—</output></div>
+      <div><b>Крок LSB</b><output id="dsl-lsb">—</output></div>
+      <div><b>Найбільша похибка</b><output id="dsl-err">—</output></div>
+    </div>
+    <p class="lab-note" id="dsl-note" aria-live="polite"></p>
+    <p class="lab-note"><b>Це модель, а не запис з плати.</b> Ідеальний АЦП зі шкалою 0…3,1&nbsp;В (ослаблення 12&nbsp;дБ<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>) і рівно розставленими відліками. Справжній АЦП ESP32-S3 завжди 12-бітний<sup class="cite" data-fact="s3-adc-units"></sup>, а його похибка значно більша за пів кроку<sup class="cite" data-fact="s3-adc-error-atten3"></sup>. Повзунок біт показує, що робить квантування, а не налаштування чипа.</p>
+    <a class="lab-more" href="../../adc-light/">Теорія з уроку 1.6: шлях від світла до числа →</a>
+    <div class="missions" id="dsl-ms"></div>
+  </section>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Світло, температура, звук змінюються плавно. Процесор уміє лише порівнювати й додавати цілі числа. Між ними стоїть АЦП, і він приймає два рішення замість вас: <b>коли</b> подивитися на напругу і <b>до якого числа</b> її округлити. Якщо не знати, як він це робить, легко побачити в даних те, чого немає: «повільне» коливання від швидкого сигналу, точність до мілівольта там, де похибка в десятки мілівольт, мерехтіння світлодіода від звичайного шуму.</p>
+    <figure>
+      <svg viewBox="0 0 340 128" role="img" aria-label="Три кроки зліва направо. Плавна крива напруги. Ті самі моменти як окремі точки. Числа 1744, 1802, 1851, 1790 — те, що отримує програма.">
+        <text class="svg-m" x="4" y="14">напруга</text>
+        <path d="M6 92C26 60 46 40 66 48S96 96 110 84" fill="none" stroke="var(--muted)" stroke-width="2.5"/>
+        <path d="M118 62H134M128 56l6 6-6 6" fill="none" stroke="var(--ink)" stroke-width="2"/>
+        <text class="svg-m" x="142" y="14">відліки</text>
+        <g fill="var(--accent)"><circle cx="146" cy="92" r="4"/><circle cx="166" cy="54" r="4"/><circle cx="186" cy="46" r="4"/><circle cx="206" cy="72" r="4"/><circle cx="226" cy="88" r="4"/></g>
+        <path d="M236 62H252M246 56l6 6-6 6" fill="none" stroke="var(--ink)" stroke-width="2"/>
+        <text class="svg-m" x="260" y="14">числа</text>
+        <text class="svg-m" x="262" y="44" style="fill:var(--ink)">1744</text>
+        <text class="svg-m" x="262" y="64" style="fill:var(--ink)">1802</text>
+        <text class="svg-m" x="262" y="84" style="fill:var(--ink)">1851</text>
+        <text class="svg-m" x="262" y="104" style="fill:var(--ink)">1790</text>
+        <text class="svg-t" x="4" y="122">між точками програма не знає нічого</text>
+      </svg>
+      <figcaption>Числа тут для прикладу. Те, що сталося між двома відліками, у даних не з'явиться.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b> три кроки АЦП: дискретизацію, квантування, кодування;</li>
+      <li><b>вибрати</b> частоту відліків за теоремою відліків і <b>розпізнати</b> аліасинг;</li>
+      <li><b>порахувати</b> крок LSB для свого ослаблення і <b>відрізнити</b> роздільність від точності;</li>
+      <li><b>прочитати</b> АЦП ESP32-S3 через <code>adc_oneshot</code> в ESP-IDF, правильно вибравши блок і канал;</li>
+      <li><b>написати</b> ковзне середнє на кільцевому буфері й гістерезис на двох порогах.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ «Коротко»: an aside, not a section.hs, so the TOC skips it -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 10 хв основне · віджети й практика — ще ≈ 35 хв</p>
+    <ol>
+      <li>Міряти треба строго частіше, ніж удвічі за найвищу частоту сигналу. Інакше швидкий сигнал прикидається повільним, і в даних це не помітно. <a href="#ideas">→ 04</a></li>
+      <li>Крок АЦП — повна шкала / 4096. Для ESP32-S3 при 12&nbsp;дБ це ≈&nbsp;0,76&nbsp;мВ, а не 3,3&nbsp;В / 4096: шкала залежить від ослаблення. <a href="#ideas">→ 04</a></li>
+      <li>12 біт — це роздільність. Точність після калібрування — до ±50&nbsp;мВ при 12&nbsp;дБ, тобто десятки кроків. <a href="#ideas">→ 04</a></li>
+      <li>SAR-АЦП знаходить число за 12 порівнянь, біт за бітом. <a href="#poe">→ 05</a></li>
+      <li>Датчики — на ADC1 (GPIO1–10): ADC2 зайнятий, поки працює Wi-Fi. GPIO4 — це канал 3, а не 4. <a href="#example">→ 06</a></li>
+      <li>Ковзне середнє гасить шум у √N разів і запізнюється на пів вікна. Мерехтіння біля порога прибирає лише гістерезис. <a href="#poe">→ 05</a></li>
+    </ol>
+  </aside>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Три кроки: коли, до якого рівня, яким числом</h3>
+      <p><b>Дискретизація</b> вибирає моменти: раз на T<sub>s</sub> секунд, тобто з частотою f<sub>s</sub>&nbsp;=&nbsp;1&nbsp;/&nbsp;T<sub>s</sub>. <b>Квантування</b> округлює напругу до одного з 2<sup>N</sup> рівнів. <b>Кодування</b> записує номер рівня двійковим числом. У ESP32-S3 два 12-бітні АЦП<sup class="cite" data-fact="s3-adc-units"></sup>, тож рівнів 4096, а числа від 0 до 4095<sup class="cite" data-fact="s3-adc-max-raw"></sup>. Для порівняння: Arduino Uno, на який написано багато прикладів з інтернету, має 10-бітний АЦП, 0…1023<sup class="cite" data-fact="atmega328p-adc"></sup>.</p>
+      <p>Пересуньте напругу й подивіться, яке число отримає програма. Шкалу взято для ослаблення 12&nbsp;дБ, з яким ми працюємо на платі.</p>
+      <figure>
+        <div class="bits-n" aria-hidden="true"><span>11</span><span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+        <div class="bits" id="v2c-bits" role="img" aria-label="12 біт результату, від старшого 11 до молодшого 0"></div>
+        <div class="idea-ctl">
+          <label class="lab-range">Напруга <input type="range" id="v2c-s" min="0" max="330" step="1" value="165" aria-label="Напруга на вході АЦП, сотих вольта"><output id="v2c-out">1,65 В</output></label>
+        </div>
+        <p class="idea-out" id="v2c-txt" aria-live="polite"></p>
+        <figcaption>Ідеальний АЦП зі шкалою 0…3,1&nbsp;В. Справжнє число на платі відрізнятиметься на десятки одиниць: про це третя ідея.</figcaption>
+      </figure>
+      <p class="key"><b>Головне</b>АЦП не «вимірює напругу», а повертає номер рівня. Щоб отримати вольти, треба знати шкалу, тобто ослаблення, а для точності — калібрування.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Як часто міряти: теорема відліків</h3>
+      <p>Сигнал з найвищою частотою f<sub>max</sub> можна відновити з відліків, лише якщо f<sub>s</sub> <b>строго більша</b> за 2·f<sub>max</sub>. Половину f<sub>s</sub> називають частотою Найквіста. Теорему довели Котельников (1933) і Шеннон (1949); сам Найквіст її не формулював<sup class="cite" data-fact="nyquist-theorem"></sup>. Приклад: аудіо-CD пише 44&nbsp;100 відліків за секунду, трохи більше ніж удвічі за межу слуху в 20&nbsp;кГц<sup class="cite" data-fact="cd-audio-44k"></sup>.</p>
+      <p>Що буде, якщо міряти рідше? Нижче сигнал 9&nbsp;Гц, а АЦП дивиться 10 разів за секунду. Точки лягають на синусоїду 1&nbsp;Гц, і з самих чисел відрізнити їх не можна. Це <b>аліасинг</b>: частота f «перетворюється» на |f&nbsp;−&nbsp;k·f<sub>s</sub>|.</p>
+      <figure>
+        <svg id="al-svg" viewBox="0 0 340 150" role="img" aria-label="Сірою тонкою лінією — швидка косинусоїда 9 герц. Червоною пунктирною — повільна 1 герц. Одинадцять точок відліків за секунду лежать на обох кривих одночасно."></svg>
+        <figcaption>Сіра лінія: справжні 9&nbsp;Гц. Червоний пунктир: 1&nbsp;Гц, які бачить програма. Точки однакові для обох.</figcaption>
+      </figure>
+      <p>Для нашого фоторезистора все простіше: GL5528 сам реагує за 20–30&nbsp;мс<sup class="cite" data-fact="ldr-gl5528-limits"></sup>, тому сотні відліків за секунду нового не покажуть. Інша річ — завада, швидша за частоту Найквіста: її треба прибрати <b>до</b> АЦП, RC-фільтром нижніх частот, бо після дискретизації вона вже виглядає як справжній повільний сигнал.</p>
+      <p class="key"><b>Головне</b>Теорема дає межу, а не рецепт. На практиці беруть запас у 5–10 разів, а все, що швидше за f<sub>s</sub>/2, прибирають фільтром до входу.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Крок, шкала й точність: це три різні числа</h3>
+      <p>Крок квантування, або LSB, — це повна шкала, поділена на 4096. Але повна шкала АЦП ESP32-S3 — не 3,3&nbsp;В: вона залежить від <b>ослаблення</b> на вході<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>. В ESP-IDF максимальне ослаблення називається <code>ADC_ATTEN_DB_12</code>; старе <code>ADC_ATTEN_DB_11</code> — його застарілий синонім<sup class="cite" data-fact="idf-adc-atten-bitwidth"></sup>.</p>
+      <figure>
+        <div class="seg" role="group" aria-label="Ослаблення" id="att-seg">
+          <button type="button" data-a="0" aria-pressed="false">0 дБ</button>
+          <button type="button" data-a="1" aria-pressed="false">2,5 дБ</button>
+          <button type="button" data-a="2" aria-pressed="false">6 дБ</button>
+          <button type="button" data-a="3" aria-pressed="true">12 дБ</button>
+        </div>
+        <div class="att-bar" aria-hidden="true"><i class="rng" id="att-rng"></i><i class="v" id="att-v"></i></div>
+        <div class="att-scale" aria-hidden="true"><span>0</span><span>1,1 В</span><span>2,2 В</span><span>3,3 В</span></div>
+        <div class="idea-ctl">
+          <label class="lab-range">Вхід <input type="range" id="att-s" min="0" max="330" step="1" value="132" aria-label="Напруга на вході, сотих вольта"><output id="att-out">1,32 В</output></label>
+        </div>
+        <p class="idea-out" id="att-txt" aria-live="polite"></p>
+        <figcaption>Зелена зона — межа входу з документації Arduino-ESP32<sup class="cite" data-fact="core-3x-adc-default-atten"></sup>. Похибку взято з таблиці калібрування даташита: вона чесна лише до 0,85 / 1,1 / 1,6 / 2,9&nbsp;В. Число raw — ідеальна модель.</figcaption>
+      </figure>
+      <p>Тепер про точність. Ідеальний АЦП помиляється не більше ніж на пів кроку, ±0,38&nbsp;мВ. Справжній АЦП ESP32-S3 має нелінійність INL до ±8&nbsp;LSB, а після заводського й програмного калібрування похибка при 12&nbsp;дБ — до ±50&nbsp;мВ<sup class="cite" data-fact="s3-adc-linearity"></sup><sup class="cite" data-fact="s3-adc-error-atten3"></sup>. Це приблизно 66 кроків. І ще: <code>analogReadResolution()</code> не змінює апаратну розрядність S3, вона лише зсуває результат<sup class="cite" data-fact="core-adc-resolution-shift"></sup>.</p>
+      <p class="key"><b>Головне</b>Шкалу задає ослаблення, крок — шкала / 4096, а точність — калібрування. Для подільника від 3,3&nbsp;В беріть 12&nbsp;дБ і не вірте останнім цифрам.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Хто натискає «виміряти»: oneshot чи неперервний режим</h3>
+      <p>У <b>режимі oneshot</b> одне перетворення відбувається на один виклик: <code>adc_oneshot_read()</code> в ESP-IDF<sup class="cite" data-fact="idf-adc-oneshot-api"></sup> чи <code>analogRead()</code> в Arduino. Ніякого внутрішнього таймера, що вибирає частоту, немає<sup class="cite" data-fact="lms-err-3-1-analogread-timer"></sup>: частоту дискретизації задає ваш цикл. Читаєте кожні 20&nbsp;мс — отримали 50&nbsp;Гц.</p>
+      <p>У <b>неперервному режимі</b> АЦП міряє сам, із частотою, яку ви задали, а результати через DMA складає в пам'ять. На ESP32-S3 драйвер дозволяє від 611 до 83&nbsp;333 вибірок за секунду<sup class="cite" data-fact="idf-adc-continuous-freq-s3"></sup>; даташит називає граничною частотою 100&nbsp;kSPS<sup class="cite" data-fact="s3-adc-linearity"></sup>. Це для звуку й швидких сигналів. Датчику світла досить oneshot.</p>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th></th><th>ADC1</th><th>ADC2</th></tr></thead>
+        <tbody>
+          <tr><td>Канали</td><td><code>CH0…CH9</code> = GPIO1…GPIO10<sup class="cite" data-fact="s3-adc1-pins"></sup></td><td><code>CH0…CH9</code> = GPIO11…GPIO20<sup class="cite" data-fact="s3-adc2-pins"></sup></td></tr>
+          <tr><td>З Wi-Fi</td><td>працює</td><td>недоступний, поки працює Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup></td></tr>
+          <tr><td>Наш вибір</td><td>GPIO4 = <code>ADC1_CH3</code></td><td>не для датчиків</td></tr>
+        </tbody>
+      </table></div>
+      <p class="key"><b>Головне</b>Номер каналу ≠ номер GPIO: GPIO4 — це <code>ADC_CHANNEL_3</code>. Датчики ставимо на ADC1, а частоту читань задаємо самі.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Шум: усереднити, але не загубити реакцію</h3>
+      <p>Навіть при сталому світлі відліки стрибають на кілька одиниць: шумить сам АЦП, живлення, дроти. Читати частіше від цього не допоможе<sup class="cite" data-fact="lms-err-3-1-noise-cause"></sup>. Допомагають конденсатор 100&nbsp;нФ на вході (з ним Espressif і міряє точність) та усереднення.</p>
+      <p><b>Ковзне середнє</b> (SMA) — середнє з N останніх відліків. Випадковий шум воно зменшує в √N разів, але сходинка на вході стає рампою завдовжки N відліків<sup class="cite" data-fact="sma-noise-sqrt-n"></sup>: середнє проходить половину шляху приблизно через N/2 відліків. Зберігати N чисел і щоразу все додавати не треба: тримаємо кільцевий буфер і суму, нове значення додаємо, найстаріше віднімаємо.</p>
+      <p>Однак навіть гладке середнє трохи коливається. Біля одного порога кожне коливання перемкне світлодіод. Тому потрібен <b>гістерезис</b>: вмикаємо нижче нижнього порога, вимикаємо вище верхнього, а між ними нічого не міняємо. Це той самий прийом, що в міні-проєкті 1 (пороги 500 і 600)<sup class="cite" data-fact="repo-twilight-config"></sup>.</p>
+      <p class="key"><b>Головне</b>SMA відповідає за шум, гістерезис — за рішення. Одне без іншого в ДЗ не працює.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: 4095 чи 4096 у формулі?</summary>
+      <p>LMS рахує крок як V / 4096, а напругу — як raw / 4095 × V<sup class="cite" data-fact="lms-err-3-1-4095"></sup>. Трапляються обидва записи. 4096 — це кількість рівнів, і кожен рівень має ширину одного кроку. raw / 4095 розтягує шкалу так, щоб 4095 відповідало рівно повній шкалі. Різниця менша за 0,03&nbsp;%, а похибка АЦП у сотні разів більша. Виберіть одну формулу й тримайтеся її. Точні вольти дає калібрування (<code>adc_cali_raw_to_voltage()</code><sup class="cite" data-fact="idf-adc-cali-s3"></sup>), про це урок 3.2.</p>
+    </details>
+    <details class="more">
+      <summary>Для допитливих: оверсемплінг, або як отримати 14 біт з 12-бітного АЦП</summary>
+      <p>Якщо сигнал трохи шумить і за цей час не змінюється, середнє з багатьох відліків потрапляє між рівнями. Щоб отримати n додаткових біт роздільності, підсумовують 4<sup>n</sup> відліків і зсувають суму на n біт: 16 відліків дають 14 біт<sup class="cite" data-fact="oversampling-4n"></sup>. Але точності це не додає: нелінійність ±8&nbsp;LSB нікуди не дівається.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="1" data-gate="w-sar"
+         data-why="SAR-АЦП шукає двійковим пошуком: кожне порівняння ділить можливі значення навпіл. 4096 = 2¹², тож після 12 порівнянь лишається одне число. 4096 порівнянь знадобилось би, якби АЦП перебирав усі рівні по черзі.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>АЦП ESP32-S3 — 12-бітний, послідовного наближення (SAR). Скільки порівнянь із пробною напругою йому потрібно, щоб знайти одне число з 4096?</p>
+      <div class="opts">
+        <button class="opt">Одне: він просто ділить напругу на крок</button>
+        <button class="opt">12</button>
+        <button class="opt">2048: у середньому половина рівнів</button>
+        <button class="opt">4096: по одному на кожен рівень</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-sar">
+      <div class="ph"><h3>SAR по кроках</h3><span class="small">модель ідеального SAR-АЦП, шкала 0…3,1&nbsp;В</span></div>
+      <div class="pb">
+        <div class="ctl-grid">
+          <label>Напруга на вході: <b id="sar-v-out">1,234 В</b><input type="range" id="sar-v" min="0" max="3100" step="1" value="1234"></label>
+        </div>
+        <div class="bits-n" aria-hidden="true"><span>11</span><span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+        <div class="bits" id="sar-bits" role="img" aria-label="Біти результату: визначені, поточний і ще не перевірені"></div>
+        <div class="btn-row" style="margin:10px 0">
+          <button type="button" class="btn primary sm" id="sar-step">Порівняти ▶</button>
+          <button type="button" class="btn sm" id="sar-all">Усі 12 ▶▶</button>
+          <button type="button" class="btn ghost sm" id="sar-reset">Спочатку</button>
+        </div>
+        <canvas id="sar-cv" class="wcanvas" width="900" height="230" role="img" aria-label="Графік по кроках від 0 до 12. Горизонтальна пунктирна лінія — вхідна напруга. Точки — пробні напруги вбудованого ЦАП: зелена, якщо біт залишили, червона, якщо скинули. Ламана сходинкою наближається до входу."></canvas>
+        <p class="sar-log" id="sar-log" aria-live="polite"></p>
+        <p class="small">Кожен крок — одне порівняння: вбудований ЦАП видає пробну напругу, компаратор каже «вхід більший» чи «менший», і біт лишається або скидається<sup class="cite" data-fact="sar-adc-binary-search"></sup>. Ніякого «обчислити 50&nbsp;% × 4095» і окремої передачі по шині, як у тексті LMS, тут немає<sup class="cite" data-fact="lms-err-3-1-sar"></sup>. Внутрішню будову АЦП ESP32-S3 Espressif не публікує, тож це модель принципу.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="1" data-gate="w-sma"
+         data-why="Середнє з 8 відліків прибирає швидкий шум (лишається σ/√8 ≈ 11), але не повільне погойдування світла: воно довше за вікно. Поки сутінки стоять біля порога, середнє кілька разів перетинає його туди й назад, і кожен перетин перемикає LED. Більше вікно зменшить кількість перемикань, але не прибере їх: прибирає лише другий поріг.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>SMA з 8 відліків, читання кожні 20&nbsp;мс, шум відліків σ&nbsp;=&nbsp;30. Один поріг: середнє нижче 1400 — LED горить, вище — ні. Сутінки тривають кілька секунд, світло повільно гойдається на ±40 (хтось ходить поруч). Скільки разів перемкнеться LED у сутінках?</p>
+      <div class="opts">
+        <button class="opt">Рівно раз: SMA усе згладило</button>
+        <button class="opt">Кілька разів, поки рампа проходить поріг</button>
+        <button class="opt">Жодного: шум менший за поріг</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-sma">
+      <div class="ph"><h3>SMA і пороги: модель домашнього завдання</h3><span class="small">30&nbsp;с світла: тінь руки на 3-й секунді, довгі сутінки біля 1400 з 12-ї по 20-ту, світло повертається з 24-ї</span></div>
+      <div class="pb">
+        <div class="btn-row" style="margin-bottom:10px">
+          <div class="seg" role="group" aria-label="Скільки порогів" id="sma-mode">
+            <button type="button" data-m="one" aria-pressed="true">Один поріг</button>
+            <button type="button" data-m="two" aria-pressed="false">Два пороги</button>
+          </div>
+          <button type="button" class="btn ghost sm" id="sma-seed">Новий шум</button>
+        </div>
+        <div class="ctl-grid">
+          <label>Вікно SMA, N: <b id="sma-n-out">8</b><input type="range" id="sma-n" min="0" max="6" step="1" value="3"></label>
+          <label>Шум відліків, σ: <b id="sma-s-out">30</b><input type="range" id="sma-s" min="0" max="80" step="5" value="30"></label>
+          <label>Нижній поріг (вмикати): <b id="sma-lo-out">1400</b><input type="range" id="sma-lo" min="1100" max="2200" step="50" value="1400"></label>
+          <label>Верхній поріг (вимикати): <b id="sma-hi-out">1700</b><input type="range" id="sma-hi" min="1100" max="2250" step="50" value="1700" disabled></label>
+        </div>
+        <canvas id="sma-cv" class="wcanvas" width="900" height="300" role="img" aria-label="Графік 30 секунд. Сірі точки — сирі відліки, кольорова лінія — ковзне середнє, пунктирні горизонталі — пороги. Внизу смуга, де LED горить."></canvas>
+        <div class="cnt" aria-live="polite">
+          <div id="sma-c-t"><span>Перемикань LED</span><b id="sma-t">–</b></div>
+          <div id="sma-c-x"><span>Зайвих (норма — 2)</span><b id="sma-x">–</b></div>
+          <div id="sma-c-d"><span>Затримка ввімкнення</span><b id="sma-d">–</b></div>
+          <div id="sma-c-n"><span>Шум середнього ≈ σ/√N</span><b id="sma-sn">–</b></div>
+        </div>
+        <p class="small" id="sma-note" aria-live="polite"></p>
+        <p class="small"><b>Це модель:</b> рівні світла й шум вигадані, щоб показати механізм. Ваші числа будуть інші: шум і пороги міряйте на своїй макетці (розділ 09).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: АЦП в ESP-IDF</h2>
+    <p>Теорія в LMS показує лише <code>analogRead()</code>, а домашнє завдання просить «режим oneshot» — це назва драйвера ESP-IDF. Він з'явився у версії 5.0 замість старого <code>adc1_get_raw()</code>; наші ESP-IDF-проєкти стоять на 6.1, API той самий<sup class="cite" data-fact="idf-adc-oneshot-api"></sup>.</p>
+    <div class="tbl-wrap"><table class="tbl-modes">
+      <thead><tr><th></th><th>Arduino</th><th>ESP-IDF</th></tr></thead>
+      <tbody>
+        <tr><td>Підготовка</td><td>нічого</td><td><code>adc_oneshot_new_unit()</code> для блоку <code>ADC_UNIT_1</code></td></tr>
+        <tr><td>Канал</td><td>номер GPIO: <code>analogRead(4)</code></td><td>номер каналу: <code>ADC_CHANNEL_3</code> для GPIO4</td></tr>
+        <tr><td>Ослаблення</td><td>11&nbsp;дБ за замовчуванням<sup class="cite" data-fact="core-3x-adc-default-atten"></sup></td><td>явно: <code>ADC_ATTEN_DB_12</code> (те саме)</td></tr>
+        <tr><td>Одне читання</td><td><code>analogRead(4)</code></td><td><code>adc_oneshot_read(adc, ADC_CHANNEL_3, &amp;raw)</code></td></tr>
+        <tr><td>Мілівольти</td><td><code>analogReadMilliVolts(4)</code></td><td><code>adc_cali_raw_to_voltage()</code><sup class="cite" data-fact="idf-adc-cali-s3"></sup></td></tr>
+        <tr><td>З ISR</td><td>не можна<sup class="cite" data-fact="idf-adc-not-in-isr"></sup></td><td>не можна: читаємо в задачі</td></tr>
+      </tbody>
+    </table></div>
+    <p>Налаштування — три виклики, потім одне читання на кожен відлік:</p>
+    <pre class="code"><code>adc_oneshot_unit_handle_t adc;
+adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};
+ESP_ERROR_CHECK(adc_oneshot_new_unit(&amp;unit, &amp;adc));
+
+adc_oneshot_chan_cfg_t ch = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};
+ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, ADC_CHANNEL_3, &amp;ch));  // GPIO4
+
+int raw;
+ESP_ERROR_CHECK(adc_oneshot_read(adc, ADC_CHANNEL_3, &amp;raw));        // 0…4095</code></pre>
+    <details class="more">
+      <summary>Якщо потрібні мілівольти: калібрування curve fitting</summary>
+<pre class="code"><code>#include "esp_adc/adc_cali_scheme.h"
+
+adc_cali_handle_t cali;
+adc_cali_curve_fitting_config_t cc = {.unit_id = ADC_UNIT_1, .chan = ADC_CHANNEL_3,
+                                      .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};
+ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&amp;cc, &amp;cali));
+int mv;
+adc_cali_raw_to_voltage(cali, raw, &amp;mv);   // з урахуванням eFuse цього чипа</code></pre>
+      <p class="small">ESP32-S3 підтримує саме схему curve fitting, а потрібні дані Espressif записує в eFuse на заводі<sup class="cite" data-fact="idf-adc-cali-s3"></sup>. Для ДЗ мілівольти не потрібні: пороги можна задати прямо в сирих відліках.</p>
+    </details>
+
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Крок:</b> ослаблення 12&nbsp;дБ, шкала ≈&nbsp;3100&nbsp;мВ: <span class="formula">LSB = 3100 мВ / 4096 ≈ 0,76 мВ</span><span class="why">чому не 3,3 В: шкала АЦП S3 при 12 дБ — близько 3,1 В, а не напруга живлення.</span></li>
+      <li><b>Сума для SMA:</b> 16 відліків по максимуму: <span class="formula">16 × 4095 = 65 520 ≤ 65 535</span><span class="why">чому це важливо: у uint16_t влазить ледь-ледь, а 32 відліки вже ні. Беремо uint32_t або int.</span></li>
+      <li><b>Затримка:</b> читаємо кожні 20&nbsp;мс, N&nbsp;=&nbsp;16: <span class="formula">вікно = 16 × 20 мс = 320 мс, половина шляху ≈ 160 мс</span><span class="why">чому: сходинка входить у середнє по 1/16 за відлік.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> читаємо кожні 50&nbsp;мс, N&nbsp;=&nbsp;8, шум відліків σ&nbsp;=&nbsp;40.</li>
+      <li>
+        <div class="try" data-ans="400" data-tol="0.01" data-unit="мс" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Скільки мілісекунд охоплює вікно SMA?</p>
+          <details><summary>Підказка</summary>N × період.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="10" data-tol="0.05" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Яким стане шум середнього, якщо N збільшити до 16?</p>
+          <details><summary>Підказка</summary>σ / √N = 40 / √16.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="16" data-tol="0.001" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Скільки 12-бітних відліків треба підсумувати, щоб оверсемплінгом отримати 14 біт роздільності?</h4>
+      <details><summary>Підказка</summary>Кожен додатковий біт коштує вчетверо більше відліків: 4ⁿ для n біт.</details>
+    </div>
+    <p class="note tip">Висновок із цих чисел: кожне збільшення вікна вдвічі зменшує шум лише в 1,4 раза, а затримку збільшує вдвічі. Тому вікно не роздувають, а додають гістерезис.</p>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth">
+        <p class="seems">12-бітний АЦП міряє з точністю до 0,8&nbsp;мВ.</p>
+        <p class="truth">Це крок, а не точність. Після калібрування похибка при 12&nbsp;дБ — до ±50&nbsp;мВ<sup class="cite" data-fact="lms-err-3-1-accuracy"></sup>.</p>
+        <p class="test">Подайте ту саму напругу на два канали й порівняйте з мультиметром: різниця буде в десятки одиниць raw.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">АЦП ESP32-S3 міряє від 0 до 3,3&nbsp;В.</p>
+        <p class="truth">Шкала залежить від ослаблення: від ≈&nbsp;0,95&nbsp;В при 0&nbsp;дБ до ≈&nbsp;3,1&nbsp;В при 12&nbsp;дБ. Вище — 4095<sup class="cite" data-fact="lms-err-3-1-vref"></sup>.</p>
+        <p class="test">Віджет «Крок, шкала й точність» у розділі 04: вхід 2&nbsp;В, кнопка «0 дБ».</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Відліки шумлять — треба читати частіше.</p>
+        <p class="truth">Частота дискретизації шуму не прибирає. Допомагають усереднення й конденсатор на вході<sup class="cite" data-fact="lms-err-3-1-noise-cause"></sup>.</p>
+        <p class="test">Віджет SMA у розділі 05: шум 50, міняйте лише N і дивіться на «шум середнього».</p>
+      </div>
+      <div class="myth">
+        <p class="seems"><code>analogReadResolution(16)</code> дає 16-бітний АЦП.</p>
+        <p class="truth">На S3 апаратно лише 12 біт; функція зсуває результат, і числа просто стають кратними 16<sup class="cite" data-fact="core-adc-resolution-shift"></sup>.</p>
+        <p class="test">Надрукуйте <code>raw % 16</code> після <code>analogReadResolution(16)</code>: завжди 0.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Згладив SMA — мерехтіння більше не буде.</p>
+        <p class="truth">Біля одного порога будь-яке залишкове коливання перемикає LED. Мерехтіння прибирає гістерезис.</p>
+        <p class="test">Віджет SMA: «Один поріг», N&nbsp;=&nbsp;64. Порахуйте зайві перемикання.</p>
+      </div>
+    </div>
+    <!-- «Знайди несправність»: the bench of section 08 + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-adc"></div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Подільник з уроку 1.6 і проєкту <code>esp32-s3-ldr-adc</code>: LDR від 3V3 до GPIO4 (<code>ADC1_CH3</code>), R1&nbsp;10&nbsp;кОм від GPIO4 до GND<sup class="cite" data-fact="s3-adc1-pins"></sup>. Більше світла — менший опір LDR — більша напруга. До нього додано LED на GPIO15 через 220&nbsp;Ом, як у попередніх уроках. GPIO26–37 не беріть: на платі N16R8 частина з них зайнята пам'яттю<sup class="cite" data-fact="wroom-octal-psram-pins"></sup>.</p>
+    <figure class="dual wide" id="dual-adc" data-nets="v33=3V3; gpio4=GPIO4 (середня точка); gnd=GND; gpio15=GPIO15; led_a=Анод LED">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 330 262" role="img" aria-label="Схема: вивід 3V3 плати U1 іде до фоторезистора LDR1; другий вивід LDR1 — середня точка, з'єднана з GPIO4 і з резистором R1 10 кілоом до землі. GPIO15 через R3 220 Ом іде на анод LED1, катод на землю.">
+          <rect class="sch-w" x="10" y="30" width="60" height="214" rx="3"/>
+          <text class="sch-ref" x="10" y="20">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="60" transform="rotate(180 90 60)"/>
+          <text class="sch-pin net-3v3" data-net="v33" x="62" y="52" text-anchor="end">3V3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="120" transform="rotate(180 90 120)"/>
+          <text class="sch-pin net-sig" data-net="gpio4" x="62" y="112" text-anchor="end">GPIO4</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="180" transform="rotate(180 90 180)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="62" y="172" text-anchor="end">GND</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="228" transform="rotate(180 90 228)"/>
+          <text class="sch-pin net-sig2" data-net="gpio15" x="62" y="220" text-anchor="end">GPIO15</text>
+          <path class="sch-w net-3v3" data-net="v33" d="M90 60H250V58"/>
+          <use class="sch-sym" href="#ldr" x="250" y="58" transform="rotate(90 250 58)"/>
+          <text class="sch-ref" x="268" y="92">LDR1</text>
+          <path class="sch-w net-sig" data-net="gpio4" d="M250 118V120H90"/>
+          <use class="sch-sym net-sig" data-net="gpio4" href="#dot" x="250" y="120"/>
+          <text class="sch-val" id="sch-v" x="104" y="112">1,32 В</text>
+          <path class="sch-w net-sig" data-net="gpio4" d="M250 120V130"/>
+          <use class="sch-sym" href="#res" x="250" y="130" transform="rotate(90 250 130)"/>
+          <text class="sch-ref" x="268" y="156">R1</text>
+          <text class="sch-val" x="268" y="172">10 кОм</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M250 190V200"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="250" y="200"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M90 180H110V186"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="110" y="186"/>
+          <path class="sch-w net-sig2" data-net="gpio15" d="M90 228H100"/>
+          <use class="sch-sym" href="#res" x="100" y="228"/>
+          <text class="sch-val" x="122" y="256" text-anchor="middle">R3 220 Ом</text>
+          <path class="sch-w net-sig3" data-net="led_a" d="M160 228H170"/>
+          <use class="sch-sym" href="#led" x="170" y="228" id="sch-led"/>
+          <text class="sch-ref" x="204" y="256" text-anchor="middle">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M230 228H240V234"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="240" y="234"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-adc" class="kit-bench bb-db" viewBox="-20 -20 1100 640" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (3V3 у стовпчику 20, GPIO4 у 23, GPIO15 у 27, GND у 41). Фоторезистор LDR1 ніжками в g14 і g15. R1 10 кОм у ряду h зі стовпчика 10 у 14. Помаранчевий дріт уздовж ряду j з'єднує 3V3 зі стовпчиком 15, жовтий дріт від GPIO4 під рядом j у стовпчик 14, середню точку. Стовпчик 10 чорним дротом на нижню шину мінус. Зелений дріт від GPIO15 уздовж нижнього краю макетки у стовпчик 8, R3 220 Ом у ряду h з 8 у 4, червоний світлодіод анодом у 4, катодом у 3, стовпчик 3 чорним дротом на шину мінус. GND плати (стовпчик 41) чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Фоторезистор полярності не має.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <label class="lab-range">Світло <input type="range" id="lux-s" min="0" max="100" step="1" value="40" aria-label="Освітленість, логарифмічна шкала від 0,1 до 10 000 люкс"><output id="lux-out">10 лк</output></label>
+      <span class="st-badge" id="lux-badge" aria-live="polite">—</span>
+    </div>
+    <p class="small">Модель GL5528 з уроку 1.6: 10–20&nbsp;кОм при 10&nbsp;лк<sup class="cite" data-fact="ldr-gl5528-light"></sup>, γ&nbsp;≈&nbsp;0,65. LED керують пороги з ДЗ: вмикається нижче 1400, вимикається вище 1700, між ними пам'ятає свій стан. Верх подільника — лише 3V3, не 5V<sup class="cite" data-fact="s3-not-5v-tolerant"></sup>.</p>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Домашнє завдання: LDR, ковзне середнє і два пороги</h2>
+    <p>Потрібно: плата YD-ESP32-S3, фоторезистор, резистори 10&nbsp;кОм і 220&nbsp;Ом, LED, макетка, мультиметр. Завдання з LMS: LDR подільником на канал ADC1, LED на будь-якому вільному GPIO, читання АЦП у режимі oneshot, SMA для фільтрації, два пороги, щоб LED не мерехтів. Код і результат — на GitHub, у назві репозиторію, гілки чи коміту — номер модуля й уроку, посилання — у LMS.</p>
+    <div class="note"><b>Стан коду.</b> Прошивки для цього ДЗ у репозиторії ще немає, а код нижче на платі не запускали. Це орієнтир, складений за документацією ESP-IDF, а не перевірене рішення: збирайте, прошивайте й виправляйте самі. Пороги 1400 і 1700 — приклад: свої візьміть з вимірів у таблиці нижче.</div>
+    <ol>
+      <li>Зберіть схему розділу 08. Мультиметром перевірте середню точку: при кімнатному світлі вона має бути між 0 і 3,1&nbsp;В, а долоня над LDR її знижує.</li>
+      <li><b>Спершу прогноз:</b> запишіть у таблицю нижче, яке raw очікуєте в кожній умові (віджет розділу 08 допоможе).</li>
+      <li>Створіть ESP-IDF-проєкт PlatformIO: <code>framework = espidf</code>, структуру <code>CMakeLists.txt</code> можна взяти з <code>esp32-s3-debounce-idf</code>. Скопіюйте <code>src/main.c</code> нижче.</li>
+      <li>Прошийте й відкрийте монітор. Заповніть таблицю для чотирьох умов: sma і розкид raw.</li>
+      <li>Виберіть пороги: DARK трохи вище за «сутінки», LIGHT — посередині між «сутінками» й «кімнатою». Змініть <code>#define</code>, прошийте ще раз.</li>
+      <li>Перевірте: повільно опускайте й піднімайте долоню 10 разів. LED має перемкнутися рівно 20 разів, без мерехтіння.</li>
+    </ol>
+    <details class="more" open>
+      <summary>Код: src/main.c (ESP-IDF, не перевірено на платі)</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "esp_adc/adc_oneshot.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// ДЗ 3.1: LDR-подільник на GPIO4 (ADC1_CH3), LED на GPIO15 через 220 Ом.
+// Oneshot кожні 20 мс → ковзне середнє з 16 відліків → два пороги (гістерезис).
+#define LDR_CH    ADC_CHANNEL_3  // GPIO4 = ADC1_CH3: номер каналу, не GPIO!
+#define LED       GPIO_NUM_15
+#define N         16             // вікно SMA: 16 × 20 мс = 320 мс
+#define PERIOD_MS 20
+#define DARK      1400           // середнє нижче — темно: LED вмикаємо
+#define LIGHT     1700           // середнє вище — світло: LED вимикаємо
+
+void app_main(void) {
+    adc_oneshot_unit_handle_t adc;
+    adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&amp;unit, &amp;adc));
+    adc_oneshot_chan_cfg_t ch = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, LDR_CH, &amp;ch));
+
+    gpio_config_t led = {.pin_bit_mask = 1ULL &lt;&lt; LED, .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;led);
+
+    int buf[N] = {0};     // кільцевий буфер останніх N відліків
+    int sum = 0;          // їхня сума: до 16 × 4095 = 65 520
+    int i = 0, filled = 0;
+    bool on = false;
+    TickType_t wake = xTaskGetTickCount();
+    while (1) {
+        vTaskDelayUntil(&amp;wake, pdMS_TO_TICKS(PERIOD_MS));  // рівно кожні 20 мс
+        int raw;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc, LDR_CH, &amp;raw));
+
+        sum = sum - buf[i] + raw;  // найстаріше виходить, нове входить
+        buf[i] = raw;
+        i = (i + 1) % N;
+        if (filled &lt; N) { filled++; continue; }  // поки вікно не повне, не вирішуємо
+        int sma = sum / N;
+
+        if (!on &amp;&amp; sma &lt; DARK)  { on = true;  gpio_set_level(LED, 1); }
+        if (on  &amp;&amp; sma &gt; LIGHT) { on = false; gpio_set_level(LED, 0); }
+
+        if (i == 0) printf("raw: %4d  sma: %4d  led: %s\n", raw, sma, on ? "ON" : "OFF");
+    }
+}</code></pre>
+      <p class="small">Друк раз на вікно (кожні 320&nbsp;мс), щоб монітор не захлинувся. За стандартного тіку 100&nbsp;Гц <code>pdMS_TO_TICKS(20)</code> дає 2 тіки, тож тут пастки з уроку 2.6 немає<sup class="cite" data-fact="idf-freertos-hz"></sup>. Якщо візьмете період коротший за 10&nbsp;мс, поставте <code>CONFIG_FREERTOS_HZ=1000</code>.</p>
+    </details>
+    <details class="more">
+      <summary>Для порівняння: те саме в Arduino</summary>
+<pre class="code"><code>int raw = analogRead(4);   // GPIO4; ослаблення 11 дБ за замовчуванням
+sum = sum - buf[i] + raw;  // далі все так само
+buf[i] = raw;
+i = (i + 1) % N;</code></pre>
+      <p class="small">ДЗ просить саме oneshot-драйвер ESP-IDF. В Arduino-ESP32 3.x <code>analogRead()</code> теж побудований на ньому<sup class="cite" data-fact="idf-adc-not-in-isr"></sup>, але здавайте варіант на ESP-IDF.</p>
+    </details>
+    <details class="more">
+      <summary>Очікуваний вигляд виводу (не запис із плати)</summary>
+<pre class="code"><code>raw: 2312  sma: 2298  led: OFF
+raw: 1288  sma: 1730  led: OFF
+raw: 1102  sma: 1121  led: ON</code></pre>
+      <p class="small">Числа вигадані. Важливо інше: sma запізнюється за raw і змінюється плавно, а led перемикається лише за межами порогів.</p>
+    </details>
+    <div class="tbl">
+    <table class="measure" data-key="3-1-ldr" data-calc="diff">
+      <caption>Ваші виміри: прогноз і середнє в чотирьох умовах</caption>
+      <thead><tr><th>Умова</th><th>Прогноз raw</th><th>Виміряно sma</th><th>Різниця</th><th>Розкид raw</th><th>LED</th></tr></thead>
+      <tbody>
+        <tr><th>Долоня щільно</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="spread"></td><td data-col="led"></td></tr>
+        <tr><th>Сутінки (світло вимкнено)</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="spread"></td><td data-col="led"></td></tr>
+        <tr><th>Кімната</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="spread"></td><td data-col="led"></td></tr>
+        <tr><th>Ліхтарик телефона</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="spread"></td><td data-col="led"></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">Таблиця зберігається лише у вашому браузері, різницю вона рахує сама. Розкид raw — найменше й найбільше число за 10 рядків виводу: це і є ваш шум.</p>
+    <p><b>Розширення: що якщо…</b> поставити N&nbsp;=&nbsp;1 і порахувати перемикання на тих самих 10 проведеннях? Додати конденсатор 100&nbsp;нФ від GPIO4 до GND і порівняти розкид raw? Посвітити на LDR лампою з мерехтінням і читати кожні 7&nbsp;мс?</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="3-1" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="3-1" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Найспокійніший сутінковий вимикач</h3>
+      <dl>
+        <dt>Мета</dt><dd>LDR на ADC1, LED на GPIO15: LED вмикається в темряві й вимикається на світлі. Тест «рука над датчиком»: 10 повільних проведень і 10 швидких махів. Мета — жодного мерехтіння й найменша затримка. Підберіть вікно SMA і два пороги так, щоб перемогти інші команди.</dd>
+        <dt>Здати</dt><dd>Код, таблиця «N, пороги → перемикань, затримка» щонайменше для трьох налаштувань і 20-секундне відео тесту.</dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: подільник, LED і код на <code>adc_oneshot</code>;</li><li><b>Вимірювач</b>: прогони тесту, таблиця перемикань і затримки;</li><li><b>Доповідач</b>: допис у «Командні виклики» з таблицею;</li><li><b>Скептик</b>: шукає рух руки чи лампу, що змушує LED іншої команди мерехтіти.</li></ul></dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>Повільні проведення:</b> 2 — жодного зайвого перемикання, 1 — одне-два, 0 — більше. <b>Швидкий мах (коротший за 0,3&nbsp;с):</b> 2 — не вмикає LED, 1 — інколи, 0 — завжди. <b>Затримка:</b> 2 — виміряна, 1 — оцінена з N і періоду, 0 — немає. <b>Пороги:</b> 2 — з виміряних raw, 0 — скопійовані з прикладу.</p></details></dd>
+        <dt>Ускладнення</dt><dd>Замініть SMA на експоненційне середнє (одна змінна замість буфера) і порівняйте затримку при тому самому рівні шуму.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «3.1 Найспокійніший сутінковий вимикач · команда …».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: подільник з LDR на GPIO4 і LED на GPIO15 зібрані, ESP-IDF уже встановлений (перше збирання будь-якого ESP-IDF-проєкту зробіть заздалегідь), лабораторія вгорі сторінки відкрита.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–18 хв</span><span class="cp-a">Збір, розминка, найменш зрозуміле з минулих квитків і короткий підсумок уроку 2.6 від студента за графіком</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">18–23 хв</span><span class="cp-a">Задача до теорії: «колесо в кіно крутиться назад» — чому?</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">23–38 хв</span><span class="cp-a">Лабораторія: дискретизація, аліасинг, межа 2f; перше голосування</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">38–48 хв</span><span class="cp-a">Квантування й ослаблення: віджет «Крок, шкала й точність», потім ConcepTest 2</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">48–55 хв</span><span class="cp-a">SAR по кроках: прогноз, потім 12 порівнянь разом</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці, щоб отримати допомогу</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Пишемо разом <code>main.c</code>: <code>adc_oneshot</code>, кільцевий буфер, два пороги; контрольні точки кожні ~5&nbsp;хв. Прошивка на камері</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">90–95 хв</span><span class="cp-a">Прогноз → перевірка наживо: один поріг проти двох, долоня над LDR</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">95–108 хв</span><span class="cp-a">Видача виклику «Найспокійніший сутінковий вимикач» (розділ 12), ролі тижня, 2&nbsp;хв з напарником: «з чого почнеш?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступне заняття</span><span class="cp-r">усі</span></li>
+    </ol>
+    <div class="tnote">
+      <p><b>Продуктивна невдача (5 хв, до теорії):</b> «У кіно колеса карети крутяться назад, хоча карета їде вперед. Чому?» Збирайте ідеї «водоспадом»: усі пишуть у чат і надсилають одночасно. Потім покажіть лабораторію: сигнал 38&nbsp;Гц, 40 відліків за секунду.</p>
+      <p><b>ConcepTest 1:</b> «Сигнал 30&nbsp;Гц читаємо 60 разів за секунду. Чи побачить програма синусоїду?» А — так, завжди; Б — залежить від фази, можна побачити й нуль; В — ні, ніколи.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Очікувано багато А: «2f» запам'ятовують без слова «строго». Покажіть у лабораторії f&nbsp;=&nbsp;30, f<sub>s</sub>&nbsp;=&nbsp;60 і крутіть фазу.</p></details>
+      <p><b>ConcepTest 2:</b> «Що означає "12 біт" для АЦП ESP32-S3?» А — похибка до 0,8&nbsp;мВ; Б — 4096 рівнів; В — можна вибрати до 16 біт.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Текст LMS підштовхує до А і В. Покажіть таблицю 5-6 даташита: ±50&nbsp;мВ при ATTEN3.</p></details>
+      <p><b>POE (наживо, 5 хв):</b> студент-Збирач спершу ставить один поріг. Стіна прогнозів: «скільки разів перемкнеться LED, поки долоня повільно опускається?» (зони 1 / 2–3 / 4+). Потім два пороги.</p>
+      <p><b>«Знайди помилку» (7 хв):</b> справа «Не той канал» із розділу 07. Кожен пише в чат, який рядок винен.</p>
+      <table class="tbl-modes">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>0–18</td><td>Прихід, розминка, найменш зрозуміле з квитків, повтор уроку 2.6 студентом</td><td>розділ 03, квитки</td></tr>
+          <tr><td>18–23</td><td>Продуктивна невдача</td><td>чат</td></tr>
+          <tr><td>23–38</td><td>Лабораторія + ConcepTest 1</td><td>лабораторія зверху</td></tr>
+          <tr><td>38–48</td><td>Ослаблення й точність + ConcepTest 2</td><td>розділ 04</td></tr>
+          <tr><td>48–55</td><td>SAR по кроках</td><td>віджет 05</td></tr>
+          <tr><td>55–62</td><td>Перерва</td><td></td></tr>
+          <tr><td>62–90</td><td>Пишемо разом <code>main.c</code></td><td>розділи 06 і 09</td></tr>
+          <tr><td>90–95</td><td>POE: один поріг проти двох</td><td>камера, віджет SMA</td></tr>
+          <tr><td>95–108</td><td>Видача виклику</td><td>розділ 12</td></tr>
+          <tr><td>108–120</td><td>Квиток на вихід, ролі</td><td>розділ 14</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, навіщо в ДЗ і ковзне середнє, і два пороги: що робить кожне з них?"></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip deep" href="../../adc-light/">Теорія: АЦП і світло</a></li>
+      <li><a class="chip deep" href="../../ldr-lab/">Лаба: люксметр на ESP32-S3</a></li>
+      <li><a class="chip deep" href="../../twilight-relay/">Сутінковий перемикач: гістерезис</a></li>
+      <li><a class="chip" href="../1-6/">Урок 1.6 · АЦП</a></li>
+      <li><a class="chip" href="../mp1/">Міні-проєкт 1</a></li>
+      <li><a class="chip" href="../2-6/">Урок 2.6 · ESP-IDF і опитування</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s9jaoqa0813szsicadr">Урок 3.1 у LMS</a> (потрібен вхід).</li>
+      <li>Відео «Аналогово-цифрове перетворення» (канал ByteVoltUkr), вбудоване в урок LMS. Що шукати: дискретизацію, квантування й помилки перетворення. Звіряйте числа з цією сторінкою: відео не про ESP32-S3.</li>
+      <li>Відео «Lection 36. Цифро-аналогові перетворювачі (ЦАП)» (Andrii KPFKNULP), там само. Це тема уроку 3.4, зараз можна пропустити.</li>
+      <li>Статті з LMS: <a href="https://org2.knuba.edu.ua/mod/book/tool/print/index.php?id=32487&amp;chapterid=529">КНУБА: АЦП і ЦАП</a>, <a href="https://emastered.com/uk/blog/how-does-an-adc-work">eMastered: як працює АЦП</a>, <a href="https://elartu.tntu.edu.ua/bitstream/lib/40385/1/%D0%90%D0%A6%D0%9F2020.pdf">ТНТУ: застосування АЦП (PDF)</a>, <a href="https://www.nutsvolts.com/magazine/article/using-analog-sensors-with-microcontrollers-a-beginners-guide">Nuts and Volts: аналогові датчики</a>. Що шукати: опорну напругу й подільник; приклади там для 5-вольтових плат.</li>
+      <li>Документація: <a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_oneshot.html">ESP-IDF: ADC oneshot</a>, <a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html">ESP-IDF: калібрування</a>, <a href="https://www.dspguide.com/ch15.htm">Smith: ковзне середнє, розділ 15</a>.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-ldr-adc">esp32-s3-ldr-adc</a>: той самий подільник на GPIO4 з уроку 1.6, Arduino і Rust.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-twilight-relay">esp32-s3-twilight-relay</a>: два пороги на сирих відліках АЦП.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-debounce-idf">esp32-s3-debounce-idf</a>: зразок ESP-IDF-проєкту в PlatformIO (CMake, <code>sdkconfig.defaults</code>).</li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на даташити й документацію</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 15.11.2026</span></p>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (10 пунктів)</summary>
+    <ol class="fixlist">
+      <li><code>analogRead()</code> не має внутрішнього таймера, що визначає частоту: це одне перетворення на виклик, частоту задає ваш код<sup class="cite" data-fact="lms-err-3-1-analogread-timer"></sup>.</li>
+      <li>«До 100&nbsp;кГц в одноканальному режимі» — гранична частота з даташита, а не те, що дає <code>analogRead()</code>; драйвер неперервного режиму пускає до 83&nbsp;333&nbsp;Гц<sup class="cite" data-fact="lms-err-3-1-100khz"></sup>.</li>
+      <li>Теорему відліків не «виведено з теорії Фур'є 1928 року»; приклад з маятником («тричі за період») не збігається з умовою «строго більше ніж удвічі»<sup class="cite" data-fact="lms-err-3-1-nyquist-history"></sup>.</li>
+      <li>У формулі LSB має бути V<sub>ref</sub>, а не «Bref», і шкала АЦП S3 — не 3,3&nbsp;В: при 12&nbsp;дБ крок ≈&nbsp;0,76&nbsp;мВ, а не 0,805<sup class="cite" data-fact="lms-err-3-1-vref"></sup>.</li>
+      <li>Ділення на 4096 і на 4095 змішано без пояснення<sup class="cite" data-fact="lms-err-3-1-4095"></sup>.</li>
+      <li>±0,4&nbsp;мВ — похибка лише ідеального АЦП; справжня після калібрування — до ±50&nbsp;мВ<sup class="cite" data-fact="lms-err-3-1-accuracy"></sup>.</li>
+      <li><code>analogReadResolution()</code> не змінює апаратну розрядність ESP32-S3<sup class="cite" data-fact="lms-err-3-1-resolution"></sup>.</li>
+      <li>SAR-АЦП не «обчислює відсоток і передає по шині», а знаходить число за 12 порівнянь<sup class="cite" data-fact="lms-err-3-1-sar"></sup>.</li>
+      <li>Шум ±30 — не ознака аліасингу, і частіше читання його не прибирає<sup class="cite" data-fact="lms-err-3-1-noise-cause"></sup>.</li>
+      <li>«Виміряйте Vref мультиметром» плутає живлення 3,3&nbsp;В зі шкалою АЦП; відхилення чипа враховує калібрування в eFuse<sup class="cite" data-fact="lms-err-3-1-vref-multimeter"></sup>.</li>
+    </ol>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  let T = Study.tokens();
+  Study.onTheme((t) => { T = t; });
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const comma = (x, d = 1) => x.toFixed(d).replace('.', ',');
+  const thou = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const font = (w, s, f = 'mono') => `${w} ${s}px ${T['f-' + f]}`;
+  const FS = 3.1;          // V, input range at 12 dB (facts: core-3x-adc-default-atten)
+  const RAWMAX = 4095;     // 12 bit (facts: s3-adc-max-raw)
+  const toRaw = (v) => Math.max(0, Math.min(RAWMAX, Math.round(v / FS * RAWMAX)));
+  const bin12 = (n) => n.toString(2).padStart(12, '0');
+  // Sizes a label's frame from its measured text (the same helper as lessons 2.4–2.6): nothing can stick out whatever the font.
+  const FIT = new Map();
+  const fitRO = 'ResizeObserver' in window ? new ResizeObserver((es) => es.forEach((e) => FIT.forEach(([t], r) => { if (e.target.contains(r)) fitFrame(r, t); }))) : null;
+  function fitFrame(r, t) {
+    if (!r || !t) return;
+    if (!r.dataset.w0) { r.dataset.w0 = r.getAttribute('width'); r.dataset.x0 = r.getAttribute('x'); }
+    FIT.set(r, [t]);
+    let tw = 0;
+    try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+    if (!tw) { if (fitRO && t.ownerSVGElement) fitRO.observe(t.ownerSVGElement); return; }
+    const x0 = +r.dataset.x0, w0 = +r.dataset.w0, rx = Math.min(+r.getAttribute('rx') || 0, (+r.getAttribute('height') || 0) / 2);
+    const w = Math.max(w0, Math.ceil(tw + 2 * (0.6 * rx + 6))), x = x0 + (w0 - w) / 2;
+    r.setAttribute('x', +x.toFixed(1)); r.setAttribute('width', w);
+    if (t.getAttribute('text-anchor') === 'middle') t.setAttribute('x', +(x + w / 2).toFixed(1));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => FIT.forEach(([t], r) => fitFrame(r, t)));
+  // Seeded noise, so a picture does not change on every redraw.
+  const rng = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const gauss = (r) => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
+  const bitCells = (host) => { host.innerHTML = '<span></span>'.repeat(12); return Array.from(host.children); };
+
+  /* =====================================================================
+     LAB «дискретизація і квантування» (#dsl): an ideal ADC, 0…3,1 V, one second of a sine.
+     Quantizer: mid-rise, level k covers [k, k+1)·LSB and reads back as its middle, so the error is at most ½ LSB.
+     ===================================================================== */
+  const dsl = (() => {
+    const cv = $("#dsl-cv"), st = { f: 3, fs: 40, b: 4, ph: 30, err: 0 };
+    const sig = (t) => 1.55 + 1.2 * Math.sin(2 * Math.PI * st.f * t + st.ph * Math.PI / 180);
+    const quant = (v) => { const L = 2 ** st.b, k = Math.max(0, Math.min(L - 1, Math.floor(v / FS * L))); return (k + 0.5) * FS / L; };
+    const signedAlias = () => st.f - Math.round(st.f / st.fs) * st.fs;
+    function read() {
+      st.f = +$('#dsl-f').value; st.fs = +$('#dsl-fs').value; st.b = +$('#dsl-b').value; st.ph = +$('#dsl-ph').value;
+      setTxt($('#dsl-fout'), `${st.f} Гц`); setTxt($('#dsl-fsout'), `${st.fs} Гц`); setTxt($('#dsl-bout'), String(st.b)); setTxt($('#dsl-phout'), `${st.ph}°`);
+    }
+    function draw() {
+      const c = Study.fitCanvas(cv), W = c.w, H = c.h, L = 48, R = W - 12, Tp = 14, B = H - 30;
+      const X = (t) => L + t * (R - L), Y = (v) => B - v / FS * (B - Tp);
+      c.clearRect(0, 0, W, H);
+      const lv = 2 ** st.b;
+      if (lv <= 64) {
+        c.strokeStyle = T.line; c.lineWidth = 1;
+        for (let k = 1; k < lv; k++) { const y = Y(k * FS / lv); c.beginPath(); c.moveTo(L, y); c.lineTo(R, y); c.stroke(); }
+      }
+      c.strokeStyle = T.line; c.lineWidth = 1; c.strokeRect(L, Tp, R - L, B - Tp);
+      c.fillStyle = T.muted; c.font = font(500, 13); c.textAlign = 'right';
+      c.fillText('3,1 В', L - 6, Tp + 5); c.fillText('0', L - 6, B + 4);
+      c.textAlign = 'left'; c.fillText('0', L, H - 10); c.textAlign = 'right'; c.fillText('1 с', R, H - 10); c.textAlign = 'left';
+      // the true signal
+      c.strokeStyle = T.muted; c.lineWidth = 1.8; c.beginPath();
+      for (let i = 0; i <= 600; i++) { const t = i / 600; i ? c.lineTo(X(t), Y(sig(t))) : c.moveTo(X(t), Y(sig(t))); }
+      c.stroke();
+      // the alias the samples also fit
+      const fa = signedAlias();
+      if (2 * st.f >= st.fs) {
+        c.strokeStyle = T.bad; c.lineWidth = 2; c.setLineDash([7, 5]); c.beginPath();
+        for (let i = 0; i <= 400; i++) { const t = i / 400, v = 1.55 + 1.2 * Math.sin(2 * Math.PI * fa * t + st.ph * Math.PI / 180); i ? c.lineTo(X(t), Y(v)) : c.moveTo(X(t), Y(v)); }
+        c.stroke(); c.setLineDash([]);
+      }
+      // samples: hold the quantized value until the next one
+      const n = Math.floor(st.fs) + 1, pts = [];
+      let err = 0;
+      for (let k = 0; k < n; k++) { const t = k / st.fs; if (t > 1) break; const v = sig(t), q = quant(v); err = Math.max(err, Math.abs(v - q)); pts.push([t, v, q]); }
+      st.err = err;
+      c.strokeStyle = T.accent; c.lineWidth = 2.6; c.beginPath();
+      pts.forEach(([t, , q], k) => { const t2 = k + 1 < pts.length ? pts[k + 1][0] : 1; if (!k) c.moveTo(X(t), Y(q)); else c.lineTo(X(t), Y(q)); c.lineTo(X(t2), Y(q)); });
+      c.stroke();
+      const r = st.fs > 60 ? 2.6 : 3.6;
+      pts.forEach(([t, v, q]) => {
+        c.strokeStyle = T.muted; c.lineWidth = 1; c.beginPath(); c.moveTo(X(t), Y(v)); c.lineTo(X(t), Y(q)); c.stroke();
+        c.fillStyle = T.ink; c.beginPath(); c.arc(X(t), Y(q), r, 0, 7); c.fill();
+      });
+    }
+    function readouts() {
+      const fa = Math.abs(signedAlias()), lsb = FS * 1000 / 2 ** st.b, per = st.fs / st.f;
+      setTxt($('#dsl-per'), comma(per, per < 10 ? 1 : 0));
+      setTxt($('#dsl-ny'), `${comma(st.fs / 2, st.fs % 2 ? 1 : 0)} Гц`);
+      const see = $('#dsl-see');
+      const nyq = 2 * st.f === st.fs, alias = 2 * st.f > st.fs;
+      setTxt(see, alias ? (fa === 0 ? 'сталу напругу' : `${fa} Гц`) : nyq ? 'межа' : `${st.f} Гц`);
+      see.classList.toggle('bad', alias || nyq); see.classList.toggle('ok', !alias && !nyq);
+      setTxt($('#dsl-lsb'), lsb >= 10 ? `${thou(lsb)} мВ` : `${comma(lsb, 2)} мВ`);
+      setTxt($('#dsl-err'), st.err * 1000 >= 10 ? `${thou(st.err * 1000)} мВ` : `${comma(st.err * 1000, 2)} мВ`);
+      let s;
+      if (alias) s = fa === 0 ? `Відлік припадає на ту саму фазу кожного періоду: програма бачить сталу напругу, хоча сигнал ${st.f} Гц.` : `Аліасинг: відліків менше ніж ${2 * st.f} за секунду, тож програма бачить ${fa} Гц замість ${st.f}. З самих чисел цього не помітити.`;
+      else if (nyq) s = 'Рівно 2f: відліки лягають у ті самі дві точки періоду, і що побачить програма, вирішує фаза. Теорема вимагає строго більше.';
+      else if (per < 5) s = `Частота правильна, але на період лише ${comma(per, 1)} відліка: форму не видно. На практиці беруть запас у 5–10 разів.`;
+      else s = `Відліків досить: ${comma(per, 0)} на період.`;
+      if (st.b <= 4) s += ` ${st.b} біт — це лише ${2 ** st.b} рівнів: сходинки грубші за сам сигнал.`;
+      setTxt($('#dsl-note'), s);
+    }
+    const up = () => { read(); draw(); readouts(); };
+    ['#dsl-f', '#dsl-fs', '#dsl-b', '#dsl-ph'].forEach((s) => $(s).addEventListener('input', up));
+    up();
+    window.addEventListener('resize', draw);
+    Study.onTheme(draw);
+    Study.missions($('#dsl-ms'), { key: 'dsl', items: [
+      { id: 'alias', text: 'Зробіть так, щоб програма побачила неправильну частоту.', hint: 'Підніміть частоту сигналу вище за половину відліків за секунду. Червоний пунктир покаже, що бачить програма.', check: () => 2 * st.f > st.fs && signedAlias() !== 0 },
+      { id: 'still', text: 'Сигнал є, а програма бачить сталу напругу. Знайдіть такі налаштування.', hint: 'Відліків за секунду рівно стільки, скільки періодів сигналу (або вдвічі, втричі більше).', check: () => signedAlias() === 0 && st.f > 0 },
+      { id: 'nyq', text: 'Поставте рівно 2f і знайдіть фазу, за якої сигнал «зникає».', hint: 'Наприклад, сигнал 10 Гц і 20 відліків. Фаза 0° — і всі точки лягають на середню лінію.', check: () => 2 * st.f === st.fs && Math.abs(Math.sin(st.ph * Math.PI / 180)) < 0.1 },
+      { id: 'bits', text: 'Поставте 3 біти й порахуйте рівні на графіку. Скільки їх?', hint: 'Сходинок 2³ = 8: сім рисок ділять шкалу на вісім смуг.', check: () => st.b === 3 },
+      { id: 'good', text: 'Налаштуйте як інженер: щонайменше 10 відліків на період і похибка менша за 1 мВ.', hint: 'Похибка — пів кроку: потрібно 11 біт або більше.', check: () => st.fs >= 10 * st.f && st.err * 1000 < 1 },
+    ] });
+    return st;
+  })();
+
+  /* =====================================================================
+     04 «Три кроки» (#v2c): a voltage → its 12-bit code
+     ===================================================================== */
+  (() => {
+    const cells = bitCells($('#v2c-bits'));
+    function up() {
+      const v = +$('#v2c-s').value / 100, raw = toRaw(v), b = bin12(raw);
+      cells.forEach((c, i) => { c.textContent = b[i]; c.classList.toggle('on', b[i] === '1'); });
+      setTxt($('#v2c-out'), `${comma(v, 2)} В`);
+      const back = raw / RAWMAX * FS;
+      $('#v2c-txt').innerHTML = v > FS
+        ? `<b class="bad">Стеля:</b> ${comma(v, 2)}&nbsp;В вище за шкалу 3,1&nbsp;В, тож raw = 4095, як і для будь-якої більшої напруги.`
+        : `${comma(v, 2)} / 3,1 × 4095 ≈ <b>${raw}</b> = 0b${b.slice(0, 4)} ${b.slice(4, 8)} ${b.slice(8)}. Назад у вольти: ${raw} / 4095 × 3,1 ≈ ${comma(back, 4)}&nbsp;В.`;
+    }
+    $('#v2c-s').addEventListener('input', up);
+    up();
+  })();
+
+  /* =====================================================================
+     04 «Як часто міряти» (#al-svg): 9 Hz sampled 10 times a second looks like 1 Hz
+     ===================================================================== */
+  (() => {
+    const svg = $('#al-svg'), X = (t) => 12 + t * 316, Y = (v) => 72 - v * 50;
+    const path = (f) => { let d = ''; for (let i = 0; i <= 500; i++) { const t = i / 500; d += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(Math.cos(2 * Math.PI * f * t)).toFixed(1); } return d; };
+    mk('path', { d: 'M12 72H328', stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+    mk('path', { d: path(9), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.4 }, svg);
+    mk('path', { d: path(1), fill: 'none', stroke: 'var(--bad)', 'stroke-width': 2.4, 'stroke-dasharray': '7 5' }, svg);
+    for (let k = 0; k <= 10; k++) mk('circle', { cx: X(k / 10), cy: Y(Math.cos(2 * Math.PI * 9 * k / 10)), r: 4.5, fill: 'var(--ink)' }, svg);
+    const t0 = mk('text', { class: 'svg-m', x: 12, y: 144 }, svg); t0.textContent = '0';
+    const t1 = mk('text', { class: 'svg-m', x: 328, y: 144, 'text-anchor': 'end' }, svg); t1.textContent = '1 с';
+  })();
+
+  /* =====================================================================
+     04 «Крок, шкала й точність» (#att): attenuation → range, LSB, error
+     ===================================================================== */
+  (() => {
+    const RANGE = [0.95, 1.25, 1.75, 3.1];          // V, input limit (Arduino-ESP32 docs, ESP32-S3)
+    const CAL = [0.85, 1.1, 1.6, 2.9];               // V, calibrated range (datasheet Table 5-6)
+    const ERR = [5, 6, 10, 50];                      // mV, total error after calibration (Table 5-6)
+    const NAME = ['ADC_ATTEN_DB_0', 'ADC_ATTEN_DB_2_5', 'ADC_ATTEN_DB_6', 'ADC_ATTEN_DB_12'];
+    let a = 3;
+    function up() {
+      const v = +$('#att-s').value / 100, rng_ = RANGE[a], lsb = rng_ * 1000 / 4096, raw = Math.min(RAWMAX, Math.round(v / rng_ * RAWMAX));
+      setTxt($('#att-out'), `${comma(v, 2)} В`);
+      $('#att-rng').style.width = (rng_ / 3.3 * 100) + '%';
+      $('#att-v').style.left = `calc(${(v / 3.3 * 100).toFixed(2)}% - 1px)`;
+      const sat = v > rng_, outCal = !sat && v > CAL[a];
+      $('#att-txt').innerHTML = `<code>${NAME[a]}</code>: шкала до ≈${comma(rng_, 2)}&nbsp;В, крок ≈&nbsp;${comma(lsb, 2)}&nbsp;мВ. `
+        + (sat ? `<b class="bad">raw = 4095:</b> вхід вищий за шкалу, усе вище читається однаково.`
+          : `raw ≈ <b>${raw}</b>, похибка ${outCal ? 'вже не гарантована: вище за калібровану межу ' + comma(CAL[a], 2) + '&nbsp;В' : `до ±${ERR[a]}&nbsp;мВ ≈ ±${Math.round(ERR[a] / lsb)} кроків`}.`);
+    }
+    $$('#att-seg button').forEach((b) => b.addEventListener('click', () => {
+      a = +b.dataset.a; $$('#att-seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); up();
+    }));
+    $('#att-s').addEventListener('input', up);
+    up();
+  })();
+
+  /* =====================================================================
+     05 SAR stepper (#w-sar): an ideal 12-bit SAR, trial DAC voltage = code · FS / 4096
+     ===================================================================== */
+  (() => {
+    const cv = $('#sar-cv'), cells = bitCells($('#sar-bits'));
+    let m;
+    const fresh = () => { m = { vin: +$('#sar-v').value / 1000, k: 0, code: 0, trials: [], last: 'Усі біти ще не перевірені. Натисніть «Порівняти».' }; };
+    function step() {
+      if (m.k >= 12) return;
+      const bit = 11 - m.k, trial = m.code | (1 << bit), vt = trial * FS / 4096, keep = m.vin >= vt;
+      if (keep) m.code = trial;
+      m.trials.push({ vt, keep });
+      m.last = `Крок ${m.k + 1}: пробуємо біт ${bit} → ЦАП дає ${comma(vt, 4)} В. Вхід ${keep ? 'не менший' : 'менший'}, тож біт ${bit} = ${keep ? 1 : 0}.`;
+      m.k++;
+      if (m.k === 12) m.last += ` Готово: 12 порівнянь, raw = ${m.code}.`;
+    }
+    function draw() {
+      const b = bin12(m.code);
+      cells.forEach((c, i) => {
+        const done = i < m.k;
+        c.textContent = done ? b[i] : '';
+        c.classList.toggle('on', done && b[i] === '1');
+        c.classList.toggle('wait', !done && i !== m.k);
+        c.classList.toggle('cur', i === m.k);
+      });
+      setTxt($('#sar-v-out'), `${comma(m.vin, 3)} В`);
+      setTxt($('#sar-log'), m.last);
+      const c = Study.fitCanvas(cv), W = c.w, H = c.h, L = 48, R = W - 14, Tp = 14, B = H - 28;
+      const X = (k) => L + k / 12 * (R - L), Y = (v) => B - v / FS * (B - Tp);
+      c.clearRect(0, 0, W, H);
+      c.strokeStyle = T.line; c.lineWidth = 1; c.strokeRect(L, Tp, R - L, B - Tp);
+      c.fillStyle = T.muted; c.font = font(500, 13); c.textAlign = 'right'; c.fillText('3,1 В', L - 6, Tp + 5); c.fillText('0', L - 6, B + 4);
+      c.textAlign = 'center';
+      for (let k = 1; k <= 12; k++) c.fillText(String(k), X(k), H - 8);
+      c.strokeStyle = T.accent; c.lineWidth = 2; c.setLineDash([6, 5]); c.beginPath(); c.moveTo(L, Y(m.vin)); c.lineTo(R, Y(m.vin)); c.stroke(); c.setLineDash([]);
+      // the code so far as a staircase, the trials as dots
+      let code = 0; c.strokeStyle = T.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(X(0), Y(0));
+      m.trials.forEach((t, i) => { if (t.keep) code = t.vt; c.lineTo(X(i + 1), Y(code === 0 ? 0 : code)); });
+      c.stroke();
+      m.trials.forEach((t, i) => { c.fillStyle = t.keep ? T.ok : T.bad; c.beginPath(); c.arc(X(i + 1), Y(t.vt), 5, 0, 7); c.fill(); });
+      c.textAlign = 'left';
+    }
+    fresh();
+    $('#sar-step').addEventListener('click', () => { step(); draw(); });
+    $('#sar-all').addEventListener('click', () => { while (m.k < 12) step(); draw(); });
+    $('#sar-reset').addEventListener('click', () => { fresh(); draw(); });
+    $('#sar-v').addEventListener('input', () => { fresh(); draw(); });
+    draw();
+    window.addEventListener('resize', draw);
+    Study.onTheme(draw);
+  })();
+
+  /* =====================================================================
+     05 SMA + thresholds (#w-sma): the homework loop on a made-up 30 s light record, one sample every 20 ms.
+     The decision logic is the same as in src/main.c of section 09.
+     ===================================================================== */
+  const SMA = (() => {
+    const NS_ = [1, 2, 4, 8, 16, 32, 64], DT = 0.02, NSAMP = 1500;
+    // Light level without noise: a hand shadow at 3 s, a dusk that lingers around 1500…1300 from 12 to 20 s, the light back
+    // from 24 s; plus a slow ±40 sway (0,5 Hz: people moving, clouds) that no short average removes.
+    const level = (t) => (t < 3 ? 2400 : t < 3.3 ? 700 : t < 5 ? 2400 : t < 12 ? 2400 - (t - 5) / 7 * 900 : t < 20 ? 1500 - (t - 12) / 8 * 200
+      : t < 22 ? 1300 - (t - 20) / 2 * 300 : t < 24 ? 1000 : t < 28 ? 1000 + (t - 24) / 4 * 1300 : 2300);
+    const base = (t) => level(t) + 40 * Math.sin(Math.PI * t);
+    const st = { two: false, seed: 7 };
+    let res = null;
+    const cv = $('#sma-cv');
+    function run() {
+      const N = NS_[+$('#sma-n').value], sig = +$('#sma-s').value, lo = +$('#sma-lo').value;
+      const hi = st.two ? Math.max(+$('#sma-hi').value, lo) : lo;
+      const r = rng(st.seed), raw = new Float32Array(NSAMP), avg = new Float32Array(NSAMP), led = new Uint8Array(NSAMP);
+      const buf = new Array(N).fill(0);
+      let sum = 0, i = 0, filled = 0, on = 0, toggles = 0, firstOn = null, shadow = false, dusk = 0;
+      for (let k = 0; k < NSAMP; k++) {
+        const t = k * DT, x = Math.max(0, Math.min(RAWMAX, Math.round(base(t) + gauss(r) * sig)));
+        raw[k] = x; sum = sum - buf[i] + x; buf[i] = x; i = (i + 1) % N;
+        if (filled < N) filled++;
+        const a = sum / filled; avg[k] = a;
+        if (filled === N) {
+          const was = on;
+          if (st.two) { if (!on && a < lo) on = 1; else if (on && a > hi) on = 0; } else on = a < lo ? 1 : 0;
+          if (on !== was) {
+            toggles++;
+            if (t < 5) shadow = true;
+            else if (t < 23) { dusk++; if (on && firstOn == null) firstOn = t; }
+          }
+        }
+        led[k] = on;
+      }
+      let tCross = 0;                                          // the noiseless light first drops below the lower threshold
+      for (let k = 250; k < NSAMP; k++) if (base(k * DT) < lo) { tCross = k * DT; break; }
+      res = { N, sig, lo, hi, raw, avg, led, toggles, shadow, dusk, delay: firstOn == null ? null : firstOn - tCross };
+    }
+    function draw() {
+      if (!res) return;
+      const c = Study.fitCanvas(cv), W = c.w, H = c.h, L = 46, R = W - 10, Tp = 12, B = H - 52, ly = H - 40;
+      const V0 = 400, V1 = 2800, X = (k) => L + k / (NSAMP - 1) * (R - L), Y = (v) => B - (Math.max(V0, Math.min(V1, v)) - V0) / (V1 - V0) * (B - Tp);
+      c.clearRect(0, 0, W, H);
+      c.strokeStyle = T.line; c.lineWidth = 1; c.strokeRect(L, Tp, R - L, B - Tp);
+      c.fillStyle = T.muted; c.font = font(500, 12); c.textAlign = 'right';
+      [800, 1600, 2400].forEach((v) => c.fillText(String(v), L - 5, Y(v) + 4));
+      c.textAlign = 'center';
+      [0, 5, 10, 15, 20, 25, 30].forEach((s) => c.fillText(`${s} с`, Math.min(R - 14, Math.max(L + 10, X(s / DT))), H - 6));
+      // raw samples
+      c.fillStyle = T.muted; c.globalAlpha = 0.45;
+      for (let k = 0; k < NSAMP; k += 2) c.fillRect(X(k) - 0.8, Y(res.raw[k]) - 0.8, 1.6, 1.6);
+      c.globalAlpha = 1;
+      // thresholds
+      const th = (v, col, txt) => { c.strokeStyle = col; c.lineWidth = 1.4; c.setLineDash([6, 5]); c.beginPath(); c.moveTo(L, Y(v)); c.lineTo(R, Y(v)); c.stroke(); c.setLineDash([]); c.fillStyle = col; c.font = font(600, 12); c.textAlign = 'left'; c.fillText(txt, L + 6, Y(v) - 4); };
+      if (res.hi !== res.lo) th(res.hi, T.ok, `вимкнути > ${res.hi}`);
+      th(res.lo, T.bad, res.hi !== res.lo ? `увімкнути < ${res.lo}` : `поріг ${res.lo}`);
+      // the moving average
+      c.strokeStyle = T.accent; c.lineWidth = 2.4; c.beginPath();
+      for (let k = 0; k < NSAMP; k++) k ? c.lineTo(X(k), Y(res.avg[k])) : c.moveTo(X(k), Y(res.avg[k]));
+      c.stroke();
+      // LED lane
+      c.fillStyle = T.muted; c.font = font(600, 12); c.textAlign = 'left'; c.fillText('LED', 4, ly + 11);
+      c.strokeStyle = T.line; c.strokeRect(L, ly, R - L, 14);
+      c.fillStyle = T.hi;
+      let s0 = -1;
+      for (let k = 0; k <= NSAMP; k++) {
+        const on = k < NSAMP && res.led[k];
+        if (on && s0 < 0) s0 = k;
+        if (!on && s0 >= 0) { c.fillRect(X(s0), ly + 1, Math.max(1.5, X(k) - X(s0)), 12); s0 = -1; }
+      }
+    }
+    function paint() {
+      run();
+      setTxt($('#sma-n-out'), String(res.N)); setTxt($('#sma-s-out'), String(res.sig));
+      setTxt($('#sma-lo-out'), String(+$('#sma-lo').value)); setTxt($('#sma-hi-out'), String(+$('#sma-hi').value));
+      const extra = Math.max(0, res.toggles - 2);
+      setTxt($('#sma-t'), String(res.toggles)); setTxt($('#sma-x'), String(extra));
+      $('#sma-c-x').className = extra ? 'bad' : 'ok';
+      setTxt($('#sma-d'), res.delay == null ? '—' : `${thou(Math.max(0, res.delay) * 1000)} мс`);
+      setTxt($('#sma-sn'), comma(res.sig / Math.sqrt(res.N), 1));
+      const notes = [];
+      if (res.shadow) notes.push(`Тінь руки на 0,3 с увімкнула LED: вікно ${res.N} × 20 мс = ${res.N * 20} мс коротше за тінь або порівнянне з нею.`);
+      else notes.push('Тінь руки на 0,3 с LED не ввімкнула: вікно її розмазало.');
+      if (res.dusk > 1) notes.push(`У сутінках LED перемкнувся ${res.dusk} рази: середнє кілька разів перетнуло ${st.two ? 'пороги' : 'поріг'}.`);
+      else if (res.dusk === 1) notes.push('У сутінках рівно одне ввімкнення.');
+      if (st.two && +$('#sma-hi').value < res.lo) notes.push('Верхній поріг нижчий за нижній: модель вважає їх однаковими.');
+      if (st.two && res.hi - res.lo < 3 * res.sig / Math.sqrt(res.N)) notes.push('Пороги ближчі один до одного, ніж три шуми середнього: мерехтіння може повернутися.');
+      setTxt($('#sma-note'), notes.join(' '));
+      draw();
+    }
+    ['#sma-n', '#sma-s', '#sma-lo', '#sma-hi'].forEach((s) => $(s).addEventListener('input', paint));
+    $$('#sma-mode button').forEach((b) => b.addEventListener('click', () => {
+      st.two = b.dataset.m === 'two';
+      $$('#sma-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      $('#sma-hi').disabled = !st.two;
+      paint();
+    }));
+    $('#sma-seed').addEventListener('click', () => { st.seed = (st.seed * 7919 + 13) % 100003; paint(); });
+    paint();
+    window.addEventListener('resize', draw);
+    Study.onTheme(draw);
+    return { run: () => res };
+  })();
+
+  /* =====================================================================
+     08 Kit bench. The board in the breadboard (c0 = 20: 3V3 in column 20, GPIO4 23, GPIO15 27, GND 41), the parts on the
+     free strips to its left: LDR1 g14–g15, R1 10 кОм h10–h14 (node = column 14), LED part as in lesson 2.6.
+     fault 'swap': LDR1 between the node and GND (g13–g14, black j13), R1 between 3V3 and the node (h14–h18, orange j20 → j18).
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const NETCOL = { 'net-3v3': 'n33', 'net-gnd': 'ngnd', 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3' };
+  function pill(parent, x, y, txt, w = 0, cls = '') {
+    const g = mk('g', { class: `kb-pill ${cls}`.trim(), 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 17 * txt.length;
+    mk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
+    const t = mk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+    t.textContent = txt;
+    g.text = t;
+    fitFrame(g.firstChild, t);
+    return g;
+  }
+  const BC = { c0: 20, v33: 20, g4: 23, g15: 27, gnd: 41, node: 14, top: 15, rg: 10, r3: 8, an: 4, ca: 3 };
+  function bench(svg, { nets = false, fault = null } = {}) {
+    const C = BC, swap = fault === 'swap';
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const H = (c, r) => bb.hole(c, r);
+    const strips = mk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(C.c0, 'i');
+    const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
+    esp.set({ highlight: ['GPIO4', 'GPIO15'] });
+    const out = { bb, esp, wire: {} };
+    const strip = (net, cls, c, half) => {
+      if (!nets) return;
+      const a = H(c, half === 'top' ? 'a' : 'f');
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls, side, sign) => {
+      if (!nets) return;
+      const a = bb.rail(side, sign, 1), b = bb.rail(side, sign, 63);
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    const ldrL = swap ? C.node - 1 : C.node, top = swap ? C.node + 4 : C.top, gk = swap ? C.node - 1 : C.rg;
+    const lp = H(ldrL, 'g');
+    out.ldr = K.part('ldr', { parent: svg, x: lp.x, y: lp.y, leg: 60, title: `Фоторезистор LDR1 (GL55xx): отвори g${ldrL} і g${ldrL + 1}, полярності немає` });
+    const rp = H(swap ? C.node : C.rg, 'h');
+    out.r1 = K.part('resistor', { parent: svg, ohms: 10000, x: rp.x, y: rp.y, title: `R1 10 кОм (коричневий-чорний-помаранчевий): h${swap ? C.node : C.rg} і h${(swap ? C.node : C.rg) + 4}` });
+    const r3 = H(C.an, 'h');
+    out.r3 = K.part('resistor', { parent: svg, ohms: 220, x: r3.x, y: r3.y, title: `R3 220 Ом (червоний-червоний-коричневий): h${C.an} і h${C.r3}` });
+    const la = H(C.an, 'f');
+    out.led = K.part('led', { parent: svg, color: 'red', x: la.x, y: la.y, leg: 40, mirror: true, title: `Світлодіод LED1: анод f${C.an}, катод f${C.ca}` });
+    const yL = bb.size.h + 32;
+    out.yL = yL;
+    pill(svg, (H(C.ca, 'a').x + H(C.an, 'a').x) / 2, yL, 'LED1', 80);
+    pill(svg, H(C.rg + 2.5, 'a').x, yL, 'LDR1 · R1', 160);
+    rail('gnd', 'net-gnd', 'bottom', '-');
+    strip('v33', 'net-3v3', C.v33, 'bottom'); strip('v33', 'net-3v3', top, 'bottom');
+    strip('gpio4', 'net-sig', C.node, 'bottom'); strip('gpio4', 'net-sig', C.g4, 'bottom');
+    strip('gnd', 'net-gnd', gk, 'bottom'); strip('gnd', 'net-gnd', C.gnd, 'bottom'); strip('gnd', 'net-gnd', C.ca, 'bottom');
+    strip('gpio15', 'net-sig2', C.r3, 'bottom'); strip('gpio15', 'net-sig2', C.g15, 'bottom');
+    strip('led_a', 'net-sig3', C.an, 'bottom');
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`; }
+      return g;
+    };
+    const J = (c) => bb.at('j' + c);
+    const lane = J(1).y + KP * 1.15, edge = J(1).y + KP * 4.67;
+    const U = (from, to, y) => { const a = J(from), b = J(to); return [a, { x: a.x, y }, { x: b.x, y }, b]; };
+    out.wire.v33 = w([J(C.v33), J(top)], 'orange', 'v33', 'net-3v3');
+    out.wire.g4 = w(U(C.g4, C.node, lane), 'yellow', 'gpio4', 'net-sig');
+    out.wire.g15 = w(U(C.g15, C.r3, edge), 'green', 'gpio15', 'net-sig2');
+    out.wire.rg = w([J(gk), bb.at('bottom-' + gk)], 'black', 'gnd', 'net-gnd');
+    out.wire.ca = w([J(C.ca), bb.at('bottom-' + C.ca)], 'black', 'gnd', 'net-gnd');
+    out.wire.gnd = w([J(C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd');
+    out.wire.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');
+    const x1 = H(C.gnd + 3, 'a').x;
+    svg.setAttribute('viewBox', `-20 -20 ${x1 + 20} ${bb.size.h + 70}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
+  /* ================================================================ 08 dual figure + the light slider */
+  {
+    const kb = bench($('#bb-adc'), { nets: true });
+    const lvl = pill($('#bb-adc'), kb.bb.hole(BC.c0 + 6, 'c').x, kb.yL, 'raw 1744', 190, 'lvl');
+    const R10 = 15000, GAMMA = 0.65, RDARK = 1e6, DARK = 1400, LIGHT = 1700;   // GL5528 model of lesson 1.6
+    let on = false;
+    const luxOf = (s) => 10 ** (s / 100 * 5 - 1);                            // 0,1 … 10 000 лк
+    const kOhm = (r) => (r >= 1e6 ? '≥ 1 МОм' : r >= 10000 ? `${thou(r / 1000)} кОм` : `${comma(r / 1000, 1)} кОм`);
+    function up() {
+      const lx = luxOf(+$('#lux-s').value), r = Math.min(RDARK, R10 * (lx / 10) ** -GAMMA), v = 3.3 * 10000 / (r + 10000), raw = toRaw(v);
+      if (!on && raw < DARK) on = true; else if (on && raw > LIGHT) on = false;
+      kb.ldr.set({ light: Math.max(0, Math.min(1, (Math.log10(lx) + 1) / 5)) });
+      kb.led.set({ on: on ? 1 : 0 });
+      const sl = $('#sch-led'); if (sl) sl.style.color = on ? 'var(--bad)' : '';
+      lvl.text.textContent = `raw ${raw}`; fitFrame(lvl.firstChild, lvl.text);
+      setTxt($('#sch-v'), `${comma(v, 2)} В`);
+      setTxt($('#lux-out'), lx < 10 ? `${comma(lx, 1)} лк` : `${thou(lx)} лк`);
+      setTxt($('#lux-badge'), `LDR ≈ ${kOhm(r)} · GPIO4 ≈ ${comma(v, 2)} В · raw ≈ ${raw}${raw >= RAWMAX ? ' (стеля)' : ''} · LED ${on ? 'горить' : 'вимкнено'}`);
+    }
+    $('#lux-s').addEventListener('input', up);
+    up();
+  }
+
+  /* cite links point into the collapsed source list: open it first */
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    const d = el && el.closest('details');
+    if (d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', openTarget);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a[href^="#src-"]');
+    if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
+  });
+  openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-adc): the bench of section 08 + the firmware; exactly one fault per case.
+     Lines of code and Kit parts with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  {
+    const hkEsc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rem = (t) => `<span class="rem">${hkEsc(t)}</span>`;
+    const hkCode = (stage, file, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = `<div class="hk-h">${file}</div><pre>` + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, opts);
+    };
+    const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+    const OK = 'Макетка як у розділі 08: плата в макетці; LDR1 від 3V3 (помаранчевий дріт) до середньої точки, R1 10 кОм від середньої точки до шини мінус; жовтий дріт з GPIO4 у середню точку; LED на GPIO15 (зелений дріт) через 220 Ом, катод на шині мінус.';
+    Study.hunt($('#hunt-adc'), { key: '3-1', cases: [
+      { title: 'Не той канал',
+        symptom: 'Схема перевірена мультиметром: на GPIO4 напруга слухняно падає під долонею. А в моніторі raw стрибає на сотні одиниць і на світло не реагує зовсім.',
+        build(st) {
+          const kb = hkBench(st, OK);
+          hkTag(kb.ldr, 2);
+          hkCode(st, 'src/main.c', [['#define LDR_CH    ADC_CHANNEL_4  ' + rem('// GPIO4'), 0], '', 'adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};',
+            ['adc_oneshot_chan_cfg_t ch = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};', 1], 'adc_oneshot_config_channel(adc, LDR_CH, &amp;ch);']);
+        },
+        options: ['<code>ADC_CHANNEL_4</code> — це GPIO5, а GPIO4 — <code>ADC_CHANNEL_3</code>',
+          'Ослаблення 12&nbsp;дБ замале для 3,3&nbsp;В',
+          'LDR зламаний: перевірте його омметром'],
+        answer: 0,
+        explain: 'Канали ADC1 нумеруються з нуля від GPIO1: GPIO1 = CH0, отже GPIO4 = CH3, а CH4 — це GPIO5<sup class="cite" data-fact="s3-adc1-pins"></sup>. GPIO5 ні до чого не під\'єднаний і ловить завади, звідси стрибки. Напруга на GPIO4 правильна, тож LDR і ослаблення ні до чого.' },
+      { title: 'Світить удень',
+        symptom: 'Пороги взяли з прикладу, код скопійовано без змін. LED горить у світлій кімнаті й гасне, коли накрити датчик долонею.',
+        build(st) {
+          const kb = hkBench(st, 'Макетка: R1 10 кОм від 3V3 (помаранчевий дріт у стовпчик 18) до середньої точки в стовпчику 14, LDR1 від середньої точки до шини мінус (чорний дріт зі стовпчика 13); жовтий дріт з GPIO4 у середню точку; LED на GPIO15 через 220 Ом.', { fault: 'swap' });
+          hkTag(kb.ldr, 1); hkTag(kb.r1, 1);
+          hkCode(st, 'src/main.c', [['if (!on &amp;&amp; sma &lt; DARK)  { on = true;  gpio_set_level(LED, 1); }', 0], ['if (on  &amp;&amp; sma &gt; LIGHT) { on = false; gpio_set_level(LED, 0); }', 0], ['#define LDR_CH    ADC_CHANNEL_3', 2]]);
+        },
+        options: ['Пороги DARK і LIGHT переплутані в коді',
+          'LDR і R1 поміняні місцями: тепер на світлі напруга падає',
+          'Треба <code>ADC_UNIT_2</code>'],
+        answer: 1,
+        explain: 'LDR тепер унизу подільника: більше світла — менший опір LDR — нижча напруга на GPIO4. Код чекає протилежного й вмикає LED на світлі. Код правильний для схеми з розділу 08: поверніть LDR до 3V3, а R1 до GND. ADC2 не допоміг би, а лише конфліктував би з Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>.' },
+      { title: 'Блимає в сутінках',
+        symptom: 'Удень LED не горить, уночі горить, але ввечері хвилину-дві блимає, поки не стемніє. Вікно SMA збільшили з 16 до 64: блимає рідше, проте блимає.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', [['#define N         64', 0], ['#define PERIOD_MS 20', 1], '#define DARK      1400', '...', 'int sma = sum / N;', ['gpio_set_level(LED, sma &lt; DARK);  ' + rem('// темно — горить'), 2]]);
+        },
+        options: ['Вікно SMA все ще замале', 'АЦП читається надто рідко', 'Поріг один: біля нього кожне коливання середнього перемикає LED'],
+        answer: 2,
+        explain: 'Навіть середнє з 64 відліків трохи коливається, а в сутінках воно довго стоїть біля порога 1400. Кожен перетин — перемикання. Більше вікно лише рідше перетинає поріг і запізнюється. Потрібні два пороги: вмикати нижче DARK, вимикати вище LIGHT. Перевірте у віджеті розділу 05.' },
+      { title: 'Темрява на сонці',
+        symptom: 'Вікно збільшили до 32 відліків. Тепер LED інколи вмикається при яскравому світлі, коли raw близько 3000, а в сутінках працює правильно.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', [['#define N         32', 1], 'int buf[N] = {0};', ['uint16_t sum = 0;', 0], '...', 'sum = sum - buf[i] + raw;', 'buf[i] = raw;', ['int sma = sum / N;', 2]]);
+        },
+        options: ['<code>uint16_t sum</code> переповнюється: 32 × 3000 = 96 000 &gt; 65 535', 'N&nbsp;=&nbsp;32 забагато для ESP32-S3', '<code>sum / N</code> треба рахувати у float'],
+        answer: 0,
+        explain: 'uint16_t тримає числа лише до 65&nbsp;535. При raw ≈ 3000 сума 32 відліків — близько 96&nbsp;000, і вона «перекочується» через нуль: середнє стає ≈ 950, тобто «темно». 16 × 4095 = 65&nbsp;520 ще влазить, тому з N&nbsp;=&nbsp;16 усе працювало. Беріть <code>uint32_t</code> або <code>int</code>.' },
+      { title: 'Лише в повній темряві',
+        symptom: 'У кімнаті й під лампою raw весь час 4095. Число починає падати, лише коли датчик щільно накрити, і LED вмикається тільки тоді.',
+        build(st) {
+          const kb = hkBench(st, OK);
+          hkTag(kb.r1, 2);
+          hkCode(st, 'src/main.c', ['adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};', ['adc_oneshot_chan_cfg_t ch = {.atten = ADC_ATTEN_DB_0, .bitwidth = ADC_BITWIDTH_12};', 1], 'adc_oneshot_config_channel(adc, LDR_CH, &amp;ch);', ['adc_oneshot_read(adc, LDR_CH, &amp;raw);', 0]]);
+        },
+        options: ['Немає калібрування <code>adc_cali</code>', '<code>ADC_ATTEN_DB_0</code>: шкала ≈ 0,95&nbsp;В, усе вище читається як 4095', 'R1 10&nbsp;кОм замалий, потрібно 100&nbsp;кОм'],
+        answer: 1,
+        explain: 'Без ослаблення АЦП ESP32-S3 бачить лише близько 0…0,95&nbsp;В<sup class="cite" data-fact="s3-adc-atten-ranges"></sup>. У кімнаті на подільнику понад 1&nbsp;В, тож АЦП упирається в стелю. Поставте <code>ADC_ATTEN_DB_12</code>. Калібрування змінює лише перерахунок у мілівольти, а не стелю.' },
+    ] });
+  }
+});
+</script>
+</body>
+</html>
