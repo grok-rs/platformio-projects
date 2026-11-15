@@ -1,0 +1,1483 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 6.1 · Чому не суперцикл: задачі FreeRTOS</title>
+<meta name="description" content="Суперцикл проти планувальника на моделі: повільна функція, пріоритети, тік і два ядра ESP32-S3. Чотири стани задачі, vTaskDelay чи xTaskDelayUntil, стек у байтах, і ДЗ 2.3 «Мультизадачний пристрій», переписане задачами FreeRTOS.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-b { fill: var(--ink); font: 600 14px var(--f-body); }
+.idea figure .svg-t, .idea figure .svg-m { font-size: 15px; }
+.idea figure .svg-b { font-size: 16px; }
+#why figure .svg-t, #why figure .svg-m { font-size: 15px; }
+.net-in { stroke: var(--teach); color: var(--teach); }
+.net-in2 { stroke: var(--warn); color: var(--warn); }
+text.net-in, text.net-in2 { fill: currentColor; stroke: none; }
+pre.code { font-size: 13px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 14px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.fixlist li { margin: 6px 0; }
+.tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl-wrap { overflow-x: auto; }
+.tbl-modes code { white-space: nowrap; }
+.st-badge { display: inline-block; font: 600 14px var(--f-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+
+/* ---------- lab «суперцикл проти планувальника» (#rt) ---------- */
+#rt-cv { display: block; width: 100%; height: 252px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.rt-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 10px; font-size: 13px; color: var(--muted); }
+.rt-key i { display: inline-block; width: 12px; height: 12px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+.rt-code { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); min-width: 0; }
+.rt-code-h { padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel-2); font: 600 13px var(--f-mono); color: var(--muted); }
+pre.rt-src { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 8px 10px; font-size: 13px; line-height: 1.5; overflow-x: auto; background: var(--panel); white-space: pre; max-width: none; }
+.rt-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) { .rt-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+#rt .lab-ctl .seg button { font-size: 14px; padding: 8px 11px; }
+
+/* ---------- idea figures ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.idea figure .idea-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: 100%; font-size: 14px; }
+.idea figure .idea-ctl input[type="range"] { width: 100%; }
+.idea-out { margin: 8px 0 0; font-size: 15px; min-height: 1.6em; }
+.idea-out b.ok { color: var(--ok); } .idea-out b.bad { color: var(--bad); }
+.idea-out.small { font-size: 14px; color: var(--muted); }
+
+/* anatomy of xTaskCreatePinnedToCore */
+.an-code { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); font: 14px/2 var(--f-mono); color: var(--ink); overflow-wrap: anywhere; }
+.an-arg { min-height: 34px; margin: 2px 0; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--ink); font: 600 14px var(--f-mono); cursor: pointer; }
+.an-arg[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.an-box { margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--panel-2); border-radius: 0 8px 8px 0; font-size: 15px; min-height: 4.6em; }
+.an-box b { font-family: var(--f-mono); }
+
+/* task states */
+.st-ev { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.st-ev button { min-height: 40px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 14px var(--f-body); cursor: pointer; }
+.st-ev button:hover { border-color: var(--accent); }
+#st-svg .st-box { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; transition: fill var(--t2, .2s), stroke var(--t2, .2s); }
+#st-svg .st-box.on { fill: color-mix(in srgb, var(--accent) 22%, var(--panel)); stroke: var(--accent); stroke-width: 3; }
+#st-svg .st-ar { fill: none; stroke: var(--muted); stroke-width: 2; transition: stroke var(--t2, .2s); }
+#st-svg .st-ar.hot { stroke: var(--accent); stroke-width: 3.5; }
+
+/* cores */
+.cr-rows { display: grid; gap: 8px; margin: 0 0 10px; }
+.cr-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.cr-row > b { min-width: 7.5em; font: 600 15px var(--f-mono); }
+.cr-row .seg button { min-height: 38px; padding: 6px 11px; font-size: 14px; }
+#cr-svg, #dl-svg { display: block; width: 100%; height: auto; max-width: 480px; margin-inline: auto; }
+@media (max-width: 560px) { #cr-svg text, #dl-svg text { font-size: 15px; } }
+.cr-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; font-size: 13px; color: var(--muted); justify-content: center; }
+.cr-key i { display: inline-block; width: 11px; height: 11px; margin-right: 5px; border-radius: 50%; vertical-align: -1px; }
+
+/* ---------- Kit bench ---------- */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+figure.dual#dual-mt { grid-template-columns: minmax(0, 1fr); }
+#dual-mt [data-view="sch"] svg { max-width: 480px; margin-inline: auto; }
+#bb-mt { width: 100%; max-width: none; max-height: none; }
+
+/* ---------- «Знайди несправність» code panel ---------- */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; overflow-x: auto; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+</style>
+</head>
+<body data-lesson="6-1">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:6-1">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 6 · Урок 6.1 · ср 23.12</p>
+    <h1>Чому не суперцикл: <span>задачі FreeRTOS</span></h1>
+    <p class="lead">Поки одна функція в <code>loop()</code> рахує, решта чекає в черзі. Подивимося, як планувальник FreeRTOS ділить процесор між задачами за пріоритетами, і перепишемо домашнє завдання 2.3 задачами.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 30 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: 3 LED, 3×220&nbsp;Ом, 2 кнопки</a></li>
+      <li><a class="chip" href="../2-3/">Спершу: урок 2.3 · суперцикл</a></li>
+      <li><a class="chip" href="../2-6/#example">Згадати: урок 2.6 · ESP-IDF і тік</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ lab: superloop vs scheduler (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="rt" aria-labelledby="rt-h">
+    <header class="lab-head"><h2 id="rt-h">Лабораторія · суперцикл проти планувальника</h2><p>Пристрій із ДЗ 2.3: три LED у своїх ритмах, кнопка й датчик, що раз на 250&nbsp;мс довго рахує. Перемкніть суперцикл на задачі й пограйтеся з пріоритетом датчика.</p></header>
+    <div class="lab-stage" id="rt-stage">
+      <div class="rt-grid">
+        <div>
+          <canvas id="rt-cv" width="900" height="252" role="img" aria-label="Часова діаграма на одну секунду, п'ять доріжок: кнопка, LED1, LED2, LED3 і датчик. На доріжках LED сірі риски — правильний час перемикання, кольорові — справжній: зелена вчасно, червона із запізненням, червона смуга — скільки задача чекала в стані Ready. На доріжці кнопки трикутник — натискання, лінія до крапки — час до реакції. На доріжці датчика прямокутники — коли він займає процесор."></canvas>
+          <div class="rt-key" aria-hidden="true"><span><i style="background:var(--ok)"></i>вчасно</span><span><i style="background:var(--bad)"></i>запізнення</span><span><i style="background:var(--accent)"></i>датчик рахує</span><span><i style="background:var(--muted)"></i>правильний час</span></div>
+        </div>
+        <div class="rt-code">
+          <div class="rt-code-h" id="rt-file">src/main.cpp · суперцикл</div>
+          <pre class="rt-src" id="rt-src" tabindex="0" aria-label="Код прошивки для вибраного варіанта"></pre>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <div class="seg" role="group" aria-label="Як написана прошивка" id="rt-mode">
+        <button type="button" data-v="loop" aria-pressed="true">Суперцикл</button>
+        <button type="button" data-v="rtos" aria-pressed="false">Задачі</button>
+      </div>
+      <label class="lab-range">Датчик рахує <input type="range" id="rt-w" min="0" max="150" step="5" value="60" aria-label="Скільки мілісекунд рахує датчик"><output id="rt-wout">60 мс</output></label>
+      <div class="seg" role="group" aria-label="Пріоритет задачі датчика" id="rt-prio">
+        <button type="button" data-v="1" aria-pressed="true">пріоритет 1</button>
+        <button type="button" data-v="4" aria-pressed="false">пріоритет 4</button>
+      </div>
+      <div class="seg" role="group" aria-label="Як задачі чекають" id="rt-dly">
+        <button type="button" data-v="rel" aria-pressed="true">vTaskDelay</button>
+        <button type="button" data-v="until" aria-pressed="false">xTaskDelayUntil</button>
+      </div>
+      <div class="seg" role="group" aria-label="Частота тіку FreeRTOS" id="rt-hz">
+        <button type="button" data-v="100" aria-pressed="true">100 Гц</button>
+        <button type="button" data-v="1000" aria-pressed="false">1000 Гц</button>
+      </div>
+      <label class="lab-range">Секунда <input type="range" id="rt-x" min="0" max="9" step="1" value="0" aria-label="Яку секунду з десяти показати"><output id="rt-xout">0–1 с</output></label>
+    </div>
+    <div class="lab-read">
+      <div><b>LED1: найбільше запізнення</b><output id="rt-late">—</output></div>
+      <div><b>LED1: зсув за 10 с</b><output id="rt-drift">—</output></div>
+      <div><b>Кнопка: найдовша реакція</b><output id="rt-btn">—</output></div>
+      <div><b>Процесор вільний</b><output id="rt-idle">—</output></div>
+    </div>
+    <p class="lab-note" id="rt-note" aria-live="polite"></p>
+    <p class="lab-note"><b>Це модель, а не вимір на платі.</b> Крок моделі — 1&nbsp;мс, усі задачі на одному ядрі, пріоритети: кнопка 3, LED 2. Кнопка опитується раз на 10&nbsp;мс, натискання стоять у фіксовані моменти. Тік і правила планувальника як у FreeRTOS ESP-IDF<sup class="cite" data-fact="idf-max-priorities"></sup>, а стандартні 100&nbsp;Гц — з Kconfig ESP-IDF<sup class="cite" data-fact="idf-freertos-hz"></sup>. Справжній <code>loop()</code> робить прохід за мікросекунди, тож суперцикл без датчика тут теж вчасний.</p>
+    <div class="missions" id="rt-ms"></div>
+  </section>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>У ДЗ 2.3 ви вже навчили <code>loop()</code> ніколи не чекати: три ритми на <code>millis()</code>, кнопки миттєво. Тепер додайте до пристрою датчик, що читається 60&nbsp;мс, або мережевий запит на пів секунди. Поки він працює, черга до кнопки не доходить, а LED запізнюються. Можна різати повільну функцію на шматочки й писати машини станів. А можна дати кожній справі <b>свій цикл</b> і доручити планувальнику вирішувати, хто зараз важливіший. Це і є FreeRTOS, і на ESP32-S3 він уже працює: навіть Arduino-скетч живе в його задачі.</p>
+    <figure>
+      <svg viewBox="0 0 340 128" role="img" aria-label="Дві доріжки часу. У суперциклі довгий прямокутник датчика, натискання кнопки посеред нього отримує реакцію лише після кінця прямокутника. У задачах той самий датчик розрізаний: щойно кнопка натиснута, вона отримує процесор, а датчик продовжує після неї.">
+        <text class="svg-m" x="4" y="16">суперцикл</text>
+        <rect x="70" y="26" width="170" height="20" rx="3" fill="var(--accent)" opacity=".75"/>
+        <path d="M112 22l-6-9h12z" fill="var(--ink)"/>
+        <path d="M112 54H240" stroke="var(--bad)" stroke-width="3"/>
+        <circle cx="240" cy="54" r="4" fill="var(--bad)"/>
+        <text class="svg-t" x="336" y="16" text-anchor="end" style="fill:var(--bad)">кнопка чекає</text>
+        <text class="svg-m" x="4" y="82">задачі</text>
+        <rect x="70" y="92" width="40" height="20" rx="3" fill="var(--accent)" opacity=".75"/>
+        <rect x="116" y="92" width="130" height="20" rx="3" fill="var(--accent)" opacity=".75"/>
+        <path d="M112 88l-6-9h12z" fill="var(--ink)"/>
+        <path d="M113 90V116" stroke="var(--ok)" stroke-width="4"/>
+        <text class="svg-t" x="336" y="82" text-anchor="end" style="fill:var(--ok)">кнопка одразу</text>
+      </svg>
+      <figcaption>Схематично: синє — датчик займає процесор, трикутник — натискання.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>пояснити</b>, чому одна довга дія в суперциклі затримує все, і <b>оцінити</b> найгіршу затримку;</li>
+      <li><b>створити</b> задачу через <code>xTaskCreatePinnedToCore()</code> і <b>вибрати</b> стек у байтах, пріоритет і ядро;</li>
+      <li><b>простежити</b> задачу через стани Running, Ready, Blocked і Suspended;</li>
+      <li><b>передбачити</b>, яка задача отримає ядро, і <b>знайти</b> голодування;</li>
+      <li><b>вибрати</b> між <code>vTaskDelay()</code> і <code>xTaskDelayUntil()</code> та <b>перерахувати</b> мілісекунди в тіки;</li>
+      <li><b>переписати</b> ДЗ 2.3 задачами FreeRTOS і <b>порівняти</b> з версією на суперциклі.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ «Коротко»: an aside, not a section.hs, so the TOC skips it -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 10 хв основне · віджети й практика — ще ≈ 35 хв</p>
+    <ol>
+      <li>Суперцикл чесний, поки всі дії короткі. Найгірша затримка будь-чого дорівнює найдовшому блоку в циклі. <a href="#rt">→ лабораторія</a></li>
+      <li>Задача — це функція з власним <code>while (1)</code>, стеком і пріоритетом. Планувальник віддає ядро найпріоритетнішій задачі в стані Ready. <a href="#ideas">→ 04</a></li>
+      <li>Задача, що чекає (<code>vTaskDelay</code>, черга, семафор), стоїть у Blocked і ядра не займає. Задача, що ніколи не засинає, морить голодом усіх нижчих. <a href="#poe">→ 05</a></li>
+      <li>Стек в ESP-IDF задають у <b>байтах</b>, пріоритети від 0 до 24, тік стандартно 10&nbsp;мс. <a href="#ideas">→ 04</a></li>
+      <li><code>vTaskDelay()</code> додає час роботи до періоду, <code>xTaskDelayUntil()</code> тримає сітку. <a href="#poe">→ 05</a></li>
+      <li>Системні задачі ESP-IDF, зокрема Wi-Fi, стандартно на ядрі 0, тож свої чутливі до часу задачі кладемо на ядро 1. <a href="#ideas">→ 04</a></li>
+    </ol>
+  </aside>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Суперцикл: одна черга на всіх</h3>
+      <p>У суперциклі кожна справа отримує процесор, лише коли до неї дійде черга. Поки справи короткі, черга рухається за мікросекунди, і все виглядає одночасним. Проблема в найдовшій справі: <b>найгірша затримка будь-якої дії дорівнює найдовшому блоку в циклі</b>. Прибрати <code>delay()</code> мало, бо повільним буває й корисний код: читання датчика, друк, мережа.</p>
+      <p>Ще одне: у ДЗ 2.3 ми писали <code>last = now</code>. Запізніле перемикання зсуває всі наступні, і ритм пливе. Це видно в лабораторії вгорі, рядок «LED1: зсув за 10&nbsp;с». Детальніше про дрейф і <code>last += PERIOD</code> — в <a href="../2-5/#ideas">уроці 2.5</a>.</p>
+      <p class="key"><b>Головне</b>Суперцикл не «неправильний». Він справляється, поки найдовша дія коротша за допустиму затримку найтерміновішої.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Задача: свій цикл, свій стек, свій пріоритет</h3>
+      <p>Задача FreeRTOS — це звичайна функція з нескінченним циклом. Вона ніколи не повертається<sup class="cite" data-fact="idf-task-no-return"></sup>: їй потрібен власний стек для локальних змінних, а планувальник пам'ятає, де її зупинив. Створюємо задачу один раз, і далі вона живе сама. Торкніться кожного аргументу:</p>
+      <div class="an-code" role="group" aria-label="Аргументи xTaskCreatePinnedToCore">xTaskCreatePinnedToCore(<button type="button" class="an-arg" data-a="fn" aria-pressed="true">led_task</button>, <button type="button" class="an-arg" data-a="name" aria-pressed="false">"led3"</button>, <button type="button" class="an-arg" data-a="stack" aria-pressed="false">2048</button>, <button type="button" class="an-arg" data-a="param" aria-pressed="false">&amp;led3</button>, <button type="button" class="an-arg" data-a="prio" aria-pressed="false">2</button>, <button type="button" class="an-arg" data-a="handle" aria-pressed="false">NULL</button>, <button type="button" class="an-arg" data-a="core" aria-pressed="false">1</button>);</div>
+      <div class="an-box" id="an-txt" aria-live="polite"></div>
+      <p>Два числа звідси легко переплутати. <b>Стек в ESP-IDF задають у байтах</b>, а у ванільному FreeRTOS у словах, тож 512 зі статті для STM32 на ESP32-S3 означає лише 512 байт<sup class="cite" data-fact="idf-stack-bytes"></sup>. Для порівняння: стандартний стек idle-задачі ESP-IDF — 1536 байт<sup class="cite" data-fact="idf-idle-stack"></sup>, а <code>app_main()</code> — 3584<sup class="cite" data-fact="idf-app-main-task"></sup>. <b>Пріоритетів 25</b>, від 0 до 24, і на 0 живуть idle-задачі<sup class="cite" data-fact="idf-max-priorities"></sup>. Ім'я задачі обрізається до 16 символів<sup class="cite" data-fact="idf-task-name-len"></sup>, а <code>xTaskCreate()</code> — це та сама функція з ядром «будь-яке»<sup class="cite" data-fact="idf-xtaskcreate-unpinned"></sup>.</p>
+      <p class="key"><b>Головне</b>Одна функція може стати кількома задачами: параметр каже їй, з яким LED працювати. Стек вибираємо з запасом, а потім перевіряємо <code>uxTaskGetStackHighWaterMark()</code>.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Чотири стани задачі</h3>
+      <p>Задача завжди в одному з чотирьох станів. <b>Running</b> — займає ядро (на ESP32-S3 таких може бути дві, по одній на ядро). <b>Ready</b> — готова, але ядро зайняте задачею не нижчого пріоритету. <b>Blocked</b> — чекає часу чи події й ядра не просить. <b>Suspended</b> — зупинена <code>vTaskSuspend()</code> і сама не прокинеться. Поводіть одну задачу по станах:</p>
+      <figure>
+        <svg id="st-svg" viewBox="0 0 340 220" role="img" aria-label="Діаграма станів: Suspended угорі, Ready ліворуч, Running праворуч, Blocked унизу. Стрілки: Ready в Running і назад, Running у Blocked, Blocked у Ready, з Ready, Running і Blocked у Suspended, із Suspended у Ready. Поточний стан задачі підсвічено.">
+          <path class="st-ar" id="st-a-pick" d="M128 96H210" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-pre" d="M212 124H130" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-dly" d="M262 136V184H234" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-ev" d="M108 184H70V140" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-susR" d="M60 84V30H106" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-susX" d="M280 84V30H234" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-susB" d="M170 166V58" marker-end="url(#st-m)"/>
+          <path class="st-ar" id="st-a-res" d="M110 44H84V84" marker-end="url(#st-m)"/>
+          <defs><marker id="st-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <rect class="st-box" id="st-b-sus" x="110" y="8" width="120" height="46" rx="8"/>
+          <text class="svg-b" x="170" y="27" text-anchor="middle">Suspended</text>
+          <text class="svg-t" x="170" y="45" text-anchor="middle">призупинена</text>
+          <rect class="st-box" id="st-b-ready" x="6" y="88" width="120" height="46" rx="8"/>
+          <text class="svg-b" x="66" y="107" text-anchor="middle">Ready</text>
+          <text class="svg-t" x="66" y="125" text-anchor="middle">готова</text>
+          <rect class="st-box" id="st-b-run" x="214" y="88" width="120" height="46" rx="8"/>
+          <text class="svg-b" x="274" y="107" text-anchor="middle">Running</text>
+          <text class="svg-t" x="274" y="125" text-anchor="middle">виконується</text>
+          <rect class="st-box" id="st-b-blk" x="110" y="166" width="120" height="46" rx="8"/>
+          <text class="svg-b" x="170" y="185" text-anchor="middle">Blocked</text>
+          <text class="svg-t" x="170" y="203" text-anchor="middle">чекає</text>
+        </svg>
+        <div class="st-ev" role="group" aria-label="Що стається із задачею">
+          <button type="button" data-e="pick">Планувальник обрав її</button>
+          <button type="button" data-e="pre">Прокинулась вища задача</button>
+          <button type="button" data-e="dly">Вона викликала vTaskDelay()</button>
+          <button type="button" data-e="ev">Минув час або прийшла подія</button>
+          <button type="button" data-e="sus">vTaskSuspend(її)</button>
+          <button type="button" data-e="res">vTaskResume(її)</button>
+        </div>
+        <p class="idea-out" id="st-txt" aria-live="polite"></p>
+      </figure>
+      <p class="key"><b>Головне</b><code>delay()</code> у суперциклі — це «стою й чекаю». <code>vTaskDelay()</code> — це Blocked: задача чекає, а ядро тим часом працює на інших. До речі, в Arduino-ESP32 <code>delay()</code> якраз і викликає <code>vTaskDelay()</code><sup class="cite" data-fact="core-delay"></sup>.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Планувальник: найвищий серед готових</h3>
+      <p>Правило коротке: ядро отримує <b>найпріоритетніша задача в стані Ready</b>. Якщо вища задача прокинулась, планувальник забирає ядро в нижчої одразу, не чекаючи, поки та закінчить: це <b>витіснення</b>. Якщо готових задач рівного пріоритету кілька, вони чергуються на кожному тіку. На двох ядрах ESP-IDF це «best effort round robin»: кожне ядро бере найвищу задачу, яку йому дозволено виконувати<sup class="cite" data-fact="idf-best-effort-rr"></sup>. Витіснення й розподіл часу в ESP-IDF увімкнені завжди<sup class="cite" data-fact="idf-max-priorities"></sup>.</p>
+      <p>Час FreeRTOS рахує <b>тіком</b>, періодичним перериванням. У чистому ESP-IDF тік стандартно 100&nbsp;Гц, тобто 10&nbsp;мс, а в Arduino-ESP32 — 1000&nbsp;Гц<sup class="cite" data-fact="idf-freertos-hz"></sup>. LMS називає 1000&nbsp;Гц стандартом ESP-IDF, і це помилка<sup class="cite" data-fact="lms-err-6-1-tick"></sup>. На тіку задачі, яким настав час, переходять із Blocked у Ready. Облік часу веде тік ядра 0<sup class="cite" data-fact="idf-tick-core0"></sup>. Тому <code>vTaskDelay()</code> рахує тіки, а мілісекунди перетворює <code>pdMS_TO_TICKS()</code> з цілочисельним діленням<sup class="cite" data-fact="idf-pdms-to-ticks"></sup>. Пастку «<code>pdMS_TO_TICKS(5)</code> = 0» ми вже розбирали в <a href="../2-6/#example">уроці 2.6</a>.</p>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th></th><th>Витісняльне планування</th><th>Кооперативне</th></tr></thead>
+        <tbody>
+          <tr><td>Коли перемикає</td><td>щойно вища задача стала Ready, а рівні — на тіку</td><td>лише коли задача сама блокується або викликає <code>taskYIELD()</code></td></tr>
+          <tr><td>У нас</td><td>ESP-IDF і Arduino-ESP32, завжди</td><td>у FreeRTOS ESP-IDF не вмикається</td></tr>
+          <tr><td>Реакція на ISR, що будить задачу</td><td>одразу, якщо ISR попросить перемикання (<a href="../2-6/#example">урок 2.6</a>)</td><td>коли поточна задача сама віддасть ядро</td></tr>
+          <tr><td>Пробудження за часом</td><td>з точністю до тіку: 10&nbsp;мс в ESP-IDF, 1&nbsp;мс в Arduino</td><td>те саме, плюс чекання на поточну задачу</td></tr>
+        </tbody>
+      </table></div>
+      <p class="key"><b>Головне</b>Пріоритет вирішує, хто першим отримує ядро, а не скільки. Задача, що ніколи не засинає, забирає ядро в усіх нижчих назавжди.</p>
+    </article>
+
+    <article class="idea">
+      <h3><code>vTaskDelay()</code> чи <code>xTaskDelayUntil()</code></h3>
+      <p>У LMS розділи про ці функції згадують <code>do_work()</code> і <code>xLastWakeTime</code>, але самого коду немає<sup class="cite" data-fact="lms-err-6-1-missing-code"></sup>. Ось він. <code>vTaskDelay()</code> рахує паузу від моменту виклику, тож час роботи додається до періоду:</p>
+      <pre class="code"><code>void sensor_task(void* arg) {
+    while (1) {
+        do_work();                          // 100 мс роботи
+        vTaskDelay(pdMS_TO_TICKS(2000));    // ще 2000 мс: період 2100 мс
+    }
+}</code></pre>
+      <p><code>xTaskDelayUntil()</code> рахує від попереднього пробудження й сама зсуває мітку на період. Якщо робота затяглася довше за період, задача не засинає зовсім і одразу наздоганяє розклад<sup class="cite" data-fact="idf-delay-until"></sup>:</p>
+      <pre class="code"><code>void sensor_task(void* arg) {
+    TickType_t last_wake = xTaskGetTickCount();   // точка відліку
+    while (1) {
+        do_work();                                    // 100 мс роботи
+        xTaskDelayUntil(&amp;last_wake, pdMS_TO_TICKS(2000));  // період рівно 2000 мс
+    }
+}</code></pre>
+      <p>LMS ще називає <code>vTaskDelayUntil()</code>: у ESP-IDF це старий макрос, що викликає ту саму <code>xTaskDelayUntil()</code><sup class="cite" data-fact="idf-delay-until"></sup>. Число «2,1&nbsp;с замість 2,0&nbsp;с, виміряно аналізатором» LMS наводить без джерела. Арифметично воно правдоподібне, але ми його не вимірювали<sup class="cite" data-fact="lms-err-6-1-measurement"></sup>. Подивитися на обидва способи можна на віджеті в розділі <a href="#poe">05</a>.</p>
+      <p class="key"><b>Головне</b>Потрібна пауза після дії — <code>vTaskDelay()</code>. Потрібен рівний період — <code>xTaskDelayUntil()</code>. Це те саме, що <code>last = now</code> і <code>last += PERIOD</code> з уроків 2.3 і 2.5.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Два ядра: хто вже там живе</h3>
+      <p>В ESP32-S3 два ядра Xtensa LX7 по 240&nbsp;МГц<sup class="cite" data-fact="s3-cpu"></sup>, а ESP-IDF використовує SMP-версію FreeRTOS на основі v10.5.1<sup class="cite" data-fact="idf-smp-default"></sup>. Ядра не порожні ще до вашої першої задачі: ipc0 і ipc1 (пріоритет 24), esp_timer на ядрі 0 (22), задача main з <code>app_main()</code> (1) і по idle-задачі на ядро (0)<sup class="cite" data-fact="idf-startup-tasks"></sup><sup class="cite" data-fact="idf-idle-per-core"></sup>. Задача main стандартно на ядрі 0, і якщо <code>app_main()</code> повертається, вона видаляє себе, а ваші задачі живуть далі<sup class="cite" data-fact="idf-main-task-core0"></sup>. Задача Wi-Fi теж стандартно на ядрі 0<sup class="cite" data-fact="idf-wifi-task-core0"></sup>. В Arduino ваш <code>loop()</code> — це задача loopTask з пріоритетом 1 на ядрі 1<sup class="cite" data-fact="core-loop-task"></sup><sup class="cite" data-fact="core-looptask-prio"></sup>.</p>
+      <p>Звідси порада: свою чутливу до часу задачу прив'язуйте до <b>ядра 1</b>. Приклад у LMS робить навпаки: критичну <code>rfid_task</code> кладе на ядро 0, а <code>wifi_task</code> на ядро 1, хоча текст поруч радить те саме, що й ми<sup class="cite" data-fact="lms-err-6-1-pinning"></sup>. Правильно так:</p>
+      <pre class="code"><code>// критичне — на ядро 1, подалі від системних задач ядра 0
+xTaskCreatePinnedToCore(rfid_task, "rfid", 4096, NULL, 5, NULL, 1);
+// мережа — туди ж, де драйвер Wi-Fi
+xTaskCreatePinnedToCore(wifi_task, "wifi", 4096, NULL, 4, NULL, 0);</code></pre>
+      <p class="key"><b>Головне</b>Прив'язана задача не переїде на вільне ядро, навіть якщо своє зайняте. Неприв'язана (<code>tskNO_AFFINITY</code>) переїде. Хто кого виштовхне, перевірте у віджеті розділу <a href="#poe">05</a>.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: що таке перемикання контексту на ESP32-S3</summary>
+      <p>Щоб задача продовжила з того самого рядка, планувальник зберігає її регістри в її стек і відновлює регістри наступної. LMS ілюструє це кадром стеку ARM Cortex-M з xPSR, R0–R12 і перериванням PendSV<sup class="cite" data-fact="lms-err-6-1-pendsv"></sup>. Так це влаштовано на STM32, але не на нашій платі. ESP32-S3 — це Xtensa LX7: у ESP-IDF перемикання робить асемблерний диспетчер <code>_frxt_dispatch</code>, а через віконні регістри Xtensa порт ще й скидає вікна в стек<sup class="cite" data-fact="idf-xtensa-switch"></sup>. Ідея та сама, деталі інші. А цифру «1–5&nbsp;мкс на перемикання» LMS не підкріплює джерелом<sup class="cite" data-fact="lms-err-6-1-switch-time"></sup>.</p>
+    </details>
+    <details class="more">
+      <summary>Коли суперцикл досі розумний вибір</summary>
+      <p>Коли дій мало, кожна коротка, а термінові події ловлять переривання. ДЗ 2.3 саме таке, і там суперцикл чудово справляється. FreeRTOS виграє, щойно з'являється дія, яку не можна зробити швидко: читання повільного датчика, друк довгих рядків, мережа. Тоді простіше дати їй окрему задачу з низьким пріоритетом, ніж різати на шматки. На ESP32-S3 вибору «з RTOS чи без» насправді немає: FreeRTOS уже працює, навіть якщо ви пишете лише <code>loop()</code>.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="1" data-gate="w-dly"
+         data-why="vTaskDelay відраховує 2000 мс від моменту виклику, а виклик стається вже після 100 мс роботи. Отже, від одного старту до наступного 100 + 2000 = 2100 мс. Пріоритет тут ні до чого: задача одна. xTaskDelayUntil відраховує від попереднього пробудження і дала б рівно 2000 мс.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Задача робить 100&nbsp;мс роботи, потім <code>vTaskDelay(pdMS_TO_TICKS(2000))</code>, тік 1000&nbsp;Гц. Інших задач немає. З яким періодом вона запускається?</p>
+      <div class="opts">
+        <button class="opt">2,0 с: затримка ж 2000 мс</button>
+        <button class="opt">2,1 с</button>
+        <button class="opt">1,9 с: робота входить у затримку</button>
+        <button class="opt">Залежить від пріоритету</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-dly">
+      <div class="ph"><h3>Пауза після роботи чи сітка</h3><span class="small">модель: період 500&nbsp;мс, тік 1&nbsp;мс, одна задача</span></div>
+      <div class="pb">
+        <svg id="dl-svg" viewBox="0 0 340 172" role="img" aria-label="Три доріжки на три секунди. Угорі сітка кожні 500 мс. Посередині vTaskDelay: прямокутники роботи, і кожен наступний старт зсувається на час роботи. Унизу xTaskDelayUntil: старти на сітці, поки робота коротша за період.">
+          <text class="svg-m" x="8" y="14">сітка 500 мс</text>
+          <g id="dl-a"></g>
+          <text class="svg-m" x="8" y="58">vTaskDelay</text>
+          <g id="dl-b"></g>
+          <text class="svg-m" x="8" y="112">xTaskDelayUntil</text>
+          <g id="dl-c"></g>
+          <text class="svg-m" x="170" y="168" text-anchor="middle">0 … 3 с</text>
+        </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Робота <input type="range" id="dl-w" min="0" max="700" step="50" value="100" aria-label="Скільки мілісекунд триває робота задачі"><output id="dl-out">100 мс</output></label>
+        </div>
+        <p class="idea-out" id="dl-txt" aria-live="polite"></p>
+        <p class="idea-out small">Поставте роботу 600&nbsp;мс: це випадок, коли <code>xTaskDelayUntil()</code> не спить і повертає <code>pdFALSE</code>.</p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="2" data-gate="w-cores"
+         data-why="Датчик має пріоритет 4 і ніколи не засинає, тому він завжди в Ready. Ядро 1 щоразу обирає його. LED прив'язані до ядра 1 і переїхати не можуть, тож голодують, хоч і готові. Ядро 0 при цьому вільне. Лікування: сон у циклі датчика, нижчий пріоритет або інше ядро для LED.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Задача датчика з пріоритетом 4 рахує в циклі <b>без жодної затримки</b> і прив'язана до ядра 1. LED-задача з пріоритетом 2 теж на ядрі 1 і засинає між перемиканнями. Що з LED?</p>
+      <div class="opts">
+        <button class="opt">Блимає повільніше: ядро ділиться порівну</button>
+        <button class="opt">Переїжджає на вільне ядро 0</button>
+        <button class="opt">Завмирає: готова, але ядра не отримує</button>
+        <button class="opt">Плата одразу перезавантажується</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-cores">
+      <div class="ph"><h3>Хто отримає ядро</h3><span class="small">модель планувальника ESP-IDF: пріоритети, прив'язка, сон</span></div>
+      <div class="pb">
+        <div class="cr-rows" id="cr-rows">
+          <div class="cr-row" data-t="sens"><b>Датчик · 4</b>
+            <div class="seg" role="group" aria-label="Ядро задачі Датчик"><button type="button" data-v="0" aria-pressed="false">ядро 0</button><button type="button" data-v="1" aria-pressed="true">ядро 1</button><button type="button" data-v="-1" aria-pressed="false">будь-яке</button></div>
+            <button type="button" class="sw" aria-checked="false">засинає</button></div>
+          <div class="cr-row" data-t="led"><b>LED · 2</b>
+            <div class="seg" role="group" aria-label="Ядро задачі LED"><button type="button" data-v="0" aria-pressed="false">ядро 0</button><button type="button" data-v="1" aria-pressed="true">ядро 1</button><button type="button" data-v="-1" aria-pressed="false">будь-яке</button></div>
+            <button type="button" class="sw" aria-checked="true">засинає</button></div>
+          <div class="cr-row" data-t="log"><b>Лог · 1</b>
+            <div class="seg" role="group" aria-label="Ядро задачі Лог"><button type="button" data-v="0" aria-pressed="false">ядро 0</button><button type="button" data-v="1" aria-pressed="false">ядро 1</button><button type="button" data-v="-1" aria-pressed="true">будь-яке</button></div>
+            <button type="button" class="sw" aria-checked="true">засинає</button></div>
+        </div>
+        <svg id="cr-svg" viewBox="0 0 340 196" role="img" aria-label="Два стовпчики, ядро 0 і ядро 1. У кожному список задач цього ядра за пріоритетом із кольоровою позначкою: працює, займає ядро постійно або голодує.">
+          <text class="svg-b" x="88" y="18" text-anchor="middle">Ядро 0</text>
+          <text class="svg-b" x="252" y="18" text-anchor="middle">Ядро 1</text>
+          <g id="cr-c0"></g>
+          <g id="cr-c1"></g>
+        </svg>
+        <div class="cr-key" aria-hidden="true"><span><i style="background:var(--ok)"></i>отримує час</span><span><i style="background:var(--teach)"></i>займає ядро постійно</span><span><i style="background:var(--hi)"></i>ділить ядро з рівним</span><span><i style="background:var(--bad)"></i>голодує</span><span>↔ не прив'язана</span></div>
+        <p class="idea-out" id="cr-txt" aria-live="polite"></p>
+        <p class="idea-out small">Модель спрощена: задача, що засинає, вважається легкою й отримує час, коли на її ядрі немає вищої задачі без сну. Системні задачі показано зі стандартними ядрами й пріоритетами ESP-IDF<sup class="cite" data-fact="idf-startup-tasks"></sup>; <code>app_main()</code> тут уже повернулася. Сторож задач у чистому ESP-IDF 6.1 стандартно стежить за idle-задачами обох ядер, в Arduino 2.0.17 — лише ядра 0<sup class="cite" data-fact="idf-task-wdt-idle-both"></sup>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: «Три ритми» задачами</h2>
+    <p>Проєкт A з ДЗ 2.3: три LED перемикаються кожні 200, 500 і 1000&nbsp;мс. У суперциклі в кожного LED була трійка «період + останній момент + стан», і <code>loop()</code> перевіряв усі три по черзі. Із задачами кожен LED отримує власний цикл, а трійка перетворюється на параметр і локальні змінні. Ось версія для ядра Arduino 2.0.17, у якого тік 1&nbsp;мс:</p>
+    <pre class="code"><code>#include &lt;Arduino.h&gt;
+
+// Проєкт A «Три ритми» задачами FreeRTOS: одна функція, три задачі, у кожної свій параметр
+struct Blink { uint8_t pin; uint32_t period; };   // T1…T3 як імена не беремо: у ядрі S3 це touch-піни
+Blink leds[] = {{15, 200}, {16, 500}, {17, 1000}};
+
+void blinkTask(void* arg) {
+  Blink* b = (Blink*)arg;                      // з яким LED працює саме ця задача
+  pinMode(b-&gt;pin, OUTPUT);
+  bool on = false;
+  TickType_t wake = xTaskGetTickCount();
+  for (;;) {                                   // задача ніколи не повертається
+    on = !on;
+    digitalWrite(b-&gt;pin, on);
+    vTaskDelayUntil(&amp;wake, pdMS_TO_TICKS(b-&gt;period));  // рівний період, хоч би що робили інші
+  }
+}
+
+void setup() {
+  for (Blink&amp; b : leds) xTaskCreatePinnedToCore(blinkTask, "blink", 2048, &amp;b, 1, NULL, 1);
+}
+
+void loop() {
+  vTaskDelete(NULL);  // loopTask більше не потрібен: видаляємо його
+}</code></pre>
+    <p>Зверніть увагу на дві речі. Масив <code>leds</code> глобальний: задача отримує вказівник на свій елемент, тож він має жити, поки живе задача. Локальний масив у <code>setup()</code> зник би після виходу з функції. А <code>loop()</code> не порожній: порожній <code>loop()</code> крутився б без сну з пріоритетом 1 на ядрі 1<sup class="cite" data-fact="core-looptask-prio"></sup>. Наші задачі того самого пріоритету ділили б із ним ядро по тіку, а IDLE1 не отримувала б часу зовсім. Задачу, якій нічого робити, краще видалити.</p>
+
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Тіки за 100&nbsp;Гц:</b> у чистому ESP-IDF тік 10&nbsp;мс: <span class="formula">pdMS_TO_TICKS(200) = 200 × 100 / 1000 = 20 тіків</span><span class="why">чому: макрос множить на частоту тіку й ділить на 1000 націло<sup class="cite" data-fact="idf-pdms-to-ticks"></sup>.</span></li>
+      <li><b>Без макроса:</b> <span class="formula">vTaskDelay(200) = 200 тіків × 10 мс = 2 с</span><span class="why">чому: <code>vTaskDelay()</code> приймає тіки. В Arduino з тіком 1&nbsp;мс помилку не видно, а в ESP-IDF LED стане вдесятеро повільнішим.</span></li>
+      <li><b>Стек:</b> <span class="formula">3 задачі × 2048 байт = 6144 байти</span><span class="why">чому: в ESP-IDF і в ядрі Arduino стек задають у байтах<sup class="cite" data-fact="idf-stack-bytes"></sup>; це близько 1,2&nbsp;% з 512&nbsp;КБ внутрішньої SRAM<sup class="cite" data-fact="s3-sram"></sup>.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> чистий ESP-IDF, тік 100&nbsp;Гц, LED із періодом 250&nbsp;мс.</li>
+      <li>
+        <div class="try" data-ans="25" data-tol="0.001" data-unit="тіків" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Скільки тіків дасть <code>pdMS_TO_TICKS(250)</code>?</p>
+          <details><summary>Підказка</summary>250 × 100 / 1000.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="2500" data-tol="0.001" data-unit="мс" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Хтось написав <code>vTaskDelay(250)</code> без макроса. Скільки мілісекунд насправді чекатиме задача?</p>
+          <details><summary>Підказка</summary>250 тіків по 10&nbsp;мс.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="230" data-tol="0.001" data-unit="мс" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Задача робить 30&nbsp;мс роботи, потім <code>vTaskDelay(pdMS_TO_TICKS(200))</code>, тік 1000&nbsp;Гц. Який період, мс?</h4>
+      <details><summary>Підказка</summary><code>vTaskDelay()</code> рахує від моменту виклику, тобто вже після роботи.</details>
+    </div>
+    <p class="note tip">Висновок із цього числа: для рівних ритмів ДЗ беремо <code>xTaskDelayUntil()</code>, бо з ним робота в задачі не розтягує період.</p>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth" data-mc="E6">
+        <p class="seems"><code>delay(1000)</code> заморожує процесор: він рахує мільярд тактів і нічого більше не робить.</p>
+        <p class="truth">На ESP32 <code>delay()</code> викликає <code>vTaskDelay()</code>: спить лише ваша задача, а ядро працює на інших<sup class="cite" data-fact="core-delay"></sup>. І 1&nbsp;с за 240&nbsp;МГц — це 240 мільйонів тактів, а не мільярд<sup class="cite" data-fact="lms-err-6-1-delay-frozen"></sup>. Заморожує процесор активне очікування: <code>delayMicroseconds()</code>.</p>
+        <p class="test">Лабораторія вгорі: у моделі датчик саме так «рахує», процесор зайнятий.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Найважливішій задачі даємо найвищий пріоритет, і вона може крутитися без пауз.</p>
+        <p class="truth">Вища задача без сну завжди в Ready, тож нижчі на її ядрі голодують. Навіть найважливіша задача мусить чекати: часу, черги чи семафора. Приклад м'ютекса в LMS цю пораду порушує: його цикли ніколи не засинають<sup class="cite" data-fact="lms-err-6-1-mutex-starve"></sup>.</p>
+        <p class="test">Віджет «Хто отримає ядро» в розділі 05: вимкніть «засинає» в задачі датчика.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Стек 1024 вистачить LED-задачі, а 1024 байти — це 256 слів.</p>
+        <p class="truth">В ESP-IDF стек задають у байтах, і «слова» тут ні до чого<sup class="cite" data-fact="idf-stack-bytes"></sup>. 1024 байти менше навіть за стандартний стек idle-задачі, 1536<sup class="cite" data-fact="lms-err-6-1-stack-table"></sup>. Беріть із запасом і перевіряйте, скільки лишилося. ESP-IDF стандартно ловить переповнення й пише <code>***ERROR*** A stack overflow in task</code><sup class="cite" data-fact="idf-stack-overflow-check"></sup>.</p>
+        <p class="test">Надрукуйте <code>uxTaskGetStackHighWaterMark(NULL)</code> зсередини задачі: це найменше, що лишалося вільним, у байтах.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Тік FreeRTOS завжди 1&nbsp;мс, тож <code>vTaskDelay(1)</code> — це 1&nbsp;мс.</p>
+        <p class="truth">Так лише в Arduino-ESP32. У чистому ESP-IDF тік стандартно 10&nbsp;мс<sup class="cite" data-fact="idf-freertos-hz"></sup>, тож <code>vTaskDelay(1)</code> — до 10&nbsp;мс. Пишіть <code>pdMS_TO_TICKS()</code> і пам'ятайте, що коротше за тік не вийде.</p>
+        <p class="test">Перемкніть тік у лабораторії та подивіться на риски тіку під віссю.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Критичну задачу кладемо на ядро 0: воно ж «головне».</p>
+        <p class="truth">На ядрі 0 стандартно живуть esp_timer, <code>app_main()</code> і драйвер Wi-Fi<sup class="cite" data-fact="idf-wifi-task-core0"></sup>. Ядро 1 спокійніше, тому критичне кладемо туди<sup class="cite" data-fact="lms-err-6-1-pinning"></sup>.</p>
+        <p class="test">Віджет «Хто отримає ядро»: системні задачі намальовано на їхніх стандартних ядрах.</p>
+      </div>
+    </div>
+    <!-- «Знайди несправність»: the bench of section 08 + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-rt"></div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Схема фінального проєкту ДЗ 2.3: три LED на GPIO15, 16 і 17 через 220&nbsp;Ом, кнопки на GPIO21 (BTN1, швидкість LED2) і GPIO18 (BTN2, пауза). Кнопки тут, як в уроках 2.3 і 2.6, замикають вивід на GND, а до 3,3&nbsp;В його тягне внутрішня підтяжка ≈&nbsp;45&nbsp;кОм<sup class="cite" data-fact="s3-pullup"></sup>: натиснута — це 0. У проєкті <code>esp32-s3-multitask-device</code> кнопки під'єднані до 3V3 з внутрішнім pull-down; там натиснута — 1. Підійде будь-яке з двох, аби код збігався зі схемою.</p>
+    <figure class="dual wide" id="dual-mt" data-nets="gpio15=GPIO15 · LED1; gpio16=GPIO16 · LED2; gpio17=GPIO17 · LED3; gpio21=GPIO21 · BTN1; gpio18=GPIO18 · BTN2; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="-14 0 294 342" role="img" aria-label="Схема: GPIO15, GPIO16 і GPIO17 плати U1, кожен через резистор 220 ом до анода свого світлодіода: червоного LED1, жовтого LED2, зеленого LED3; катоди на землю. GPIO21 через кнопку BTN1 на землю, GPIO18 через кнопку BTN2 на землю, підтяжки внутрішні.">
+          <rect class="sch-w" x="-10" y="20" width="72" height="306" rx="3"/>
+          <text class="sch-ref" x="-10" y="12">U1 · ESP32-S3</text>
+
+          <use class="sch-sym net-sig" href="#mcu-pin" x="82" y="50" transform="rotate(180 82 50)" data-net="gpio15"/>
+          <text class="sch-pin net-sig" data-net="gpio15" x="50" y="55" text-anchor="end">GPIO15</text>
+          <use class="sch-sym" href="#res" x="90" y="50"/>
+          <path class="sch-w net-sig" data-net="gpio15" d="M82 50H105"/>
+          <text class="sch-ref" x="120" y="38" text-anchor="middle">R1</text>
+          <text class="sch-val" x="120" y="72" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M150 50H172"/>
+          <use class="sch-sym" href="#led" x="172" y="50" id="sch-led1"/>
+          <text class="sch-val" x="202" y="72" text-anchor="middle">LED1 черв.</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M212 50H250"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="250" y="50" data-net="gnd"/>
+
+          <use class="sch-sym net-sig2" href="#mcu-pin" x="82" y="112" transform="rotate(180 82 112)" data-net="gpio16"/>
+          <text class="sch-pin net-sig2" data-net="gpio16" x="50" y="117" text-anchor="end">GPIO16</text>
+          <use class="sch-sym" href="#res" x="90" y="112"/>
+          <path class="sch-w net-sig2" data-net="gpio16" d="M82 112H105"/>
+          <text class="sch-ref" x="120" y="100" text-anchor="middle">R2</text>
+          <text class="sch-val" x="120" y="134" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M150 112H172"/>
+          <use class="sch-sym" href="#led" x="172" y="112"/>
+          <text class="sch-val" x="202" y="134" text-anchor="middle">LED2 жовт.</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M212 112H250"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="250" y="112" data-net="gnd"/>
+
+          <use class="sch-sym net-sig3" href="#mcu-pin" x="82" y="174" transform="rotate(180 82 174)" data-net="gpio17"/>
+          <text class="sch-pin net-sig3" data-net="gpio17" x="50" y="179" text-anchor="end">GPIO17</text>
+          <use class="sch-sym" href="#res" x="90" y="174"/>
+          <path class="sch-w net-sig3" data-net="gpio17" d="M82 174H105"/>
+          <text class="sch-ref" x="120" y="162" text-anchor="middle">R3</text>
+          <text class="sch-val" x="120" y="196" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M150 174H172"/>
+          <use class="sch-sym" href="#led" x="172" y="174"/>
+          <text class="sch-val" x="202" y="196" text-anchor="middle">LED3 зел.</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M212 174H250"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="250" y="174" data-net="gnd"/>
+
+          <use class="sch-sym net-in" href="#mcu-pin" x="82" y="238" transform="rotate(180 82 238)" data-net="gpio21"/>
+          <text class="sch-pin net-in" data-net="gpio21" x="50" y="243" text-anchor="end">GPIO21</text>
+          <use class="sch-sym" href="#btn" x="100" y="238"/>
+          <path class="sch-w net-in" data-net="gpio21" d="M82 238H117.5"/>
+          <text class="sch-ref" x="166" y="224">BTN1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M142.5 238H190"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="190" y="238" data-net="gnd"/>
+
+          <use class="sch-sym net-in2" href="#mcu-pin" x="82" y="294" transform="rotate(180 82 294)" data-net="gpio18"/>
+          <text class="sch-pin net-in2" data-net="gpio18" x="50" y="299" text-anchor="end">GPIO18</text>
+          <use class="sch-sym" href="#btn" x="100" y="294"/>
+          <path class="sch-w net-in2" data-net="gpio18" d="M82 294H117.5"/>
+          <text class="sch-ref" x="166" y="280">BTN2</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M142.5 294H190"/>
+          <use class="sch-sym net-gnd" href="#gnd" x="190" y="294" data-net="gnd"/>
+          <text class="sch-val" x="100" y="334">підтяжки всередині U1</text>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-mt" class="kit-bench" viewBox="-20 -20 1520 610" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (GPIO15 у стовпчику 27, GPIO16 у 28, GPIO17 у 29, GPIO18 у 30, GND у 41), права гребінка в ряду b, вільний ряд a над нею (GPIO21 у стовпчику 37). Синій дріт від GPIO15 уздовж ряду j у стовпчик 18, резистор 220 Ом у ряду g з 18 у 14, червоний LED1 анодом у 14, катодом у 13. Жовтий дріт від GPIO16 під рядом j у стовпчик 15, резистор у ряду h з 15 в 11, жовтий LED2 анодом в 11, катодом у 10. Зелений дріт від GPIO17 уздовж нижнього краю макетки у стовпчик 8, резистор з 8 у 4, зелений LED3 анодом у 4, катодом у 3. Стовпчики катодів 3, 10 і 13 короткими чорними дротами на нижню шину мінус. Кнопка BTN1 через канавку на стовпчиках 46 і 48: фіолетовий дріт від GPIO21 над рядом a у стовпчик 48, стовпчик 46 чорним дротом на шину мінус. Кнопка BTN2 на стовпчиках 52 і 54: помаранчевий дріт від GPIO18 уздовж нижнього краю у стовпчик 54, стовпчик 52 чорним дротом на шину мінус. GND плати (стовпчик 41) коротким чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Жоден із цих пінів не strapping-пін.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <button type="button" class="btn sm" id="mt-b1">Натиснути BTN1</button>
+      <button type="button" class="btn sm" id="mt-b2">Натиснути BTN2</button>
+      <span class="st-badge" id="mt-badge" aria-live="polite">LED2 = 1000 мс, пауза вимкнена</span>
+    </div>
+    <p class="small">Кнопки на схемі працюють як у прошивці розділу 09: BTN1 по колу міняє період LED2 1000 → 500 → 200&nbsp;мс, BTN2 вмикає паузу, і тоді світиться LED1, а BTN1 нічого не змінює.</p>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Домашнє завдання: ДЗ 2.3 задачами FreeRTOS</h2>
+    <p><b>Завдання з LMS:</b> виконати ДЗ уроку 2.3, але з <code>xTaskCreate()</code> або <code>xTaskCreatePinnedToCore()</code>; код із уроку може бути базою. Код і демонстрацію — на GitHub, у назві репозиторію, гілки чи коміту — номер модуля й уроку, посилання — в LMS.</p>
+    <p>Потрібно: плата YD-ESP32-S3, 3 LED (червоний, жовтий, зелений), 3 резистори 220&nbsp;Ом, 2 кнопки, макетка, дроти. Бажано логічний аналізатор: CH1 на GPIO17 (LED3), CH2 на GPIO21 (BTN1).</p>
+    <div class="note"><b>Стан коду.</b> Суперциклові версії ДЗ 2.3 лежать у репозиторії й пройшли плату: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a> і <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-multitask-device">esp32-s3-multitask-device</a>. Версії з задачами нижче — наш розв'язок, на платі ще <b>не перевірений</b>, і жодного числа на цій сторінці з плати не знято. Ваші виміри будуть першими.</div>
+    <ol>
+      <li>Зберіть схему з розділу 08.</li>
+      <li><b>Спершу прогноз:</b> запишіть у таблицю, який період LED3 і яку найгіршу реакцію BTN1 ви чекаєте в кожному варіанті.</li>
+      <li>Проєкт A «Три ритми»: код з розділу 06 (Arduino) або перепишіть його на ESP-IDF. Перевірте ритми секундоміром чи аналізатором.</li>
+      <li>Фінальний проєкт «Мультизадачний пристрій»: код нижче (ESP-IDF). Перевірте критерії з README проєкту: 20 швидких натискань BTN1 — рівно 20 змін, пауза працює, LED3 рівно 1000&nbsp;мс.</li>
+      <li>Додайте «важку» задачу, що раз на 300&nbsp;мс крутить 80&nbsp;мс <code>esp_rom_delay_us()</code> (активне очікування). Виміряйте LED3 і BTN1 з її пріоритетом 1, а потім 4. Те саме зробіть у суперцикловій версії з <code>delayMicroseconds(80000)</code>.</li>
+      <li>Заповніть таблицю. Код і результат — на GitHub, посилання — в LMS.</li>
+    </ol>
+    <p class="small">ESP-IDF-проєкт зручно почати з копії <code>esp32-s3-vent-timer/cpp</code>: той самий <code>platformio.ini</code>, <code>CMakeLists.txt</code> і <code>sdkconfig.defaults</code>. Там тік 1000&nbsp;Гц, але код нижче працює і за стандартних 100&nbsp;Гц: усі його затримки кратні 10&nbsp;мс.</p>
+    <details class="more">
+      <summary>Код: мультизадачний пристрій, src/main.c (ESP-IDF)</summary>
+<pre class="code"><code>#include &lt;stdbool.h&gt;
+#include &lt;stdio.h&gt;
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// Модуль 6.1, ДЗ: фінальний проєкт 2.3 «Мультизадачний пристрій», але задачами FreeRTOS.
+// Кожна справа — своя задача зі своїм циклом; ніхто не чекає на інших.
+#define LED1 GPIO_NUM_15  // червоний: світиться в паузі
+#define LED2 GPIO_NUM_16  // жовтий: період задає BTN1
+#define LED3 GPIO_NUM_17  // зелений: завжди 1000 мс
+#define BTN1 GPIO_NUM_21  // кнопка на GND, внутрішня підтяжка: натиснута = 0
+#define BTN2 GPIO_NUM_18
+
+static const uint32_t SPEEDS[] = {1000, 500, 200};  // період LED2 по колу, мс
+static volatile uint8_t speed = 0;                   // пише buttons_task, читає led2_task
+static volatile bool paused = false;                 // пише buttons_task, читають LED-задачі
+
+// LED3: рівний період 1000 мс; xTaskDelayUntil тримає сітку
+static void led3_task(void* arg) {
+    bool on = false;
+    TickType_t wake = xTaskGetTickCount();
+    while (1) {
+        xTaskDelayUntil(&amp;wake, pdMS_TO_TICKS(1000));
+        if (paused) continue;  // у паузі завмирає в поточному стані
+        on = !on;
+        gpio_set_level(LED3, on);
+    }
+}
+
+// LED2: період міняється на ходу, тож рахуємо паузу від кожного перемикання
+static void led2_task(void* arg) {
+    bool on = false;
+    while (1) {
+        if (!paused) {
+            on = !on;
+            gpio_set_level(LED2, on);
+        }
+        vTaskDelay(pdMS_TO_TICKS(SPEEDS[speed]));
+    }
+}
+
+// Кнопка: рівень, інший за прийнятий, 4 опитування поспіль (40 мс) — нове натискання
+typedef struct { gpio_num_t pin; bool down; uint8_t same; } button_t;
+
+static bool pressed(button_t* b) {
+    bool now = gpio_get_level(b-&gt;pin) == 0;
+    if (now == b-&gt;down) { b-&gt;same = 0; return false; }
+    if (++b-&gt;same &lt; 4) return false;  // брязкіт або ще не встоялося
+    b-&gt;down = now;
+    b-&gt;same = 0;
+    return now;                        // подія лише на натискання, не на відпускання
+}
+
+// Обидві кнопки: опитування кожні 10 мс, вищий пріоритет за LED
+static void buttons_task(void* arg) {
+    button_t b1 = {BTN1, false, 0}, b2 = {BTN2, false, 0};
+    TickType_t wake = xTaskGetTickCount();
+    while (1) {
+        xTaskDelayUntil(&amp;wake, pdMS_TO_TICKS(10));
+        bool p1 = pressed(&amp;b1), p2 = pressed(&amp;b2);  // опитуємо обидві завжди, навіть у паузі
+        if (p2) {
+            paused = !paused;
+            gpio_set_level(LED1, paused);
+            printf(paused ? "ПАУЗА вкл\n" : "ПАУЗА викл\n");
+        }
+        if (p1 &amp;&amp; !paused) {
+            speed = (speed + 1) % 3;
+            printf("BTN1 -&gt; LED2 = %lu мс\n", (unsigned long)SPEEDS[speed]);
+        }
+    }
+}
+
+void app_main(void) {
+    gpio_config_t leds = {.pin_bit_mask = (1ULL &lt;&lt; LED1) | (1ULL &lt;&lt; LED2) | (1ULL &lt;&lt; LED3),
+                          .mode = GPIO_MODE_OUTPUT};
+    gpio_config(&amp;leds);
+    gpio_config_t btns = {.pin_bit_mask = (1ULL &lt;&lt; BTN1) | (1ULL &lt;&lt; BTN2),
+                          .mode = GPIO_MODE_INPUT, .pull_up_en = GPIO_PULLUP_ENABLE};
+    gpio_config(&amp;btns);
+    printf("Мультизадачний пристрій на FreeRTOS: BTN1 — швидкість LED2, BTN2 — пауза\n");
+
+    //                      функція       ім'я       стек, Б  параметр пріоритет хендл ядро
+    xTaskCreatePinnedToCore(buttons_task, "buttons", 3072,    NULL,    3,        NULL, 1);
+    xTaskCreatePinnedToCore(led2_task,    "led2",    2048,    NULL,    2,        NULL, 1);
+    xTaskCreatePinnedToCore(led3_task,    "led3",    2048,    NULL,    2,        NULL, 1);
+    // app_main повертається: задача main видаляє себе, а три наші живуть далі
+}</code></pre>
+      <p class="small">Стек 3072 у задачі кнопок — бо в ній <code>printf()</code>; 2048 у LED-задачах із запасом. Це не виміряні числа: перевірте <code>uxTaskGetStackHighWaterMark()</code>. <code>volatile</code> тут вистачає, бо однобайтову змінну пише одна задача. Правильніше передавати події чергою, про це наступні уроки модуля.</p>
+    </details>
+    <details class="more">
+      <summary>Очікуваний вивід (не запис із плати)</summary>
+<pre class="code"><code>Мультизадачний пристрій на FreeRTOS: BTN1 — швидкість LED2, BTN2 — пауза
+BTN1 -&gt; LED2 = 500 мс
+BTN1 -&gt; LED2 = 200 мс
+ПАУЗА вкл
+ПАУЗА викл</code></pre>
+      <p class="small">Рядки «Loops/s» із суперциклової версії тут зникли: циклу <code>loop()</code> більше немає. Якщо хочете порівняти завантаження, спитайте планувальника: <code>uxTaskGetStackHighWaterMark()</code> або статистика задач у menuconfig.</p>
+    </details>
+    <div class="tbl">
+    <table class="measure" data-key="6-1-tasks" data-calc="diff">
+      <caption>Суперцикл проти задач: LED3 і BTN1</caption>
+      <thead><tr><th>Варіант</th><th>Прогноз</th><th>Виміряно</th><th>Різниця, %</th><th>Чому так?</th></tr></thead>
+      <tbody>
+        <tr><th>Суперцикл: період LED3, мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Задачі: період LED3, мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Суперцикл + 80&nbsp;мс: найгірша реакція BTN1, мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Задачі, важка з пріоритетом 1: реакція BTN1, мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+        <tr><th>Задачі, важка з пріоритетом 4: реакція BTN1, мс</th><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="why"></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">Таблиця зберігається лише у вашому браузері. Модель у лабораторії вгорі показує, чого чекати, а не що здавати.</p>
+    <p><b>Розширення: що якщо…</b> прибрати <code>vTaskDelete(NULL)</code> з <code>loop()</code> Arduino-версії й лишити його порожнім? Перенести важку задачу на ядро 0? Поставити кнопкам пріоритет 1, нижчий за LED? Спершу запишіть прогноз.</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="6-1" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="6-1" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Важкий сусід</h3>
+      <dl>
+        <dt>Мета</dt><dd>Мультизадачний пристрій з ДЗ 2.3 двічі: суперциклом і задачами FreeRTOS. До обох додайте «важку» роботу на 80&nbsp;мс раз на 300&nbsp;мс. Доведіть цифрами, у якій версії і за якого пріоритету важкої задачі LED3 тримає 1000&nbsp;мс, а BTN1 відповідає швидше за 20&nbsp;мс.</dd>
+        <dt>Здати</dt><dd>Дві прошивки, таблиця «версія / пріоритет важкої задачі / період LED3 / найгірша реакція BTN1» і одне речення-висновок.</dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: обидві прошивки, однакові піни й однакова важка робота;</li><li><b>Вимірювач</b>: аналізатор на GPIO17 і GPIO21 або мітки <code>esp_timer_get_time()</code> у Serial, по 20 натискань на варіант;</li><li><b>Доповідач</b>: допис у «Командні виклики»;</li><li><b>Скептик</b>: шукає в коді іншої команди задачу, яка ніколи не засинає.</li></ul></dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>Обидві версії</b> працюють на тих самих пінах: 2 — так, 1 — одна, 0 — ні. <b>Виміряно, а не вгадано:</b> 2 — таблиця з аналізатора чи міток часу, 1 — частково, 0 — ні. <b>Пріоритет важкої задачі</b> перевірено щонайменше двома значеннями: 2 — так, 1 — одним, 0 — ні. <b>Висновок</b> збігається з таблицею: 2 — так, 1 — частково, 0 — ні.</p></details></dd>
+        <dt>Ускладнення</dt><dd>Перенесіть важку задачу на ядро 0 і поясніть, що змінилося і чому.</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «6.1 Важкий сусід · команда …».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: схему розділу 08 на макетці, суперциклову версію ДЗ 2.3 прошиту, перше збирання ESP-IDF-проєкту зроблене заздалегідь, лабораторія вгорі відкрита.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–15 хв</span><span class="cp-a">Збір, розминка, найменш зрозуміле з минулих квитків і короткий підсумок модуля 2 від студента за графіком</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">15–22 хв</span><span class="cp-a">Задача до теорії: як додати до ДЗ 2.3 датчик, що читається 60&nbsp;мс, і не зламати кнопки? Кожен пише в чат і надсилає разом з усіма</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–35 хв</span><span class="cp-a">Лабораторія: суперцикл із датчиком, потім задачі, пріоритет 1 і 4. ConcepTest 1</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">35–45 хв</span><span class="cp-a">Чотири стани й анатомія <code>xTaskCreatePinnedToCore()</code>: віджети розділу 04</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">45–55 хв</span><span class="cp-a">Прогноз → перевірка: «Хто отримає ядро», голосування, двоє пояснюють, повторне голосування (ConcepTest 2)</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці, щоб отримати допомогу</span></li>
+      <li><span class="cp-t">62–92 хв</span><span class="cp-a">Пишемо разом «Три ритми» задачами (Arduino), потім переносимо на ESP-IDF і ловимо пастку <code>vTaskDelay(200)</code> без макроса; контрольні точки кожні ~5&nbsp;хв</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">92–100 хв</span><span class="cp-a">«Знайди несправність» із розділу 07 на проєкторі: голосування A/B/C</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">100–110 хв</span><span class="cp-a">Видача виклику «Важкий сусід» (розділ 12), ролі тижня, 2&nbsp;хв з напарником: «з чого почнеш?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">110–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступне заняття</span><span class="cp-r">усі</span></li>
+    </ol>
+    <div class="tnote">
+      <p><b>Продуктивна невдача (7 хв, до теорії):</b> «До ДЗ 2.3 додали датчик, що читається 60&nbsp;мс. Як зробити, щоб кнопки лишилися миттєвими?» Збирайте ідеї «водоспадом». Очікувано: «прибрати delay», «переривання», «читати частинами». Слово «задача» й «пріоритет» дайте лише після цього.</p>
+      <p><b>ConcepTest 1:</b> «Задачі: датчик 60&nbsp;мс з пріоритетом 1, LED з пріоритетом 2. Скільки максимально запізниться LED1?» А — до 60&nbsp;мс; Б — практично ні на скільки; В — на один тік.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б: LED прокидається на тіку й витісняє нижчий датчик. Очікувано 35–50&nbsp;% за А: студенти переносять досвід суперциклу. Покажіть у лабораторії пріоритет 1, потім 4.</p></details>
+      <p><b>ConcepTest 2:</b> «Датчик з пріоритетом 4 без сну на ядрі 1, LED з пріоритетом 2 на ядрі 1. Що з LED?» А — блимає повільніше; Б — переїжджає на ядро 0; В — завмирає.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно В. Очікувано багато А: «ділиться порівну» — так лише між рівними пріоритетами. Відкрийте віджет «Хто отримає ядро» й увімкніть датчику «засинає».</p></details>
+      <p><b>«Знайди помилку» (8 хв):</b> кейс «Раз на 10 секунд» з розділу 07. Кожен пише в чат, який рядок винен, і скільки тіків там насправді.</p>
+      <table class="tbl-modes">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>0–15</td><td>Прихід, розминка, квитки, підсумок модуля 2</td><td>розділ 03, квитки</td></tr>
+          <tr><td>15–22</td><td>Продуктивна невдача</td><td>розділ 01</td></tr>
+          <tr><td>22–35</td><td>Лабораторія + ConcepTest 1</td><td>лабораторія зверху</td></tr>
+          <tr><td>35–45</td><td>Стани й анатомія задачі</td><td>розділ 04</td></tr>
+          <tr><td>45–55</td><td>«Хто отримає ядро» + ConcepTest 2</td><td>розділ 05</td></tr>
+          <tr><td>55–62</td><td>Перерва</td><td></td></tr>
+          <tr><td>62–92</td><td>Пишемо разом: «Три ритми» задачами</td><td>розділи 06 і 09</td></tr>
+          <tr><td>92–100</td><td>«Знайди несправність»</td><td>розділ 07, проєктор</td></tr>
+          <tr><td>100–110</td><td>Видача виклику</td><td>розділ 12</td></tr>
+          <tr><td>110–120</td><td>Квиток на вихід, ролі</td><td>розділ 14</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому в задачах FreeRTOS повільний датчик з низьким пріоритетом не затримує кнопку, а в суперциклі затримує."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip" href="../2-3/">Урок 2.3 · Суперцикл</a></li>
+      <li><a class="chip" href="../2-4/">Урок 2.4 · Переривання</a></li>
+      <li><a class="chip" href="../2-5/">Урок 2.5 · Таймери і сторож задач</a></li>
+      <li><a class="chip" href="../2-6/#example">Урок 2.6 · ESP-IDF, черга з ISR і тік</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1sciaoti08134y3i8n1v">Урок 6.1 у LMS</a> (потрібен вхід).</li>
+      <li>Відео Digi-Key «Introduction to RTOS», частини 1 і 2 (у LMS вбудовані). Що шукати: різниця між задачею й суперциклом, і як <code>xTaskCreatePinnedToCore()</code> прив'язує задачу до ядра ESP32. Майте на увазі: відео на Arduino, де тік 1&nbsp;мс.</li>
+      <li>Відео Simply Explained «How to Multitask with FreeRTOS (ESP32 + Arduino series)». Що шукати: дві задачі з різними ритмами — це наш Проєкт A.</li>
+      <li><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/freertos.html">ESP-IDF: FreeRTOS Overview</a> — системні задачі й <code>app_main()</code>; <a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/freertos_idf.html">FreeRTOS (IDF)</a> — SMP, прив'язка до ядер, стек у байтах.</li>
+      <li><a href="https://controllerstech.com/freertos-esp32-esp-idf-task-management/">ControllersTech: керування задачами на ESP-IDF</a>; <a href="https://controllerstech.com/stm32-hal/freertos-tutorials/">ControllersTech: FreeRTOS на STM32</a> (там стек у словах).</li>
+      <li>Відео EdgeBench «RTOS in Embedded Systems: When, Why, and How to Choose the Right…»: огляд FreeRTOS, Zephyr і інших, коли RTOS узагалі потрібна.</li>
+    </ul>
+    <h3>Код у репозиторії</h3>
+    <ul>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a>: Проєкт A з ДЗ 2.3 суперциклом, C++ і Rust.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-multitask-device">esp32-s3-multitask-device</a>: фінальний проєкт ДЗ 2.3 суперциклом, C++ і Rust; критерії прийнятності в README.</li>
+      <li><a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-vent-timer">esp32-s3-vent-timer</a>: заготовка ESP-IDF-проєкту (<code>platformio.ini</code>, <code>sdkconfig.defaults</code>).</li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на документацію й код</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 15.11.2026</span></p>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (9 пунктів)</summary>
+    <ol class="fixlist">
+      <li>Стандартний тік ESP-IDF — 100&nbsp;Гц (10&nbsp;мс), а не 1000&nbsp;Гц; 1000&nbsp;Гц — це Arduino-ESP32. Через це «реакція — максимум 1 тік (1&nbsp;мс)» у таблиці режимів правдива лише після зміни налаштування<sup class="cite" data-fact="lms-err-6-1-tick"></sup>.</li>
+      <li>Діаграма й «крок 1 — PendSV» описують ARM Cortex-M, а не Xtensa LX7 нашого ESP32-S3<sup class="cite" data-fact="lms-err-6-1-pendsv"></sup>.</li>
+      <li>Приклад прив'язки кладе критичну задачу на ядро 0, хоча текст поруч радить ядро 1<sup class="cite" data-fact="lms-err-6-1-pinning"></sup>.</li>
+      <li>Розділи про <code>vTaskDelay()</code>, <code>vTaskDelayUntil()</code> і <code>pdMS_TO_TICKS()</code> посилаються на код, якого немає. Ми відновили його в розділі 04<sup class="cite" data-fact="lms-err-6-1-missing-code"></sup>.</li>
+      <li>Цикли в прикладі м'ютекса ніколи не засинають і морять голодом нижчі задачі, всупереч пораді «Starvation» того самого уроку<sup class="cite" data-fact="lms-err-6-1-mutex-starve"></sup>.</li>
+      <li><code>delay()</code> на ESP32 не заморожує процесор, а 1&nbsp;с за 240&nbsp;МГц — це 240 мільйонів тактів, не мільярд<sup class="cite" data-fact="lms-err-6-1-delay-frozen"></sup>.</li>
+      <li>Таблиця стеків: в ESP-IDF стек у байтах, «слова» зайві, а 1024 байти менше за стандартний стек idle-задачі<sup class="cite" data-fact="lms-err-6-1-stack-table"></sup>.</li>
+      <li>Вимір «2,1&nbsp;с замість 2,0&nbsp;с» подано без джерела й коду<sup class="cite" data-fact="lms-err-6-1-measurement"></sup>.</li>
+      <li>«1–5&nbsp;мкс на перемикання контексту» на ESP32-S3 без джерела<sup class="cite" data-fact="lms-err-6-1-switch-time"></sup>.</li>
+    </ol>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  let T = Study.tokens();
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const comma = (x, d = 1) => x.toFixed(d).replace('.', ',');
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const font = (w, s, f = 'mono') => `${w} ${s}px ${T['f-' + f]}`;
+  // A segmented control: one pressed button, fn(value) on change.
+  const seg = (sel, fn) => {
+    const bs = $$(`${sel} button`);
+    bs.forEach((b) => b.addEventListener('click', () => { bs.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v); }));
+  };
+  // Sizes a label's frame from its measured text (the same helper as lessons 2.4–2.6): nothing can stick out whatever the font.
+  const FIT = new Map();
+  const fitRO = 'ResizeObserver' in window ? new ResizeObserver((es) => es.forEach((e) => FIT.forEach(([t], r) => { if (e.target.contains(r)) fitFrame(r, t); }))) : null;
+  function fitFrame(r, t) {
+    if (!r || !t) return;
+    if (!r.dataset.w0) { r.dataset.w0 = r.getAttribute('width'); r.dataset.x0 = r.getAttribute('x'); }
+    FIT.set(r, [t]);
+    let tw = 0;
+    try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+    if (!tw) { if (fitRO && t.ownerSVGElement) fitRO.observe(t.ownerSVGElement); return; }
+    const x0 = +r.dataset.x0, w0 = +r.dataset.w0, rx = Math.min(+r.getAttribute('rx') || 0, (+r.getAttribute('height') || 0) / 2);
+    const w = Math.max(w0, Math.ceil(tw + 2 * (0.6 * rx + 6))), x = x0 + (w0 - w) / 2;
+    r.setAttribute('x', +x.toFixed(1)); r.setAttribute('width', w);
+    if (t.getAttribute('text-anchor') === 'middle') t.setAttribute('x', +(x + w / 2).toFixed(1));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => FIT.forEach(([t], r) => fitFrame(r, t)));
+
+  /* =====================================================================
+     Lab «суперцикл проти планувальника» (#rt). One core, 1 ms steps, 10 s.
+     Superloop: the loop of esp32-s3-three-rhythms (last = now) plus readSensor() every 250 ms that keeps the CPU W ms.
+     Tasks: buttons (prio 3, poll every 10 ms), three LED tasks (prio 2), sensor (prio 1 or 4, W ms of CPU every 250 ms).
+     Delays wake only on a tick; a task made Ready runs as soon as no higher-priority task is Ready (preemption).
+     ===================================================================== */
+/* MODEL:BEGIN */
+  const RT_T = 10000, SENS_P = 250;
+  const PRESSES = [130, 870, 1610, 2290, 3050, 3720, 4480, 5160, 5930, 6640, 7370, 8110, 8820, 9530];   // ms, fixed in the model
+  const LEDS = [['led1', 200], ['led2', 500], ['led3', 1000]];
+  function simLoop(W) {
+    const ev = { led1: [], led2: [], led3: [] }, busy = [], btn = [], last = { led1: 0, led2: 0, led3: 0 };
+    let t = 0, lastS = 0, pi = 0;
+    while (t < RT_T) {
+      while (pi < PRESSES.length && PRESSES[pi] <= t) { btn.push({ p: PRESSES[pi], s: t }); pi++; }
+      for (const [k, P] of LEDS) if (t - last[k] >= P) { last[k] = t; ev[k].push({ t, ideal: P * (ev[k].length + 1) }); }
+      if (W > 0 && t - lastS >= SENS_P) { lastS = t; busy.push([t, t + W]); t += W; continue; }
+      t += 1;
+    }
+    return { ev, busy, btn, wait: [], idle: 0 };
+  }
+  function simRtos(W, prioS, until, hz) {
+    const tk = 1000 / hz, ticks = (ms) => Math.floor(ms * hz / 1000);
+    const tasks = [
+      { id: 'btn', prio: 3, per: 10, work: 0 },
+      { id: 'led1', prio: 2, per: 200, work: 0 }, { id: 'led2', prio: 2, per: 500, work: 0 }, { id: 'led3', prio: 2, per: 1000, work: 0 },
+      { id: 'sens', prio: prioS, per: SENS_P, work: W },
+    ];
+    tasks.forEach((x) => { x.st = 'ready'; x.ra = 0; x.lw = 0; x.wk = 0; x.left = x.work; });
+    const ev = { led1: [], led2: [], led3: [] }, busy = [], btn = [], wait = [];
+    let pi = 0, idle = 0, bs = -1;
+    const block = (x, now) => {
+      const cur = Math.floor(now / tk), d = ticks(x.per);
+      if (until) { x.lw += d; if (x.lw <= cur) { x.st = 'ready'; x.ra = now; return; } x.wk = x.lw; }
+      else { if (d === 0) { x.st = 'ready'; x.ra = now; return; } x.wk = cur + d; }
+      x.st = 'blocked';
+    };
+    for (let t = 0; t < RT_T; t++) {
+      if (t % tk === 0) { const tick = t / tk; for (const x of tasks) if (x.st === 'blocked' && x.wk <= tick) { x.st = 'ready'; x.ra = t; } }
+      for (let guard = 0; guard < 20; guard++) {
+        let best = null;
+        for (const x of tasks) if (x.st === 'ready' && (!best || x.prio > best.prio || (x.prio === best.prio && x.work === 0 && best.work > 0))) best = x;
+        if (!best) { idle++; break; }
+        if (best.work === 0) {                                // a short task: runs and blocks again within this millisecond
+          if (best.id === 'btn') { while (pi < PRESSES.length && PRESSES[pi] <= t) { btn.push({ p: PRESSES[pi], s: t }); pi++; } }
+          else if (best.id !== 'sens') { const l = ev[best.id]; l.push({ t, ideal: l.length * best.per }); if (t - best.ra >= 1) wait.push([best.id, best.ra, t]); }
+          block(best, t);
+          continue;
+        }
+        if (bs < 0) bs = t;                                    // the sensor keeps the CPU for this millisecond
+        if (--best.left <= 0) { best.left = best.work; busy.push([bs, t + 1]); bs = -1; block(best, t + 1); }
+        break;
+      }
+    }
+    if (bs >= 0) busy.push([bs, RT_T]);
+    return { ev, busy, btn, wait, idle };
+  }
+/* MODEL:END */
+  const rt = { mode: 'loop', W: 60, prio: 1, until: false, hz: 100, x: 0, res: null, seenRel: false };
+  const lateOf = (l) => l.map((e) => e.t - e.ideal);
+  function rtCompute() {
+    rt.res = rt.mode === 'loop' ? simLoop(rt.W) : simRtos(rt.W, rt.prio, rt.until, rt.hz);
+    const r = rt.res, late = lateOf(r.ev.led1);
+    r.maxLate = Math.max(0, ...late);
+    r.drift = late.length ? late[late.length - 1] : 0;
+    r.btnMax = Math.max(0, ...r.btn.map((b) => b.s - b.p));
+    r.idlePct = rt.mode === 'loop' ? 0 : r.idle / RT_T * 100;
+  }
+  const cv = $('#rt-cv');
+  function rtDraw() {
+    if (!rt.res) return;
+    const c = Study.fitCanvas(cv), Wd = c.w, H = c.h, r = rt.res, narrow = Wd < 520;
+    c.clearRect(0, 0, Wd, H);
+    const L = narrow ? 70 : 100, R = Wd - 10, x0 = rt.x * 1000, span = 1000;
+    const X = (t) => L + (t - x0) / span * (R - L);
+    const inW = (t) => t >= x0 && t <= x0 + span;
+    const lanes = [['btn', 'Кнопка'], ['led1', 'LED1 · 200'], ['led2', 'LED2 · 500'], ['led3', 'LED3 · 1000'], ['sens', 'Датчик']];
+    const top = 8, axis = H - 26, lh = (axis - top) / lanes.length, yc = (i) => top + lh * (i + 0.5);
+    c.textBaseline = 'middle';
+    lanes.forEach(([, name], i) => {
+      c.fillStyle = T.ink; c.font = font(600, narrow ? 11 : 13, 'body'); c.textAlign = 'left';
+      c.fillText(narrow ? name.replace(' · ', ' ') : name, 6, yc(i));
+      if (i) { c.strokeStyle = T.line; c.lineWidth = 1; c.beginPath(); c.moveTo(L, top + lh * i); c.lineTo(R, top + lh * i); c.stroke(); }
+    });
+    c.save(); c.beginPath(); c.rect(L, 0, R - L, H); c.clip();
+    // the superloop is frozen while the sensor counts: shade every lane
+    if (rt.mode === 'loop') {
+      c.globalAlpha = 0.12; c.fillStyle = T.bad;
+      r.busy.forEach(([a, b]) => { if (b >= x0 && a <= x0 + span) c.fillRect(X(a), top, X(b) - X(a), lh * 4); });
+      c.globalAlpha = 1;
+    }
+    // sensor busy
+    c.fillStyle = T.accent;
+    r.busy.forEach(([a, b]) => { if (b >= x0 && a <= x0 + span) c.fillRect(X(a), yc(4) - 8, Math.max(1.5, X(b) - X(a)), 16); });
+    // LEDs: grid of the right moments, then the real ones; wait in Ready as a red bar
+    LEDS.forEach(([k, P], j) => {
+      const i = j + 1, y0 = top + lh * i + 5, y1 = top + lh * (i + 1) - 5;
+      c.strokeStyle = T.muted; c.lineWidth = 1; c.setLineDash([3, 3]);
+      for (let g = Math.ceil(x0 / P) * P; g <= x0 + span; g += P) { c.beginPath(); c.moveTo(X(g), y0); c.lineTo(X(g), y1); c.stroke(); }
+      c.setLineDash([]);
+      c.globalAlpha = 0.55; c.fillStyle = T.bad;
+      r.wait.forEach(([id, a, b]) => { if (id === k && b >= x0 && a <= x0 + span) c.fillRect(X(a), yc(i) - 3, Math.max(2, X(b) - X(a)), 6); });
+      c.globalAlpha = 1;
+      r.ev[k].forEach((e) => {
+        if (!inW(e.t)) return;
+        c.strokeStyle = e.t - e.ideal <= 1 ? T.ok : T.bad; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(X(e.t), y0 + 2); c.lineTo(X(e.t), y1 - 2); c.stroke();
+      });
+    });
+    // button: press ▼ and the time to the reaction
+    r.btn.forEach((b) => {
+      if (b.s < x0 || b.p > x0 + span) return;
+      const bad = b.s - b.p > 20, col = bad ? T.bad : T.ok, y = yc(0);
+      c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); c.moveTo(X(b.p), y + 4); c.lineTo(X(b.s), y + 4); c.stroke();
+      c.fillStyle = col; c.beginPath(); c.arc(X(b.s), y + 4, 4, 0, 7); c.fill();
+      c.fillStyle = T.ink; c.beginPath(); c.moveTo(X(b.p), y); c.lineTo(X(b.p) - 6, y - 10); c.lineTo(X(b.p) + 6, y - 10); c.fill();
+    });
+    c.restore();
+    // axis, ticks
+    c.strokeStyle = T['line-strong'] || T.line; c.lineWidth = 1; c.beginPath(); c.moveTo(L, axis); c.lineTo(R, axis); c.stroke();
+    if (rt.mode === 'rtos') {
+      const tk = 1000 / rt.hz, step = (R - L) / span * tk >= 2.5 ? tk : 10;
+      c.strokeStyle = T.muted;
+      for (let t = x0; t <= x0 + span; t += step) { c.beginPath(); c.moveTo(X(t), axis); c.lineTo(X(t), axis + 4); c.stroke(); }
+    }
+    c.fillStyle = T.muted; c.font = font(500, narrow ? 11 : 12); c.textBaseline = 'alphabetic';
+    for (let t = x0; t <= x0 + span; t += narrow ? 500 : 200) {
+      c.textAlign = t === x0 ? 'left' : t === x0 + span ? 'right' : 'center';
+      c.fillText(`${comma(t / 1000, 1)} с`, X(t), H - 6);
+    }
+  }
+  const D = (until, ms) => (until ? `xTaskDelayUntil(&wake, pdMS_TO_TICKS(${ms}));` : `vTaskDelay(pdMS_TO_TICKS(${ms}));`);
+  function rtCode() {
+    const W = rt.W, hz = rt.hz, n200 = Math.floor(200 * hz / 1000);
+    let file, src;
+    if (rt.mode === 'loop') {
+      file = 'src/main.cpp · суперцикл';
+      src = `void loop() {
+  uint32_t now = millis();
+  pollButtons(now);              // чекає, поки до неї дійде черга
+  if (now - last1 >= 200) { last1 = now; toggle(LED1); }
+  if (now - last2 >= 500) { last2 = now; toggle(LED2); }
+  if (now - last3 >= 1000) { last3 = now; toggle(LED3); }
+  if (now - lastS >= 250) {
+    lastS = now;
+    readSensor();                // ${W} мс: увесь loop() стоїть
+  }
+}`;
+    } else {
+      const w = rt.until ? '\n  TickType_t wake = xTaskGetTickCount();' : '';
+      file = `src/main.c · задачі, тік ${hz} Гц`;
+      src = `void sensor_task(void* arg) {   // пріоритет ${rt.prio}${w}
+  while (1) {
+    readSensor();                // ${W} мс роботи
+    ${D(rt.until, 250)}
+  }
+}
+
+void led_task(void* arg) {      // пріоритет 2, задача на LED
+  led_t* led = arg;${w}
+  while (1) {
+    toggle(led->pin);
+    ${D(rt.until, 'led->period')}
+  }
+}
+// buttons_task: пріоритет 3, опитує кожні 10 мс
+// усі задачі на ядрі 1; pdMS_TO_TICKS(200) = ${n200} тіків`;
+    }
+    setTxt($('#rt-file'), file);
+    $('#rt-src').innerHTML = esc(src);
+  }
+  function rtRead() {
+    const r = rt.res, ms = (v) => `${Math.round(v)} мс`;
+    setTxt($('#rt-late'), ms(r.maxLate));
+    setTxt($('#rt-drift'), ms(r.drift));
+    setTxt($('#rt-btn'), ms(r.btnMax));
+    setTxt($('#rt-idle'), rt.mode === 'loop' ? '0 % (крутиться)' : `${comma(r.idlePct, 0)} %`);
+    let s;
+    if (rt.mode === 'loop') {
+      s = rt.W === 0
+        ? 'Без повільної роботи суперцикл встигає все: кожна перевірка займає мікросекунди. Біда починається з першої довгої дії.'
+        : `Поки датчик ${rt.W} мс рахує в loop(), чекає все: кнопка до ${ms(r.btnMax)}. ` + (r.maxLate === 0
+          ? 'LED1 цього разу в ці паузи не потрапив.'
+          : `LED1 потрапляє в ці паузи, а через last = now запізнення накопичуються: за 10 с він з'їхав на ${ms(r.drift)} і перемкнувся ${r.ev.led1.length} разів замість 49.`);
+    } else if (rt.prio === 1) {
+      s = `Датчик має найнижчий пріоритет: щойно LED чи кнопка прокидаються, планувальник забирає в нього ядро. Датчик доробляє свої ${rt.W} мс у паузах, а LED1 не запізнюється.`;
+    } else {
+      s = `Датчик вищий за всіх: поки він рахує, LED і кнопка стоять у Ready (червоні смуги). ` + (rt.until
+        ? `xTaskDelayUntil тримає сітку: окреме запізнення є, а зсуву за 10 с немає.`
+        : `vTaskDelay рахує паузу від запізнілого моменту, тому запізнення накопичуються: зсув LED1 за 10 с — ${ms(r.drift)}.`);
+    }
+    if (rt.mode === 'rtos' && rt.hz === 100) s += ' Тік 10 мс: прокинутися задача може лише на рисці тіку.';
+    setTxt($('#rt-note'), s);
+  }
+  let rq = 0;
+  function rtUpdate() { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; rtCompute(); rtDraw(); rtCode(); rtRead(); }); }
+  const rtSync = () => {
+    const dis = rt.mode === 'loop';
+    $$('#rt-prio button, #rt-dly button, #rt-hz button').forEach((b) => { b.disabled = dis; });
+  };
+  seg('#rt-mode', (v) => { rt.mode = v; rtSync(); rtUpdate(); });
+  seg('#rt-prio', (v) => { rt.prio = +v; rtUpdate(); });
+  seg('#rt-dly', (v) => { rt.until = v === 'until'; if (!rt.until) rt.seenRel = true; rtUpdate(); });
+  seg('#rt-hz', (v) => { rt.hz = +v; rtUpdate(); });
+  $('#rt-w').addEventListener('input', (e) => { rt.W = +e.target.value; setTxt($('#rt-wout'), `${rt.W} мс`); rtUpdate(); });
+  $('#rt-x').addEventListener('input', (e) => { rt.x = +e.target.value; setTxt($('#rt-xout'), `${rt.x}–${rt.x + 1} с`); rtUpdate(); });
+  rtSync(); rtCompute(); rtDraw(); rtCode(); rtRead();
+  window.addEventListener('resize', rtDraw);
+  Study.onTheme((t) => { T = t; rtDraw(); });
+  Study.missions($('#rt-ms'), { key: 'rt', items: [
+    { id: 'block', text: 'Суперцикл: зробіть роботу датчика 100 мс або більше. Наскільки запізнюється кнопка?', hint: 'Повзунок «Датчик рахує». Подивіться на «Кнопка: найдовша реакція»: вона не більша за роботу датчика.', check: () => rt.mode === 'loop' && rt.W >= 100 },
+    { id: 'tasks', text: 'Перейдіть на задачі з пріоритетом датчика 1 і знайдіть, що сталося із запізненням LED1.', hint: '«Задачі», «пріоритет 1». LED прокидається на тіку й витісняє датчик.', check: () => rt.mode === 'rtos' && rt.prio === 1 && rt.W >= 40 && rt.res.maxLate === 0 },
+    { id: 'high', text: 'Дайте датчику пріоритет 4 і знайдіть червоні смуги: хто чекає в Ready?', hint: '«пріоритет 4». Червона смуга на доріжці LED — час від пробудження до отримання ядра.', check: () => rt.mode === 'rtos' && rt.prio === 4 && rt.W >= 40 && rt.res.maxLate > 0 },
+    { id: 'drift', text: 'З пріоритетом 4 порівняйте vTaskDelay і xTaskDelayUntil: де зсув за 10 с не росте?', hint: 'Подивіться на «LED1: зсув за 10 с» в обох варіантах.', check: () => rt.mode === 'rtos' && rt.prio === 4 && rt.until && rt.seenRel && rt.W >= 40 },
+    { id: 'idle', text: 'Задачі, датчик рахує 150 мс. Скільки процесора лишається вільним?', hint: 'Рядок «Процесор вільний». Суперцикл такого числа не має: він крутиться завжди.', check: () => rt.mode === 'rtos' && rt.W === 150 },
+  ] });
+
+  /* =====================================================================
+     04 Anatomy of xTaskCreatePinnedToCore (#an)
+     ===================================================================== */
+  {
+    const TXT = {
+      fn: '<b>led_task</b> — функція задачі: <code>void led_task(void* arg)</code> з нескінченним циклом усередині. Вона ніколи не повертається; якщо задачі нічого робити, вона викликає <code>vTaskDelete(NULL)</code>.',
+      name: '<b>"led3"</b> — ім\'я для налагодження: його видно в лозі сторожа, у статистиці задач і в повідомленні про переповнення стеку. Довше за 16 символів обріжеться.',
+      stack: '<b>2048</b> — розмір стеку в <b>байтах</b> (в ESP-IDF; у ванільному FreeRTOS — у словах). Тут живуть локальні змінні й адреси повернення. З <code>printf()</code> беріть більше: 3072 і вище.',
+      param: '<b>&amp;led3</b> — вказівник, який задача отримає в <code>arg</code>. Так одна функція стає трьома задачами: кожна знає свій пін і період. Дані мають жити, поки живе задача: глобальні або static.',
+      prio: '<b>2</b> — пріоритет, від 0 до 24. Більше число — важливіше. 0 зайнятий idle-задачами, <code>app_main()</code> і Arduino-<code>loop()</code> мають 1.',
+      handle: '<b>NULL</b> — куди записати хендл задачі. Він потрібен, щоб потім керувати нею: <code>vTaskSuspend(h)</code>, <code>vTaskResume(h)</code>, <code>vTaskDelete(h)</code>. Не потрібен — NULL.',
+      core: '<b>1</b> — ядро: 0, 1 або <code>tskNO_AFFINITY</code> (будь-яке). <code>xTaskCreate()</code> в ESP-IDF — те саме з <code>tskNO_AFFINITY</code>. Системні задачі стандартно на ядрі 0, тому своє чутливе до часу — на 1.',
+    };
+    const bs = $$('.an-arg'), box = $('#an-txt');
+    const show = (b) => { bs.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); box.innerHTML = TXT[b.dataset.a]; };
+    bs.forEach((b) => b.addEventListener('click', () => show(b)));
+    show(bs[0]);
+  }
+
+  /* =====================================================================
+     04 Task states (#st-svg): one task walked through the four states
+     ===================================================================== */
+  {
+    const NAME = { ready: 'Ready', run: 'Running', blk: 'Blocked', sus: 'Suspended' };
+    const BOX = { ready: '#st-b-ready', run: '#st-b-run', blk: '#st-b-blk', sus: '#st-b-sus' };
+    let s = 'ready', hot = null;
+    const go = (to, arrow, msg) => { s = to; hot = arrow; paint(); setTxt($('#st-txt'), msg); };
+    const no = (msg) => { hot = null; paint(); setTxt($('#st-txt'), `Зараз ${NAME[s]}: ${msg}`); };
+    function paint() {
+      Object.entries(BOX).forEach(([k, sel]) => $(sel).classList.toggle('on', k === s));
+      $$('#st-svg .st-ar').forEach((a) => a.classList.toggle('hot', a.id === hot));
+    }
+    const EV = {
+      pick: () => (s === 'ready' ? go('run', 'st-a-pick', 'Running: вона найпріоритетніша серед готових, і ядро її. Виконується її код.')
+        : no(s === 'run' ? 'вона вже виконується.' : 'обрати можна лише задачу в Ready.')),
+      pre: () => (s === 'run' ? go('ready', 'st-a-pre', 'Ready: вища задача стала готовою й забрала ядро. Наша не чекає нічого, крім ядра, і продовжить з того самого рядка.')
+        : no('витіснити можна лише задачу, що виконується.')),
+      dly: () => (s === 'run' ? go('blk', 'st-a-dly', 'Blocked: задача спить до потрібного тіку й ядра не займає. Так само вона блокується, коли чекає черги чи семафора.')
+        : no('vTaskDelay() — це рядок її коду, а код виконується лише в Running.')),
+      ev: () => (s === 'blk' ? go('ready', 'st-a-ev', 'Ready: тік показав, що час минув (або прийшла подія). Ядро вона отримає, коли буде найвищою серед готових.')
+        : no('прокинутися може лише задача, що чекає в Blocked.')),
+      sus: () => (s === 'sus' ? no('вона вже призупинена.')
+        : go('sus', s === 'ready' ? 'st-a-susR' : s === 'run' ? 'st-a-susX' : 'st-a-susB',
+          s === 'run' ? 'Suspended: задача призупинила сама себе, vTaskSuspend(NULL). Таймера немає: сама вона не прокинеться.'
+            : 'Suspended: інша задача викликала vTaskSuspend(хендл). Таймера немає: сама вона не прокинеться.')),
+      res: () => (s === 'sus' ? go('ready', 'st-a-res', 'Ready: vTaskResume(хендл) з іншої задачі повернула її в чергу готових.')
+        : no('vTaskResume() діє лише на призупинену задачу.')),
+    };
+    $$('.st-ev button').forEach((b) => b.addEventListener('click', () => EV[b.dataset.e]()));
+    paint();
+    setTxt($('#st-txt'), 'Задачу щойно створили: вона в Ready. Що з нею станеться далі?');
+  }
+
+  /* =====================================================================
+     05 vTaskDelay vs xTaskDelayUntil (#w-dly): one task, period 500 ms, 3 s
+     ===================================================================== */
+  {
+    const P = 500, SPAN = 3000, X = (t) => 8 + t / SPAN * 324;
+    const ga = $('#dl-a'), gb = $('#dl-b'), gc = $('#dl-c');
+    for (let t = 0; t <= SPAN; t += P) mk('path', { d: `M${X(t).toFixed(1)} 22V36`, stroke: 'var(--muted)', 'stroke-width': 2 }, ga);
+    mk('path', { d: `M8 29H332`, stroke: 'var(--line)', 'stroke-width': 1 }, ga);
+    const runs = (W, until) => {
+      const out = []; let t = 0, lw = 0;
+      while (t < SPAN) {
+        out.push(t);
+        const end = t + W;
+        if (until) { lw += P; t = Math.max(end, lw); } else t = end + P;
+        if (W === 0 && !until && P === 0) break;
+      }
+      return out;
+    };
+    const lane = (g, y, starts, W) => {
+      g.replaceChildren();
+      mk('path', { d: `M8 ${y + 7}H332`, stroke: 'var(--line)', 'stroke-width': 1 }, g);
+      starts.forEach((s) => {
+        const onGrid = Math.abs(s / P - Math.round(s / P)) < 1e-6;
+        if (W > 0) mk('rect', { x: X(s).toFixed(1), y, width: Math.max(1.5, Math.min(X(s + W), 332) - X(s)).toFixed(1), height: 14, rx: 2, fill: 'var(--accent)', opacity: '.7' }, g);
+        mk('path', { d: `M${X(s).toFixed(1)} ${y - 6}V${y + 20}`, stroke: onGrid ? 'var(--ok)' : 'var(--bad)', 'stroke-width': 3 }, g);
+      });
+    };
+    function up() {
+      const W = +$('#dl-w').value, a = runs(W, false), b = runs(W, true);
+      setTxt($('#dl-out'), `${W} мс`);
+      lane(gb, 74, a, W); lane(gc, 128, b, W);
+      const tail = W <= P
+        ? `xTaskDelayUntil: період ${P} мс, ${b.length} запусків, усі на сітці.`
+        : `xTaskDelayUntil: робота довша за період, тож задача не спить зовсім (функція повертає pdFALSE): період ${W} мс, ${b.length} запусків. Сітку вона наздогнала б, щойно робота знову стала коротшою.`;
+      $('#dl-txt').innerHTML = `vTaskDelay: період ${P} + ${W} = <b class="${W ? 'bad' : 'ok'}">${P + W} мс</b>, за 3 с ${a.length} запусків. ${tail}`;
+    }
+    $('#dl-w').addEventListener('input', up);
+    up();
+  }
+
+  /* =====================================================================
+     05 Who gets the core (#w-cores). Simplified ESP-IDF SMP scheduler:
+     a task without sleep is always Ready ("hog") and takes the highest free core it may run on; a sleeping task gets time
+     when an allowed core has no hog of a higher priority (equal priority: time slicing). IDLEx starves under a hog.
+     ===================================================================== */
+  {
+    const USER = { sens: { name: 'Датчик', prio: 4, aff: 1, sleeps: false }, led: { name: 'LED', prio: 2, aff: 1, sleeps: true }, log: { name: 'Лог', prio: 1, aff: -1, sleeps: true } };
+    const SYS = [{ name: 'ipc0', prio: 24, core: 0 }, { name: 'esp_timer', prio: 22, core: 0 }, { name: 'IDLE0', prio: 0, core: 0, idle: true },
+      { name: 'ipc1', prio: 24, core: 1 }, { name: 'IDLE1', prio: 0, core: 1, idle: true }];
+    $$('#cr-rows .cr-row').forEach((row) => {
+      const u = USER[row.dataset.t];
+      seg(`#cr-rows .cr-row[data-t="${row.dataset.t}"] .seg`, (v) => { u.aff = +v; up(); });
+      row.querySelector('.sw').addEventListener('switch', (e) => { u.sleeps = e.detail.on; up(); });
+    });
+    function solve() {
+      const cores = [[], []], hogAt = [null, null], st = new Map();
+      const allowed = (u) => (u.aff < 0 ? [0, 1] : [u.aff]);
+      const hogs = Object.values(USER).filter((u) => !u.sleeps).sort((a, b) => b.prio - a.prio);
+      for (const u of hogs) {
+        const free = allowed(u).find((c) => !hogAt[c]);
+        if (free != null) { hogAt[free] = u; st.set(u, { core: free, s: 'hog' }); continue; }
+        const same = allowed(u).find((c) => hogAt[c].prio === u.prio);
+        if (same != null) { st.set(u, { core: same, s: 'share' }); st.get(hogAt[same]).s = 'share'; }
+        else st.set(u, { core: allowed(u)[0], s: 'starve' });
+      }
+      for (const u of Object.values(USER).filter((x) => x.sleeps)) {
+        const cs = allowed(u);
+        const ok = cs.find((c) => !hogAt[c] || hogAt[c].prio < u.prio);
+        const eq = cs.find((c) => hogAt[c] && hogAt[c].prio === u.prio);
+        st.set(u, ok != null ? { core: ok, s: 'ok' } : eq != null ? { core: eq, s: 'share' } : { core: cs[0], s: 'starve' });
+      }
+      for (const [u, v] of st) cores[v.core].push({ name: u.name, prio: u.prio, s: v.s, free: u.aff < 0 });
+      SYS.forEach((x) => cores[x.core].push({ name: x.name, prio: x.prio, s: x.idle && hogAt[x.core] ? 'starve' : 'ok', sys: true, idle: x.idle }));
+      cores.forEach((l) => l.sort((a, b) => b.prio - a.prio));
+      return { cores, st, hogAt };
+    }
+    const COL = { ok: 'var(--ok)', hog: 'var(--teach)', share: 'var(--hi)', starve: 'var(--bad)' };
+    function up() {
+      const { cores, st, hogAt } = solve();
+      cores.forEach((list, c) => {
+        const g = $(`#cr-c${c}`), x = c ? 172 : 8;
+        g.replaceChildren();
+        list.forEach((t, i) => {
+          const y = 30 + i * 27;
+          mk('rect', { x, y, width: 160, height: 22, rx: 5, fill: 'var(--panel)', stroke: t.s === 'ok' ? 'var(--line-strong)' : COL[t.s], 'stroke-width': t.s === 'ok' ? 1 : 2.5 }, g);
+          mk('circle', { cx: x + 12, cy: y + 11, r: 5, fill: COL[t.s] }, g);
+          const tx = mk('text', { class: t.sys ? 'svg-m' : 'svg-t', x: x + 24, y: y + 15.5 }, g);
+          tx.textContent = `${t.name} · ${t.prio}${t.free ? ' ↔' : ''}`;
+        });
+      });
+      $('#cr-svg').setAttribute('viewBox', `0 0 340 ${34 + Math.max(cores[0].length, cores[1].length) * 27}`);
+      const starving = [...st].filter(([, v]) => v.s === 'starve').map(([u]) => u.name);
+      const idleBad = [0, 1].filter((c) => hogAt[c]);
+      const parts = [];
+      if (starving.length) parts.push(`<b class="bad">${starving.join(' і ')}</b> голодує: на дозволених ${starving.length > 1 ? 'їм' : 'їй'} ядрах сидить вища задача, яка ніколи не засинає.`);
+      if (idleBad.length) parts.push(`${idleBad.map((c) => 'IDLE' + c).join(' і ')} не отримує часу: у чистому ESP-IDF 6.1 сторож задач стежить за idle обох ядер і надрукує попередження; в Arduino 2.0.17 — лише за IDLE0.`);
+      if (!starving.length && !idleBad.length) parts.push('<b class="ok">Усі задачі отримують час</b>: кожна задача засинає, тож ядро щоразу дістається найвищій із готових.');
+      $('#cr-txt').innerHTML = parts.join(' ');
+    }
+    up();
+  }
+
+  /* =====================================================================
+     08 Kit bench: the layout of lesson 2.3 (board in the breadboard, LEDs on the free strips to its left) plus two
+     buttons to the right: BTN1 (GPIO21, purple, over row a) in columns 46/48, BTN2 (GPIO18, orange, along the bottom
+     edge) in columns 52/54. Button legs on the left go to the «−» rail.
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const NETCOL = { 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3', 'net-gnd': 'ngnd', 'net-in': 'teach', 'net-in2': 'warn' };
+  function pill(parent, x, y, txt, w = 0) {
+    const g = mk('g', { class: 'kb-pill', 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 17 * txt.length;
+    mk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
+    const t = mk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+    t.textContent = txt;
+    fitFrame(g.firstChild, t);
+    return g;
+  }
+  const BENCH = [
+    { k: 'L1', an: 14, sig: 18, row: 'g', pin: 'GPIO15', led: 'red', wire: 'blue', net: 'gpio15', cls: 'net-sig', via: 'row' },
+    { k: 'L2', an: 11, sig: 15, row: 'h', pin: 'GPIO16', led: 'yellow', wire: 'yellow', net: 'gpio16', cls: 'net-sig2', via: 'lane' },
+    { k: 'L3', an: 4, sig: 8, row: 'h', pin: 'GPIO17', led: 'green', wire: 'green', net: 'gpio17', cls: 'net-sig3', via: 'edge' },
+  ];
+  const BC = { c0: 20, gnd: 41, b1: 46, b2: 52 };
+  function bench(svg, { nets = false, b2to = null } = {}) {
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const H = (c, r) => bb.hole(c, r);
+    const strips = mk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(BC.c0, 'i');
+    const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, права в ряду b' });
+    const out = { bb, esp, led: {}, res: {}, btn: {}, wire: {} };
+    const pinCol = (name) => BC.c0 + Math.round((esp.pins[name].x - p0.x) / KP);
+    const strip = (net, cls, c, half) => {
+      if (!nets) return;
+      const a = H(c, half === 'top' ? 'a' : 'f');
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls, side) => {
+      if (!nets) return;
+      const a = bb.rail(side, '-', 1), b = bb.rail(side, '-', 63);
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    const yL = bb.size.h + 32;
+    for (const b of BENCH) {
+      const r = H(b.an, b.row), l = H(b.an, 'f');
+      out.res[b.k] = K.part('resistor', { parent: svg, ohms: 220, x: r.x, y: r.y, title: `Резистор 220 Ом (червоний-червоний-коричневий): ${b.row}${b.an} і ${b.row}${b.sig}` });
+      out.led[b.k] = K.part('led', { parent: svg, color: b.led, x: l.x, y: l.y, leg: 40, mirror: true, title: `Світлодіод ${b.k.replace('L', 'LED')}: анод f${b.an}, катод f${b.an - 1}` });
+      pill(svg, l.x - KP / 2, yL, b.k);
+      strip(b.net, b.cls, b.sig, 'bottom'); strip(b.net, b.cls, pinCol(b.pin), 'bottom');
+      strip('gnd', 'net-gnd', b.an - 1, 'bottom');
+    }
+    [['b1', BC.b1, 'BTN1', 'GPIO21'], ['b2', BC.b2, 'BTN2', 'GPIO18']].forEach(([key, sw, label, pin]) => {
+      const e = H(sw, 'e');
+      out.btn[key] = K.part('button', { parent: svg, x: e.x, y: e.y, title: `Тактова кнопка ${label}: ніжки в стовпчиках ${sw} і ${sw + 2}` });
+      pill(svg, e.x + KP, yL, label);
+      const net = pin === 'GPIO21' ? 'gpio21' : 'gpio18', cls = pin === 'GPIO21' ? 'net-in' : 'net-in2';
+      strip(net, cls, sw + 2, 'top'); strip(net, cls, sw + 2, 'bottom');
+      strip('gnd', 'net-gnd', sw, 'top'); strip('gnd', 'net-gnd', sw, 'bottom');
+    });
+    strip('gpio21', 'net-in', pinCol('GPIO21'), 'top');
+    strip('gpio18', 'net-in2', pinCol('GPIO18'), 'bottom');
+    strip('gnd', 'net-gnd', BC.gnd, 'bottom');
+    rail('gnd', 'net-gnd', 'bottom');
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`; }
+      return g;
+    };
+    const J = (c) => bb.at('j' + c);
+    const Y = { lane: J(1).y + KP * 1.15, edge: J(1).y + KP * 4.67 };
+    for (const b of BENCH) {
+      const a = J(pinCol(b.pin)), z = J(b.sig);
+      out.wire[b.k] = w(b.via === 'row' ? [a, z] : [a, { x: a.x, y: Y[b.via] }, { x: z.x, y: Y[b.via] }, z], b.wire, b.net, b.cls);
+      out.wire['k' + b.k] = w([J(b.an - 1), bb.at('bottom-' + (b.an - 1))], 'black', 'gnd', 'net-gnd');
+    }
+    const a21 = bb.at('a' + pinCol('GPIO21')), aS = bb.at('a' + (BC.b1 + 2)), topY = a21.y - KP * 1.25;
+    out.wire.b1 = w([a21, { x: a21.x, y: topY }, { x: aS.x, y: topY }, aS], 'purple', 'gpio21', 'net-in');
+    out.wire.b1g = w([J(BC.b1), bb.at('bottom-' + BC.b1)], 'black', 'gnd', 'net-gnd');
+    const j18 = J(pinCol('GPIO18')), jS = J(b2to || BC.b2 + 2);
+    out.wire.b2 = w([j18, { x: j18.x, y: Y.edge }, { x: jS.x, y: Y.edge }, jS], 'orange', 'gpio18', 'net-in2');
+    out.wire.b2g = w([J(BC.b2), bb.at('bottom-' + BC.b2)], 'black', 'gnd', 'net-gnd');
+    out.wire.gnd = w([J(BC.gnd), bb.at('bottom-' + BC.gnd)], 'black', 'gnd', 'net-gnd');
+    out.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');   // over the split of the «−» rail
+    const x1 = H(BC.b2 + 5, 'a').x;
+    svg.setAttribute('viewBox', `-20 -20 ${x1 + 20} ${bb.size.h + 70}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
+  /* ================================================================ 08 dual figure: BTN1 / BTN2 do what the firmware does */
+  {
+    const kb = bench($('#bb-mt'), { nets: true });
+    const SPEEDS = [1000, 500, 200];
+    let speed = 0, paused = false;
+    const badge = (msg) => setTxt($('#mt-badge'), msg || `LED2 = ${SPEEDS[speed]} мс, пауза ${paused ? 'увімкнена: LED1 світиться' : 'вимкнена'}`);
+    const press = (key) => { kb.btn[key].set({ pressed: true }); setTimeout(() => kb.btn[key].set({ pressed: false }), 220); };
+    kb.led.L1.set({ on: 0 });
+    $('#mt-b1').addEventListener('click', () => {
+      press('b1');
+      if (paused) { badge('Пауза: BTN1 нічого не змінює, LED2 = ' + SPEEDS[speed] + ' мс'); return; }
+      speed = (speed + 1) % 3; badge();
+    });
+    $('#mt-b2').addEventListener('click', () => {
+      press('b2');
+      paused = !paused;
+      kb.led.L1.set({ on: paused ? 1 : 0 });
+      const sl = $('#sch-led1'); if (sl) sl.style.color = paused ? 'var(--bad)' : '';
+      badge();
+    });
+    badge();
+  }
+
+  /* cite links point into the collapsed source list: open it first */
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    const d = el && el.closest('details');
+    if (d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', openTarget);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a[href^="#src-"]');
+    if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
+  });
+  openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-rt): the bench of section 08 + the firmware; exactly one fault per case.
+     Lines of code and Kit parts/wires with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  {
+    const rem = (t) => `<span class="rem">${esc(t)}</span>`;
+    const hkCode = (stage, file, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = `<div class="hk-h">${file}</div><pre>` + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, opts);
+    };
+    const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+    const OK = 'Макетка як у розділі 08: три LED на GPIO15, 16 і 17 через 220 Ом, кнопка BTN1 на GPIO21 (фіолетовий дріт), BTN2 на GPIO18 (помаранчевий дріт), другі ніжки кнопок на шині мінус.';
+    Study.hunt($('#hunt-rt'), { key: '6-1', cases: [
+      { title: 'LED завмерли',
+        symptom: 'Після того як додали задачу датчика, LED2 і LED3 світяться або не світяться, але не блимають. Кнопки теж не відповідають. Датчик у лозі пише виміри без перерви.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', ['static void sensor_task(void* arg) {', '    while (1) {', ['        read_sensor();', 1], ['        printf("%d\\n", value);', 1], '    }', '}', '', ['xTaskCreatePinnedToCore(sensor_task, "sensor", 3072, NULL, 4, NULL, 1);', 0], ['xTaskCreatePinnedToCore(led3_task, "led3", 2048, NULL, 2, NULL, 1);', 2]]);
+        },
+        options: ['Датчик із пріоритетом 4 ніколи не засинає й забирає ядро 1 у нижчих задач',
+          '<code>read_sensor()</code> і <code>printf()</code> не можна викликати із задачі',
+          'Стек LED-задачі 2048 замалий'],
+        answer: 0,
+        explain: 'Цикл датчика не має ні <code>vTaskDelay()</code>, ні очікування на чергу, тож задача завжди в Ready. З пріоритетом 4 вона вища за кнопки (3) і LED (2) на тому самому ядрі, і ті голодують. Додайте в цикл <code>xTaskDelayUntil(&amp;wake, pdMS_TO_TICKS(300))</code> або знизьте пріоритет. Ту саму пастку має приклад м\'ютекса в LMS<sup class="cite" data-fact="lms-err-6-1-mutex-starve"></sup>.' },
+      { title: 'Аварія після старту',
+        symptom: 'LED3 вмикається один раз, і майже одразу в лозі <code>FreeRTOS Task "led3" should not return, Aborting now!</code>, плата перезавантажується.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', ['static void led3_task(void* arg) {', ['    gpio_set_level(LED3, 1);', 1], ['    vTaskDelay(pdMS_TO_TICKS(1000));', 2], ['    gpio_set_level(LED3, 0);', 0], ['}', 0], '', 'xTaskCreatePinnedToCore(led3_task, "led3", 2048, NULL, 2, NULL, 1);']);
+        },
+        options: ['Немає нескінченного циклу: функція задачі доходить до кінця й повертається',
+          '<code>gpio_set_level()</code> не можна викликати двічі поспіль',
+          '<code>vTaskDelay()</code> не можна викликати в перші секунди після старту'],
+        answer: 0,
+        explain: 'Задача FreeRTOS не повинна повертатися: ESP-IDF друкує саме це повідомлення й зупиняє програму<sup class="cite" data-fact="idf-task-no-return"></sup>. Тіло задачі обгортаємо в <code>while (1)</code>, а задача, якій більше нічого робити, видаляє себе: <code>vTaskDelete(NULL)</code>.' },
+      { title: 'Раз на 10 секунд',
+        symptom: 'Чистий проєкт ESP-IDF без <code>sdkconfig.defaults</code>. LED3 мав перемикатися щосекунди, а перемикається раз на 10&nbsp;с. В Arduino той самий рядок працював правильно.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', ['static void led3_task(void* arg) {', '    bool on = false;', '    while (1) {', ['        on = !on;', 1], ['        gpio_set_level(LED3, on);', 2], ['        vTaskDelay(1000);', 0], '    }', '}']);
+        },
+        options: ['<code>vTaskDelay()</code> приймає тіки: за 100&nbsp;Гц 1000 тіків — це 10&nbsp;с',
+          '<code>on = !on</code> змінює стан лише раз на 10 проходів',
+          '<code>gpio_set_level()</code> чекає, поки вивід устигне перемкнутися'],
+        answer: 0,
+        explain: 'Число в <code>vTaskDelay()</code> — це тіки. У чистому ESP-IDF тік 10&nbsp;мс, а в Arduino 1&nbsp;мс, тому в Arduino помилки не видно<sup class="cite" data-fact="idf-freertos-hz"></sup>. Пишіть <code>vTaskDelay(pdMS_TO_TICKS(1000))</code>: макрос перерахує мілісекунди для будь-якого тіку<sup class="cite" data-fact="idf-pdms-to-ticks"></sup>.' },
+      { title: 'Стек зі статті для STM32',
+        symptom: 'Задачу кнопок переписали з туторіалу для STM32. Після першого натискання в лозі <code>***ERROR*** A stack overflow in task buttons has been detected.</code>, і плата перезавантажується.',
+        build(st) {
+          hkBench(st, OK);
+          hkCode(st, 'src/main.c', [rem('// розмір стеку як у статті: 128'), ['xTaskCreatePinnedToCore(buttons_task, "buttons", 128, NULL, 3, NULL, 1);', 0], ['xTaskCreatePinnedToCore(led2_task, "led2", 2048, NULL, 2, NULL, 1);', 2], '', 'static void buttons_task(void* arg) {', '    ' + rem('// ...'), ['    printf("BTN1 -&gt; LED2 = %lu мс\\n", ms);', 1], '}']);
+        },
+        options: ['В ESP-IDF стек у байтах: 128 байт замало, а у ванільному FreeRTOS це були б слова',
+          '<code>printf()</code> не можна викликати з задачі з пріоритетом 3',
+          'Задачі <code>buttons</code> і <code>led2</code> не можуть жити на одному ядрі'],
+        answer: 0,
+        explain: 'У ванільному FreeRTOS 128 означає 128 слів, тобто 512 байт на Cortex-M. В ESP-IDF це 128 байт<sup class="cite" data-fact="idf-stack-bytes"></sup>, а <code>printf()</code> потребує значно більше. ESP-IDF стандартно ловить переповнення «canary»-байтами й друкує саме це повідомлення<sup class="cite" data-fact="idf-stack-overflow-check"></sup>. Поставте 3072 і перевірте запас <code>uxTaskGetStackHighWaterMark()</code>.' },
+      { title: 'BTN2 мовчить',
+        symptom: 'BTN1 перемикає швидкість, а BTN2 не робить нічого. Мультиметр на GPIO18 показує 3,3&nbsp;В і з натиснутою кнопкою, і з відпущеною. Код той самий, що в розділі 09.',
+        build(st) {
+          const kb = hkBench(st, 'Макетка: три LED як у розділі 08, BTN1 на GPIO21 фіолетовим дротом. Кнопка BTN2 стоїть ніжками в стовпчиках 52 і 54, але помаранчевий дріт від GPIO18 приходить у стовпчик 53, між ніжками. Стовпчик 52 чорним дротом на шину мінус.', { b2to: BC.b2 + 1 });
+          hkTag(kb.wire.b2, 0); hkTag(kb.btn.b2, 1); hkTag(kb.wire.b2g, 2);
+        },
+        options: ['Помаранчевий дріт у стовпчику 53, а ніжки кнопки в 52 і 54: GPIO18 до кнопки не під\'єднаний',
+          'Кнопка BTN2 стоїть не тією стороною',
+          'Чорний дріт BTN2 має йти на шину плюс'],
+        answer: 0,
+        explain: 'Стовпчик 53 ні з чим не з\'єднаний, тож GPIO18 висить на внутрішній підтяжці й завжди читається як 1, тобто «не натиснута». Переставте дріт у стовпчик 54. Тактова кнопка 6×6 замикає стовпчики своїх ніжок, тому повернути її не допоможе, а GND на шину мінус якраз правильний.' },
+    ] });
+  }
+});
+</script>
+</body>
+</html>

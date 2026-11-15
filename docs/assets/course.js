@@ -114,6 +114,11 @@
         L('5-5', '5.5', 'Програмні фільтри', 'Програмні фільтри', null, null, 'planned'),
         L('5-6', '5.6', 'PID-регулятор', 'PID', null, null, 'planned'),
       ]},
+      { id: '6', title: 'Модуль 6 · FreeRTOS: задачі, черги, синхронізація', short: 'Модуль 6', lessons: [
+        L('6-1', '6.1', 'Чому не суперцикл: задачі й планувальник FreeRTOS', 'Вступ до FreeRTOS', '2026-12-23',
+          'cmruq1sciaoti08134y3i8n1v', 'ready',
+          { cards: 25, quiz: 12, repo: ['esp32-s3-three-rhythms', 'esp32-s3-multitask-device'], challenge: 'Важкий сусід' }),
+      ]},
     ],
 
     // Global pages (brief §1.4). nav: shown in the «Довідка» nav group; ref: shown in the map's «Довідка» grid;
