@@ -18,6 +18,8 @@
     { "path": "esp32-s3-site-bridge/cpp", "name": "site-bridge (C++)" },
     { "path": "esp32-s3-three-rhythms/cpp", "name": "three-rhythms (C++)" },
     { "path": "esp32-s3-multitask-device/cpp", "name": "multitask-device (C++)" },
+    { "path": "esp32-s3-traffic-light/cpp", "name": "traffic-light (C, ESP-IDF)" },
+    { "path": "esp32-s3-traffic-light/rust", "name": "traffic-light (Rust, ESP-IDF)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {
