@@ -3754,6 +3754,315 @@
    "checked": "2026-11-15",
    "status": "verified",
    "note": "Див. idf-adc-cali-s3, core-3x-adc-default-atten."
+  },
+  {
+   "id": "idf-adc-vref-range",
+   "claim": "Опорна напруга АЦП ESP32-S3 за задумом 1100 мВ, але від чипа до чипа справжня буває від 1000 до 1200 мВ",
+   "value": [
+    1000,
+    1200
+   ],
+   "unit": "мВ",
+   "source": "ESP-IDF v6.1.1 Programming Guide: ADC Calibration Driver (ESP32-S3)",
+   "section": "Introduction («By design, the ADC reference voltage for ESP32-S3 is 1100 mV…»)",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Те саме формулювання є і в старій документації v4.4.8 для ESP32-S3 (peripherals/adc.html). ±100 мВ від 1100 — це ±9,1 %."
+  },
+  {
+   "id": "idf-adc-cali-s3-curve",
+   "claim": "ESP32-S3 підтримує одну схему калібрування АЦП — curve fitting (ADC_CALI_SCHEME_VER_CURVE_FITTING); line fitting для S3 не визначено",
+   "value": "curve fitting",
+   "unit": "",
+   "source": "ESP-IDF v6.1.1: ADC Calibration Driver; esp-idf release/v5.5 components/esp_adc/esp32s3/include/adc_cali_schemes.h",
+   "section": "Calibration Scheme Creation; adc_cali_schemes.h: лише #define ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED 1",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "У adc_cali_scheme.h оголошення line fitting загорнуто в #if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED, тож для S3 тип і функція line fitting недоступні."
+  },
+  {
+   "id": "idf-adc-cali-efuse",
+   "claim": "Схема калібрування спирається на калібрувальні біти eFuse; Espressif гарантує, що їх пропалено під час виготовлення модуля. Якщо adc_cali_create_scheme_curve_fitting() повертає ESP_ERR_NOT_SUPPORTED, потрібних бітів eFuse на платі немає",
+   "value": "eFuse",
+   "unit": "",
+   "source": "ESP-IDF v6.1.1: ADC Calibration Driver (ESP32-S3)",
+   "section": "Calibration Scheme Creation; ADC Calibration Curve Fitting Scheme",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "idf-adc-cali-per-atten",
+   "claim": "Конфігурація curve fitting: unit_id, chan, atten, bitwidth; на ESP32-S3 схема відрізняється лише ослабленням (chan залишено для розширюваності), тож схему створюють під те саме ослаблення, що й канал",
+   "value": "atten",
+   "unit": "",
+   "source": "ESP-IDF v6.1.1: ADC Calibration Driver; release/v5.5 esp_adc/adc_cali_scheme.h",
+   "section": "ADC Calibration Curve Fitting Scheme; adc_cali_curve_fitting_config_t",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Коментар у заголовку: «for chips with SOC_ADC_CALIB_CHAN_COMPENS_SUPPORTED, calibration can be per channel»."
+  },
+  {
+   "id": "idf-adc-cali-raw-to-voltage",
+   "claim": "adc_cali_raw_to_voltage(handle, raw, &voltage) перетворює сире число на калібровану напругу в мілівольтах (ціле int); без створеної схеми повертає ESP_ERR_INVALID_STATE",
+   "value": "мВ",
+   "unit": "",
+   "source": "ESP-IDF v6.1.1: ADC Calibration Driver",
+   "section": "Result Conversion; API Reference adc_cali_raw_to_voltage",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "idf-adc-atten-db12",
+   "claim": "Рівні ослаблення ESP-IDF: ADC_ATTEN_DB_0, _2_5, _6, _12; ADC_ATTEN_DB_11 оголошено застарілим (deprecated), він поводиться так само, як ADC_ATTEN_DB_12",
+   "value": "ADC_ATTEN_DB_12",
+   "unit": "",
+   "source": "esp-idf release/v5.5 components/hal/include/hal/adc_types.h",
+   "section": "enum adc_atten_t",
+   "url": "https://github.com/espressif/esp-idf/blob/release/v5.5/components/hal/include/hal/adc_types.h",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "idf-60-legacy-adc-removed",
+   "claim": "Старий драйвер АЦП (driver/adc.h: adc1_config_width, adc1_config_channel_atten, adc1_get_raw) застарів у ESP-IDF 5.0 і повністю видалений у 6.0; заміна — esp_adc/adc_oneshot.h, adc_continuous.h, adc_cali.h, adc_cali_scheme.h",
+   "value": "6.0",
+   "unit": "",
+   "source": "ESP-IDF v6.1.1: Migration from 5.x to 6.0, Peripherals",
+   "section": "ADC: «Starting from version 6.0, the legacy driver is completely removed»",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/migration-guides/release-6.x/6.0/peripherals.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Про esp_adc_cal.h сторінка окремо не пише; esp_adc_cal належить до того самого старого API."
+  },
+  {
+   "id": "s3-adc-input-ranges",
+   "claim": "Межі вхідної напруги АЦП ESP32-S3 за ослабленням: 0 дБ — до 950 мВ, 2,5 дБ — до 1250 мВ, 6 дБ — до 1750 мВ, 11/12 дБ — до 3100 мВ",
+   "value": [
+    950,
+    1250,
+    1750,
+    3100
+   ],
+   "unit": "мВ",
+   "source": "ESP-IDF v4.4.8 Programming Guide (ESP32-S3): ADC; Arduino-ESP32 docs: ADC API",
+   "section": "adc1_config_channel_atten(), таблиця «Measurable input voltage range»; Arduino: analogSetAttenuation, вкладка ESP32-S3",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/v4.4.8/esp32s3/api-reference/peripherals/adc.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Довідник v6 для меж відсилає до даташита. Калібровану точність даташит обіцяє на вужчих діапазонах (див. s3-adc-error-all)."
+  },
+  {
+   "id": "s3-adc-error-all",
+   "claim": "Повна похибка АЦП після апаратного й програмного калібрування: ATTEN0 (0…850 мВ) ±5 мВ, ATTEN1 (0…1100 мВ) ±6 мВ, ATTEN2 (0…1600 мВ) ±10 мВ, ATTEN3 (0…2900 мВ) ±50 мВ; для вищої точності даташит радить власне калібрування",
+   "value": [
+    5,
+    6,
+    10,
+    50
+   ],
+   "unit": "мВ",
+   "source": "ESP32-S3 Series Datasheet v2.2",
+   "section": "§5.5 ADC Characteristics, Table 5-6 ADC Calibration Results",
+   "url": "https://documentation.espressif.com/esp32-s3_datasheet_en.pdf",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Умови: зовнішній конденсатор 100 нФ на вході, постійний сигнал, 25 °C, Wi-Fi вимкнено."
+  },
+  {
+   "id": "idf-adc-noise",
+   "claim": "Щоб зменшити шум АЦП, ESP-IDF радить конденсатор (наприклад, керамічний 100 нФ) на вхідному виводі АЦП і усереднення кількох вимірів (multisampling)",
+   "value": "100 нФ",
+   "unit": "",
+   "source": "ESP-IDF v6.1.1: ADC Calibration Driver (ESP32-S3)",
+   "section": "Minimize Noise",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "esp32-v33-fullscale",
+   "claim": "Для оригінального ESP32 стара документація ESP-IDF v3.3 писала: «повна шкала» 1,1 В при 0 дБ, 1,5 В при 2,5 дБ, 2,2 В при 6 дБ і 3,9 В при 11 дБ, причому при 11 дБ максимум обмежений живленням VDD_A",
+   "value": [
+    1.1,
+    1.5,
+    2.2,
+    3.9
+   ],
+   "unit": "В",
+   "source": "ESP-IDF v3.3 Programming Guide (ESP32): ADC",
+   "section": "adc1_config_channel_atten(), «When VDD_A is 3.3V»",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/v3.3/api-reference/peripherals/adc.html",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Уже v4.4.8 для ESP32 дає інші рекомендовані діапазони: 100–950, 100–1250, 150–1750, 150–2450 мВ."
+  },
+  {
+   "id": "lm35-scale",
+   "claim": "LM35: лінійний вихід 10 мВ/°C (0 мВ при 0 °C), гарантована точність 0,5 °C при 25 °C, діапазон −55…150 °C",
+   "value": 10,
+   "unit": "мВ/°C",
+   "source": "Texas Instruments: LM35 Precision Centigrade Temperature Sensors (product page, datasheet Rev. H)",
+   "section": "Features",
+   "url": "https://www.ti.com/product/LM35",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "lm35-supply",
+   "claim": "LM35 живиться від 4 до 30 В, тому від 3,3 В його не живлять: на нашій платі — від виводу 5V",
+   "value": [
+    4,
+    30
+   ],
+   "unit": "В",
+   "source": "Texas Instruments: LM35 product page (datasheet Rev. H)",
+   "section": "Features («Operates From 4 V to 30 V»)",
+   "url": "https://www.ti.com/product/LM35",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Висновок про вивід 5V — наш."
+  },
+  {
+   "id": "lms-err-3-2-vref-percent",
+   "claim": "Розкид Vref 1000–1200 мВ — це ±100 мВ від 1100, тобто ±9,1 %, а не «приблизно ±4,5 %»; показ формули з номіналом зсувається від +10 % (1000 мВ) до −8,3 % (1200 мВ). Хибні ±4,5 % LMS повторює в бюджеті похибок",
+   "value": 9.1,
+   "unit": "%",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділ 4 «Проблема варіації опорної напруги»; розділ 9",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Вступ того самого уроку й посилання на документацію пишуть «до ±10 %». Див. idf-adc-vref-range."
+  },
+  {
+   "id": "lms-err-3-2-vref-sign",
+   "claim": "При реальній Vref 1150 мВ формула з номіналом 1100 мВ занижує показ (1100/1150 − 1 = −4,35 %), а не завищує, як написано в тексті; глосарій самого уроку дає правильний знак",
+   "value": -4.35,
+   "unit": "%",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділ 4: «Навпаки, якщо реальне V_ref становить 1150 мВ, всі вимірювання будуть завищені»",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "lms-err-3-2-lsb-atten",
+   "claim": "Більше ослаблення дає більший крок (LSB) у мілівольтах, а не менший: шкала ширша, сходинок стільки ж. Сам LMS далі наводить 0,268 мВ при 0 дБ і 0,951 мВ при 11 дБ",
+   "value": "більший",
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділ 2: «більша атенюація дає менший LSB у миливольтах»; розділ 7",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "lms-err-3-2-atten-ranges",
+   "claim": "Діапазони 1,1 / 1,5 / 2,2 / 3,9 В з уроку — це «повна шкала» оригінального ESP32 зі старої документації. Для ESP32-S3 вхід до 0,95 / 1,25 / 1,75 / 3,1 В, а 3,9 В вище за абсолютний максимум 3,6 В",
+   "value": 3.9,
+   "unit": "В",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділ 2, розділ 7, термін «Атенюація»",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Див. esp32-v33-fullscale, s3-adc-input-ranges, s3-abs-max-vdd."
+  },
+  {
+   "id": "lms-err-3-2-legacy-api",
+   "claim": "Код уроку написано для старого API (esp_adc_cal_characterize, adc1_config_width, adc1_config_channel_atten, esp_adc_cal_raw_to_voltage, ADC_ATTEN_DB_11): старий драйвер застарів у ESP-IDF 5.0 і видалений у 6.0. Посилання з «Основних матеріалів» уже описує новий adc_cali з curve fitting",
+   "value": "adc_oneshot + adc_cali",
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділи 6 і 11; «Основні матеріали», п. 1",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Див. idf-60-legacy-adc-removed, idf-adc-atten-db12."
+  },
+  {
+   "id": "lms-err-3-2-efuse-vref",
+   "claim": "«Функція читає реальне значення V_ref з eFuse» і uint32_t v_ref_real = adc_chars.vref — опис у дусі оригінального ESP32. У новому API для S3 немає поля з однією Vref: схема curve fitting будується з eFuse окремо під кожне ослаблення",
+   "value": "per atten",
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділ 6",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Див. idf-adc-cali-per-atten, idf-adc-cali-efuse."
+  },
+  {
+   "id": "lms-err-3-2-unsourced",
+   "claim": "Числа уроку про зсув 140–150 мВ при 0 В, нелінійність ±2–3 % (±5–10 % на краях), дрейф 40 ppm/°C, похибку ±8–10 % без і ±0,5–2 % з калібруванням наведено без джерела. Перевірні дані даташита: INL ±8 LSB, DNL ±4 LSB, повна похибка після калібрування від ±5 до ±50 мВ",
+   "value": "без джерела",
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділи 8, 9 і 12; терміни «Температурний дрейф», «Нелінійність АЦП»",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Див. s3-adc-linearity, s3-adc-error-all."
+  },
+  {
+   "id": "lms-err-3-2-sample-table",
+   "claim": "У прикладі таблиці ДЗ U_manual = 412,1 мВ для RAW 512 не дає жодна формула (3300·512/4095 = 412,6; 3300·512/4096 = 412,5); похибки в прикладі пораховано правильно від цих U_manual. Це ілюстрація, а не вимір",
+   "value": 412.1,
+   "unit": "мВ",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Домашнє завдання, приклад таблиці",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "lms-err-3-2-4096",
+   "claim": "LMS в уроці 3.2 рахує напругу з діленням на 2¹² = 4096, а в уроці 3.1 — на 4095. Обидві умовності поширені, різниця 0,024 %; важливо рахувати однаково",
+   "value": 4096,
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділи 3 і 5",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": "Не помилка, а неузгодженість між уроками."
+  },
+  {
+   "id": "lms-err-3-2-noise-freq",
+   "claim": "Розділ 10.1 в одному реченні каже, що цифровий шум МК має частоти «від одиниць до десятків кілогерц», а в наступному — що він зосереджений у «кілогерцовому та мегагерцовому діапазонах»",
+   "value": "суперечність",
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Розділ 10.1",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "lms-err-3-2-video",
+   "claim": "Відео уроку — лекція про ЦАП (MCP4725, те саме відео, що в уроці 3.1) і відео про зовнішній АЦП з кодом для AVR; про калібрування вбудованого АЦП ESP32 у них немає",
+   "value": "ЦАП",
+   "unit": "",
+   "source": "Урок 3.2 у LMS (виправлення)",
+   "section": "Відео; Додаткові матеріали, п. 2",
+   "url": "",
+   "checked": "2026-11-15",
+   "status": "verified",
+   "note": ""
   }
  ]
 }

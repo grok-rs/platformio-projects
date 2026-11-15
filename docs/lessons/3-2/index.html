@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 3.2 · Сирі дані ADC → фізичні величини</title>
+<meta name="description" content="Від сирого числа АЦП до мілівольтів і градусів на ESP32-S3: формула, опорна напруга, що гуляє від чипа до чипа, ослаблення ADC_ATTEN_DB_12, калібрування adc_cali curve fitting в ESP-IDF 5/6 і чесна таблиця похибок для домашнього завдання.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-b { fill: var(--ink); font: 600 14px var(--f-body); }
+.idea figure .svg-t, .idea figure .svg-m { font-size: 15px; }
+.idea figure .svg-b { font-size: 16px; }
+#why figure .svg-t, #why figure .svg-m { font-size: 15px; }
+.ctl-grid { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); margin: 4px 0 10px; }
+@media (min-width: 640px) { .ctl-grid { grid-template-columns: 1fr 1fr; } }
+.ctl-grid label { display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+.ctl-grid label b { color: var(--ink); font: 600 15px var(--f-mono); }
+.ctl-grid input[type="range"] { width: 100%; }
+.cnt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+@media (min-width: 640px) { .cnt { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cnt div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); }
+.cnt span { display: block; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.cnt b { font: 600 22px var(--f-mono); }
+.cnt .ok b { color: var(--ok); } .cnt .bad b { color: var(--bad); }
+pre.code { font-size: 13px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 10px; }
+.seg-row > span { font-size: 14px; color: var(--muted); }
+.fixlist li { margin: 6px 0; }
+.tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl-wrap { overflow-x: auto; }
+.tbl-modes code { white-space: nowrap; }
+.tbl-modes td.n { font-family: var(--f-mono); white-space: nowrap; }
+.isr-badge { display: inline-block; font: 600 14px var(--f-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.dual-ctl .lab-range { display: grid; grid-template-columns: auto minmax(120px, 1fr) auto; gap: 8px; align-items: center; flex: 1 1 280px; font-size: 15px; }
+
+/* ---------- idea figures ---------- */
+.idea-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 0; }
+.idea figure .idea-ctl .lab-range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; width: 100%; font-size: 14px; }
+.idea figure .idea-ctl input[type="range"] { width: 100%; }
+.idea-out { margin: 8px 0 0; font-size: 15px; min-height: 1.6em; }
+.idea-out b.ok { color: var(--ok); } .idea-out b.bad { color: var(--bad); }
+.idea:has(.idea-ctl) > figure { max-width: 460px; margin-inline: auto; }
+@media (max-width: 819px) { .hub .idea:has(.idea-ctl) figure :is(.svg-t, .svg-m, .svg-b) { font-size: 16px; } }
+
+/* ---------- lab «від повзунка до мілівольтів» (#cal) ---------- */
+.cal-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .cal-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); } }
+.pipe { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.pipe li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.pipe li + li::before { content: "↓"; position: absolute; left: 18px; top: -17px; line-height: 16px; font: 600 14px var(--f-mono); color: var(--muted); }
+.pipe .k { font-size: 14px; color: var(--muted); line-height: 1.3; }
+.pipe .k code { font-size: 13px; white-space: nowrap; }
+.pipe .v { font: 600 19px var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pipe .split { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; padding: 0; border: 0; background: none; }
+.pipe .split > div { display: grid; gap: 2px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.pipe li.err { border-color: var(--accent); }
+.pipe .v.bad { color: var(--bad); } .pipe .v.ok { color: var(--ok); }
+#vr-svg, #at-svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 4px auto 0; }
+#cal-svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.cal-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.cal-key i { display: inline-block; width: 16px; height: 0; margin-right: 6px; vertical-align: 3px; border-top: 3px solid; }
+
+/* ---------- calculators ---------- */
+.calc { display: grid; gap: 10px 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; margin: 8px 0; }
+.calc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.calc input, .calc select { min-height: 42px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 500 16px var(--f-mono); width: 100%; box-sizing: border-box; }
+.calc-out { margin: 6px 0 0; font-size: 15px; }
+.calc-out b { font: 600 17px var(--f-mono); }
+
+/* ---------- Kit bench ---------- */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.kit-bench .kb-pill.lvl text { font-family: var(--f-mono); }
+.bb-pot { display: block; width: 100%; max-width: 560px; height: auto; margin-inline: auto; }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+
+/* ---------- «Знайди несправність» code panel ---------- */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; overflow-x: auto; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; white-space: pre; }
+.hk-l .rem { color: var(--muted); }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+</style>
+</head>
+<body data-lesson="3-2">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:3-2">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 3 · Урок 3.2 · сб 14.11</p>
+    <h1>Сирі дані ADC → <span>мілівольти й градуси</span></h1>
+    <p class="lead">Число 2048 — ще не напруга, а лише частка шкали. Розберемося, чому проста формула бреше на кілька відсотків, що зберігає кожен чип у своїх eFuse і як ESP-IDF 5/6 перетворює сирий відлік на калібровані мілівольти, а ті на градуси.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 25 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: потенціометр 10&nbsp;кОм, мультиметр</a></li>
+      <li><a class="chip" href="../1-6/">Спершу: урок 1.6 · АЦП</a></li>
+      <li><a class="chip" href="../3-1/">Урок 3.1 · дискретизація й квантування</a></li>
+      <li><a class="chip deep" href="../../adc-light/">Теорія: АЦП і світло</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ lab: pot → raw → two conversions (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="cal" aria-labelledby="cal-h">
+    <header class="lab-head"><h2 id="cal-h">Лабораторія · від повзунка до мілівольтів</h2><p>Крутіть потенціометр, міняйте ослаблення й чип. Одне й те саме сире число проходить двома шляхами: через формулу і через калібрування.</p></header>
+    <div class="lab-stage" id="cal-stage">
+      <div class="cal-grid">
+        <ol class="pipe" aria-live="polite">
+          <li><span class="k">Напруга на GPIO4 (так показав би мультиметр)</span><span class="v" id="p-vin">1650 мВ</span></li>
+          <li><span class="k">Сире число АЦП, <code id="p-att">ADC_ATTEN_DB_12</code></span><span class="v" id="p-raw">2160</span></li>
+          <li class="split">
+            <div><span class="k">Формула <code id="p-fml">RAW × 3300 / 4095</code></span><span class="v" id="p-man">1741 мВ</span></div>
+            <div><span class="k">Калібрування <code>adc_cali</code></span><span class="v" id="p-cal">1650 мВ</span></div>
+          </li>
+          <li class="err"><span class="k">Похибка формули щодо калібрування, як у ДЗ</span><span class="v" id="p-err">+5,5 %</span></li>
+          <li><span class="k">Фізична величина: положення повзунка, % від 3,3&nbsp;В</span><span class="v" id="p-phys">50 %</span></li>
+        </ol>
+        <div>
+          <svg id="cal-svg" viewBox="0 0 340 236" role="img" aria-label="Графік: по горизонталі напруга на вході від 0 до 3,3 В, по вертикалі сире число від 0 до 4095. Пунктир — як рахує формула, суцільна лінія — модель чипа. Зелена смуга — діапазон, де даташит обіцяє калібровану точність. Точка — поточне положення повзунка.">
+            <rect id="cs-band" x="44" y="12" width="0" height="178" fill="var(--ok)" opacity=".12"/>
+            <g id="cs-grid"></g>
+            <path id="cs-ideal" d="" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 5"/>
+            <path id="cs-chip" d="" fill="none" stroke="var(--accent)" stroke-width="3"/>
+            <path id="cs-guide" d="" fill="none" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 4" opacity=".6"/>
+            <circle id="cs-dot" cx="0" cy="0" r="6" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>
+            <text class="svg-m" x="187" y="228" text-anchor="middle">напруга на вході, В</text>
+          </svg>
+          <div class="cal-key" aria-hidden="true"><span><i style="border-color:var(--muted);border-top-style:dashed"></i>як рахує формула</span><span><i style="border-color:var(--accent)"></i>модель чипа</span><span><i style="border-color:var(--ok);opacity:.5"></i>калібровано за даташитом</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <label class="lab-range">Повзунок <input type="range" id="cal-pos" min="0" max="100" step="1" value="50" aria-label="Положення повзунка потенціометра, відсотків"><output id="cal-pos-out">50 %</output></label>
+      <div class="seg" role="group" aria-label="Ослаблення АЦП" id="cal-att">
+        <button type="button" data-a="0" aria-pressed="false">0 дБ</button>
+        <button type="button" data-a="2.5" aria-pressed="false">2,5</button>
+        <button type="button" data-a="6" aria-pressed="false">6</button>
+        <button type="button" data-a="12" aria-pressed="true">12 дБ</button>
+      </div>
+      <div class="seg" role="group" aria-label="Чип: реальна опорна напруга" id="cal-chip">
+        <button type="button" data-c="a" aria-pressed="true">Чип A</button>
+        <button type="button" data-c="b" aria-pressed="false">Чип B</button>
+        <button type="button" data-c="c" aria-pressed="false">Чип C</button>
+      </div>
+      <div class="seg" role="group" aria-label="Повна шкала у формулі" id="cal-vmax">
+        <button type="button" data-v="3300" aria-pressed="true">× 3300</button>
+        <button type="button" data-v="3100" aria-pressed="false">× 3100</button>
+      </div>
+    </div>
+    <div class="lab-read">
+      <div><b>RAW</b><output id="cal-raw">—</output></div>
+      <div><b>Формула</b><output id="cal-man">—</output></div>
+      <div><b>Калібровано</b><output id="cal-cal">—</output></div>
+      <div><b>Похибка</b><output id="cal-err">—</output></div>
+      <div><b>Vref чипа</b><output id="cal-vref">—</output></div>
+    </div>
+    <p class="lab-note" id="cal-note" aria-live="polite"></p>
+    <p class="lab-note"><b>Це модель, а не вимір нашої плати.</b> Межі входу (0,95 / 1,25 / 1,75 / 3,1&nbsp;В)<sup class="cite" data-fact="s3-adc-input-ranges"></sup>, розкид опорної напруги 1000–1200&nbsp;мВ<sup class="cite" data-fact="idf-adc-vref-range"></sup>, нелінійність до ±8&nbsp;LSB<sup class="cite" data-fact="s3-adc-linearity"></sup> і залишкова похибка калібрування в межах даташита<sup class="cite" data-fact="s3-adc-error-all"></sup> взято з документів Espressif. Зсув нуля в кожного «чипа» (6–24&nbsp;мВ) вигаданий для наочності. Справжню криву вашого чипа покаже лише ваша таблиця з ДЗ.</p>
+    <a class="lab-more" href="../../adc-light/">Як АЦП перетворює напругу на число →</a>
+    <div class="missions" id="cal-ms"></div>
+  </section>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>Датчик температури видає 250&nbsp;мВ, а програма думає, що 263. Це 1,3&nbsp;°C різниці, і жодна помилка в коді її не пояснить. Сире число АЦП — лише частка від чиєїсь шкали, а шкала в кожного чипа своя. Сьогодні з'ясуємо, хто цю шкалу знає, як її прочитати і скільки похибки лишається навіть після калібрування.</p>
+    <figure>
+      <svg viewBox="0 0 340 120" role="img" aria-label="Ланцюжок: фізична величина, датчик дає напругу, АЦП дає сире число, калібрування повертає мілівольти, формула датчика дає градуси. Над стрілкою між числом і мілівольтами позначено: тут потрібна шкала чипа.">
+        <defs><marker id="w-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+        <g class="svg-t">
+          <rect x="4" y="44" width="60" height="34" rx="8" fill="var(--panel)" stroke="var(--line-strong)"/><text x="34" y="66" text-anchor="middle">°C</text>
+          <rect x="96" y="44" width="60" height="34" rx="8" fill="var(--panel)" stroke="var(--line-strong)"/><text x="126" y="66" text-anchor="middle">мВ</text>
+          <rect x="188" y="44" width="60" height="34" rx="8" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"/><text x="218" y="66" text-anchor="middle">RAW</text>
+          <rect x="280" y="44" width="56" height="34" rx="8" fill="var(--panel)" stroke="var(--line-strong)"/><text x="308" y="66" text-anchor="middle">мВ</text>
+        </g>
+        <path d="M64 61H92" stroke="var(--muted)" stroke-width="2" marker-end="url(#w-arr)"/>
+        <path d="M156 61H184" stroke="var(--muted)" stroke-width="2" marker-end="url(#w-arr)"/>
+        <path d="M248 61H276" stroke="var(--muted)" stroke-width="2" marker-end="url(#w-arr)"/>
+        <text class="svg-m" x="78" y="104" text-anchor="middle">датчик</text>
+        <text class="svg-m" x="170" y="104" text-anchor="middle">АЦП</text>
+        <text class="svg-t" x="262" y="28" text-anchor="middle" style="fill:var(--bad)">шкала чипа?</text>
+        <path d="M262 34V54" stroke="var(--bad)" stroke-width="2"/>
+      </svg>
+      <figcaption>Датчик і формулу датчика ви знаєте з даташита. Слабка ланка — перехід від числа назад до мілівольтів.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>перерахувати</b> сирий відлік у мілівольти за формулою і <b>пояснити</b>, звідки в ній похибка;</li>
+      <li><b>оцінити</b>, як розкид опорної напруги 1000–1200&nbsp;мВ зсуває показ, і <b>визначити</b> знак похибки;</li>
+      <li><b>вибрати</b> ослаблення під діапазон сигналу й <b>порахувати</b> крок і похибку в мілівольтах;</li>
+      <li><b>написати</b> читання АЦП на ESP-IDF 5/6: <code>adc_oneshot</code> + <code>adc_cali</code> з curve fitting;</li>
+      <li><b>перевести</b> калібровані мілівольти у фізичну величину: відсотки, градуси;</li>
+      <li><b>виміряти</b> похибку формули щодо калібрування й записати таблицю для ДЗ.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ «Коротко»: an aside, not a section.hs, so the TOC skips it -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 10 хв основне · віджети й практика — ще ≈ 35 хв</p>
+    <ol>
+      <li>Сире число — частка шкали: U&nbsp;=&nbsp;RAW&nbsp;×&nbsp;U<sub>повна</sub>&nbsp;/&nbsp;4095. Усе залежить від того, чи правильна U<sub>повна</sub>. <a href="#ideas">→ 04</a></li>
+      <li>Опорна напруга ESP32-S3 за задумом 1100&nbsp;мВ, а насправді 1000–1200&nbsp;мВ. Це ±9&nbsp;%, а не ±4,5&nbsp;%, як пише LMS. <a href="#poe">→ 05</a></li>
+      <li>Ослаблення розширює діапазон, але крок росте: при 0&nbsp;дБ ≈&nbsp;0,23&nbsp;мВ, при 12&nbsp;дБ ≈&nbsp;0,76&nbsp;мВ. Похибка за даташитом — від ±5 до ±50&nbsp;мВ. <a href="#poe">→ 05</a></li>
+      <li>Калібрування: дані з eFuse, схема curve fitting, <code>adc_cali_raw_to_voltage()</code> повертає мВ. Старий <code>esp_adc_cal</code> з LMS у ESP-IDF 6 не збереться. <a href="#ideas">→ 04</a></li>
+      <li>Після мілівольтів усе просто: формула датчика. LM35 дає 10&nbsp;мВ/°C, тож 236&nbsp;мВ — це 23,6&nbsp;°C. <a href="#example">→ 06</a></li>
+      <li>Похибку рахуємо так: (U<sub>формула</sub>&nbsp;−&nbsp;U<sub>калібр</sub>)&nbsp;/&nbsp;U<sub>калібр</sub>. Біля нуля відсотки вибухають, бо ділимо на мале число. <a href="#lab">→ 09</a></li>
+    </ol>
+  </aside>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Сире число — це частка шкали, а не вольти</h3>
+      <p>12-бітний АЦП ESP32-S3 видає ціле число від 0 до 4095<sup class="cite" data-fact="s3-adc-max-raw"></sup>. Як воно з'являється з напруги — дискретизація й квантування — ми розібрали в <a href="../3-1/">уроці 3.1</a> і <a href="../1-6/">уроці 1.6</a>. Тут важливе одне: число показує, <b>яку частку повної шкали</b> становить вхідна напруга. Щоб повернутися до мілівольтів, треба помножити цю частку на повну шкалу:</p>
+      <p class="formula">U = RAW × U<sub>повна</sub> / 4095</p>
+      <p>Найменша зміна, яку помічає АЦП, — крок, або LSB: U<sub>повна</sub>&nbsp;/&nbsp;4096, бо сходинок 2<sup>12</sup> = 4096 (як в <a href="../3-1/">уроці 3.1</a>). Формула чесна лише тоді, коли U<sub>повна</sub> справжня. А її ніхто не друкує на корпусі: вона залежить від ослаблення і від конкретного чипа.</p>
+      <p class="key"><b>Головне</b>Формула не помиляється в арифметиці. Вона помиляється в припущенні про шкалу, і ця помилка однаково множить кожне число.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Опорна напруга в кожного чипа своя</h3>
+      <p>Усередині АЦП є опорна напруга V<sub>ref</sub>: з нею порівнюється вхід. За задумом Espressif вона 1100&nbsp;мВ, але від чипа до чипа буває від 1000 до 1200&nbsp;мВ<sup class="cite" data-fact="idf-adc-vref-range"></sup>. Це ±100&nbsp;мВ, тобто ±9&nbsp;% від номіналу. LMS тут помиляється вдвічі й пише «±4,5&nbsp;%»<sup class="cite" data-fact="lms-err-3-2-vref-percent"></sup>.</p>
+      <p>Якщо формула вважає V<sub>ref</sub> = 1100, а насправді вона інша, показ зсувається на</p>
+      <p class="formula">ε = V<sub>ном</sub> / V<sub>реал</sub> − 1</p>
+      <p>Менша реальна V<sub>ref</sub> → та сама напруга займає більшу частку шкали → число більше → формула <b>завищує</b>. Більша V<sub>ref</sub> → формула <b>занижує</b>. Для 1050&nbsp;мВ це +4,8&nbsp;%, для 1150&nbsp;мВ −4,3&nbsp;%. LMS в одному абзаці називає обидва випадки «завищеними»<sup class="cite" data-fact="lms-err-3-2-vref-sign"></sup>. Покрутите це самі в розділі <a href="#poe">05</a>.</p>
+      <p class="key"><b>Головне</b>Похибка через V<sub>ref</sub> — множник: однаковий відсоток для 0,5&nbsp;В і для 2,5&nbsp;В на одному чипі. Тому її можна виправити одним коефіцієнтом, якщо знати V<sub>ref</sub> свого чипа.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Ослаблення: ширший діапазон, грубіший крок</h3>
+      <p>Щоб виміряти більше за ≈1&nbsp;В, перед АЦП вмикають ослаблення (атенюацію). В ESP-IDF є чотири рівні: <code>ADC_ATTEN_DB_0</code>, <code>_2_5</code>, <code>_6</code> і <code>_12</code>. Старе ім'я <code>ADC_ATTEN_DB_11</code> оголошене застарілим і працює так само, як <code>_12</code><sup class="cite" data-fact="idf-adc-atten-db12"></sup>.</p>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th>Ослаблення</th><th>Вхід до</th><th>Калібровано до</th><th>Похибка після калібрування</th><th>Крок ≈</th></tr></thead>
+        <tbody>
+          <tr><td><code>ADC_ATTEN_DB_0</code></td><td class="n">950 мВ</td><td class="n">850 мВ</td><td class="n">±5 мВ</td><td class="n">0,23 мВ</td></tr>
+          <tr><td><code>ADC_ATTEN_DB_2_5</code></td><td class="n">1250 мВ</td><td class="n">1100 мВ</td><td class="n">±6 мВ</td><td class="n">0,31 мВ</td></tr>
+          <tr><td><code>ADC_ATTEN_DB_6</code></td><td class="n">1750 мВ</td><td class="n">1600 мВ</td><td class="n">±10 мВ</td><td class="n">0,43 мВ</td></tr>
+          <tr><td><code>ADC_ATTEN_DB_12</code></td><td class="n">3100 мВ</td><td class="n">2900 мВ</td><td class="n">±50 мВ</td><td class="n">0,76 мВ</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">«Вхід до» — з документації ESP-IDF і Arduino для S3<sup class="cite" data-fact="s3-adc-input-ranges"></sup>; «калібровано до» і похибка — таблиця 5-6 даташита<sup class="cite" data-fact="s3-adc-error-all"></sup>. Крок — наш розрахунок: межа входу / 4096.</p>
+      <p>Більше ослаблення — <b>більший</b> крок і більша похибка в мілівольтах. LMS в одному реченні каже навпаки, а через два абзаци сам наводить 0,268 і 0,951&nbsp;мВ<sup class="cite" data-fact="lms-err-3-2-lsb-atten"></sup>. І ще: «1,1 / 1,5 / 2,2 / 3,9&nbsp;В» з LMS — це опис оригінального ESP32 зі старої документації<sup class="cite" data-fact="esp32-v33-fullscale"></sup>. На S3 3,9&nbsp;В не виміряти взагалі: абсолютний максимум живлення — 3,6&nbsp;В<sup class="cite" data-fact="s3-abs-max-vdd"></sup>.</p>
+      <p class="key"><b>Головне</b>Вибирайте найменше ослаблення, у яке вміщається ваш сигнал. Потенціометр від 0 до 3,3&nbsp;В — лише 12&nbsp;дБ, і навіть так верх, від ≈3,1&nbsp;В, АЦП не розрізняє.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Калібрування: що знає чип про себе</h3>
+      <p>Espressif міряє кожен чип на заводі й записує калібрувальні дані в eFuse, одноразову пам'ять. Ці біти пропалено ще під час виготовлення модуля, самому нічого робити не треба<sup class="cite" data-fact="idf-adc-cali-efuse"></sup>. ESP32-S3 підтримує одну схему калібрування — <b>curve fitting</b>, підгонку кривої<sup class="cite" data-fact="idf-adc-cali-s3-curve"></sup>. Схема залежить від ослаблення, тож створюють її під те саме ослаблення, що й канал<sup class="cite" data-fact="idf-adc-cali-per-atten"></sup>.</p>
+      <p>LMS показує старий API: <code>esp_adc_cal_characterize()</code>, <code>adc1_config_width()</code>, поле <code>adc_chars.vref</code>. Старий драйвер АЦП застарів ще в ESP-IDF 5.0, а у 6.0 його видалено зовсім<sup class="cite" data-fact="idf-60-legacy-adc-removed"></sup>. Новий шлях — чотири кроки:</p>
+      <pre class="code"><code>adc_oneshot_new_unit(&amp;unit, &amp;adc);                  // 1. блок ADC1
+adc_oneshot_config_channel(adc, CH, &amp;chan);         // 2. канал
+adc_cali_create_scheme_curve_fitting(&amp;cfg, &amp;cali);  // 3. eFuse
+adc_oneshot_read(adc, CH, &amp;raw);                    // 4. RAW…
+adc_cali_raw_to_voltage(cali, raw, &amp;mv);            //    …у мВ</code></pre>
+      <p>Функції й структури звіряли з довідником ESP-IDF<sup class="cite" data-fact="idf-adc-oneshot-api"></sup>; <code>adc_cali_raw_to_voltage()</code> повертає ціле число мілівольтів<sup class="cite" data-fact="idf-adc-cali-raw-to-voltage"></sup>. Якщо створення схеми повертає <code>ESP_ERR_NOT_SUPPORTED</code>, на вашому чипі немає потрібних бітів eFuse<sup class="cite" data-fact="idf-adc-cali-efuse"></sup>. В Arduino те саме робить <code>analogReadMilliVolts()</code><sup class="cite" data-fact="core-analogreadmillivolts"></sup>.</p>
+      <p class="key"><b>Головне</b>Калібрування прибирає розкид V<sub>ref</sub> і більшу частину кривизни, але не все: після нього при 12&nbsp;дБ лишається до ±50&nbsp;мВ<sup class="cite" data-fact="s3-adc-error-atten3"></sup>.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Від мілівольтів до градусів</h3>
+      <p>Коли мілівольти правильні, далі працює формула датчика з його даташита. Класичний приклад — LM35: 10&nbsp;мВ на градус Цельсія, 0&nbsp;мВ при 0&nbsp;°C<sup class="cite" data-fact="lm35-scale"></sup>. Живлять його від 4&nbsp;В і більше, тож на нашій платі — від виводу 5V<sup class="cite" data-fact="lm35-supply"></sup>, а вихід при кімнатній температурі — лише 200–300&nbsp;мВ. Подивіться, що з цього виходить при різному ослабленні.</p>
+      <figure>
+        <svg id="lm" viewBox="0 0 340 150" role="img" aria-label="Шкала напруги від 0 до 3,3 В. Зелена смуга — діапазон, де даташит обіцяє калібровану точність для вибраного ослаблення, світліше продовження — межа входу. Риска — вихід LM35 при вибраній температурі.">
+          <text class="svg-t" x="8" y="22">вихід LM35</text>
+          <text class="svg-m" id="lm-v" x="332" y="22" text-anchor="end">250 мВ</text>
+          <rect x="8" y="40" width="324" height="26" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+          <rect id="lm-in" x="8" y="40" width="0" height="26" rx="4" fill="var(--ok)" opacity=".14"/>
+          <rect id="lm-cal" x="8" y="40" width="0" height="26" rx="4" fill="var(--ok)" opacity=".34"/>
+          <path id="lm-mk" d="M8 32V74" stroke="var(--ink)" stroke-width="3"/>
+          <g id="lm-ticks"></g>
+          <text class="svg-m" x="170" y="140" text-anchor="middle">напруга на вході, В</text>
+        </svg>
+        <div class="idea-ctl">
+          <label class="lab-range">Температура <input type="range" id="lm-t" min="0" max="150" step="1" value="25" aria-label="Температура LM35, градусів Цельсія"><output id="lm-t-out">25 °C</output></label>
+          <div class="seg" role="group" aria-label="Ослаблення АЦП" id="lm-att">
+            <button type="button" data-a="0" aria-pressed="true">0 дБ</button>
+            <button type="button" data-a="2.5" aria-pressed="false">2,5</button>
+            <button type="button" data-a="6" aria-pressed="false">6</button>
+            <button type="button" data-a="12" aria-pressed="false">12 дБ</button>
+          </div>
+        </div>
+        <p class="idea-out" id="lm-txt" aria-live="polite"></p>
+      </figure>
+      <p class="key"><b>Головне</b>Ослаблення 12&nbsp;дБ «про запас» для LM35 у кімнаті — погана ідея: ±50&nbsp;мВ означає ±5&nbsp;°C. При 0&nbsp;дБ ті самі ±5&nbsp;мВ дають ±0,5&nbsp;°C.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Власна таблиця: двоточкове калібрування</h3>
+      <p>Заводське калібрування — не остання інстанція. Даташит прямо радить: для вищої точності робіть власне<sup class="cite" data-fact="s3-adc-error-all"></sup>. Найпростіше — дві точки. Мультиметром міряєте напругу на вході у двох положеннях повзунка і записуєте відповідні RAW. Через дві точки проходить пряма: нахил і зсув. Для кривої беруть більше точок і між ними інтерполюють лінійно — це й є «таблиця» з назви уроку.</p>
+      <div class="panel">
+        <div class="ph"><h3>Пряма через дві точки</h3><span class="small">числа за замовчуванням — приклад, не вимір</span></div>
+        <div class="pb">
+          <div class="calc">
+            <label>Точка 1: RAW <input type="number" id="tp-r1" value="400" inputmode="numeric"></label>
+            <label>Точка 1: мультиметр, мВ <input type="number" id="tp-u1" value="330" inputmode="decimal"></label>
+            <label>Точка 2: RAW <input type="number" id="tp-r2" value="3600" inputmode="numeric"></label>
+            <label>Точка 2: мультиметр, мВ <input type="number" id="tp-u2" value="2770" inputmode="decimal"></label>
+            <label>Перерахувати RAW <input type="number" id="tp-r" value="2048" inputmode="numeric"></label>
+          </div>
+          <p class="calc-out" id="tp-out" aria-live="polite"></p>
+        </div>
+      </div>
+      <pre class="code"><code>// дві точки з мультиметра: U = k·RAW + b
+// k — мВ на один відлік, b — мВ при RAW = 0
+const float k = (2770.0f - 330.0f) / (3600 - 400);
+const float b = 330.0f - k * 400;
+float mv = k * raw + b;</code></pre>
+      <p class="key"><b>Головне</b>Калібрування — це завжди порівняння з еталоном. Завод порівняв за вас; мультиметр дає змогу перевірити, як вийшло, саме на вашій платі.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: ділити на 4095 чи на 4096?</summary>
+      <p>Ідеальний АЦП ділить шкалу на 2<sup>12</sup> = 4096 сходинок, тому підручники пишуть LSB = U<sub>повна</sub>&nbsp;/&nbsp;4096. А найбільше число — 4095, тож багато хто ділить на 4095, щоб 4095 означало рівно U<sub>повна</sub>. Різниця — 0,024&nbsp;%, у сотні разів менша за розкид V<sub>ref</sub>. Ми робимо так само, як в <a href="../3-1/">уроці 3.1</a>: крок рахуємо як U<sub>повна</sub>&nbsp;/&nbsp;4096 (ширина сходинки), а напругу — як RAW × U<sub>повна</sub>&nbsp;/&nbsp;4095, щоб 4095 означало рівно U<sub>повна</sub>. LMS у цьому уроці ділить напругу на 4096, а в уроці 3.1 — на 4095<sup class="cite" data-fact="lms-err-3-2-4096"></sup>. Головне — однаково в усій таблиці ДЗ.</p>
+    </details>
+    <details class="more">
+      <summary>Для допитливих: бюджет похибок і числа з LMS</summary>
+      <p>LMS складає похибки квантування, V<sub>ref</sub>, нелінійності, температури й шуму через корінь із суми квадратів. Сам метод правильний для незалежних випадкових похибок. Але більшість чисел, які туди підставлено («зсув 140–150&nbsp;мВ при 0&nbsp;В», «±2–3&nbsp;% нелінійності», «40&nbsp;ppm/°C», «з калібруванням ±0,5–2&nbsp;%»), наведено без джерела<sup class="cite" data-fact="lms-err-3-2-unsourced"></sup>. Перевірні числа — у даташиті: нелінійність INL до ±8&nbsp;LSB, DNL до ±4&nbsp;LSB<sup class="cite" data-fact="s3-adc-linearity"></sup>, повна похибка після калібрування від ±5 до ±50&nbsp;мВ<sup class="cite" data-fact="s3-adc-error-all"></sup>. Ці виміри Espressif робили з конденсатором 100&nbsp;нФ на вході, постійним сигналом, при 25&nbsp;°C і з вимкненим Wi-Fi. Шум ESP-IDF радить зменшувати саме так: конденсатор на вході й усереднення кількох вимірів<sup class="cite" data-fact="idf-adc-noise"></sup>.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="1" data-gate="w-vr"
+         data-why="Реальна Vref 1150 мВ більша за 1100, тож вхід займає меншу частку шкали, число менше, а формула з 1100 мВ рахує менше, ніж є: −4,3 %. LMS у цьому місці пише «завищені», а його ж глосарій дає −4,35 %.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Ослаблення 0&nbsp;дБ, формула вважає V<sub>ref</sub> = 1100&nbsp;мВ. На вашому чипі реальна V<sub>ref</sub> = 1150&nbsp;мВ. Що покаже формула для справжніх 500&nbsp;мВ?</p>
+      <div class="opts">
+        <button class="opt">Більше за 500&nbsp;мВ: завищить</button>
+        <button class="opt">Менше за 500&nbsp;мВ: занижить</button>
+        <button class="opt">Рівно 500&nbsp;мВ: V<sub>ref</sub> на формулу не впливає</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-vr">
+      <div class="ph"><h3>Опорна напруга вашого чипа</h3><span class="small">модель LMS: ідеальний АЦП, 0&nbsp;дБ, лише V<sub>ref</sub> не та</span></div>
+      <div class="pb">
+        <div class="ctl-grid">
+          <label>Реальна опорна напруга: <b id="vr-v-out">1150 мВ</b><input type="range" id="vr-v" min="1000" max="1200" step="5" value="1150"></label>
+          <label>Справжня напруга на вході: <b id="vr-u-out">500 мВ</b><input type="range" id="vr-u" min="50" max="1000" step="10" value="500"></label>
+        </div>
+        <svg id="vr-svg" viewBox="0 0 340 150" role="img" aria-label="Дві смуги: справжня напруга і те, що порахувала формула з номіналом 1100 мВ. Нижче шкала реальної опорної напруги від 1000 до 1200 мВ з позначкою номіналу посередині.">
+          <text class="svg-t" x="8" y="20">справжня</text>
+          <rect id="vr-b1" x="96" y="8" width="0" height="18" rx="3" fill="var(--ok)" opacity=".6"/>
+          <text class="svg-t" x="8" y="50">формула</text>
+          <rect id="vr-b2" x="96" y="38" width="0" height="18" rx="3" fill="var(--accent)" opacity=".75"/>
+          <path d="M20 108H320" stroke="var(--line-strong, var(--line))" stroke-width="2"/>
+          <path d="M170 98V118" stroke="var(--muted)" stroke-width="2"/>
+          <text class="svg-m" x="20" y="136">1000</text>
+          <text class="svg-m" x="170" y="136" text-anchor="middle">1100 ном.</text>
+          <text class="svg-m" x="320" y="136" text-anchor="end">1200</text>
+          <text class="svg-m" x="8" y="86">V<tspan dy="3" font-size="10">ref</tspan><tspan dy="-3"> чипа, мВ</tspan></text>
+          <circle id="vr-dot" cx="245" cy="108" r="7" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>
+        </svg>
+        <div class="cnt" aria-live="polite">
+          <div><span>Сире число</span><b id="vr-raw">–</b></div>
+          <div><span>Формула показала</span><b id="vr-man">–</b></div>
+          <div id="vr-e"><span>Похибка</span><b id="vr-err">–</b></div>
+          <div><span>Те саме на 3,3&nbsp;В, якби вміщалось</span><b id="vr-33">–</b></div>
+        </div>
+        <p class="small" id="vr-note"></p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="0" data-gate="w-at"
+         data-why="Шкала розтягується, а сходинок однаково 4096. Отже, кожна сходинка стає ширшою: при 12 дБ ≈ 0,76 мВ проти ≈ 0,23 мВ при 0 дБ. Похибка після калібрування теж росте: від ±5 до ±50 мВ.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Перемикаємо ослаблення з 0&nbsp;дБ на 12&nbsp;дБ. Що стається з кроком АЦП у мілівольтах?</p>
+      <div class="opts">
+        <button class="opt">Крок більшає: та сама кількість сходинок на ширшу шкалу</button>
+        <button class="opt">Крок меншає: ослаблення робить АЦП точнішим</button>
+        <button class="opt">Крок не змінюється: він залежить лише від розрядності</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-at">
+      <div class="ph"><h3>Чотири ослаблення поруч</h3><span class="small">числа з даташита й документації ESP-IDF; крок — розрахунок</span></div>
+      <div class="pb">
+        <div class="seg-row">
+          <div class="seg" role="group" aria-label="Ослаблення" id="at-seg">
+            <button type="button" data-a="0" aria-pressed="false">0 дБ</button>
+            <button type="button" data-a="2.5" aria-pressed="false">2,5 дБ</button>
+            <button type="button" data-a="6" aria-pressed="false">6 дБ</button>
+            <button type="button" data-a="12" aria-pressed="true">12 дБ</button>
+          </div>
+        </div>
+        <svg id="at-svg" viewBox="0 0 340 208" role="img" aria-label="Чотири смуги, по одній на ослаблення: темніша частина — калібрований діапазон за даташитом, світліша — межа входу. Вертикальні лінії: 3,3 В живлення, 3,6 В абсолютний максимум і червоний пунктир 3,9 В з тексту LMS, що лежить за межами дозволеного."></svg>
+        <div class="cnt" aria-live="polite">
+          <div><span>Межа входу</span><b id="at-in">–</b></div>
+          <div><span>Крок ≈</span><b id="at-lsb">–</b></div>
+          <div><span>Похибка після калібрування</span><b id="at-err">–</b></div>
+          <div><span>Це в кроках</span><b id="at-errl">–</b></div>
+        </div>
+        <p class="small" id="at-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: таблиця ДЗ і градуси</h2>
+    <p>Повна прошивка для ДЗ — у розділі <a href="#lab">09</a>. Ось її серце: одне читання дає і сире число, і калібровані мілівольти, а формулу рахуємо поруч.</p>
+    <pre class="code"><code>int raw = 0, mv = 0;
+adc_oneshot_read(adc, POT_CH, &amp;raw);          // сире число 0…4095
+adc_cali_raw_to_voltage(cali, raw, &amp;mv);      // калібровані мВ
+float manual = raw * V_FULL / 4095.0f;        // формула, V_FULL = 3300
+float err = (manual - mv) * 100.0f / mv;      // похибка, %</code></pre>
+    <p>Для порівняння, Arduino-ESP32 3.x робить ті самі два кроки: <code>analogRead()</code> повертає сирі відліки, <code>analogReadMilliVolts()</code> — калібровані мілівольти; ослаблення за замовчуванням 11&nbsp;дБ, тобто те саме <code>ADC_ATTEN_DB_12</code><sup class="cite" data-fact="core-3x-adc-default-atten"></sup>.</p>
+
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Рядок із прикладу LMS:</b> RAW = 2048, U<sub>калібр</sub> = 1589&nbsp;мВ. Це ілюстрація з тексту завдання, не вимір. Формула: <span class="formula">2048 × 3300 / 4095 ≈ 1650,4 мВ</span><span class="why">чому 3300: так рахує більшість прикладів — «повна шкала дорівнює живленню». Для 12&nbsp;дБ це припущення завищене: межа входу ≈3100&nbsp;мВ.</span></li>
+      <li><b>Похибка:</b> <span class="formula">(1650,4 − 1589) / 1589 × 100 ≈ +3,9 %</span><span class="why">чому ділимо на калібровану: її ми вважаємо еталоном, а формулу перевіряємо.</span></li>
+      <li><b>У LMS тут 1648,4 і 3,74&nbsp;%:</b> <span class="formula">(1648,4 − 1589) / 1589 ≈ 3,74 %</span><span class="why">чому інакше: числа U<sub>manual</sub> у прикладі LMS не збігаються ні з /4095, ні з /4096. Похибку LMS рахує правильно, але від свого U<sub>manual</sub><sup class="cite" data-fact="lms-err-3-2-sample-table"></sup>.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> наступний рядок прикладу LMS — RAW = 1024, U<sub>калібр</sub> = 801&nbsp;мВ.</li>
+      <li>
+        <div class="try" data-ans="825.2" data-tol="0.003" data-unit="мВ" data-dec="1">
+          <span class="tag">Ваша черга</span>
+          <p>Що дасть формула з U<sub>повна</sub> = 3300&nbsp;мВ і діленням на 4095, мВ?</p>
+          <details><summary>Підказка</summary>1024 × 3300 / 4095. Це рівно чверть від 4096, тож відповідь трохи більша за 825.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="3.02" data-tol="0.03" data-unit="%" data-dec="2">
+          <span class="tag">Ваша черга</span>
+          <p>Яка похибка формули щодо калібрування, %?</p>
+          <details><summary>Підказка</summary>(825,2 − 801) / 801 × 100.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="23.6" data-tol="0.01" data-unit="°C" data-dec="1">
+      <span class="tag">Самостійно</span>
+      <h4>LM35 на 0&nbsp;дБ, <code>adc_cali_raw_to_voltage()</code> повернула 236&nbsp;мВ. Яка температура, °C?</h4>
+      <details><summary>Підказка</summary>LM35 дає 10&nbsp;мВ на градус і 0&nbsp;мВ при 0&nbsp;°C.</details>
+    </div>
+    <p class="note tip">Висновок: похибка ±5&nbsp;мВ при 0&nbsp;дБ — це ±0,5&nbsp;°C для LM35. Доречне ослаблення важить більше, ніж ще кілька знаків після коми у формулі.</p>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth">
+        <p class="seems"><code>raw * 3300 / 4095</code> — це і є напруга на виводі.</p>
+        <p class="truth">Це напруга лише за умови, що повна шкала саме 3300&nbsp;мВ. При 12&nbsp;дБ межа входу ≈3100&nbsp;мВ<sup class="cite" data-fact="s3-adc-input-ranges"></sup>, а реальна шкала ще й залежить від V<sub>ref</sub> чипа<sup class="cite" data-fact="idf-adc-vref-range"></sup>. Калібровані мілівольти дає <code>adc_cali_raw_to_voltage()</code>.</p>
+        <p class="test">Лабораторія зверху: «× 3300», Чип A, повзунок на 50&nbsp;%. Подивіться на «Похибку».</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Більше ослаблення — менший крок, точніше вимірювання.</p>
+        <p class="truth">Навпаки: шкала ширша, сходинок стільки ж, тому крок більший, а похибка після калібрування росте від ±5 до ±50&nbsp;мВ<sup class="cite" data-fact="s3-adc-error-all"></sup><sup class="cite" data-fact="lms-err-3-2-lsb-atten"></sup>.</p>
+        <p class="test">Віджет «Чотири ослаблення поруч» у розділі 05.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Розкид V<sub>ref</sub> 1000–1200&nbsp;мВ — це ±4,5&nbsp;%.</p>
+        <p class="truth">±100&nbsp;мВ від 1100 — це ±9&nbsp;%, а показ формули зсувається від +10&nbsp;% до −8,3&nbsp;%<sup class="cite" data-fact="lms-err-3-2-vref-percent"></sup>.</p>
+        <p class="test">Віджет «Опорна напруга вашого чипа»: V<sub>ref</sub> 1000, потім 1200.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Після калібрування похибки немає.</p>
+        <p class="truth">Даташит обіцяє до ±50&nbsp;мВ при 12&nbsp;дБ, і то з конденсатором 100&nbsp;нФ, при 25&nbsp;°C і без Wi-Fi<sup class="cite" data-fact="s3-adc-error-atten3"></sup>. Вище 2900&nbsp;мВ точність не обіцяють зовсім.</p>
+        <p class="test">Лабораторія: повзунок на 95&nbsp;%, примітка під графіком.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">На 11&nbsp;дБ ESP32 міряє до 3,9&nbsp;В.</p>
+        <p class="truth">Це «повна шкала» оригінального ESP32 зі старої документації, і навіть там вхід обмежений живленням<sup class="cite" data-fact="esp32-v33-fullscale"></sup>. На S3 вхід до ≈3,1&nbsp;В, а 3,9&nbsp;В вище за абсолютний максимум 3,6&nbsp;В<sup class="cite" data-fact="s3-abs-max-vdd"></sup><sup class="cite" data-fact="lms-err-3-2-atten-ranges"></sup>.</p>
+        <p class="test">Віджет «Чотири ослаблення поруч»: червоний пунктир 3,9&nbsp;В.</p>
+      </div>
+    </div>
+    <!-- «Знайди несправність»: the section 08 bench + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-cal"></div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Потенціометр 10&nbsp;кОм як подільник: крайні виводи на 3V3 і GND, повзунок на GPIO4. Це ADC1, канал 3: ADC1 займає GPIO1–GPIO10<sup class="cite" data-fact="s3-adc1-pins"></sup> і не конфліктує з Wi-Fi, на відміну від ADC2<sup class="cite" data-fact="s3-adc2-wifi"></sup>. Плата стоїть так само, як в <a href="../1-6/#circuit">уроці 1.6</a>: фоторезистор і резистор замінив один потенціометр.</p>
+    <figure class="dual wide" id="dual-pot" data-nets="v33=3V3; gpio4=GPIO4 (повзунок); gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 300 200" role="img" aria-label="Схема: вивід 3V3 плати U1 іде до верхнього виводу потенціометра R1 10 кОм, нижній вивід R1 на землю, повзунок R1 з'єднаний з GPIO4. Вивід GND плати на землю.">
+          <rect class="sch-w" x="10" y="36" width="60" height="140" rx="3"/>
+          <text class="sch-ref" x="10" y="26">U1 · ESP32-S3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="60" transform="rotate(180 90 60)"/>
+          <text class="sch-pin net-3v3" data-net="v33" x="62" y="52" text-anchor="end">3V3</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="110" transform="rotate(180 90 110)"/>
+          <text class="sch-pin net-sig" data-net="gpio4" x="62" y="102" text-anchor="end">GPIO4</text>
+          <use class="sch-sym" href="#mcu-pin" x="90" y="160" transform="rotate(180 90 160)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="62" y="152" text-anchor="end">GND</text>
+          <text class="sch-val" id="sch-v" x="96" y="102">1,65 В</text>
+          <path class="sch-w net-3v3" data-net="v33" d="M90 60H200V80"/>
+          <path class="sch-w net-sig" data-net="gpio4" d="M90 110H180"/>
+          <use class="sch-sym" href="#pot" x="200" y="140" transform="rotate(-90 200 140)"/>
+          <text class="sch-ref" x="214" y="104">R1</text>
+          <text class="sch-val" x="214" y="122">10 кОм</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M200 140V160"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="200" y="160"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M90 160H110V166"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="110" y="166"/>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-pot" class="kit-bench bb-pot" viewBox="-58 -10 1010 760" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (3V3 у стовпчику 13, GPIO4 у 16, GND у 34). Ліворуч потенціометр R1 10 кОм, виводи в ряду f у стовпчиках 3, 5 і 7. Помаранчевий дріт уздовж ряду j з'єднує 3V3 зі стовпчиком 7. Жовтий дріт від GPIO4 іде під рядом j у стовпчик 5, до повзунка. Стовпчик 3 чорним дротом на нижню шину мінус; GND плати (стовпчик 34) коротким чорним дротом на ту саму шину, розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <label class="lab-range">Вал R1 <input type="range" id="pot-pos" min="0" max="100" step="1" value="50" aria-label="Положення валу потенціометра, відсотків"><output id="pot-pos-out">50 %</output></label>
+      <span class="isr-badge" id="pot-badge" aria-live="polite">GPIO4 ≈ 1,65 В</span>
+    </div>
+    <p class="small">Напругу на бейджі рахуємо як 3,3&nbsp;В × положення: ідеальний потенціометр, ідеальні 3,3&nbsp;В. Ваш мультиметр покаже трохи інакше, і саме тому в ДЗ корисна колонка з мультиметром. Конденсатор 100&nbsp;нФ від GPIO4 до GND необов'язковий, але ESP-IDF радить його проти шуму<sup class="cite" data-fact="idf-adc-noise"></sup>. Виводів GPIO26–37 на нашій N16R8 не беріть: GPIO26–32 зайняті шиною flash/PSRAM<sup class="cite" data-fact="s3-flash-pins"></sup>, а 33–37 — octal PSRAM<sup class="cite" data-fact="s3-octal-pins"></sup>.</p>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Домашнє завдання: формула проти калібрування</h2>
+    <p>Потрібно: плата YD-ESP32-S3, потенціометр 10&nbsp;кОм, макетка, три дроти. Бажано мультиметр і конденсатор 100&nbsp;нФ (104). Завдання LMS: кожні ≈100&nbsp;мс читати АЦП, для кожного виміру вивести RAW, напругу за формулою, калібровану напругу й похибку у відсотках. Код і результат — на GitHub, у назві репозиторію, гілки чи коміту — номер модуля й уроку, посилання — у LMS.</p>
+    <div class="note"><b>Стан коду.</b> Прошивку нижче звірено з довідником ESP-IDF 6.1, але ми її <b>не збирали й не прошивали</b>, і жодного числа на цій сторінці на платі не виміряно. Якщо щось не збереться, напишіть в «Обговоренні»: виправимо.</div>
+    <ol>
+      <li>Зберіть схему розділу 08. Мультиметром перевірте: на крайніх виводах R1 — 3,3&nbsp;В і 0, на повзунку напруга змінюється плавно.</li>
+      <li><b>Спершу прогноз:</b> на аркуші запишіть, з яким знаком і якою приблизно буде похибка формули «× 3300» при 12&nbsp;дБ. Де вона буде найбільшою?</li>
+      <li>Створіть проєкт ESP-IDF у PlatformIO (як <code>esp32-s3-debounce-idf</code> з уроку 2.6), вставте <code>main.c</code> нижче, <code>pio run -t upload &amp;&amp; pio device monitor</code>.</li>
+      <li>Поставте повзунок у 7 положень: від упору до упору. У кожному запишіть RAW, U<sub>formula</sub>, U<sub>cali</sub> і, якщо є мультиметр, його показ.</li>
+      <li>У шапку таблиці додайте ослаблення (<code>ADC_ATTEN_DB_12</code>), розрядність (12 біт) і схему калібрування (curve fitting), як просить завдання.</li>
+      <li>Опційно: графік U<sub>formula</sub> і U<sub>cali</sub> від RAW. Де лінії розходяться найбільше? Де RAW застигає на 4095?</li>
+    </ol>
+    <details class="more">
+      <summary>Код: src/main.c (ESP-IDF 5/6)</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// ДЗ 3.2: потенціометр на GPIO4 (ADC1, канал 3). Кожні 100 мс друкуємо
+// сире число, напругу за формулою, калібровану напругу і похибку формули.
+#define POT_CH  ADC_CHANNEL_3    // GPIO4 = ADC1_CH3
+#define ATTEN   ADC_ATTEN_DB_12  // вхід до ≈3,1 В; старе ім'я ADC_ATTEN_DB_11
+#define V_FULL  3300.0f          // «повна шкала» для формули, мВ: перевірте й 3100
+
+void app_main(void) {
+    adc_oneshot_unit_handle_t adc;
+    adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&amp;unit, &amp;adc));
+    adc_oneshot_chan_cfg_t chan = {.atten = ATTEN, .bitwidth = ADC_BITWIDTH_12};
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, POT_CH, &amp;chan));
+
+    // Калібрування з eFuse. Ослаблення має бути те саме, що в каналу.
+    adc_cali_handle_t cali = NULL;
+    adc_cali_curve_fitting_config_t cfg = {
+        .unit_id = ADC_UNIT_1, .chan = POT_CH, .atten = ATTEN, .bitwidth = ADC_BITWIDTH_12};
+    if (adc_cali_create_scheme_curve_fitting(&amp;cfg, &amp;cali) != ESP_OK) {
+        printf("Калібрування недоступне: на чипі немає даних eFuse\n");
+        cali = NULL;
+    }
+
+    printf("ATTEN 12 дБ, 12 біт, curve fitting, V_FULL = %.0f мВ\n", V_FULL);
+    printf(" RAW  U_manual(mV)  U_cali(mV)  Error(%%)\n");
+    while (1) {
+        int raw = 0, mv = 0;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc, POT_CH, &amp;raw));
+        float manual = raw * V_FULL / 4095.0f;
+        if (cali &amp;&amp; adc_cali_raw_to_voltage(cali, raw, &amp;mv) == ESP_OK &amp;&amp; mv &gt; 0) {
+            float err = (manual - mv) * 100.0f / mv;
+            printf("%4d  %12.1f  %10d  %8.2f\n", raw, manual, mv, err);
+        } else {
+            printf("%4d  %12.1f  %10s  %8s\n", raw, manual, "-", "-");
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}</code></pre>
+      <p class="small">Читати в обробнику переривання не можна: <code>adc_oneshot_read()</code> бере м'ютекс<sup class="cite" data-fact="idf-adc-not-in-isr"></sup>. Шум менший, якщо усереднити, скажімо, 16 читань перед перерахунком<sup class="cite" data-fact="idf-adc-noise"></sup>.</p>
+    </details>
+    <details class="more">
+      <summary>Очікуваний вигляд виводу (не запис із плати)</summary>
+<pre class="code"><code>ATTEN 12 дБ, 12 біт, curve fitting, V_FULL = 3300 мВ
+ RAW  U_manual(mV)  U_cali(mV)  Error(%)
+2051        1652.8        …         …</code></pre>
+      <p class="small">Чисел ми не вигадуємо: які будуть у вас, покаже ваша плата. Важливо, щоб у рядку були всі чотири стовпці, а біля упорів ви побачили 0 і 4095.</p>
+    </details>
+    <div class="panel">
+      <div class="ph"><h3>Калькулятор рядка таблиці</h3><span class="small">та сама формула, що й у прошивці</span></div>
+      <div class="pb">
+        <div class="calc">
+          <label>RAW <input type="number" id="hw-raw" value="2048" min="0" max="4095" inputmode="numeric"></label>
+          <label>Повна шкала у формулі, мВ <select id="hw-full"><option value="3300" selected>3300</option><option value="3100">3100</option></select></label>
+          <label><span>U_cali з прошивки, мВ</span> <input type="number" id="hw-cali" value="1589" inputmode="decimal"></label>
+        </div>
+        <p class="calc-out" id="hw-out" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="tbl">
+    <table class="measure" data-calc="diff" data-key="3-2-cali">
+      <caption>Ваша таблиця: формула проти калібрування (ATTEN 12 дБ, 12 біт)</caption>
+      <thead><tr><th>Положення</th><th>RAW</th><th>U_manual, мВ</th><th>U_cali, мВ</th><th>Похибка</th><th>Мультиметр, мВ</th></tr></thead>
+      <tbody>
+        <tr><th>Упор біля GND</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+        <tr><th>≈ 10 %</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+        <tr><th>≈ 25 %</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+        <tr><th>≈ 50 %</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+        <tr><th>≈ 75 %</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+        <tr><th>≈ 90 %</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+        <tr><th>Упор біля 3V3</th><td data-col="raw"></td><td data-col="meas"></td><td data-col="pred"></td><td data-col="diff"></td><td data-col="dmm"></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">«Похибку» сайт рахує сам: (U_manual − U_cali) / U_cali, як у прикладі завдання; U_manual — це наша U<sub>formula</sub>. Таблиця зберігається лише у вашому браузері. Колонка мультиметра — ваш незалежний еталон: якщо U<sub>cali</sub> від неї далі, ніж обіцяє даташит, перевірте землю й дроти.</p>
+    <p><b>Розширення: що якщо…</b> перемкнути на <code>ADC_ATTEN_DB_6</code> і повторити рядки до 1,5&nbsp;В? Увімкнути Wi-Fi? Поставити конденсатор 100&nbsp;нФ і порівняти, як «стрибає» останній знак RAW?</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="3-2" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="3-2" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Чий вольтметр чесніший</h3>
+      <dl>
+        <dt>Мета</dt><dd>Зробіть з ESP32-S3 і потенціометра вольтметр трьома способами: формула, <code>adc_cali</code> і ваша власна таблиця з мультиметра (щонайменше 5 точок, лінійна інтерполяція між ними). Порівняйте всі три з мультиметром у 10 нових точках і назвіть найчесніший.</dd>
+        <dt>Здати</dt><dd>Код, таблицю 10 точок × 3 способи з похибкою в мВ і у відсотках, графік і висновок одним абзацом.</dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: схема і прошивка, що друкує три стовпці;</li><li><b>Вимірювач</b>: мультиметр, таблиця калібрування й таблиця перевірки;</li><li><b>Доповідач</b>: допис у «Командні виклики» з графіком;</li><li><b>Скептик</b>: перевіряє, що точки перевірки не збігаються з точками калібрування, і шукає, де кожен спосіб найгірший.</li></ul></dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>Три способи в одній прошивці:</b> 2 — так, 1 — два способи, 0 — один. <b>Перевірка на нових точках:</b> 2 — 10 точок не з таблиці, 1 — менше або частково ті самі, 0 — ні. <b>Похибки в мВ і %:</b> 2 — обидві для всіх способів, 1 — частково, 0 — ні. <b>Висновок пояснює, чому:</b> 2 — з посиланням на V<sub>ref</sub>, ослаблення чи нелінійність, 1 — лише «який кращий», 0 — немає.</p></details></dd>
+        <dt>Ускладнення</dt><dd>Додайте четвертий стовпець: <code>ADC_ATTEN_DB_6</code> для точок до 1,5&nbsp;В. Чи стала таблиця чеснішою там, де вміщається?</dd>
+        <dt>Термін</dt><dd>до суботи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «3.2 Чий вольтметр чесніший · команда …».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: потенціометр на GPIO4 за схемою розділу 08, мультиметр, проєкт ESP-IDF, який уже збирався хоча б раз (перше збирання довге), обидва віджети розділу 05 пройдені.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–15 хв</span><span class="cp-a">Збір, розминка, найменш зрозуміле з минулих квитків, короткий підсумок уроку 3.1 від студента за графіком</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">15–22 хв</span><span class="cp-a">Задача до теорії: «Чому 2048 — не 1650&nbsp;мВ?» Кожен пише свою версію в чат і надсилає разом з усіма</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–35 хв</span><span class="cp-a">Лабораторія: формула проти калібрування на трьох «чипах», ConcepTest 1 про знак похибки</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">35–45 хв</span><span class="cp-a">Ослаблення: ConcepTest 2, віджет «Чотири ослаблення поруч», LM35 при 0 і 12&nbsp;дБ</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">45–55 хв</span><span class="cp-a">Прогноз → перевірка наживо: потенціометр на камері, «скільки покаже формула на середині?» на «Стіні прогнозів»</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці, щоб отримати допомогу</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Пишемо разом <code>main.c</code>: блок, канал, схема калібрування, цикл з таблицею; контрольні точки кожні ~5&nbsp;хв</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">90–97 хв</span><span class="cp-a">«Знайди несправність» із розділу 07: кожен пише в чат літеру й рядок</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">97–108 хв</span><span class="cp-a">Видача виклику «Чий вольтметр чесніший» (розділ 12), ролі тижня, 2&nbsp;хв з напарником: «з чого почнеш?»</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступне заняття</span><span class="cp-r">усі</span></li>
+    </ol>
+    <div class="tnote">
+      <p><b>Продуктивна невдача (7 хв, до теорії):</b> «Два студенти зібрали однакову схему з однаковим кодом <code>raw * 3300 / 4095</code>. У середині ходу потенціометра в одного 1741&nbsp;мВ, у другого 1588. Мультиметр в обох показує 1650. Хто зламав код?» Очікувано: «шум», «різні потенціометри», «один ділив на 4096». Слова «опорна напруга» і «повна шкала» дайте лише після цього.</p>
+      <p><b>ConcepTest 1:</b> «Реальна V<sub>ref</sub> вашого чипа 1150&nbsp;мВ, формула вважає 1100. Формула…» А — завищує; Б — занижує; В — показує точно, бо помилка однакова для всіх напруг.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Очікувано 30–45&nbsp;% за А: LMS сам пише «завищені» для обох випадків. В — пастка «помилка постійна = помилки немає». Після голосування — віджет «Опорна напруга вашого чипа».</p></details>
+      <p><b>ConcepTest 2:</b> «LM35 у кімнаті, 200–300&nbsp;мВ. Яке ослаблення?» А — 12&nbsp;дБ, щоб був запас; Б — 0&nbsp;дБ; В — байдуже, калібрування все виправить.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б: ±5&nbsp;мВ = ±0,5&nbsp;°C проти ±50&nbsp;мВ = ±5&nbsp;°C. Очікувано багато А («запас не завадить»). Покажіть віджет LM35 з розділу 04.</p></details>
+      <p><b>POE (наживо, 8 хв):</b> студент-Збирач з прошивкою ДЗ на камері, повзунок посередині. Стіна прогнозів: «на скільки відсотків формула “× 3300” розійдеться з калібруванням?» (зони &lt;&nbsp;2&nbsp;% / 2–8&nbsp;% / &gt;&nbsp;8&nbsp;%). Чесно: ми цього на платі не міряли, тож відповідь побачимо разом.</p>
+      <table class="tbl-modes">
+        <thead><tr><th>Хв</th><th>Блок</th><th>Що на екрані</th></tr></thead>
+        <tbody>
+          <tr><td>0–15</td><td>Прихід, розминка, квитки, повтор уроку 3.1 студентом</td><td>розділ 03, квитки</td></tr>
+          <tr><td>15–22</td><td>Продуктивна невдача</td><td>розділ 01</td></tr>
+          <tr><td>22–35</td><td>Лабораторія + ConcepTest 1</td><td>лабораторія зверху, віджет 05</td></tr>
+          <tr><td>35–45</td><td>Ослаблення + ConcepTest 2</td><td>віджет 05, LM35 у 04</td></tr>
+          <tr><td>45–55</td><td>POE «скільки покаже формула»</td><td>камера</td></tr>
+          <tr><td>55–62</td><td>Перерва</td><td></td></tr>
+          <tr><td>62–90</td><td>Пишемо разом <code>main.c</code></td><td>розділи 06 і 09</td></tr>
+          <tr><td>90–97</td><td>Знайди несправність</td><td>розділ 07</td></tr>
+          <tr><td>97–108</td><td>Видача виклику</td><td>розділ 12</td></tr>
+          <tr><td>108–120</td><td>Квиток на вихід, ролі</td><td>розділ 14</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому формула `raw * 3300 / 4095` на двох різних ESP32-S3 дає різні мілівольти для тієї самої напруги, а `adc_cali_raw_to_voltage()` ні."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip deep" href="../../adc-light/">Теорія: АЦП і світло</a></li>
+      <li><a class="chip deep" href="../../ldr-lab/">Лаба: люксметр</a></li>
+      <li><a class="chip" href="../1-6/">Урок 1.6 · АЦП</a></li>
+      <li><a class="chip" href="../3-1/">Урок 3.1 · Аналогові сигнали</a></li>
+      <li><a class="chip" href="../2-6/">Урок 2.6 · перший проєкт на ESP-IDF</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s9maoqe08136wpdqi1w">Урок 3.2 у LMS</a> (потрібен вхід).</li>
+      <li><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_calibration.html">ESP-IDF: ADC Calibration Driver для ESP32-S3</a>. Що шукати: «Calibration Scheme Creation», curve fitting і «Minimize Noise». Це актуальний API, на відміну від тексту уроку.</li>
+      <li><a href="https://randomnerdtutorials.com/esp-idf-esp32-gpio-analog-adc/">Random Nerd Tutorials: ESP-IDF ADC</a>. Що шукати: one-shot і калібрування в новому API. Майте на увазі: стаття про оригінальний ESP32, тож діапазони й піни там інші.</li>
+      <li><a href="https://www.luisllamas.es/en/esp32-adc/">Luis Llamas: ADC на ESP32</a>, загальний огляд; і <a href="https://www.hengko.com/uk/news/what-is-calibrated-why-it-so-important/">«Що таке калібрування»</a>, загальна стаття про калібрування приладів.</li>
+      <li>Відео уроку — про ЦАП (MCP4725) і про зовнішній АЦП на AVR, а не про калібрування АЦП ESP32<sup class="cite" data-fact="lms-err-3-2-video"></sup>. Їх можна подивитися до уроку 3.4.</li>
+    </ul>
+    <h3>Документи</h3>
+    <ul>
+      <li><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/adc/adc_oneshot.html">ESP-IDF: ADC Oneshot Mode Driver</a>: <code>adc_oneshot_new_unit()</code>, <code>adc_oneshot_read()</code>.</li>
+      <li><a href="https://documentation.espressif.com/esp32-s3_datasheet_en.pdf">ESP32-S3 Datasheet</a>, §5.5: таблиці 5-5 і 5-6, нелінійність і похибка після калібрування.</li>
+      <li><a href="https://www.ti.com/product/LM35">LM35 (Texas Instruments)</a>: 10&nbsp;мВ/°C.</li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на даташити й документацію</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 15.11.2026</span></p>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (11 пунктів)</summary>
+    <ol class="fixlist">
+      <li>Розкид V<sub>ref</sub> 1000–1200&nbsp;мВ — це ±9&nbsp;% від 1100, а не «приблизно ±4,5&nbsp;%». Те саме хибне число LMS потім повторює в бюджеті похибок<sup class="cite" data-fact="lms-err-3-2-vref-percent"></sup>.</li>
+      <li>При реальній V<sub>ref</sub> 1150&nbsp;мВ показ формули <b>занижений</b> (−4,35&nbsp;%), а не «завищений». Глосарій самого уроку дає правильний знак<sup class="cite" data-fact="lms-err-3-2-vref-sign"></sup>.</li>
+      <li>Більше ослаблення дає <b>більший</b> крок, а не менший; через два абзаци LMS сам наводить 0,268 і 0,951&nbsp;мВ<sup class="cite" data-fact="lms-err-3-2-lsb-atten"></sup>.</li>
+      <li>Діапазони 1,1 / 1,5 / 2,2 / 3,9&nbsp;В — це «повна шкала» оригінального ESP32 зі старої документації. Для S3 вхід до 0,95 / 1,25 / 1,75 / 3,1&nbsp;В, а 3,9&nbsp;В вище за абсолютний максимум<sup class="cite" data-fact="lms-err-3-2-atten-ranges"></sup>.</li>
+      <li>Код уроку — старий API (<code>esp_adc_cal_characterize</code>, <code>adc1_config_width</code>, <code>ADC_ATTEN_DB_11</code>): застарів у ESP-IDF 5.0, драйвер видалено в 6.0. Новий — <code>adc_oneshot</code> + <code>adc_cali</code>, і саме його описує посилання з «Основних матеріалів»<sup class="cite" data-fact="lms-err-3-2-legacy-api"></sup>.</li>
+      <li>У новому API немає «реальної V<sub>ref</sub> з eFuse» в одному полі: схема калібрування S3 будується окремо під кожне ослаблення<sup class="cite" data-fact="lms-err-3-2-efuse-vref"></sup>.</li>
+      <li>Числа про зсув нуля, нелінійність у відсотках, температурний дрейф і точність «з калібруванням ±0,5–2&nbsp;%» наведено без джерела; даташит дає INL ±8&nbsp;LSB і від ±5 до ±50&nbsp;мВ<sup class="cite" data-fact="lms-err-3-2-unsourced"></sup>.</li>
+      <li>U<sub>manual</sub> у прикладі таблиці ДЗ (412,1 для RAW 512) не дає жодна формула: 3300·512/4095 = 412,6, /4096 = 412,5. Це ілюстрація, а не вимір<sup class="cite" data-fact="lms-err-3-2-sample-table"></sup>.</li>
+      <li>LMS у цьому уроці ділить напругу на 2<sup>12</sup> = 4096, а в уроці 3.1 — на 4095. Обидва варіанти вживають; головне — однаково<sup class="cite" data-fact="lms-err-3-2-4096"></sup>.</li>
+      <li>Цифровий шум МК в одному реченні «одиниці–десятки кілогерц», у наступному — «кілогерцовий і мегагерцовий діапазон»<sup class="cite" data-fact="lms-err-3-2-noise-freq"></sup>.</li>
+      <li>Відео уроку — про ЦАП MCP4725 (те саме, що в уроці 3.1) і про зовнішній АЦП на AVR, а не про калібрування АЦП ESP32<sup class="cite" data-fact="lms-err-3-2-video"></sup>.</li>
+    </ol>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const comma = (x, d = 1) => x.toFixed(d).replace('.', ',').replace('-', '−');
+  const signed = (x, d = 1) => (x > 0 ? '+' : '') + comma(x, d);
+  const segPick = (sel, attr, fn) => $$(sel + ' button').forEach((b) => b.addEventListener('click', () => {
+    $$(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    fn(b.dataset[attr]);
+  }));
+  // Sizes a label's frame from its measured text (the same helper as lessons 2.4–2.6): nothing can stick out whatever the font.
+  const FIT = new Map();
+  const fitRO = 'ResizeObserver' in window ? new ResizeObserver((es) => es.forEach((e) => FIT.forEach(([t], r) => { if (e.target.contains(r)) fitFrame(r, t); }))) : null;
+  function fitFrame(r, t) {
+    if (!r || !t) return;
+    if (!r.dataset.w0) { r.dataset.w0 = r.getAttribute('width'); r.dataset.x0 = r.getAttribute('x'); }
+    FIT.set(r, [t]);
+    let tw = 0;
+    try { tw = t.getComputedTextLength(); } catch { tw = 0; }
+    if (!tw) { if (fitRO && t.ownerSVGElement) fitRO.observe(t.ownerSVGElement); return; }
+    const x0 = +r.dataset.x0, w0 = +r.dataset.w0, rx = Math.min(+r.getAttribute('rx') || 0, (+r.getAttribute('height') || 0) / 2);
+    const w = Math.max(w0, Math.ceil(tw + 2 * (0.6 * rx + 6))), x = x0 + (w0 - w) / 2;
+    r.setAttribute('x', +x.toFixed(1)); r.setAttribute('width', w);
+    if (t.getAttribute('text-anchor') === 'middle') t.setAttribute('x', +(x + w / 2).toFixed(1));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => FIT.forEach(([t], r) => fitFrame(r, t)));
+
+  /* =====================================================================
+     Numbers from the documents (facts on the page) and the illustrative chip model.
+     IN    input range per attenuation, mV: ESP-IDF v4.4.8 / Arduino docs for S3 (s3-adc-input-ranges)
+     CAL   calibrated range, mV, and ERR total error after calibration, ±mV: datasheet Table 5-6 (s3-adc-error-all)
+     The chips: Vref inside the documented 1000–1200 mV (idf-adc-vref-range), bow up to the datasheet INL ±8 LSB
+     (s3-adc-linearity). The zero offsets are invented for the picture; the page says so.
+     ===================================================================== */
+  const ATT = ['0', '2.5', '6', '12'];
+  const IN = { 0: 950, 2.5: 1250, 6: 1750, 12: 3100 };
+  const CAL = { 0: 850, 2.5: 1100, 6: 1600, 12: 2900 };
+  const ERR = { 0: 5, 2.5: 6, 6: 10, 12: 50 };
+  const ATT_NAME = { 0: 'ADC_ATTEN_DB_0', 2.5: 'ADC_ATTEN_DB_2_5', 6: 'ADC_ATTEN_DB_6', 12: 'ADC_ATTEN_DB_12' };
+  const ATT_UK = { 0: '0 дБ', 2.5: '2,5 дБ', 6: '6 дБ', 12: '12 дБ' };
+  const CHIPS = {
+    a: { name: 'Чип A', vref: 1100, off: 12, inl: 1, ph: 0.3 },
+    b: { name: 'Чип B', vref: 1000, off: 24, inl: -1, ph: 1.9 },
+    c: { name: 'Чип C', vref: 1200, off: 6, inl: 0.6, ph: 4.1 },
+  };
+  const VDD = 3300;
+  // continuous transfer of the model chip: input mV → counts (not rounded, not clamped)
+  const fsOf = (att, chip) => IN[att] * chip.vref / 1100;
+  const cont = (v, att, chip) => {
+    const fs = fsOf(att, chip), x = (v - chip.off) / fs;
+    return x * 4095 + 8 * chip.inl * Math.sin(Math.PI * Math.max(0, Math.min(1, x)));
+  };
+  const rawOf = (v, att, chip) => Math.max(0, Math.min(4095, Math.round(cont(v, att, chip))));
+  // «adc_cali» of the model: the exact inverse of the chip plus a small residual inside the datasheet limit
+  function caliOf(raw, att, chip) {
+    let a = 0, b = fsOf(att, chip) + chip.off + 200;
+    for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (cont(m, att, chip) < raw) a = m; else b = m; }
+    const v = (a + b) / 2;
+    return Math.max(0, Math.round(v + 0.3 * ERR[att] * Math.sin(2 * Math.PI * v / fsOf(att, chip) * 1.7 + chip.ph)));
+  }
+
+  /* =====================================================================
+     LAB «від повзунка до мілівольтів» (#cal)
+     ===================================================================== */
+  const cal = { pos: 50, att: '12', chip: 'a', vmax: 3300, seen: new Set() };
+  (() => {
+    const L = 44, R = 330, T = 12, B = 190;
+    const X = (mv) => L + mv / VDD * (R - L), Y = (raw) => B - raw / 4095 * (B - T);
+    const grid = $('#cs-grid');
+    mk('rect', { x: L, y: T, width: R - L, height: B - T, fill: 'none', stroke: 'var(--line)' }, grid);
+    [0, 1000, 2000, 3000].forEach((v) => {
+      mk('path', { d: `M${X(v)} ${B}V${B + 5}`, stroke: 'var(--muted)' }, grid);
+      mk('text', { class: 'svg-m', x: X(v), y: B + 20, 'text-anchor': v ? 'middle' : 'start' }, grid).textContent = String(v / 1000);
+    });
+    [[0, '0'], [2048, '2048'], [4095, '4095']].forEach(([r, s]) => {
+      mk('path', { d: `M${L - 5} ${Y(r)}H${L}`, stroke: 'var(--muted)' }, grid);
+      mk('text', { class: 'svg-m', x: L - 7, y: Y(r) + 4, 'text-anchor': 'end' }, grid).textContent = s;
+    });
+    function paint() {
+      const chip = CHIPS[cal.chip], att = cal.att, vin = cal.pos / 100 * VDD;
+      const raw = rawOf(vin, att, chip), mv = caliOf(raw, att, chip), man = raw * cal.vmax / 4095;
+      const err = mv >= 1 ? (man - mv) / mv * 100 : NaN;
+      setTxt($('#cal-pos-out'), `${cal.pos} %`);
+      setTxt($('#p-vin'), `${Math.round(vin)} мВ`);
+      setTxt($('#p-att'), ATT_NAME[att]);
+      setTxt($('#p-raw'), String(raw));
+      setTxt($('#p-fml'), `RAW × ${cal.vmax} / 4095`);
+      setTxt($('#p-man'), `${comma(man, 1)} мВ`);
+      setTxt($('#p-cal'), `${mv} мВ`);
+      const pe = $('#p-err');
+      setTxt(pe, Number.isFinite(err) ? `${signed(err, 1)} %` : '— (ділимо на 0)');
+      pe.classList.toggle('bad', Number.isFinite(err) && Math.abs(err) > 3);
+      pe.classList.toggle('ok', Number.isFinite(err) && Math.abs(err) <= 3);
+      setTxt($('#p-phys'), `${Math.round(Math.min(100, mv / VDD * 100))} %`);
+      setTxt($('#cal-raw'), String(raw));
+      setTxt($('#cal-man'), `${Math.round(man)} мВ`);
+      setTxt($('#cal-cal'), `${mv} мВ`);
+      setTxt($('#cal-err'), Number.isFinite(err) ? `${signed(err, 1)} %` : '—');
+      setTxt($('#cal-vref'), `${chip.vref} мВ`);
+      // chart
+      const band = $('#cs-band'); band.setAttribute('width', (X(CAL[att]) - L).toFixed(1));
+      let d = '';
+      for (let i = 0; i <= 120; i++) { const v = VDD * i / 120; d += (i ? 'L' : 'M') + X(v).toFixed(1) + ' ' + Y(Math.max(0, Math.min(4095, cont(v, att, chip)))).toFixed(1); }
+      $('#cs-chip').setAttribute('d', d);
+      const vEnd = Math.min(VDD, cal.vmax);
+      $('#cs-ideal').setAttribute('d', `M${X(0)} ${Y(0)}L${X(vEnd).toFixed(1)} ${Y(vEnd / cal.vmax * 4095).toFixed(1)}`);
+      $('#cs-dot').setAttribute('cx', X(vin).toFixed(1)); $('#cs-dot').setAttribute('cy', Y(raw).toFixed(1));
+      $('#cs-guide').setAttribute('d', `M${X(vin).toFixed(1)} ${B}V${Y(raw).toFixed(1)}H${L}`);
+      // note
+      let note;
+      if (raw >= 4095) note = `RAW застиг на 4095: вхід вищий за межу шкали ${ATT_UK[att]} (≈${IN[att]} мВ). Число вже не залежить від напруги, і калібрування тут нічого не поверне.`;
+      else if (vin > CAL[att]) note = `Вище ${CAL[att]} мВ даташит не обіцяє каліброваної точності для ${ATT_UK[att]}: АЦП ще рахує, але похибка може бути більшою за ±${ERR[att]} мВ.`;
+      else if (raw === 0) note = 'RAW = 0: напруга нижча за зсув нуля моделі, АЦП її не бачить. Відсоток похибки тут не має сенсу.';
+      else if (Number.isFinite(err) && mv < 150 && Math.abs(err) > 8) note = `Біля нуля відсоток вибухає: ${Math.round(man)} проти ${mv} мВ — різниця в кілька мілівольтів, але ділимо на мале число.`;
+      else if (cal.vmax === 3300 && att === '12') note = `${chip.name}: формула вважає повною шкалою 3300 мВ, а вхід 12 дБ закінчується близько 3100 мВ. Звідси майже сталий плюс у похибці.`;
+      else if (att !== '12') note = `Формула множить на ${cal.vmax} мВ, а шкала ${ATT_UK[att]} — лише ≈${IN[att]} мВ. Формулу треба міняти разом з ослабленням, калібрування робить це саме.`;
+      else note = `${chip.name}, Vref ${chip.vref} мВ: ${chip.vref < 1100 ? 'шкала вужча, число більше, формула завищує' : chip.vref > 1100 ? 'шкала ширша, число менше, формула занижує' : 'Vref номінальна, лишаються зсув нуля й кривизна'}.`;
+      setTxt($('#cal-note'), note);
+      cal.raw = raw; cal.err = err; cal.vin = vin; cal.seen.add(cal.chip + (Number.isFinite(err) ? Math.sign(Math.round(err * 10)) : 'x'));
+    }
+    $('#cal-pos').addEventListener('input', (e) => { cal.pos = +e.target.value; paint(); });
+    segPick('#cal-att', 'a', (v) => { cal.att = v; paint(); });
+    segPick('#cal-chip', 'c', (v) => { cal.chip = v; paint(); });
+    segPick('#cal-vmax', 'v', (v) => { cal.vmax = +v; paint(); });
+    paint();
+    Study.missions($('#cal-ms'), { key: 'cal', items: [
+      { id: 'sat', text: 'Доведіть RAW до 4095. З якої напруги число перестає рости?', hint: 'Повзунок майже до упору при 12 дБ. Межа входу ≈3100 мВ, далі АЦП не розрізняє.', check: () => cal.raw >= 4095 },
+      { id: 'b', text: 'Виберіть Чип B, формулу «× 3100» і повзунок на середину. Формула завищує чи занижує?', hint: 'Vref чипа B 1000 мВ: шкала вужча, тому число більше, і формула показує більше, ніж є.', check: () => cal.chip === 'b' && cal.vmax === 3100 && cal.att === '12' && cal.pos >= 35 && cal.pos <= 65 },
+      { id: 'c', text: 'Тепер Чип C, та сама формула. Знак похибки змінився?', hint: 'Vref 1200 мВ: шкала ширша, число менше, формула занижує.', check: () => cal.chip === 'c' && cal.vmax === 3100 && cal.att === '12' && cal.err < 0 },
+      { id: 'zero', text: 'Знайдіть, де відсоток похибки найбільший, хоча різниця лише кілька мілівольтів.', hint: 'Біля нуля: повзунок на 1–4 %. Ділимо на маленьку калібровану напругу.', check: () => cal.pos > 0 && cal.pos <= 4 && Math.abs(cal.err) > 8 },
+      { id: 'att0', text: 'Поставте 0 дБ і знайдіть, з якого положення повзунка АЦП «сліпне».', hint: 'Вхід 0 дБ закінчується близько 950 мВ, тобто менше ніж на третині ходу потенціометра.', check: () => cal.att === '0' && cal.raw >= 4095 },
+      { id: 'cal', text: 'Знайдіть місце, де АЦП ще рахує, але даташит уже не обіцяє точності.', hint: '12 дБ, напруга між 2900 і ≈3100 мВ: повзунок близько 90 %.', check: () => cal.att === '12' && cal.vin > 2900 && cal.raw < 4095 },
+    ] });
+  })();
+
+  /* =====================================================================
+     04 LM35 (#lm): 10 mV/°C (lm35-scale) against the four attenuations
+     ===================================================================== */
+  (() => {
+    const X = (mv) => 8 + mv / VDD * 324;
+    const tk = $('#lm-ticks');
+    [0, 1000, 2000, 3000].forEach((v) => {
+      mk('path', { d: `M${X(v)} 70V80`, stroke: 'var(--muted)' }, tk);
+      mk('text', { class: 'svg-m', x: X(v), y: 98, 'text-anchor': v ? 'middle' : 'start' }, tk).textContent = String(v / 1000);
+    });
+    const st = { att: '0' };
+    function up() {
+      const t = +$('#lm-t').value, mv = t * 10, att = st.att;
+      setTxt($('#lm-t-out'), `${t} °C`);
+      setTxt($('#lm-v'), `${mv} мВ`);
+      $('#lm-in').setAttribute('width', (X(IN[att]) - 8).toFixed(1));
+      $('#lm-cal').setAttribute('width', (X(CAL[att]) - 8).toFixed(1));
+      $('#lm-mk').setAttribute('d', `M${X(mv).toFixed(1)} 32V74`);
+      const lsb = IN[att] / 4096, el = $('#lm-txt');
+      if (mv > IN[att]) el.innerHTML = `<b class="bad">Не вміщається:</b> ${mv} мВ вище за межу входу ${ATT_UK[att]} (≈${IN[att]} мВ), RAW застигне на 4095.`;
+      else if (mv > CAL[att]) el.innerHTML = `<b class="bad">На межі:</b> АЦП ще рахує, але вище ${CAL[att]} мВ даташит точності не обіцяє. Крок ≈${comma(lsb / 10, 3)} °C.`;
+      else el.innerHTML = `<b class="ok">Вміщається.</b> Крок ≈${comma(lsb, 2)} мВ = ${comma(lsb / 10, 3)} °C; похибка після калібрування до ±${ERR[att]} мВ = <b class="${ERR[att] >= 20 ? 'bad' : 'ok'}">±${comma(ERR[att] / 10, 1)} °C</b>.`;
+    }
+    $('#lm-t').addEventListener('input', up);
+    segPick('#lm-att', 'a', (v) => { st.att = v; up(); });
+    up();
+  })();
+
+  /* =====================================================================
+     04 two-point calibration (#tp)
+     ===================================================================== */
+  (() => {
+    const ids = ['tp-r1', 'tp-u1', 'tp-r2', 'tp-u2', 'tp-r'];
+    function up() {
+      const [r1, u1, r2, u2, r] = ids.map((i) => parseFloat($('#' + i).value));
+      const out = $('#tp-out');
+      if (![r1, u1, r2, u2, r].every(Number.isFinite)) { out.textContent = 'Заповніть усі п\'ять полів числами.'; return; }
+      if (r1 === r2) { out.textContent = 'Дві точки з однаковим RAW не задають пряму: розведіть їх якомога далі.'; return; }
+      const k = (u2 - u1) / (r2 - r1), b = u1 - k * r1, mv = k * r + b;
+      out.innerHTML = `Нахил k = <b>${comma(k, 4)}</b> мВ/відлік, зсув b = <b>${comma(b, 1)}</b> мВ. RAW ${Math.round(r)} → <b>${comma(mv, 1)} мВ</b>.` +
+        (r < Math.min(r1, r2) || r > Math.max(r1, r2) ? ' Увага: ця точка поза вашими двома, тут пряма лише здогадка.' : '');
+    }
+    ids.forEach((i) => $('#' + i).addEventListener('input', up));
+    up();
+  })();
+
+  /* =====================================================================
+     05 «Опорна напруга вашого чипа» (#w-vr): the LMS model, an ideal ADC at 0 dB, only Vref is off
+     ===================================================================== */
+  (() => {
+    const BX = 96, BW = 236, XV = (v) => 20 + (v - 1000) / 200 * 300;
+    function up() {
+      const vr = +$('#vr-v').value, u = +$('#vr-u').value;
+      const d = Math.min(4095, Math.floor(u / vr * 4096)), man = d / 4096 * 1100, eps = (1100 / vr - 1) * 100;
+      setTxt($('#vr-v-out'), `${vr} мВ`); setTxt($('#vr-u-out'), `${u} мВ`);
+      $('#vr-b1').setAttribute('width', (u / 1200 * BW).toFixed(1));
+      $('#vr-b2').setAttribute('width', (Math.min(man, 1200) / 1200 * BW).toFixed(1));
+      $('#vr-dot').setAttribute('cx', XV(vr).toFixed(1));
+      setTxt($('#vr-raw'), String(d));
+      setTxt($('#vr-man'), `${comma(man, 1)} мВ`);
+      setTxt($('#vr-err'), `${signed(eps, 2)} %`);
+      setTxt($('#vr-33'), `${signed(3300 * eps / 100, 0)} мВ`);
+      $('#vr-e').className = Math.abs(eps) < 0.5 ? 'ok' : 'bad';
+      setTxt($('#vr-note'), vr === 1100 ? 'Vref номінальна: лишається тільки квантування, частки мілівольта.'
+        : `${vr < 1100 ? 'Vref менша за номінал: та сама напруга займає більшу частку шкали, формула завищує.' : 'Vref більша за номінал: частка менша, формула занижує.'} ε = 1100 / ${vr} − 1 = ${signed(eps, 2)} %. На краях розкиду, 1000 і 1200 мВ, це +10 % і −8,3 %.`);
+    }
+    $('#vr-v').addEventListener('input', up); $('#vr-u').addEventListener('input', up);
+    up();
+  })();
+
+  /* =====================================================================
+     05 «Чотири ослаблення поруч» (#w-at)
+     ===================================================================== */
+  (() => {
+    const svg = $('#at-svg'), X = (mv) => 86 + mv / 4000 * 244;
+    const rows = {};
+    ATT.forEach((a, i) => {
+      const y = 14 + i * 34;
+      const g = mk('g', {}, svg);
+      mk('text', { class: 'svg-m', x: 8, y: y + 17 }, g).textContent = ATT_UK[a];
+      mk('rect', { x: X(0), y, width: X(IN[a]) - X(0), height: 24, rx: 4, fill: 'var(--accent)', opacity: '.18' }, g);
+      mk('rect', { x: X(0), y, width: X(CAL[a]) - X(0), height: 24, rx: 4, fill: 'var(--accent)', opacity: '.45' }, g);
+      const frame = mk('rect', { x: X(0) - 2, y: y - 2, width: X(IN[a]) - X(0) + 4, height: 28, rx: 5, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, opacity: 0 }, g);
+      rows[a] = frame;
+    });
+    const yB = 14 + 4 * 34 + 4;
+    [[3300, '3,3', 'var(--muted)', '', 'end', 18, -3], [3600, '3,6', 'var(--bad)', '', 'middle', 36, 0], [3900, '3,9?', 'var(--bad)', '5 4', 'start', 18, 3]].forEach(([v, s, col, dash, anc, dy, dx]) => {
+      mk('path', { d: `M${X(v)} 8V${yB + dy - 13}`, stroke: col, 'stroke-width': 2, 'stroke-dasharray': dash }, svg);
+      mk('text', { class: 'svg-m', x: X(v) + dx, y: yB + dy, 'text-anchor': anc, style: `fill:${col}` }, svg).textContent = s;
+    });
+    [0, 1000, 2000].forEach((v) => mk('text', { class: 'svg-m', x: X(v), y: yB + 18, 'text-anchor': v ? 'middle' : 'start' }, svg).textContent = String(v / 1000));
+    mk('text', { class: 'svg-m', x: 8, y: yB + 36 }, svg).textContent = 'напруга, В';
+    function up(a) {
+      ATT.forEach((k) => rows[k].setAttribute('opacity', k === a ? 1 : 0));
+      const lsb = IN[a] / 4096;
+      setTxt($('#at-in'), `${IN[a]} мВ`);
+      setTxt($('#at-lsb'), `${comma(lsb, 2)} мВ`);
+      setTxt($('#at-err'), `±${ERR[a]} мВ`);
+      setTxt($('#at-errl'), `≈ ${Math.round(ERR[a] / lsb)}`);
+      setTxt($('#at-note'), a === '12'
+        ? 'Найширша шкала, найгрубший крок. Це єдине ослаблення, де вміщається потенціометр від 0 до 3,3 В, і то без верхніх ≈200 мВ. Пунктир 3,9 В — число з LMS для оригінального ESP32; на S3 воно вище за абсолютний максимум 3,6 В.'
+        : `Шкала ${ATT_UK[a]} закінчується на ≈${IN[a]} мВ: крок у ${comma(3100 / IN[a], 1)} раза дрібніший, ніж при 12 дБ, а похибка після калібрування в ${comma(50 / ERR[a], 0)} разів менша.`);
+    }
+    segPick('#at-seg', 'a', up);
+    up('12');
+  })();
+
+  /* =====================================================================
+     09 homework calculator (#hw-*)
+     ===================================================================== */
+  (() => {
+    function up() {
+      const raw = parseFloat($('#hw-raw').value), full = +$('#hw-full').value, mv = parseFloat($('#hw-cali').value), out = $('#hw-out');
+      if (!Number.isFinite(raw) || raw < 0 || raw > 4095) { out.textContent = 'RAW має бути цілим числом від 0 до 4095.'; return; }
+      const man = raw * full / 4095;
+      if (!Number.isFinite(mv) || mv <= 0) { out.innerHTML = `U<sub>formula</sub> = <b>${comma(man, 1)} мВ</b>. Введіть U<sub>cali</sub>, щоб порахувати похибку.`; return; }
+      const e = (man - mv) / mv * 100;
+      out.innerHTML = `U<sub>formula</sub> = ${Math.round(raw)} × ${full} / 4095 = <b>${comma(man, 1)} мВ</b>; похибка = (${comma(man, 1)} − ${comma(mv, 0)}) / ${comma(mv, 0)} = <b>${signed(e, 2)} %</b>` +
+        (mv < 150 ? '. Біля нуля відсоток великий, бо ділимо на мале число: дивіться і на різницю в мВ.' : '.');
+    }
+    ['#hw-raw', '#hw-full', '#hw-cali'].forEach((s) => $(s).addEventListener('input', up));
+    up();
+  })();
+
+  /* =====================================================================
+     08 Kit bench: the layout of lesson 1.6 (the board in the breadboard, the divider on the free strips to its left).
+     3V3 j13, GPIO4 j16, GND j34. R1 pins f3 (GND), f5 (wiper), f7 (3V3). Orange j13 → j7, yellow GPIO4 → lane → j5,
+     black j3 → «−» rail, black j34 → «−» rail, black bridge over the rail break 31 → 33.
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const NETCOL = { 'net-3v3': 'n33', 'net-gnd': 'ngnd', 'net-sig': 'nsig' };
+  function pill(parent, x, y, txt, w = 0, cls = '') {
+    const g = mk('g', { class: `kb-pill ${cls}`.trim(), 'aria-hidden': 'true' }, parent);
+    const W = w || 22 + 17 * txt.length;
+    mk('rect', { x: x - W / 2, y: y - 19, width: W, height: 38, rx: 10 }, g);
+    const t = mk('text', { x, y: y + 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+    t.textContent = txt;
+    g.text = t;
+    fitFrame(g.firstChild, t);
+    return g;
+  }
+  const BC = { c0: 13, v33: 13, gpio: 16, gnd: 34, p1: 3, pw: 5, p3: 7 };
+  // fault: null (correct) | 'gpio15' wiper wire to GPIO15 (j20, ADC2) instead of GPIO4 (j16)
+  function bench(svg, { nets = false, fault = null, label = 'R1' } = {}) {
+    const C = BC;
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102' });
+    const H = (c, r) => bb.hole(c, r);
+    const strips = mk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(C.c0, 'i');
+    const esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: `Плата YD-ESP32-S3 у макетці: ліва гребінка в ряду i, 3V3 у стовпчику ${C.v33}, GPIO4 у ${C.gpio}, GND у ${C.gnd}` });
+    const out = { bb, esp, wire: {} };
+    const strip = (net, cls, c) => {
+      if (!nets) return;
+      const a = H(c, 'f');
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls) => {
+      if (!nets) return;
+      const a = bb.rail('bottom', '-', 1), b = bb.rail('bottom', '-', 63);
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    const pp = H(C.p1, 'f');
+    out.pot = K.part('pot', { parent: svg, value: 'B10K', x: pp.x, y: pp.y, title: `Потенціометр R1 10 кОм (B10K): виводи f${C.p1} (GND), f${C.pw} (повзунок), f${C.p3} (3V3)` });
+    const yL = bb.size.h + 32;
+    out.yL = yL;
+    pill(svg, H(C.pw, 'a').x, yL, label, 64);
+    rail('gnd', 'net-gnd');
+    strip('v33', 'net-3v3', C.v33); strip('v33', 'net-3v3', C.p3);
+    strip('gpio4', 'net-sig', C.gpio); strip('gpio4', 'net-sig', C.pw);
+    strip('gnd', 'net-gnd', C.p1); strip('gnd', 'net-gnd', C.gnd);
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`; }
+      return g;
+    };
+    const J = (c) => bb.at('j' + c);
+    const lane = J(1).y + KP * 1.15;
+    const U = (from, to, y) => { const a = J(from), b = J(to); return [a, { x: a.x, y }, { x: b.x, y }, b]; };
+    out.wire.top = w([J(C.v33), J(C.p3)], 'orange', 'v33', 'net-3v3');
+    out.wire.sig = w(U(fault === 'gpio15' ? 20 : C.gpio, C.pw, lane), 'yellow', 'gpio4', 'net-sig');
+    out.wire.p1 = w([J(C.p1), bb.at('bottom-' + C.p1)], 'black', 'gnd', 'net-gnd');
+    out.wire.gnd = w([J(C.gnd), bb.at('bottom-' + C.gnd)], 'black', 'gnd', 'net-gnd');
+    out.wire.bridge = w([bb.at('bottom-31'), bb.at('bottom-33')], 'black', 'gnd', 'net-gnd');
+    const x0 = H(1, 'j').x - KP * 1.5, x1 = H(38, 'j').x;
+    svg.setAttribute('viewBox', `${x0.toFixed(0)} -20 ${(x1 - x0).toFixed(0)} ${(yL + 44).toFixed(0)}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
+  /* ================================================================ 08 dual figure */
+  const kb = bench($('#bb-pot'), { nets: true });
+  const lvl = pill($('#bb-pot'), kb.bb.hole(BC.gpio + 1, 'c').x + KP, kb.yL, '1,65 В', 130, 'lvl');
+  function setPot(p) {
+    const v = 3.3 * p / 100, s = `${comma(v, 2)} В`;
+    kb.pot.set({ pos: p / 100 });
+    lvl.text.textContent = s; fitFrame(lvl.firstChild, lvl.text);
+    setTxt($('#pot-pos-out'), `${p} %`);
+    setTxt($('#pot-badge'), `GPIO4 ≈ ${s}${v > 3.1 ? ': вище за межу входу 12 дБ' : ''}`);
+    setTxt($('#sch-v'), s);
+  }
+  $('#pot-pos').addEventListener('input', (e) => setPot(+e.target.value));
+  setPot(50);
+
+  /* cite links point into the collapsed source list: open it first */
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    const d = el && el.closest('details');
+    if (d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', openTarget);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a[href^="#src-"]');
+    if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
+  });
+  openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-cal): the bench of section 08 + the firmware; exactly one fault per case.
+     Lines of code and Kit parts/wires with data-hunt="i" are the clickable answers (option i).
+     ===================================================================== */
+  {
+    const hkEsc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rem = (t) => `<span class="rem">${hkEsc(t)}</span>`;
+    const hkCode = (stage, file, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = `<div class="hk-h">${file}</div><pre>` + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, opts);
+    };
+    const hkTag = (el, i) => { el.setAttribute('data-hunt', String(i)); return el; };
+    const OK = 'Макетка як у розділі 08: плата в макетці; потенціометр R1 у стовпчиках 3, 5 і 7; помаранчевий дріт з 3V3 на стовпчик 7, жовтий з GPIO4 на повзунок у стовпчику 5, стовпчик 3 і GND плати на шину мінус.';
+    Study.hunt($('#hunt-cal'), { key: '3-2', cases: [
+      { title: 'Сліпне на третині ходу',
+        symptom: 'Від упору до ≈30&nbsp;% ходу RAW росте, далі весь час 4095. Мультиметр на повзунку показує плавну зміну до 3,3&nbsp;В.',
+        build(st) {
+          const kb2 = hkBench(st, OK);
+          hkTag(kb2.pot, 2);
+          hkCode(st, 'src/main.c', ['adc_oneshot_chan_cfg_t chan = {', ['    .atten = ADC_ATTEN_DB_0,', 0], ['    .bitwidth = ADC_BITWIDTH_12};', 1], 'adc_oneshot_config_channel(adc, POT_CH, &amp;chan);']);
+        },
+        options: ['Ослаблення 0&nbsp;дБ: вхід закінчується близько 950&nbsp;мВ',
+          '12 біт замало, треба 13',
+          'Потенціометр 10&nbsp;кОм завеликий для АЦП'],
+        answer: 0,
+        explain: 'При 0&nbsp;дБ межа входу S3 — 950&nbsp;мВ<sup class="cite" data-fact="s3-adc-input-ranges"></sup>, а це менше третини від 3,3&nbsp;В. Вище АЦП видає 4095, хоч напруга й росте. Для всього ходу потенціометра — <code>ADC_ATTEN_DB_12</code>. 13 біт на S3 немає: максимальна розрядність — 12<sup class="cite" data-fact="s3-adc-units"></sup>.' },
+      { title: 'Каліброване втричі менше',
+        symptom: 'RAW розумні, формула «× 3300» на середині ходу дає близько 1700&nbsp;мВ, мультиметр показує 1650. А <code>adc_cali_raw_to_voltage()</code> повертає лише кількасот мілівольтів, приблизно втричі менше.',
+        build(st) {
+          hkCode(st, 'src/main.c', [['adc_oneshot_chan_cfg_t chan = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};', 1], 'adc_oneshot_config_channel(adc, POT_CH, &amp;chan);', '', 'adc_cali_curve_fitting_config_t cfg = {', '    .unit_id = ADC_UNIT_1, .chan = POT_CH,', ['    .atten = ADC_ATTEN_DB_0, .bitwidth = ADC_BITWIDTH_12};', 0], 'adc_cali_create_scheme_curve_fitting(&amp;cfg, &amp;cali);', ['adc_cali_raw_to_voltage(cali, raw, &amp;mv);', 2]]);
+        },
+        options: ['Схему калібрування створено для 0&nbsp;дБ, а канал читає на 12&nbsp;дБ',
+          'Канал треба налаштовувати після створення схеми',
+          '<code>adc_cali_raw_to_voltage()</code> повертає вольти, а не мілівольти'],
+        answer: 0,
+        explain: 'Калібрування S3 залежить від ослаблення<sup class="cite" data-fact="idf-adc-cali-per-atten"></sup>. Схема для 0&nbsp;дБ перераховує те саме число на шкалу ≈950&nbsp;мВ, звідси втричі менше. Ослаблення в <code>chan</code> і <code>cfg</code> мають збігатися: заведіть одну константу <code>ATTEN</code>. Результат функції — мілівольти<sup class="cite" data-fact="idf-adc-cali-raw-to-voltage"></sup>.' },
+      { title: 'Не знайдено функцію',
+        symptom: 'Код із прикладу для іншого чипа. Збирання падає: <code>unknown type name \'adc_cali_line_fitting_config_t\'</code> і <code>implicit declaration of function \'adc_cali_create_scheme_line_fitting\'</code>.',
+        build(st) {
+          hkCode(st, 'src/main.c', [['#include "esp_adc/adc_cali_scheme.h"', 1], '', 'adc_cali_line_fitting_config_t cfg = {', ['    .unit_id = ADC_UNIT_1, .atten = ADC_ATTEN_DB_12,', 2], '    .bitwidth = ADC_BITWIDTH_12};', ['adc_cali_create_scheme_line_fitting(&amp;cfg, &amp;cali);', 0]]);
+        },
+        options: ['На ESP32-S3 є лише схема curve fitting, line fitting для нього не збирається',
+          'Забули <code>#include "esp_adc/adc_cali_scheme.h"</code>',
+          'Для line fitting потрібне ослаблення 0&nbsp;дБ'],
+        answer: 0,
+        explain: 'У заголовку ESP-IDF line fitting загорнуто в <code>#if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED</code>, а для S3 визначено лише curve fitting<sup class="cite" data-fact="idf-adc-cali-s3-curve"></sup>. Тому ні типу, ні функції для S3 просто немає. Замініть на <code>adc_cali_create_scheme_curve_fitting()</code> і <code>adc_cali_curve_fitting_config_t</code>. Заголовок на місці: curve fitting з нього збирається.' },
+      { title: 'RAW живе своїм життям',
+        symptom: 'Збирається без помилок. Мультиметр на повзунку показує плавну зміну від 0 до 3,3&nbsp;В, а RAW скаче як заманеться і на поворот валу не реагує.',
+        build(st) {
+          const kb2 = hkBench(st, 'Макетка: потенціометр R1 у стовпчиках 3, 5 і 7; помаранчевий дріт з 3V3 на стовпчик 7; жовтий дріт від повзунка йде у стовпчик 20, до виводу GPIO15, а не до GPIO4 у стовпчику 16; стовпчик 3 і GND плати на шину мінус.', { fault: 'gpio15' });
+          hkTag(kb2.wire.sig, 0); hkTag(kb2.pot, 2);
+          hkCode(st, 'src/main.c', [['#define POT_CH  ADC_CHANNEL_3    // GPIO4 = ADC1_CH3', 1], 'adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};', 'adc_oneshot_read(adc, POT_CH, &amp;raw);']);
+        },
+        options: ['Жовтий дріт у стовпчику 20 (GPIO15), а код читає GPIO4',
+          'Канал 3 — це не GPIO4',
+          'Потенціометр зламаний'],
+        answer: 0,
+        explain: 'Код читає ADC1, канал 3, тобто GPIO4<sup class="cite" data-fact="s3-adc1-pins"></sup>, а повзунок підключено до GPIO15 у стовпчику 20. GPIO4 ні до чого не під\'єднаний і «висить», тому RAW випадкові. Перекиньте жовтий дріт у стовпчик 16. До того ж GPIO15 — це ADC2, який ділить ресурс з Wi-Fi<sup class="cite" data-fact="s3-adc2-wifi"></sup>. Потенціометр справний: мультиметр же бачить плавну зміну.' },
+    ] });
+  }
+});
+</script>
+</body>
+</html>
