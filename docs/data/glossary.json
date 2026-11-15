@@ -1307,6 +1307,109 @@
         "нелінійність"
       ],
       "def": "Наскільки реальна характеристика АЦП відхиляється від прямої. В ESP32-S3 за даташитом до ±8 кроків."
+    },
+    {
+      "id": "rtos",
+      "uk": "Операційна система реального часу",
+      "en": "real-time operating system (RTOS)",
+      "lesson": "6-1",
+      "aka": [
+        "RTOS"
+      ],
+      "def": "Невелика ОС для мікроконтролера: ділить процесор між задачами за пріоритетами, щоб важлива задача отримала його вчасно. В ESP-IDF це FreeRTOS."
+    },
+    {
+      "id": "freertos-task",
+      "uk": "Задача FreeRTOS",
+      "en": "task",
+      "lesson": "6-1",
+      "def": "Функція з власним нескінченним циклом, стеком і пріоритетом. Створюється xTaskCreate() або xTaskCreatePinnedToCore()."
+    },
+    {
+      "id": "scheduler",
+      "uk": "Планувальник",
+      "en": "scheduler",
+      "lesson": "6-1",
+      "fact": "idf-best-effort-rr",
+      "def": "Частина FreeRTOS, що щоразу віддає ядро найпріоритетнішій задачі зі стану Ready; рівні за пріоритетом чергуються на тіку."
+    },
+    {
+      "id": "preemption",
+      "uk": "Витіснення",
+      "en": "preemption",
+      "lesson": "6-1",
+      "fact": "idf-max-priorities",
+      "def": "Задача вищого пріоритету, ставши Ready, одразу забирає ядро в нижчої, не чекаючи, поки та закінчить."
+    },
+    {
+      "id": "task-priority",
+      "uk": "Пріоритет задачі",
+      "en": "task priority",
+      "lesson": "6-1",
+      "fact": "idf-max-priorities",
+      "def": "Число від 0 до 24 у FreeRTOS ESP-IDF: більше число — важливіша задача. На 0 живуть idle-задачі."
+    },
+    {
+      "id": "task-states",
+      "uk": "Стани задачі",
+      "en": "task states",
+      "lesson": "6-1",
+      "def": "Running — виконується; Ready — готова, чекає ядра; Blocked — чекає часу чи події; Suspended — зупинена vTaskSuspend()."
+    },
+    {
+      "id": "freertos-tick",
+      "uk": "Тік FreeRTOS",
+      "en": "RTOS tick",
+      "lesson": "6-1",
+      "fact": "idf-freertos-hz",
+      "def": "Періодичне переривання, яким FreeRTOS рахує час і будить задачі. ESP-IDF стандартно 100 Гц (10 мс), Arduino-ESP32 — 1000 Гц."
+    },
+    {
+      "id": "context-switch",
+      "uk": "Перемикання контексту",
+      "en": "context switch",
+      "lesson": "6-1",
+      "fact": "idf-xtensa-switch",
+      "def": "Збереження регістрів однієї задачі й відновлення іншої, щоб та продовжила з того самого місця. На ESP32-S3 це робить порт для Xtensa."
+    },
+    {
+      "id": "time-slicing",
+      "uk": "Розподіл часу",
+      "en": "time slicing",
+      "lesson": "6-1",
+      "fact": "idf-best-effort-rr",
+      "def": "Задачі однакового пріоритету, що обидві Ready, отримують ядро по черзі, по одному тіку."
+    },
+    {
+      "id": "core-affinity",
+      "uk": "Прив'язка до ядра",
+      "en": "core affinity",
+      "lesson": "6-1",
+      "fact": "idf-xtaskcreate-unpinned",
+      "def": "На якому ядрі може працювати задача: 0, 1 або будь-якому (tskNO_AFFINITY). Задає останній аргумент xTaskCreatePinnedToCore()."
+    },
+    {
+      "id": "idle-task",
+      "uk": "Idle-задача",
+      "en": "idle task",
+      "lesson": "6-1",
+      "fact": "idf-idle-per-core",
+      "def": "Задача з пріоритетом 0, по одній на ядро. Працює, коли більше нікому; якщо їй не дістається часу, скаржиться сторож задач."
+    },
+    {
+      "id": "starvation",
+      "uk": "Голодування задачі",
+      "en": "starvation",
+      "lesson": "6-1",
+      "def": "Задача готова працювати, але ніколи не отримує ядро, бо вища за пріоритетом задача на тому ж ядрі не засинає."
+    },
+    {
+      "id": "task-delay-until",
+      "uk": "Затримка до моменту",
+      "en": "xTaskDelayUntil",
+      "lesson": "6-1",
+      "fact": "idf-delay-until",
+      "def": "Сон до «попереднє пробудження + період», а не «зараз + період». Тримає рівний період, хоч би скільки тривала робота."
     }
   ]
 }
