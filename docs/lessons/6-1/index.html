@@ -585,7 +585,7 @@ void loop() {
         </svg>
       </div>
       <div class="view" data-view="bb">
-        <svg id="bb-mt" class="kit-bench" viewBox="-20 -20 1520 610" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (GPIO15 у стовпчику 27, GPIO16 у 28, GPIO17 у 29, GPIO18 у 30, GND у 41), права гребінка в ряду b, вільний ряд a над нею (GPIO21 у стовпчику 37). Синій дріт від GPIO15 уздовж ряду j у стовпчик 18, резистор 220 Ом у ряду g з 18 у 14, червоний LED1 анодом у 14, катодом у 13. Жовтий дріт від GPIO16 під рядом j у стовпчик 15, резистор у ряду h з 15 в 11, жовтий LED2 анодом в 11, катодом у 10. Зелений дріт від GPIO17 уздовж нижнього краю макетки у стовпчик 8, резистор з 8 у 4, зелений LED3 анодом у 4, катодом у 3. Стовпчики катодів 3, 10 і 13 короткими чорними дротами на нижню шину мінус. Кнопка BTN1 через канавку на стовпчиках 46 і 48: фіолетовий дріт від GPIO21 над рядом a у стовпчик 48, стовпчик 46 чорним дротом на шину мінус. Кнопка BTN2 на стовпчиках 52 і 54: помаранчевий дріт від GPIO18 уздовж нижнього краю у стовпчик 54, стовпчик 52 чорним дротом на шину мінус. GND плати (стовпчик 41) коротким чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
+        <svg id="bb-mt" class="kit-bench" viewBox="-20 -20 1520 610" role="img" aria-label="Макетка: плата YD-ESP32-S3 вставлена в отвори, ліва гребінка в ряду i, вільний ряд j під нею (GPIO15 у стовпчику 27, GPIO16 у 28, GPIO17 у 29, GPIO18 у 30, GND у 41), права гребінка в ряду b, вільний ряд a над нею (GPIO21 у стовпчику 37). Синій дріт від GPIO15 уздовж ряду j у стовпчик 16, резистор 220 Ом у ряду g з 16 у 13 (лівіше за край плати), червоний LED1 анодом у 13, катодом у 12. Жовтий дріт від GPIO16 під рядом j у стовпчик 14, резистор у ряду h з 14 у 10, жовтий LED2 анодом у 10, катодом у 9. Зелений дріт від GPIO17 уздовж нижнього краю макетки у стовпчик 8, резистор з 8 у 4, зелений LED3 анодом у 4, катодом у 3. Стовпчики катодів 3, 9 і 12 короткими чорними дротами на нижню шину мінус. Кнопка BTN1 через канавку на стовпчиках 46 і 48: фіолетовий дріт від GPIO21 над рядом a у стовпчик 48, стовпчик 46 чорним дротом на шину мінус. Кнопка BTN2 на стовпчиках 52 і 54: помаранчевий дріт від GPIO18 уздовж нижнього краю у стовпчик 54, стовпчик 52 чорним дротом на шину мінус. GND плати (стовпчик 41) коротким чорним дротом на ту саму шину; розрив шини між стовпчиками 31 і 33 закриває коротка чорна перемичка."></svg>
       </div>
       <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах. Жоден із цих пінів не strapping-пін.</figcaption>
     </figure>
@@ -602,7 +602,7 @@ void loop() {
     <h2><span class="n">09</span> Домашнє завдання: ДЗ 2.3 задачами FreeRTOS</h2>
     <p><b>Завдання з LMS:</b> виконати ДЗ уроку 2.3, але з <code>xTaskCreate()</code> або <code>xTaskCreatePinnedToCore()</code>; код із уроку може бути базою. Код і демонстрацію — на GitHub, у назві репозиторію, гілки чи коміту — номер модуля й уроку, посилання — в LMS.</p>
     <p>Потрібно: плата YD-ESP32-S3, 3 LED (червоний, жовтий, зелений), 3 резистори 220&nbsp;Ом, 2 кнопки, макетка, дроти. Бажано логічний аналізатор: CH1 на GPIO17 (LED3), CH2 на GPIO21 (BTN1).</p>
-    <div class="note"><b>Стан коду.</b> Суперциклові версії ДЗ 2.3 лежать у репозиторії й пройшли плату: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a> і <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-multitask-device">esp32-s3-multitask-device</a>. Версії з задачами нижче — наш розв'язок, на платі ще <b>не перевірений</b>, і жодного числа на цій сторінці з плати не знято. Ваші виміри будуть першими.</div>
+    <div class="note"><b>Стан коду.</b> Суперциклові версії ДЗ 2.3 лежать у репозиторії й пройшли плату: <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-three-rhythms">esp32-s3-three-rhythms</a> і <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-multitask-device">esp32-s3-multitask-device</a>. Версія з задачами нижче — проєкт <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-freertos-device">esp32-s3-freertos-device</a> (C і Rust на ESP-IDF). На платі C-версія: 20 натискань BTN1 — рівно 20 подій, пауза працює, LED3 блимає з кроком 1&nbsp;с; Rust-версія: 20 натискань — 20 подій. Часів аналізатором ще не міряли, тож таблиця нижче чекає ваших вимірів.</div>
     <ol>
       <li>Зберіть схему з розділу 08.</li>
       <li><b>Спершу прогноз:</b> запишіть у таблицю, який період LED3 і яку найгіршу реакцію BTN1 ви чекаєте в кожному варіанті.</li>
@@ -1290,8 +1290,8 @@ void led_task(void* arg) {      // пріоритет 2, задача на LED
     return g;
   }
   const BENCH = [
-    { k: 'L1', an: 14, sig: 18, row: 'g', pin: 'GPIO15', led: 'red', wire: 'blue', net: 'gpio15', cls: 'net-sig', via: 'row' },
-    { k: 'L2', an: 11, sig: 15, row: 'h', pin: 'GPIO16', led: 'yellow', wire: 'yellow', net: 'gpio16', cls: 'net-sig2', via: 'lane' },
+    { k: 'L1', an: 13, sig: 16, row: 'g', pin: 'GPIO15', led: 'red', wire: 'blue', net: 'gpio15', cls: 'net-sig', via: 'row' },
+    { k: 'L2', an: 10, sig: 14, row: 'h', pin: 'GPIO16', led: 'yellow', wire: 'yellow', net: 'gpio16', cls: 'net-sig2', via: 'lane' },
     { k: 'L3', an: 4, sig: 8, row: 'h', pin: 'GPIO17', led: 'green', wire: 'green', net: 'gpio17', cls: 'net-sig3', via: 'edge' },
   ];
   const BC = { c0: 20, gnd: 41, b1: 46, b2: 52 };
@@ -1316,7 +1316,7 @@ void led_task(void* arg) {      // пріоритет 2, задача на LED
     const yL = bb.size.h + 32;
     for (const b of BENCH) {
       const r = H(b.an, b.row), l = H(b.an, 'f');
-      out.res[b.k] = K.part('resistor', { parent: svg, ohms: 220, x: r.x, y: r.y, title: `Резистор 220 Ом (червоний-червоний-коричневий): ${b.row}${b.an} і ${b.row}${b.sig}` });
+      out.res[b.k] = K.part('resistor', { parent: svg, ohms: 220, span: b.sig - b.an, x: r.x, y: r.y, title: `Резистор 220 Ом (червоний-червоний-коричневий): ${b.row}${b.an} і ${b.row}${b.sig}` });
       out.led[b.k] = K.part('led', { parent: svg, color: b.led, x: l.x, y: l.y, leg: 40, mirror: true, title: `Світлодіод ${b.k.replace('L', 'LED')}: анод f${b.an}, катод f${b.an - 1}` });
       pill(svg, l.x - KP / 2, yL, b.k);
       strip(b.net, b.cls, b.sig, 'bottom'); strip(b.net, b.cls, pinCol(b.pin), 'bottom');

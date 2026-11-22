@@ -1,0 +1,78 @@
+[  0.000 s] ESP-ROM:esp32s3-20210327
+[  0.000 s] Build:Mar 27 2021
+[  0.000 s] rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[  0.000 s] Saved PC:0x40378e06
+[  0.000 s] SPIWP:0xee
+[  0.000 s] mode:DIO, clock div:1
+[  0.000 s] load:0x3fce2820,len:0x1548
+[  0.000 s] load:0x403c8700,len:0xdac
+[  0.000 s] load:0x403cb700,len:0x2f60
+[  0.000 s] entry 0x403c88f8
+[  0.000 s] I (24) boot: ESP-IDF 6.1.0 2nd stage bootloader
+[  0.000 s] I (24) boot: compile time Nov 22 2026 11:29:59
+[  0.000 s] I (25) boot: Multicore bootloader
+[  0.000 s] I (25) boot: chip revision: v0.2
+[  0.000 s] I (25) boot: efuse block revision: v1.4
+[  0.000 s] I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+[  0.000 s] I (25) boot.esp32s3: SPI Mode       : DIO
+[  0.000 s] I (26) boot.esp32s3: SPI Flash Size : 16MB
+[  0.001 s] I (26) boot: Enabling RNG early entropy source...
+[  0.001 s] I (26) boot: Partition Table:
+[  0.001 s] I (26) boot: ## Label            Usage          Type ST Offset   Length
+[  0.001 s] I (26) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+[  0.001 s] I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+[  0.001 s] I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+[  0.001 s] I (28) boot: End of partition table
+[  0.001 s] I (28) esp_image: segment 0: paddr=00010020 vaddr=3c020020 size=097ech ( 38892) map
+[  0.001 s] I (36) esp_image: segment 1: paddr=00019814 vaddr=3fc90100 size=0306ch ( 12396) load
+[  0.001 s] I (39) esp_image: segment 2: paddr=0001c888 vaddr=40374000 size=03790h ( 14224) load
+[  0.001 s] I (42) esp_image: segment 3: paddr=00020020 vaddr=42000020 size=117a4h ( 71588) map
+[  0.001 s] I (56) esp_image: segment 4: paddr=000317cc vaddr=40377790 size=08924h ( 35108) load
+[  0.001 s] I (64) esp_image: segment 5: paddr=0003a0f8 vaddr=50000000 size=00024h (    36) load
+[  0.001 s] I (70) boot: Loaded app from partition at offset 0x10000
+[  0.001 s] I (70) boot: Disabling RNG early entropy source...
+[  0.001 s] I (71) cpu_start: Multicore app
+[  0.001 s] I (80) cpu_start: Pro cpu start user code
+[  0.001 s] I (80) cpu_start: cpu freq: 160000000 Hz
+[  0.001 s] I (80) app_init: Application information:
+[  0.001 s] I (80) app_init: Project name:     freertos-device
+[  0.001 s] I (81) app_init: App version:      44cb689-dirty
+[  0.001 s] I (81) app_init: Compile time:     Nov 22 2026 11:29:44
+[  0.001 s] I (81) app_init: ELF file SHA256:  0031b85c2...
+[  0.001 s] I (81) app_init: ESP-IDF:          6.1.0
+[  0.001 s] I (81) efuse_init: Min chip rev:     v0.0
+[  0.001 s] I (81) efuse_init: Max chip rev:     v0.99
+[  0.001 s] I (82) efuse_init: Chip rev:         v0.2
+[  0.001 s] I (82) heap_init: Initializing. RAM available for dynamic allocation:
+[  0.001 s] I (82) heap_init: At 3FC93BA0 len 00055B70 (342 KiB): RAM
+[  0.001 s] I (82) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+[  0.001 s] I (82) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+[  0.001 s] I (83) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+[  0.001 s] I (84) spi_flash: detected chip: boya
+[  0.202 s] I (84) spi_flash: flash io: dio
+[  0.202 s] I (84) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+[  0.202 s] I (85) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+[  0.202 s] I (86) main_task: Started on CPU0
+[  0.202 s] I (87) main_task: Calling app_main()
+[  2.005 s] Мультизадачний пристрій на FreeRTOS: BTN1 — швидкість LED2, BTN2 — пауза
+[  2.005 s] I (2087) main_task: Returned from app_main()
+[ 25.844 s] BTN1 -> LED2 = 500 мс
+[ 26.645 s] BTN1 -> LED2 = 200 мс
+[ 27.647 s] BTN1 -> LED2 = 1000 мс
+[ 28.448 s] BTN1 -> LED2 = 500 мс
+[ 29.450 s] BTN1 -> LED2 = 200 мс
+[ 30.452 s] BTN1 -> LED2 = 1000 мс
+[ 31.454 s] BTN1 -> LED2 = 500 мс
+[ 32.255 s] BTN1 -> LED2 = 200 мс
+[ 33.256 s] BTN1 -> LED2 = 1000 мс
+[ 34.058 s] BTN1 -> LED2 = 500 мс
+[ 34.859 s] BTN1 -> LED2 = 200 мс
+[ 35.860 s] BTN1 -> LED2 = 1000 мс
+[ 36.661 s] BTN1 -> LED2 = 500 мс
+[ 37.663 s] BTN1 -> LED2 = 200 мс
+[ 38.464 s] BTN1 -> LED2 = 1000 мс
+[ 39.466 s] BTN1 -> LED2 = 500 мс
+[ 40.267 s] BTN1 -> LED2 = 200 мс
+[ 41.068 s] BTN1 -> LED2 = 1000 мс
+[ 42.070 s] BTN1 -> LED2 = 500 мс
+[ 42.871 s] BTN1 -> LED2 = 200 мс

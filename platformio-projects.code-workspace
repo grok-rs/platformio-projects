@@ -24,6 +24,8 @@
     { "path": "esp32-s3-ldr-sma/rust", "name": "ldr-sma (Rust, ESP-IDF)" },
     { "path": "esp32-s3-adc-cali/cpp", "name": "adc-cali (C, ESP-IDF)" },
     { "path": "esp32-s3-adc-cali/rust", "name": "adc-cali (Rust, ESP-IDF)" },
+    { "path": "esp32-s3-freertos-device/cpp", "name": "freertos-device (C, ESP-IDF)" },
+    { "path": "esp32-s3-freertos-device/rust", "name": "freertos-device (Rust, ESP-IDF)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {

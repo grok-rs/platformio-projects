@@ -9,6 +9,7 @@ CMakeLists.txt
 !esp32-s3-traffic-light/cpp/**/CMakeLists.txt
 !esp32-s3-ldr-sma/cpp/**/CMakeLists.txt
 !esp32-s3-adc-cali/cpp/**/CMakeLists.txt
+!esp32-s3-freertos-device/cpp/**/CMakeLists.txt
 cmake-build-*/
 *.code-workspace.bak
 __pycache__/

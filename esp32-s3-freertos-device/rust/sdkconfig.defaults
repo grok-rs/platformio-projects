@@ -1,0 +1,7 @@
+# Тік FreeRTOS 1 мс, як в Arduino; код працює і за 100 Гц: усі затримки кратні 10 мс
+CONFIG_FREERTOS_HZ=1000
+# Лог іде в той самий нативний USB, що й Serial в інших проєктах
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+# Rust std потребує більшого стека головної задачі, ніж C
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8000
