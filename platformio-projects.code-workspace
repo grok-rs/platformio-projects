@@ -20,6 +20,10 @@
     { "path": "esp32-s3-multitask-device/cpp", "name": "multitask-device (C++)" },
     { "path": "esp32-s3-traffic-light/cpp", "name": "traffic-light (C, ESP-IDF)" },
     { "path": "esp32-s3-traffic-light/rust", "name": "traffic-light (Rust, ESP-IDF)" },
+    { "path": "esp32-s3-ldr-sma/cpp", "name": "ldr-sma (C, ESP-IDF)" },
+    { "path": "esp32-s3-ldr-sma/rust", "name": "ldr-sma (Rust, ESP-IDF)" },
+    { "path": "esp32-s3-adc-cali/cpp", "name": "adc-cali (C, ESP-IDF)" },
+    { "path": "esp32-s3-adc-cali/rust", "name": "adc-cali (Rust, ESP-IDF)" },
     { "path": ".", "name": "repository (Rust workspace, docs)" }
   ],
   "settings": {
@@ -28,7 +32,7 @@
     },
     // rust-analyzer: check the firmware with the `esp` toolchain, run the language server itself on stable.
     // No cargo.target: each Cargo workspace takes its target from its own .cargo/config.toml
-    // (root: xtensa-esp32s3-none-elf for esp-hal; vent-timer/rust and debounce-idf/rust: xtensa-esp32s3-espidf).
+    // (root: xtensa-esp32s3-none-elf for esp-hal; the ESP-IDF rust/ folders: xtensa-esp32s3-espidf).
     // LIBCLANG_PATH: esp-idf-sys generates its bindings with the clang from espup.
     "rust-analyzer.cargo.allTargets": false,
     "rust-analyzer.server.extraEnv": { "RUSTUP_TOOLCHAIN": "stable" },

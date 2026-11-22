@@ -1,0 +1,15 @@
+# Rust на ESP-IDF: ціль зі std, ESP-IDF збирається разом із проєктом (перший раз — довго).
+[build]
+target = "xtensa-esp32s3-espidf"
+
+[target.xtensa-esp32s3-espidf]
+linker = "ldproxy"  # cargo install ldproxy
+# `cargo run` = зібрати, прошити через USB і відкрити монітор (як `pio run -t upload && pio device monitor`).
+runner = "espflash flash --monitor --chip esp32s3"
+rustflags = ["--cfg", "espidf_time64"]
+
+[unstable]
+build-std = ["std", "panic_abort"]
+
+[env]
+MCU = "esp32s3"

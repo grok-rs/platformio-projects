@@ -3,9 +3,9 @@
 Embedded projects for the ESP32-S3, kept short and in the course teacher's style (one small `.cpp` per
 firmware: `#define` pins, globals, `setup()`/`loop()`), each written twice so the two can be compared side by side:
 
-* `cpp/` — C++ on the Arduino core, built with [PlatformIO](https://platformio.org/) (own `platformio.ini`); `esp32-s3-debounce-idf`, `esp32-s3-vent-timer` and `esp32-s3-traffic-light` are the exceptions: their homework is done on ESP-IDF, so their `cpp/` holds C on ESP-IDF;
+* `cpp/` — C++ on the Arduino core, built with [PlatformIO](https://platformio.org/) (own `platformio.ini`); `esp32-s3-debounce-idf`, `esp32-s3-vent-timer`, `esp32-s3-traffic-light`, `esp32-s3-ldr-sma` and `esp32-s3-adc-cali` are the exceptions: their homework is done on ESP-IDF, so their `cpp/` holds C on ESP-IDF;
 * `rust/` — Rust on [esp-hal](https://github.com/esp-rs/esp-hal), a member of
-  the Cargo workspace in the repository root (see [Rust](#rust)); the `rust/` of those three ESP-IDF projects are the exceptions: Rust on
+  the Cargo workspace in the repository root (see [Rust](#rust)); the `rust/` of those ESP-IDF projects are the exceptions: Rust on
   ESP-IDF ([esp-idf-hal](https://github.com/esp-rs/esp-idf-hal), `std`), each a separate Cargo workspace excluded from the root one.
 
 Both variants print the same text to Serial and run on the same breadboard wiring.
@@ -37,6 +37,8 @@ esp32-s3-<project>/
 | [`esp32-s3-vent-timer`](esp32-s3-vent-timer/) | [C (ESP-IDF)](esp32-s3-vent-timer/cpp/) · [Rust (ESP-IDF)](esp32-s3-vent-timer/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.5 homework: exhaust fan on for 15 minutes every hour — one hardware timer (`gptimer`) drives the whole cycle from its ISR (GPIO2 → BC547B → 5 V relay module → TT motor), the main task only logs and feeds the task watchdog; LEDs on GPIO15/16, start button on GPIO21 with re-start protection, `SPEEDUP` turns an hour into 12 s |
 | [`esp32-s3-debounce-idf`](esp32-s3-debounce-idf/) | [C (ESP-IDF)](esp32-s3-debounce-idf/cpp/) · [Rust (ESP-IDF)](esp32-s3-debounce-idf/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2.6 homework (the tasks of lesson 2.4 on ESP-IDF): button on GPIO7 with a 10 kΩ pull-up — env `raw` counts interrupts, `time` filters by time in a task, `state` checks the level, `poll` samples every 10 ms into a state machine; task 5 adds a 100 Ω + 100 nF RC filter; comparison table in the README |
 | [`esp32-s3-traffic-light`](esp32-s3-traffic-light/) | [C (ESP-IDF)](esp32-s3-traffic-light/cpp/) · [Rust (ESP-IDF)](esp32-s3-traffic-light/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 2, lesson 28 mini-project: traffic light per the Ukrainian traffic rules — green → blinking green → yellow → red → red+yellow, a state machine in a 10 ms superloop without `delay()` timing; the button on GPIO21 toggles blinking yellow (unregulated crossing); LEDs on GPIO15/16/17 |
+| [`esp32-s3-ldr-sma`](esp32-s3-ldr-sma/) | [C (ESP-IDF)](esp32-s3-ldr-sma/cpp/) · [Rust (ESP-IDF)](esp32-s3-ldr-sma/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 3.1 homework: LDR + 10 kΩ divider on GPIO4 (ADC1_CH3) read by the ESP-IDF oneshot driver every 20 ms, a 16-sample moving average (SMA, ring buffer + running sum), two thresholds (hysteresis) switch the LED on GPIO15 without flicker |
+| [`esp32-s3-adc-cali`](esp32-s3-adc-cali/) | [C (ESP-IDF)](esp32-s3-adc-cali/cpp/) · [Rust (ESP-IDF)](esp32-s3-adc-cali/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Module 3.2 homework: 10 kΩ pot on GPIO4 (ADC1_CH3), every 100 ms prints RAW, the voltage from the formula `RAW × 3300 / 4095`, the eFuse-calibrated voltage (curve fitting) and the formula's error in % |
 | [`esp32-s3-site-bridge`](esp32-s3-site-bridge/) | [C++](esp32-s3-site-bridge/cpp/) · [Rust](esp32-s3-site-bridge/rust/) | ESP32-S3-DevKitC-1 (N16R8) | Study site «Мій стенд»: streams JSON lines over USB CDC (LDR divider on GPIO4 via ADC1, button edges on GPIO21 with `micros()` timestamps) so the browser page can plot the real board next to the model (Web Serial) |
 
 ## Interactive study pages
