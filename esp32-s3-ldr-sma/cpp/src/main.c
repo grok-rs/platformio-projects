@@ -11,8 +11,8 @@
 #define LED       GPIO_NUM_15
 #define N         16             // вікно SMA: 16 × 20 мс = 320 мс
 #define PERIOD_MS 20
-#define DARK      1400           // середнє нижче — темно: LED вмикаємо
-#define LIGHT     1700           // середнє вище — світло: LED вимикаємо
+#define DARK      1800           // середнє нижче — темно: LED вмикаємо (стенд: долоня ≈ 1200, кімната ≈ 3560)
+#define LIGHT     2600           // середнє вище — світло: LED вимикаємо (запас 800 ≫ шуму ±15)
 
 void app_main(void) {
     adc_oneshot_unit_handle_t adc;

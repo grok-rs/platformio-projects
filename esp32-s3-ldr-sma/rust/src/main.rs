@@ -18,8 +18,8 @@ use esp_idf_svc::sys::EspError;
 
 const N: usize = 16; // вікно SMA: 16 × 20 мс = 320 мс
 const PERIOD: Duration = Duration::from_millis(20);
-const DARK: u32 = 1400; // середнє нижче — темно: LED вмикаємо
-const LIGHT: u32 = 1700; // середнє вище — світло: LED вимикаємо
+const DARK: u32 = 1800; // середнє нижче — темно: LED вмикаємо (стенд: долоня ≈ 1200, кімната ≈ 3560)
+const LIGHT: u32 = 2600; // середнє вище — світло: LED вимикаємо (запас 800 ≫ шуму ±15)
 
 fn main() -> Result<(), EspError> {
     esp_idf_svc::sys::link_patches();

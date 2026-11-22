@@ -1,0 +1,331 @@
+[  0.000 s] ДЗ 3.1: LDR, SMA з 16 відліків, пороги DARK 180ESP-ROM:esp32s3-20210327
+[  0.000 s] Build:Mar 27 2021
+[  0.000 s] rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[  0.000 s] Saved PC:0x40378e2a
+[  0.000 s] SPIWP:0xee
+[  0.000 s] mode:DIO, clock div:1
+[  0.000 s] load:0x3fce2820,len:0x1548
+[  0.001 s] load:0x403c8700,len:0xdac
+[  0.001 s] load:0x403cb700,len:0x2f60
+[  0.001 s] entry 0x403c88f8
+[  0.001 s] I (24) boot: ESP-IDF 6.1.0 2nd stage bootloader
+[  0.001 s] I (24) boot: compile time Nov 22 2026 11:28:20
+[  0.001 s] I (25) boot: Multicore bootloader
+[  0.001 s] I (25) boot: chip revision: v0.2
+[  0.001 s] I (25) boot: efuse block revision: v1.4
+[  0.001 s] I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+[  0.001 s] I (25) boot.esp32s3: SPI Mode       : DIO
+[  0.001 s] I (26) boot.esp32s3: SPI Flash Size : 16MB
+[  0.001 s] I (26) boot: Enabling RNG early entropy source...
+[  0.001 s] I (26) boot: Partition Table:
+[  0.001 s] I (26) boot: ## Label            Usage          Type ST Offset   Length
+[  0.001 s] I (26) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+[  0.001 s] I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+[  0.001 s] I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+[  0.001 s] I (28) boot: End of partition table
+[  0.001 s] I (28) esp_image: segment 0: paddr=00010020 vaddr=3c020020 size=0a350h ( 41808) map
+[  0.001 s] I (36) esp_image: segment 1: paddr=0001a378 vaddr=3fc90200 size=030fch ( 12540) load
+[  0.001 s] I (39) esp_image: segment 2: paddr=0001d47c vaddr=40374000 size=02b9ch ( 11164) load
+[  0.001 s] I (42) esp_image: segment 3: paddr=00020020 vaddr=42000020 size=13580h ( 79232) map
+[  0.001 s] I (57) esp_image: segment 4: paddr=000335a8 vaddr=40376b9c size=09558h ( 38232) load
+[  0.001 s] I (66) esp_image: segment 5: paddr=0003cb08 vaddr=50000000 size=00024h (    36) load
+[  0.001 s] I (72) boot: Loaded app from partition at offset 0x10000
+[  0.001 s] I (72) boot: Disabling RNG early entropy source...
+[  0.001 s] I (73) cpu_start: Multicore app
+[  0.001 s] I (82) cpu_start: Pro cpu start user code
+[  0.001 s] I (82) cpu_start: cpu freq: 160000000 Hz
+[  0.002 s] I (82) app_init: Application information:
+[  0.002 s] I (82) app_init: Project name:     ldr-sma
+[  0.002 s] I (82) app_init: App version:      44cb689-dirty
+[  0.002 s] I (83) app_init: Compile time:     Nov 22 2026 11:28:03
+[  0.002 s] I (83) app_init: ELF file SHA256:  c5654f384...
+[  0.002 s] I (83) app_init: ESP-IDF:          6.1.0
+[  0.002 s] I (83) efuse_init: Min chip rev:     v0.0
+[  0.002 s] I (83) efuse_init: Max chip rev:     v0.99
+[  0.002 s] I (83) efuse_init: Chip rev:         v0.2
+[  0.002 s] I (84) heap_init: Initializing. RAM available for dynamic allocation:
+[  0.002 s] I (84) heap_init: At 3FC93D80 len 00055990 (342 KiB): RAM
+[  0.002 s] I (84) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+[  0.002 s] I (84) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+[  0.002 s] I (84) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+[  0.002 s] I (86) spi_flash: detected chip: boya
+[  0.002 s] I (86) spi_flash: flash io: dio
+[  0.002 s] I (87) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+[  0.002 s] I (87) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+[  0.002 s] I (88) main_task: Started on CPU0
+[  0.202 s] I (89) main_task: Calling app_main()
+[  2.005 s] ДЗ 3.1: LDR, SMA з 16 відліків, пороги DARK 1800 / LIGHT 2600
+[  2.807 s] raw: 3579  sma: 3579  led: OFF
+[  3.007 s] raw: 3577  sma: 3578  led: OFF
+[  3.408 s] raw: 3579  sma: 3580  led: OFF
+[  3.608 s] raw: 3580  sma: 3577  led: OFF
+[  4.009 s] raw: 3579  sma: 3578  led: OFF
+[  4.409 s] raw: 3579  sma: 3579  led: OFF
+[  4.609 s] raw: 3579  sma: 3578  led: OFF
+[  5.010 s] raw: 3579  sma: 3579  led: OFF
+[  5.210 s] raw: 3565  sma: 3577  led: OFF
+[  5.611 s] raw: 3579  sma: 3579  led: OFF
+[  6.012 s] raw: 3577  sma: 3579  led: OFF
+[  6.212 s] raw: 3579  sma: 3579  led: OFF
+[  6.613 s] raw: 3587  sma: 3580  led: OFF
+[  6.813 s] raw: 3579  sma: 3579  led: OFF
+[  7.214 s] raw: 3580  sma: 3582  led: OFF
+[  7.615 s] raw: 3588  sma: 3580  led: OFF
+[  7.815 s] raw: 3580  sma: 3582  led: OFF
+[  8.216 s] raw: 3587  sma: 3582  led: OFF
+[  8.416 s] raw: 3580  sma: 3579  led: OFF
+[  8.817 s] raw: 3577  sma: 3579  led: OFF
+[  9.218 s] raw: 3579  sma: 3579  led: OFF
+[  9.418 s] raw: 3579  sma: 3579  led: OFF
+[  9.819 s] raw: 3581  sma: 3580  led: OFF
+[ 10.019 s] raw: 3580  sma: 3580  led: OFF
+[ 10.420 s] raw: 3580  sma: 3582  led: OFF
+[ 10.821 s] raw: 3580  sma: 3579  led: OFF
+[ 11.021 s] raw: 3579  sma: 3579  led: OFF
+[ 11.422 s] raw: 3589  sma: 3583  led: OFF
+[ 11.622 s] raw: 3579  sma: 3580  led: OFF
+[ 12.023 s] raw: 3577  sma: 3581  led: OFF
+[ 12.424 s] raw: 3587  sma: 3584  led: OFF
+[ 12.624 s] raw: 3579  sma: 3581  led: OFF
+[ 13.025 s] raw: 3589  sma: 3584  led: OFF
+[ 13.225 s] raw: 3579  sma: 3580  led: OFF
+[ 13.625 s] raw: 3579  sma: 3582  led: OFF
+[ 14.026 s] raw: 3589  sma: 3583  led: OFF
+[ 14.226 s] raw: 3588  sma: 3583  led: OFF
+[ 14.627 s] raw: 3589  sma: 3587  led: OFF
+[ 14.827 s] raw: 3579  sma: 3580  led: OFF
+[ 15.228 s] raw: 3593  sma: 3583  led: OFF
+[ 15.629 s] raw: 3590  sma: 3585  led: OFF
+[ 15.829 s] raw: 3588  sma: 3584  led: OFF
+[ 16.230 s] raw: 3589  sma: 3587  led: OFF
+[ 16.431 s] raw: 3589  sma: 3583  led: OFF
+[ 16.831 s] raw: 3580  sma: 3582  led: OFF
+[ 17.031 s] raw: 3589  sma: 3586  led: OFF
+[ 17.432 s] raw: 3589  sma: 3586  led: OFF
+[ 17.833 s] raw: 3589  sma: 3588  led: OFF
+[ 18.033 s] raw: 3589  sma: 3586  led: OFF
+[ 18.434 s] raw: 3587  sma: 3585  led: OFF
+[ 18.634 s] raw: 3580  sma: 3585  led: OFF
+[ 19.035 s] raw: 3589  sma: 3583  led: OFF
+[ 19.436 s] raw: 3580  sma: 3587  led: OFF
+[ 19.636 s] raw: 3589  sma: 3584  led: OFF
+[ 20.037 s] raw: 3588  sma: 3587  led: OFF
+[ 20.237 s] raw: 3589  sma: 3585  led: OFF
+[ 20.638 s] raw: 3581  sma: 3581  led: OFF
+[ 21.039 s] raw: 3577  sma: 3585  led: OFF
+[ 21.239 s] raw: 3579  sma: 3584  led: OFF
+[ 21.640 s] raw: 3579  sma: 3583  led: OFF
+[ 21.840 s] raw: 3578  sma: 3581  led: OFF
+[ 22.240 s] raw: 3580  sma: 3580  led: OFF
+[ 22.641 s] raw: 3580  sma: 3579  led: OFF
+[ 22.841 s] raw: 3587  sma: 3578  led: OFF
+[ 23.242 s] raw: 3579  sma: 3578  led: OFF
+[ 23.442 s] raw: 3606  sma: 3596  led: OFF
+[ 23.843 s] raw: 3612  sma: 3609  led: OFF
+[ 24.244 s] raw: 3590  sma: 3611  led: OFF
+[ 24.444 s] raw: 3612  sma: 3614  led: OFF
+[ 24.845 s] raw: 3613  sma: 3612  led: OFF
+[ 25.045 s] raw: 3614  sma: 3611  led: OFF
+[ 25.446 s] raw: 3607  sma: 3610  led: OFF
+[ 25.846 s] raw: 3623  sma: 3608  led: OFF
+[ 26.047 s] raw: 3604  sma: 3606  led: OFF
+[ 26.447 s] raw: 3607  sma: 3605  led: OFF
+[ 26.648 s] raw: 3609  sma: 3607  led: OFF
+[ 27.048 s] raw: 3609  sma: 3608  led: OFF
+[ 27.449 s] raw: 3607  sma: 3607  led: OFF
+[ 27.649 s] raw: 3609  sma: 3605  led: OFF
+[ 28.050 s] raw: 3609  sma: 3606  led: OFF
+[ 28.250 s] raw: 3608  sma: 3607  led: OFF
+[ 28.651 s] raw: 3608  sma: 3608  led: OFF
+[ 29.052 s] raw: 3630  sma: 3608  led: OFF
+[ 29.252 s] raw: 3607  sma: 3606  led: OFF
+[ 29.653 s] raw: 3607  sma: 3606  led: OFF
+[ 29.853 s] raw: 3605  sma: 3606  led: OFF
+[ 30.254 s] raw: 3608  sma: 3607  led: OFF
+[ 30.655 s] raw: 3607  sma: 3606  led: OFF
+[ 30.855 s] raw: 3607  sma: 3606  led: OFF
+[ 31.255 s] raw: 3607  sma: 3606  led: OFF
+[ 31.456 s] raw: 3605  sma: 3606  led: OFF
+[ 31.856 s] raw: 3607  sma: 3606  led: OFF
+[ 32.257 s] raw: 3606  sma: 3605  led: OFF
+[ 32.457 s] raw: 3605  sma: 3606  led: OFF
+[ 32.858 s] raw: 3606  sma: 3606  led: OFF
+[ 33.058 s] raw: 3607  sma: 3606  led: OFF
+[ 33.459 s] raw: 3609  sma: 3607  led: OFF
+[ 33.860 s] raw: 3609  sma: 3606  led: OFF
+[ 34.060 s] raw: 3605  sma: 3606  led: OFF
+[ 34.460 s] raw: 3605  sma: 3605  led: OFF
+[ 34.661 s] raw: 3605  sma: 3605  led: OFF
+[ 35.061 s] raw: 3607  sma: 3607  led: OFF
+[ 35.462 s] raw: 3608  sma: 3605  led: OFF
+[ 35.662 s] raw: 3606  sma: 3605  led: OFF
+[ 36.063 s] raw: 3607  sma: 3606  led: OFF
+[ 36.263 s] raw: 3607  sma: 3605  led: OFF
+[ 36.664 s] raw: 3603  sma: 3607  led: OFF
+[ 37.065 s] raw: 3606  sma: 3605  led: OFF
+[ 37.265 s] raw: 3605  sma: 3605  led: OFF
+[ 37.666 s] raw: 3607  sma: 3605  led: OFF
+[ 37.866 s] raw: 3605  sma: 3605  led: OFF
+[ 38.267 s] raw: 3605  sma: 3606  led: OFF
+[ 38.668 s] raw: 3605  sma: 3605  led: OFF
+[ 38.868 s] raw: 3606  sma: 3605  led: OFF
+[ 39.269 s] raw: 3605  sma: 3606  led: OFF
+[ 39.469 s] raw: 3607  sma: 3605  led: OFF
+[ 39.870 s] raw: 3608  sma: 3607  led: OFF
+[ 40.070 s] raw: 3607  sma: 3605  led: OFF
+[ 40.471 s] raw: 3607  sma: 3606  led: OFF
+[ 40.872 s] raw: 3607  sma: 3605  led: OFF
+[ 41.072 s] raw: 3605  sma: 3605  led: OFF
+[ 41.473 s] raw: 3607  sma: 3605  led: OFF
+[ 41.673 s] raw: 3604  sma: 3606  led: OFF
+[ 42.074 s] raw: 3608  sma: 3606  led: OFF
+[ 42.475 s] raw: 3605  sma: 3604  led: OFF
+[ 42.675 s] raw: 3603  sma: 3605  led: OFF
+[ 43.076 s] raw: 3606  sma: 3606  led: OFF
+[ 43.276 s] raw: 3605  sma: 3606  led: OFF
+[ 43.676 s] raw: 3604  sma: 3605  led: OFF
+[ 44.077 s] raw: 3607  sma: 3605  led: OFF
+[ 44.278 s] raw: 3605  sma: 3601  led: OFF
+[ 44.678 s] raw: 3604  sma: 3604  led: OFF
+[ 44.878 s] raw: 3607  sma: 3604  led: OFF
+[ 45.279 s] raw: 3607  sma: 3604  led: OFF
+[ 45.680 s] raw: 3603  sma: 3604  led: OFF
+[ 45.880 s] raw: 3603  sma: 3603  led: OFF
+[ 46.281 s] raw: 3599  sma: 3603  led: OFF
+[ 46.481 s] raw: 3603  sma: 3602  led: OFF
+[ 46.881 s] raw: 3603  sma: 3603  led: OFF
+[ 47.282 s] raw: 3603  sma: 3603  led: OFF
+[ 47.482 s] raw: 3605  sma: 3603  led: OFF
+[ 47.883 s] raw: 3601  sma: 3603  led: OFF
+[ 48.083 s] raw: 3608  sma: 3603  led: OFF
+[ 48.484 s] raw: 3603  sma: 3603  led: OFF
+[ 48.885 s] raw: 3603  sma: 3602  led: OFF
+[ 49.085 s] raw: 3603  sma: 3602  led: OFF
+[ 49.486 s] raw: 3604  sma: 3602  led: OFF
+[ 49.686 s] raw: 3604  sma: 3605  led: OFF
+[ 50.087 s] raw: 3341  sma: 3489  led: OFF
+[ 50.487 s] raw: 3064  sma: 3186  led: OFF
+[ 50.688 s] raw: 2555  sma: 2835  led: OFF
+[ 51.089 s] raw: 2159  sma: 2288  led: OFF
+[ 51.289 s] raw: 1957  sma: 2004  led: OFF
+[ 51.689 s] raw: 1899  sma: 1921  led: OFF
+[ 52.090 s] raw: 1677  sma: 1774  led: ON
+[ 52.290 s] raw: 1739  sma: 1686  led: ON
+[ 52.691 s] raw: 3129  sma: 2605  led: OFF
+[ 52.892 s] raw: 3092  sma: 3136  led: OFF
+[ 53.292 s] raw: 1992  sma: 2429  led: OFF
+[ 53.693 s] raw: 1887  sma: 1928  led: OFF
+[ 53.894 s] raw: 1835  sma: 1867  led: OFF
+[ 54.294 s] raw: 1770  sma: 1790  led: ON
+[ 54.494 s] raw: 1735  sma: 1747  led: ON
+[ 54.896 s] raw: 1715  sma: 1725  led: ON
+[ 55.296 s] raw: 1717  sma: 1705  led: ON
+[ 55.496 s] raw: 1819  sma: 1755  led: ON
+[ 55.897 s] raw: 1863  sma: 1830  led: ON
+[ 56.097 s] raw: 2966  sma: 2230  led: ON
+[ 56.498 s] raw: 3599  sma: 3372  led: OFF
+[ 56.899 s] raw: 3607  sma: 3607  led: OFF
+[ 57.099 s] raw: 3606  sma: 3607  led: OFF
+[ 57.500 s] raw: 3608  sma: 3604  led: OFF
+[ 57.700 s] raw: 3604  sma: 3605  led: OFF
+[ 58.101 s] raw: 3606  sma: 3605  led: OFF
+[ 58.501 s] raw: 3591  sma: 3602  led: OFF
+[ 58.702 s] raw: 3567  sma: 3565  led: OFF
+[ 59.102 s] raw: 3571  sma: 3578  led: OFF
+[ 59.303 s] raw: 3572  sma: 3570  led: OFF
+[ 59.703 s] raw: 3589  sma: 3576  led: OFF
+[ 60.104 s] raw: 3539  sma: 3581  led: OFF
+[ 60.304 s] raw: 3045  sma: 3294  led: OFF
+[ 60.705 s] raw: 2127  sma: 2478  led: OFF
+[ 60.905 s] raw: 1992  sma: 2054  led: OFF
+[ 61.306 s] raw: 1846  sma: 1915  led: OFF
+[ 61.707 s] raw: 1675  sma: 1761  led: ON
+[ 61.907 s] raw: 2855  sma: 1995  led: ON
+[ 62.308 s] raw: 3223  sma: 3179  led: OFF
+[ 62.508 s] raw: 2567  sma: 2952  led: OFF
+[ 62.909 s] raw: 2249  sma: 2442  led: OFF
+[ 63.109 s] raw: 2475  sma: 2455  led: OFF
+[ 63.510 s] raw: 2391  sma: 2420  led: OFF
+[ 63.910 s] raw: 2331  sma: 2386  led: OFF
+[ 64.111 s] raw: 2279  sma: 2302  led: OFF
+[ 64.511 s] raw: 2191  sma: 2268  led: OFF
+[ 64.711 s] raw: 1875  sma: 2080  led: OFF
+[ 65.112 s] raw: 1560  sma: 1792  led: ON
+[ 65.512 s] raw: 2864  sma: 2071  led: ON
+[ 65.713 s] raw: 2840  sma: 2889  led: OFF
+[ 66.113 s] raw:  797  sma: 2237  led: OFF
+[ 66.313 s] raw: 1606  sma: 1542  led: ON
+[ 66.714 s] raw: 2759  sma: 2092  led: ON
+[ 67.115 s] raw: 2653  sma: 2778  led: OFF
+[ 67.315 s] raw: 1852  sma: 1934  led: OFF
+[ 67.715 s] raw: 1723  sma: 1689  led: ON
+[ 67.916 s] raw: 2812  sma: 2683  led: OFF
+[ 68.316 s] raw: 1979  sma: 2651  led: OFF
+[ 68.717 s] raw: 1911  sma: 1924  led: OFF
+[ 68.917 s] raw: 1851  sma: 1966  led: OFF
+[ 69.318 s] raw: 2713  sma: 2364  led: OFF
+[ 69.518 s] raw: 1557  sma: 1923  led: OFF
+[ 69.919 s] raw: 2956  sma: 1894  led: ON
+[ 70.319 s] raw: 3614  sma: 3374  led: OFF
+[ 70.519 s] raw: 3619  sma: 3617  led: OFF
+[ 70.920 s] raw: 3613  sma: 3616  led: OFF
+[ 71.120 s] raw: 3615  sma: 3615  led: OFF
+[ 71.521 s] raw: 3613  sma: 3617  led: OFF
+[ 71.922 s] raw: 3611  sma: 3616  led: OFF
+[ 72.122 s] raw: 3608  sma: 3607  led: OFF
+[ 72.523 s] raw: 3609  sma: 3609  led: OFF
+[ 72.723 s] raw: 3610  sma: 3609  led: OFF
+[ 73.124 s] raw: 3606  sma: 3608  led: OFF
+[ 73.524 s] raw: 3608  sma: 3608  led: OFF
+[ 73.725 s] raw: 3606  sma: 3605  led: OFF
+[ 74.125 s] raw: 3605  sma: 3608  led: OFF
+[ 74.326 s] raw: 3608  sma: 3607  led: OFF
+[ 74.726 s] raw: 3608  sma: 3605  led: OFF
+[ 75.127 s] raw: 3608  sma: 3607  led: OFF
+[ 75.328 s] raw: 3607  sma: 3608  led: OFF
+[ 75.728 s] raw: 3609  sma: 3608  led: OFF
+[ 75.928 s] raw: 3607  sma: 3607  led: OFF
+[ 76.329 s] raw: 3602  sma: 3606  led: OFF
+[ 76.730 s] raw: 3607  sma: 3607  led: OFF
+[ 76.930 s] raw: 3608  sma: 3608  led: OFF
+[ 77.331 s] raw: 3607  sma: 3608  led: OFF
+[ 77.531 s] raw: 3608  sma: 3607  led: OFF
+[ 77.932 s] raw: 3609  sma: 3607  led: OFF
+[ 78.333 s] raw: 3604  sma: 3607  led: OFF
+[ 78.533 s] raw: 3608  sma: 3607  led: OFF
+[ 78.934 s] raw: 3607  sma: 3606  led: OFF
+[ 79.134 s] raw: 3609  sma: 3608  led: OFF
+[ 79.534 s] raw: 3604  sma: 3606  led: OFF
+[ 79.935 s] raw: 3608  sma: 3608  led: OFF
+[ 80.135 s] raw: 3608  sma: 3607  led: OFF
+[ 80.536 s] raw: 3608  sma: 3607  led: OFF
+[ 80.737 s] raw: 3607  sma: 3606  led: OFF
+[ 81.137 s] raw: 3605  sma: 3607  led: OFF
+[ 81.538 s] raw: 3608  sma: 3606  led: OFF
+[ 81.738 s] raw: 3608  sma: 3606  led: OFF
+[ 82.139 s] raw: 3606  sma: 3606  led: OFF
+[ 82.339 s] raw: 3609  sma: 3607  led: OFF
+[ 82.740 s] raw: 3607  sma: 3605  led: OFF
+[ 83.141 s] raw: 3607  sma: 3606  led: OFF
+[ 83.341 s] raw: 3606  sma: 3606  led: OFF
+[ 83.742 s] raw: 3606  sma: 3607  led: OFF
+[ 83.942 s] raw: 3607  sma: 3607  led: OFF
+[ 84.343 s] raw: 3610  sma: 3605  led: OFF
+[ 84.744 s] raw: 3605  sma: 3606  led: OFF
+[ 84.944 s] raw: 3607  sma: 3606  led: OFF
+[ 85.345 s] raw: 3604  sma: 3605  led: OFF
+[ 85.545 s] raw: 3607  sma: 3602  led: OFF
+[ 85.946 s] raw: 3607  sma: 3602  led: OFF
+[ 86.346 s] raw: 3607  sma: 3605  led: OFF
+[ 86.547 s] raw: 3606  sma: 3606  led: OFF
+[ 86.947 s] raw: 3605  sma: 3605  led: OFF
+[ 87.150 s] raw: 3606  sma: 3605  led: OFF
+[ 87.550 s] raw: 3605  sma: 3605  led: OFF
+[ 87.750 s] raw: 3607  sma: 3605  led: OFF
+[ 88.151 s] raw: 3615  sma: 3606  led: OFF
+[ 88.552 s] raw: 3607  sma: 3605  led: OFF
+[ 88.752 s] raw: 3603  sma: 3605  led: OFF
+[ 89.153 s] raw: 3604  sma: 3601  led: OFF
+[ 89.353 s] raw: 3606  sma: 3605  led: OFF
+[ 89.754 s] raw: 3606  sma: 3605  led: OFF
+[ 90.155 s] raw: 3605  sma: 3604  led: OFF
