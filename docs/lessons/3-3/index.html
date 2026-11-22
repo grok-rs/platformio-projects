@@ -1,0 +1,1167 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Урок 3.3 · Керування потужністю і швидкістю (PWM)</title>
+<meta name="description" content="ШІМ на ESP32-S3: заповнення і середня напруга, таймери й канали LEDC (4 таймери, 8 каналів, лише low-speed), межа частота × 2^біт ≤ 80 МГц, резистор для LED, ключ 2N2222 для мотора з діодом 1N4007 і домашнє завдання: два потенціометри керують LED і мотором незалежно.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<meta name="theme-color" content="#f4f0e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600..750&family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap">
+<link rel="stylesheet" href="../../assets/study.css">
+<link rel="stylesheet" href="../../site-nav.css">
+<script src="../../site-theme.js"></script>
+<style>
+/* Page widgets only; colours come from study.css tokens. */
+.svg-t { fill: var(--ink); font: 500 13px var(--f-body); }
+.svg-m { fill: var(--muted); font: 500 13px var(--f-mono); }
+.svg-b { fill: var(--ink); font: 600 14px var(--f-body); }
+.idea figure .svg-t, .idea figure .svg-m { font-size: 15px; }
+#why figure .svg-t, #why figure .svg-m { font-size: 15px; }
+.net-in { stroke: var(--teach); color: var(--teach); }
+text.net-in { fill: currentColor; stroke: none; }
+.ctl-grid { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); margin: 4px 0 10px; }
+@media (min-width: 640px) { .ctl-grid { grid-template-columns: 1fr 1fr; } }
+.ctl-grid label { display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+.ctl-grid label b { color: var(--ink); font: 600 15px var(--f-mono); }
+.ctl-grid input[type="range"] { width: 100%; }
+.cnt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+@media (min-width: 640px) { .cnt { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cnt div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); }
+.cnt span { display: block; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.cnt b { font: 600 20px var(--f-mono); }
+.cnt .ok b { color: var(--ok); } .cnt .bad b { color: var(--bad); }
+pre.code { font-size: 13px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 42px; padding: 8px 12px; border: 0; background: var(--panel); color: var(--ink); font: 600 15px var(--f-mono); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 10px; }
+.seg-row > span { font-size: 14px; color: var(--muted); }
+.fixlist li { margin: 6px 0; }
+.tbl-modes td, .tbl-modes th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl-modes { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tbl-wrap { overflow-x: auto; }
+.tbl-modes code { white-space: nowrap; }
+.tbl-modes td.n { font-family: var(--f-mono); white-space: nowrap; }
+.isr-badge { display: inline-block; font: 600 14px var(--f-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+.dual-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 0; }
+.dual-ctl .lab-range { display: grid; grid-template-columns: auto minmax(120px, 1fr) auto; gap: 8px; align-items: center; flex: 1 1 260px; font-size: 15px; }
+
+/* ---------- lab «ШІМ» (#pwm) ---------- */
+.pwm-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .pwm-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+#pw-svg, #led-svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.lab-ctl .seg { flex: 0 0 auto; }
+.lim { margin: 8px 0 0; font-size: 15px; }
+.lim b.ok { color: var(--ok); } .lim b.bad { color: var(--bad); }
+
+/* ---------- LEDC model, calculators ---------- */
+#tm-svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 6px auto 0; }
+.calc { display: grid; gap: 10px 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; margin: 8px 0; }
+.calc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.calc input, .calc select { min-height: 42px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 500 16px var(--f-mono); width: 100%; box-sizing: border-box; }
+.calc-out { margin: 6px 0 0; font-size: 15px; }
+.calc-out b { font: 600 17px var(--f-mono); }
+.calc-out b.ok { color: var(--ok); } .calc-out b.bad { color: var(--bad); }
+#fl-svg, #fl2-svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 6px auto 0; }
+
+/* ---------- Kit bench ---------- */
+.kit-bench .kb-pill rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 2; }
+.kit-bench .kb-pill text { fill: var(--ink); font: 700 27px var(--f-body); }
+.bb-pwm { display: block; width: 100%; height: auto; margin-inline: auto; }
+.kit-bench .kb-strip { fill: transparent; stroke-width: 7; stroke-opacity: 0; transition: stroke-opacity var(--t2, .2s); }
+.kit-bench .kb-strip.net-on { stroke-opacity: 1; fill: color-mix(in srgb, currentColor 16%, transparent); }
+
+/* ---------- «Знайди несправність» code panel ---------- */
+.hk-code { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); overflow: hidden; }
+.hk-h { padding: 5px 12px; border-bottom: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.hk-code pre { margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; max-width: none; color: var(--ink); font: 14px/1.55 var(--f-mono); font-variant-ligatures: none; overflow-x: auto; }
+.hk-l { display: block; padding: 0 12px; border-left: 3px solid transparent; white-space: pre; }
+.hn-stage .hk-l[data-hunt] { border-left-color: var(--line-strong); }
+.hn-stage .hk-l[data-hunt]:hover, .hn-stage .hk-l[data-hunt]:focus-visible { filter: none; background: color-mix(in srgb, var(--focus, var(--accent)) 12%, transparent); }
+.hn-stage .hk-l.hn-hit { filter: none; border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.hn-stage .hk-l.hn-found { filter: none; border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+</style>
+</head>
+<body data-lesson="3-3">
+<nav class="site-nav" aria-label="Навігація сайтом" data-page="lesson:3-3">
+  <a class="sn-home" href="../../"><img src="../../favicon.svg" alt="">← Карта курсу</a>
+</nav>
+<main class="hub">
+
+  <!-- ============================================================ 00 header -->
+  <header id="top">
+    <p class="eyebrow">Модуль 3 · Урок 3.3 · пн 16.11</p>
+    <h1>Керування потужністю <span>і швидкістю (PWM)</span></h1>
+    <p class="lead">Цифровий вивід уміє лише 0 і 3,3&nbsp;В, а світлодіод світить уполовину, і мотор крутиться повільно. Розберемося, як це робить широтно-імпульсна модуляція, що таке таймери й канали LEDC в ESP32-S3, чому 20&nbsp;кГц і 12 біт разом не вийде, і як під'єднати мотор, щоб він не заважав світлодіоду й платі.</p>
+    <ul class="chips" aria-label="Про урок">
+      <li><span class="chip"><span class="k">≈</span> 30 хв читання</span></li>
+      <li><a class="chip" href="#lab">Потрібно: LED, 2 потенціометри, 2N2222, 1N4007, мотор TT, MB-102</a></li>
+      <li><a class="chip" href="../2-2/">Спершу: урок 2.2 · транзисторний ключ</a></li>
+      <li><a class="chip" href="../3-1/">Урок 3.1 · потенціометр і АЦП</a></li>
+      <li><a class="chip deep" href="../../power-loads/">Теорія: потужне навантаження</a></li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" href="#check">Я це знаю → до самоперевірки</a>
+    </div>
+  </header>
+
+  <!-- ============================================================ lab: PWM (not a section.hs: the TOC skips it) -->
+  <section class="lab wide" id="pwm" aria-labelledby="pwm-h">
+    <header class="lab-head"><h2 id="pwm-h">Лабораторія · один вивід, тисяча вмикань на секунду</h2><p>Міняйте заповнення, частоту й розрядність. Дивіться на сигнал, на середню напругу і на те, що «бачить» навантаження. Внизу — чи погодиться на таке LEDC в ESP32-S3.</p></header>
+    <div class="lab-stage">
+      <div class="pwm-grid">
+        <svg id="pw-svg" viewBox="0 0 360 200" role="img" aria-label="Осцилограма ШІМ: три періоди прямокутного сигналу між 0 і повною напругою. Пунктирна горизонталь — середня напруга. Під графіком тривалість одного періоду.">
+          <g id="pw-grid"></g>
+          <path id="pw-avg" d="" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/>
+          <path id="pw-wave" d="" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>
+          <text class="svg-m" id="pw-avg-t" x="350" y="15" text-anchor="end" style="fill:var(--accent)">середня</text>
+          <text class="svg-m" id="pw-per" x="190" y="192" text-anchor="middle">період</text>
+        </svg>
+        <svg id="led-svg" viewBox="0 0 200 200" role="img" aria-label="Що бачить навантаження: для світлодіода — коло, яскравість якого відповідає сприйнятій світлоті; для мотора — колесо з умовною швидкістю.">
+          <circle id="led-glow" cx="100" cy="86" r="62" fill="var(--bad)" opacity="0"/>
+          <circle id="led-core" cx="100" cy="86" r="30" fill="var(--bad)" stroke="var(--line-strong)" stroke-width="2"/>
+          <g id="mot-g" opacity="0">
+            <circle cx="100" cy="86" r="52" fill="none" stroke="var(--ink)" stroke-width="6"/>
+            <g id="mot-spk"><path d="M100 40V132M54 86H146M68 54L132 118M132 54L68 118" stroke="var(--muted)" stroke-width="5" stroke-linecap="round"/></g>
+            <circle cx="100" cy="86" r="10" fill="var(--ink)"/>
+          </g>
+          <text class="svg-t" id="led-cap" x="100" y="176" text-anchor="middle">LED</text>
+        </svg>
+      </div>
+    </div>
+    <div class="lab-ctl">
+      <label class="lab-range">Заповнення <input type="range" id="pw-duty" min="0" max="100" step="1" value="30" aria-label="Заповнення ШІМ, відсотків"><output id="pw-duty-out">30 %</output></label>
+      <div class="seg" role="group" aria-label="Частота ШІМ" id="pw-f">
+        <button type="button" data-f="50" aria-pressed="false">50 Гц</button>
+        <button type="button" data-f="1000" aria-pressed="false">1 кГц</button>
+        <button type="button" data-f="5000" aria-pressed="true">5 кГц</button>
+        <button type="button" data-f="20000" aria-pressed="false">20 кГц</button>
+      </div>
+      <div class="seg" role="group" aria-label="Розрядність заповнення" id="pw-b">
+        <button type="button" data-b="8" aria-pressed="false">8 біт</button>
+        <button type="button" data-b="10" aria-pressed="false">10</button>
+        <button type="button" data-b="12" aria-pressed="true">12</button>
+        <button type="button" data-b="14" aria-pressed="false">14</button>
+      </div>
+      <div class="seg" role="group" aria-label="Навантаження" id="pw-load">
+        <button type="button" data-l="led" aria-pressed="true">LED, 3,3 В</button>
+        <button type="button" data-l="mot" aria-pressed="false">Мотор, 5 В</button>
+      </div>
+    </div>
+    <div class="lab-read">
+      <div><b>Код заповнення</b><output id="pw-code">—</output></div>
+      <div><b>Період</b><output id="pw-T">—</output></div>
+      <div><b>Імпульс</b><output id="pw-ton">—</output></div>
+      <div><b>Середня</b><output id="pw-vavg">—</output></div>
+      <div><b>f × 2<sup>біт</sup></b><output id="pw-clk">—</output></div>
+    </div>
+    <p class="lab-note lim" id="pw-lim" aria-live="polite"></p>
+    <p class="lab-note" id="pw-note" aria-live="polite"></p>
+    <p class="lab-note"><b>Це модель, а не вимір.</b> Межа f × 2<sup>біт</sup> ≤ 80&nbsp;МГц і 14 біт — з документації Espressif<sup class="cite" data-fact="s3-ledc-timers-channels"></sup><sup class="cite" data-fact="idf-ledc-freq-res"></sup>. Яскравість LED показано як сприйняту світлоту CIE L*<sup class="cite" data-fact="cie-lightness"></sup>, порахувану від середнього струму; справжнє око ще й підлаштовується під освітлення кімнати. Швидкість мотора намальовано умовно: справжній TT рушає не з нуля, а з якогось заповнення, яке треба знайти на столі.</p>
+    <a class="lab-more" href="../../power-loads/">Програмний ШІМ і ключ на транзисторі з уроку 2.2 →</a>
+    <div class="missions" id="pw-ms"></div>
+  </section>
+
+  <!-- ============================================================ 01 why -->
+  <section class="hs" id="why">
+    <h2><span class="n">01</span> Навіщо це</h2>
+    <p>В ESP32-S3 немає ЦАП, тож справжньої «половини напруги» вивід не дасть. Але світлодіоду й мотору це й не потрібно: обидва інерційні. Якщо дуже швидко вмикати й вимикати живлення, око бачить середню яскравість, а ротор — середній крутний момент. Залишається з'ясувати три речі: як швидко перемикати, скільки сходинок заповнення можна мати на цій частоті і як зробити так, щоб мотор на 5&nbsp;В не зламав ні світлодіод, ні плату.</p>
+    <figure>
+      <svg viewBox="0 0 340 130" role="img" aria-label="Ліворуч прямокутний сигнал ШІМ на виводі. Стрілка до двох навантажень: світлодіода, де око усереднює спалахи, і мотора, де ротор усереднює поштовхи. Під ними підпис: середня потужність пропорційна заповненню.">
+        <defs><marker id="w-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+        <path d="M8 70H24V30H44V70H64V30H84V70H104V30H124V70H136" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
+        <text class="svg-m" x="72" y="96" text-anchor="middle">вивід: 0 / 3,3 В</text>
+        <path d="M146 50H184" stroke="var(--muted)" stroke-width="2" marker-end="url(#w-arr)"/>
+        <rect x="192" y="14" width="140" height="34" rx="8" fill="var(--panel)" stroke="var(--line-strong)"/>
+        <text class="svg-t" x="262" y="36" text-anchor="middle">LED → око</text>
+        <rect x="192" y="56" width="140" height="34" rx="8" fill="var(--panel)" stroke="var(--line-strong)"/>
+        <text class="svg-t" x="262" y="78" text-anchor="middle">мотор → ротор</text>
+        <text class="svg-m" x="262" y="116" text-anchor="middle">P<tspan dy="3" font-size="10">сер</tspan><tspan dy="-3"> ∝ заповнення</tspan></text>
+      </svg>
+      <figcaption>Навантаження не встигає за перемиканнями і реагує на середнє. Для цього частота має бути достатньо високою.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 02 goals -->
+  <section class="hs" id="goals">
+    <h2><span class="n">02</span> Після уроку ви зможете</h2>
+    <ul>
+      <li><b>порахувати</b> середню напругу й код заповнення для заданої розрядності;</li>
+      <li><b>перевірити</b>, чи можна отримати пару «частота + розрядність» на LEDC ESP32-S3, і <b>вибрати</b> іншу, якщо ні;</li>
+      <li><b>налаштувати</b> два таймери й два канали LEDC так, щоб LED і мотор не впливали один на одного;</li>
+      <li><b>розрахувати</b> резистор для LED і струм бази для ключа на 2N2222;</li>
+      <li><b>пояснити</b>, навіщо діод паралельно мотору, і чим індуктивний викид відрізняється від проти-ЕРС;</li>
+      <li><b>зібрати</b> й прошити ДЗ: два потенціометри, LED і мотор на одній ESP32-S3.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ «Коротко» -->
+  <aside class="tldr" aria-labelledby="tldr-h">
+    <h2 class="tldr-h" id="tldr-h">Коротко</h2>
+    <p class="tldr-time">≈ 10 хв основне · віджети й практика — ще ≈ 40 хв</p>
+    <ol>
+      <li>ШІМ: період сталий, міняється частка часу в HIGH. U<sub>сер</sub>&nbsp;=&nbsp;U&nbsp;×&nbsp;заповнення. <a href="#ideas">→ 04</a></li>
+      <li>LEDC в ESP32-S3: 4 таймери, 8 каналів, лише low-speed режим, до 14 біт. Не 8 таймерів і 16 каналів, як у класичного ESP32 і в тексті LMS. <a href="#ideas">→ 04</a></li>
+      <li>Таймер задає частоту й розрядність, канал — вивід і заповнення. Різні частоти — різні таймери. <a href="#ideas">→ 04</a></li>
+      <li>f × 2<sup>біт</sup> ≤ 80&nbsp;МГц: на 20&nbsp;кГц щонайбільше 11 біт. Неможливу пару <code>ledc_timer_config()</code> відхилить під час роботи, а не компілятор. <a href="#poe">→ 05</a></li>
+      <li>LED: 220&nbsp;Ом дають ≈6&nbsp;мА, цього досить. Мотор: ключ 2N2222 (або логічний MOSFET AO3400A) від окремих 5&nbsp;В, діод 1N4007 паралельно мотору, спільна GND. <a href="#ideas">→ 04</a></li>
+      <li>Не беріть GPIO19/20 (це USB, наша консоль) і GPIO35 (на N16R8 це PSRAM, і там немає АЦП). <a href="#mistakes">→ 07</a></li>
+    </ol>
+  </aside>
+
+  <!-- ============================================================ 03 warm-up -->
+  <section class="hs" id="warmup">
+    <h2><span class="n">03</span> Розминка: згадаймо</h2>
+    <div class="quiz" data-mode="warmup" data-from="auto" data-n="3"></div>
+  </section>
+
+  <!-- ============================================================ 04 ideas -->
+  <section class="hs" id="ideas">
+    <h2><span class="n">04</span> Головні ідеї</h2>
+
+    <article class="idea">
+      <h3>Заповнення і середня напруга</h3>
+      <p>ШІМ — прямокутний сигнал зі сталим періодом T. Частину періоду вивід у HIGH (t<sub>і</sub>), решту в LOW. Відношення t<sub>і</sub>&nbsp;/&nbsp;T — <b>заповнення</b> (duty cycle). Середня напруга за період:</p>
+      <p class="formula">U<sub>сер</sub> = U<sub>HIGH</sub> × t<sub>і</sub> / T</p>
+      <p>Для 3,3&nbsp;В: 25&nbsp;% → 0,825&nbsp;В, 50&nbsp;% → 1,65&nbsp;В, 75&nbsp;% → 2,475&nbsp;В. Тут LMS усе рахує правильно. Але це <b>середнє</b>: на виводі в кожну мить або 0, або 3,3&nbsp;В. Мультиметр у режимі V⎓ покаже приблизно середнє, осцилограф — прямокутники. Світлодіод не «горить на 1,65&nbsp;В»: він спалахує на повний струм і гасне.</p>
+      <p>В LEDC заповнення задають цілим числом від 0 до 2<sup>біт</sup>: при 10 бітах 512 — це 50&nbsp;%, 1023 — 99,9&nbsp;%, а рівно 100&nbsp;% дає 1024<sup class="cite" data-fact="idf-ledc-duty-range"></sup>. На максимальних 14 бітах значення 2<sup>14</sup> на S3 ставити не можна: лічильник переповниться<sup class="cite" data-fact="idf-ledc-freq-res"></sup>.</p>
+      <p class="key"><b>Головне</b>ШІМ не робить «аналогову напругу». Він робить швидкі імпульси, а усереднює їх навантаження або RC-фільтр.</p>
+    </article>
+
+    <article class="idea">
+      <h3>LEDC: таймер задає ритм, канал — вивід і заповнення</h3>
+      <p>Апаратний ШІМ в ESP32-S3 робить периферія LED PWM Controller (LEDC). У S3 вона має <b>4 таймери і 8 каналів</b>, розрядність до 14 біт<sup class="cite" data-fact="s3-ledc-timers-channels"></sup>, і лише режим <code>LEDC_LOW_SPEED_MODE</code><sup class="cite" data-fact="idf-ledc-freq-res"></sup>. «16 каналів, 8 таймерів, високошвидкісний режим» з LMS — це класичний ESP32<sup class="cite" data-fact="lms-err-3-3-ledc-count"></sup>.</p>
+      <p><b>Таймер</b> — лічильник, що рахує від 0 до 2<sup>біт</sup> − 1 і починає знову. Швидкість рахунку й розрядність задають частоту. <b>Канал</b> — компаратор: на початку періоду ставить вивід у HIGH, а коли лічильник доходить до заповнення, у LOW. Один таймер може вести кілька каналів: частота однакова, заповнення в кожного своє.</p>
+      <figure>
+        <svg id="tm-svg" viewBox="0 0 340 214" role="img" aria-label="Модель LEDC: ліворуч чотири таймери T0–T3, праворуч вісім каналів CH0–CH7. Лінії показують, який канал якому таймеру підпорядкований. LED на CH0, мотор на CH1."></svg>
+        <div class="seg-row">
+          <span>Мотор (CH1) бере</span>
+          <div class="seg" role="group" aria-label="Таймер для каналу мотора" id="tm-sel">
+            <button type="button" data-t="0" aria-pressed="false">таймер 0, як LED</button>
+            <button type="button" data-t="1" aria-pressed="true">таймер 1</button>
+          </div>
+        </div>
+        <p class="idea-out" id="tm-txt" aria-live="polite"></p>
+      </figure>
+      <pre class="code"><code>ledc_timer_config(&amp;t0);    // таймер 0: 5 кГц, 12 біт — для LED
+ledc_timer_config(&amp;t1);    // таймер 1: 20 кГц, 10 біт — для мотора
+ledc_channel_config(&amp;c0);  // CH0 → GPIO15, timer_sel = LEDC_TIMER_0
+ledc_channel_config(&amp;c1);  // CH1 → GPIO6,  timer_sel = LEDC_TIMER_1
+ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, duty);
+ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1);  // без цього не застосується</code></pre>
+      <p>Після <code>ledc_set_duty()</code> обов'язково <code>ledc_update_duty()</code>: перша лише записує значення, друга його застосовує<sup class="cite" data-fact="idf-ledc-freq-res"></sup>.</p>
+      <p class="key"><b>Головне</b>Різні частоти — різні таймери. Канали на одному таймері мають одну частоту, і переналаштування таймера зачіпає всі його канали.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Частота проти розрядності: f × 2<sup>біт</sup> ≤ 80&nbsp;МГц</h3>
+      <p>Таймер LEDC тактується від APB_CLK 80&nbsp;МГц<sup class="cite" data-fact="s3-apb-80mhz"></sup> (або від повільніших XTAL 40&nbsp;МГц і RC_FAST) через дробовий дільник, не менший за 1. Частота ШІМ = f<sub>такт</sub>&nbsp;/&nbsp;(дільник&nbsp;×&nbsp;2<sup>біт</sup>)<sup class="cite" data-fact="s3-ledc-timers-channels"></sup>. Звідси межа: f&nbsp;×&nbsp;2<sup>біт</sup>&nbsp;≤&nbsp;80&nbsp;МГц.</p>
+      <div class="tbl-wrap"><table class="tbl-modes">
+        <thead><tr><th>Частота</th><th>Найбільше біт на S3</th><th>Для чого</th></tr></thead>
+        <tbody>
+          <tr><td class="n">1 кГц</td><td class="n">14 (межа S3)</td><td>LED, плавний fade</td></tr>
+          <tr><td class="n">5 кГц</td><td class="n">13</td><td>LED; у ДЗ беремо 12, як в АЦП</td></tr>
+          <tr><td class="n">20 кГц</td><td class="n">11</td><td>мотор: вище за чутний діапазон</td></tr>
+          <tr><td class="n">40 МГц</td><td class="n">1</td><td>лише меандр 50&nbsp;%</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Розрахунок: 80&nbsp;МГц / f, найближчий менший степінь двійки, але не більше 14 біт. 5&nbsp;кГц → 13 біт і 40&nbsp;МГц → 1 біт збігаються з документацією ESP-IDF<sup class="cite" data-fact="idf-ledc-freq-res"></sup>.</p>
+      <p>LMS пише «16 біт → ≈1220&nbsp;Гц»: арифметика правильна, але на S3 16 біт немає, максимум 14<sup class="cite" data-fact="lms-err-3-3-16bit"></sup>. І рекомендація «мотор 10–20&nbsp;кГц, 10–12 біт» на верхній межі не працює: 20&nbsp;000 × 4096 = 81,92&nbsp;МГц, більше за 80<sup class="cite" data-fact="lms-err-3-3-20k12"></sup>. Перевірите в розділі <a href="#poe">05</a>.</p>
+      <p class="key"><b>Головне</b>Вища частота — менше сходинок заповнення. Для LED вистачить і 8 біт, для мотора 10 біт на 20&nbsp;кГц — з запасом.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Світлодіод: резистор і ШІМ</h3>
+      <p>Струм LED обмежує резистор, ШІМ лише вмикає й вимикає цей струм. Тому резистор рахують для 100&nbsp;% заповнення: R = (U<sub>вих</sub> − U<sub>F</sub>) / I.</p>
+      <div class="panel">
+        <div class="ph"><h3>Резистор для LED на 3,3&nbsp;В</h3><span class="small">U<sub>F</sub> за даташитами Kingbright</span></div>
+        <div class="pb">
+          <div class="calc">
+            <label>Світлодіод <select id="lr-led"><option value="1.9" selected>червоний, 1,9 В</option><option value="1.95">жовтий, 1,95 В</option><option value="2.2">зелений, 2,2 В</option><option value="3.3">синій або білий, 3,3 В</option></select></label>
+            <label>Резистор, Ом <select id="lr-r"><option value="65">65 (розрахунок LMS)</option><option value="100">100</option><option value="150">150 (схема LMS)</option><option value="220" selected>220 (наш курс)</option><option value="330">330</option></select></label>
+          </div>
+          <p class="calc-out" id="lr-out" aria-live="polite"></p>
+        </div>
+      </div>
+      <p>LMS у тексті рахує (3,3 − 2,0) / 0,020 = 65&nbsp;Ом і радить «68 або 100», а на схемі стоїть 150&nbsp;Ом<sup class="cite" data-fact="lms-err-3-3-led-r"></sup>. 20&nbsp;мА — це вся типова сила виводу після скидання<sup class="cite" data-fact="s3-gpio-drive-default"></sup>, тобто робота на межі. У курсі ми ставимо 220&nbsp;Ом: червоний LED з U<sub>F</sub> ≈ 1,9&nbsp;В<sup class="cite" data-fact="led-red-3mm-vf"></sup> бере ≈6&nbsp;мА і світить яскраво.</p>
+      <p class="key"><b>Головне</b>Резистор вибирайте за повним струмом, а не за «середнім». ШІМ не захищає LED від завеликого імпульсу.</p>
+    </article>
+
+    <article class="idea">
+      <h3>Мотор: ключ, окреме живлення і діод</h3>
+      <p>Вивід ESP32-S3 дає ≈20&nbsp;мА<sup class="cite" data-fact="s3-gpio-drive-default"></sup>, а мотор TT на холостому ході бере ≈150&nbsp;мА і понад 1&nbsp;А на загальмованому валу<sup class="cite" data-fact="tt-motor-current"></sup>. Тому мотор вмикає ключ «знизу» (low-side): мотор між +5&nbsp;В модуля MB-102 і колектором 2N2222, емітер на GND, база через резистор на GPIO6. Схему й розрахунок бази детально розбирали на сторінці <a href="../../power-loads/">«Потужне навантаження»</a>.</p>
+      <p><b>Резистор бази 220&nbsp;Ом, а не 1&nbsp;кОм.</b> I<sub>Б</sub> ≈ (3,3 − 0,9) / 220 ≈ 11&nbsp;мА. Даташит гарантує насичення 2N2222 при I<sub>Б</sub> = I<sub>К</sub>/10<sup class="cite" data-fact="p2n2222a-vcesat"></sup>; для 150&nbsp;мА це 15&nbsp;мА, і 11&nbsp;мА близько до цього. З 1&nbsp;кОм вийшло б лише ≈2,4&nbsp;мА — для мотора замало, транзистор грітиметься в активному режимі.</p>
+      <p><b>Кращий ключ — логічний MOSFET AO3400A</b>: R<sub>DS(on)</sub> менше 48&nbsp;мОм уже при V<sub>GS</sub> = 2,5&nbsp;В<sup class="cite" data-fact="ao3400a-rdson-2v5"></sup>, струм затвора не потрібен, а 10–100&nbsp;кОм від затвора на GND тримають його закритим, поки ESP32 перезавантажується. IRF520 від 3,3&nbsp;В не відкриється: поріг у нього 2–4&nbsp;В, а опір нормовано лише при 10&nbsp;В<sup class="cite" data-fact="irf520-not-logic"></sup>. Порогова V<sub>GS(th)</sub> — це лише початок відкривання; дивитися треба на R<sub>DS(on)</sub> при вашій напрузі затвора<sup class="cite" data-fact="lms-err-3-3-vgs-th"></sup>.</p>
+      <p><b>Діод 1N4007 паралельно мотору</b>, смужкою (катодом) до +5&nbsp;В. Обмотка — індуктивність: коли ключ закривається, струм у ній не може зникнути миттєво, і напруга на колекторі стрибає вгору, доки струм не знайде шлях<sup class="cite" data-fact="uln2003a-flyback-diodes"></sup>. Діод дає цей шлях. На 20&nbsp;кГц це відбувається 20&nbsp;000 разів на секунду. Це <b>не</b> проти-ЕРС: проти-ЕРС — напруга, яку обертовий мотор генерує сам, пропорційно швидкості; вона протидіє живленню і саме тому пусковий струм великий, а на ходу малий<sup class="cite" data-fact="motor-back-emf"></sup>. LMS ці два явища змішує<sup class="cite" data-fact="lms-err-3-3-back-emf"></sup>.</p>
+      <p class="key"><b>Головне</b>Мотор живиться не від виводу 3V3 плати, а від MB-102. GND спільна, діод обов'язковий, а сигнальні дроти — подалі від моторних.</p>
+    </article>
+
+    <details class="more">
+      <summary>Детальніше: чому не 100&nbsp;кГц «щоб менше втрат»</summary>
+      <p>LMS пише, що вищі частоти зменшують втрати енергії в MOSFET. Навпаки: при кожному перемиканні ключ на мить проходить через стан, де на ньому є і напруга, і струм, а ще треба перезарядити затвор. Обидві складові множаться на частоту: P<sub>пер</sub> ≈ ½·U·I·(t<sub>r</sub> + t<sub>f</sub>)·f, P<sub>затв</sub> = Q<sub>g</sub>·U<sub>GS</sub>·f<sup class="cite" data-fact="mosfet-switching-loss-freq"></sup><sup class="cite" data-fact="lms-err-3-3-loss-freq"></sup>. Вищу частоту в імпульсних джерелах беруть, щоб зменшити дроселі й конденсатори, а не втрати в ключі. Для мотора 20&nbsp;кГц — компроміс: тихо і ще без помітних втрат.</p>
+    </details>
+    <details class="more">
+      <summary>Для допитливих: ШІМ як сигнал для серво</summary>
+      <p>Серво читає не заповнення, а <b>ширину імпульсу</b>: ≈1,5&nbsp;мс — середина, ≈1–2&nbsp;мс — близько 90° ходу, і стандартних меж немає. Імпульси зазвичай повторюють кожні 20&nbsp;мс (50&nbsp;Гц), але Pololu пише, що більшість серво витримує й частіші, а від частоти положення не залежить; у аналогових серво з рідшими імпульсами слабшає утримання<sup class="cite" data-fact="servo-pulse-width"></sup>. Тож «при іншій частоті не працюватиме» з LMS — перебільшення<sup class="cite" data-fact="lms-err-3-3-servo"></sup>. Детально — в уроці 3.5.</p>
+    </details>
+  </section>
+
+  <!-- ============================================================ 05 POE -->
+  <section class="hs" id="poe">
+    <h2><span class="n">05</span> Спрогнозуйте → перевірте → поясніть</h2>
+
+    <div class="predict" data-ok="2" data-gate="w-fr"
+         data-why="20 000 × 4096 = 81,92 МГц, а таймер LEDC рахує щонайбільше від 80 МГц. Компілятор цього не знає: числа просто лежать у структурі. Під час роботи ledc_timer_config() надрукує «requested frequency and duty resolution cannot be achieved» і поверне ESP_FAIL, а ESP_ERROR_CHECK перезавантажить плату.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Таймер мотора: <code>.freq_hz = 20000</code>, <code>.duty_resolution = LEDC_TIMER_12_BIT</code>. Що станеться?</p>
+      <div class="opts">
+        <button class="opt">Компілятор видасть помилку</button>
+        <button class="opt">Усе працюватиме, просто трохи неточно</button>
+        <button class="opt">Збереться, але <code>ledc_timer_config()</code> поверне помилку під час роботи</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-fr">
+      <div class="ph"><h3>Чи погодиться LEDC?</h3><span class="small">межа f × 2<sup>біт</sup> ≤ 80&nbsp;МГц і 14 біт ESP32-S3</span></div>
+      <div class="pb">
+        <div class="calc">
+          <label>Частота, Гц <input type="number" id="fr-f" value="20000" min="1" inputmode="numeric"></label>
+          <label>Розрядність, біт <input type="number" id="fr-b" value="12" min="1" max="20" inputmode="numeric"></label>
+        </div>
+        <svg id="fl-svg" viewBox="0 0 340 170" role="img" aria-label="Графік: по горизонталі частота від 100 Гц до 1 МГц у логарифмічному масштабі, по вертикалі розрядність від 1 до 16 біт. Зафарбована область — допустимі пари. Горизонтальна лінія на 14 бітах — межа ESP32-S3. Точка — вибрана пара."></svg>
+        <div class="cnt" aria-live="polite">
+          <div><span>f × 2<sup>біт</sup></span><b id="fr-clk">–</b></div>
+          <div id="fr-okc"><span>Результат</span><b id="fr-ok">–</b></div>
+          <div><span>Найбільше біт на цій частоті</span><b id="fr-maxb">–</b></div>
+          <div><span>Найбільша частота на цих бітах</span><b id="fr-maxf">–</b></div>
+        </div>
+        <p class="small" id="fr-note"></p>
+      </div>
+    </div>
+
+    <div class="predict" data-ok="0" data-gate="w-fl"
+         data-why="Струм обмотки не може зникнути миттєво. Без діода йому нікуди йти, і напруга на колекторі злітає, доки щось не пробʼється: найчастіше транзистор. З діодом струм тече по колу «мотор → діод → мотор», і колектор лише трохи вищий за +5 В, на падіння діода.">
+      <span class="tag">Спрогнозуйте</span>
+      <p>Ключ 2N2222 щойно закрився, мотор крутився. Діода 1N4007 немає. Що з напругою на колекторі?</p>
+      <div class="opts">
+        <button class="opt">Короткий викид, набагато вищий за 5&nbsp;В</button>
+        <button class="opt">Плавно росте до 5&nbsp;В, як у резистора</button>
+        <button class="opt">Падає нижче 0&nbsp;В</button>
+      </div>
+      <div class="fb" aria-live="polite"></div>
+    </div>
+    <div class="gated panel wide" id="w-fl">
+      <div class="ph"><h3>Колектор у момент вимикання</h3><span class="small">якісна картина, не вимір</span></div>
+      <div class="pb">
+        <div class="seg-row">
+          <div class="seg" role="group" aria-label="Діод паралельно мотору" id="fl-seg">
+            <button type="button" data-d="1" aria-pressed="true">з діодом</button>
+            <button type="button" data-d="0" aria-pressed="false">без діода</button>
+          </div>
+        </div>
+        <svg id="fl2-svg" viewBox="0 0 340 170" role="img" aria-label="Напруга на колекторі за один період ШІМ: поки ключ відкритий, близько нуля; після закривання — з діодом трохи вище 5 В, без діода гострий викид угору за межу графіка, туди, де лінія 40 В — межа VCEO транзистора 2N2222."></svg>
+        <p class="small" id="fl-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 06 worked → faded → independent -->
+  <section class="hs" id="example">
+    <h2><span class="n">06</span> Розбираємо приклад: коди заповнення і час fade</h2>
+    <p>Повна прошивка для ДЗ — у розділі <a href="#lab">09</a>. Ось її серце: два читання АЦП, два перерахунки, два канали.</p>
+    <pre class="code"><code>adc_oneshot_read(adc, POT_LED_CH, &amp;raw_led);   // 0…4095
+adc_oneshot_read(adc, POT_MOT_CH, &amp;raw_mot);   // 0…4095
+uint32_t led = raw_led;                          // 12 біт: 0…4095 як є
+uint32_t mot = raw_mot &lt; MOT_DEAD ? 0 : raw_mot &gt;&gt; 2;  // 10 біт: 0…1023
+pwm_set(LEDC_CHANNEL_0, led);
+pwm_set(LEDC_CHANNEL_1, mot);</code></pre>
+
+    <span class="tag ex-label">Розібраний приклад</span>
+    <ol class="worked">
+      <li><b>Код для 30&nbsp;% на 10 бітах:</b> <span class="formula">0,30 × 1024 ≈ 307</span><span class="why">чому 1024, а не 1023: заповнення в LEDC рахують від 2<sup>біт</sup>; 1024 — рівно 100&nbsp;%.</span></li>
+      <li><b>Середня напруга на виводі:</b> <span class="formula">3,3 × 307 / 1024 ≈ 0,99 В</span><span class="why">чому «на виводі»: на моторі середня буде від 5&nbsp;В, мінус падіння на ключі.</span></li>
+      <li><b>Fade з прикладу LMS:</b> від 0 до 1023 кроком 10, кожен крок 20&nbsp;мс. <span class="formula">103 кроки × 20 мс ≈ 2,06 с</span><span class="why">LMS пише «світлішає протягом 10 секунд». Кроків 103 (0, 10, … 1020), тож розгорання триває близько двох секунд<sup class="cite" data-fact="lms-err-3-3-fade"></sup>.</span></li>
+    </ol>
+    <span class="tag ex-label">Доробіть самі</span>
+    <ol class="faded">
+      <li><b>Задача:</b> LED на 12 бітах, потрібно 25&nbsp;%.</li>
+      <li>
+        <div class="try" data-ans="1024" data-tol="0.002" data-unit="" data-dec="0">
+          <span class="tag">Ваша черга</span>
+          <p>Який код заповнення?</p>
+          <details><summary>Підказка</summary>2<sup>12</sup> = 4096; чверть від цього.</details>
+        </div>
+      </li>
+      <li>
+        <div class="try" data-ans="10.9" data-tol="0.03" data-unit="мА" data-dec="1">
+          <span class="tag">Ваша черга</span>
+          <p>Який струм бази 2N2222 дасть резистор 220&nbsp;Ом від 3,3&nbsp;В, якщо U<sub>БЕ</sub> ≈ 0,9&nbsp;В, мА?</p>
+          <details><summary>Підказка</summary>(3,3 − 0,9) / 220 А, переведіть у мА.</details>
+        </div>
+      </li>
+    </ol>
+    <div class="try" data-ans="11" data-tol="0.001" data-unit="біт" data-dec="0">
+      <span class="tag">Самостійно</span>
+      <h4>Скільки біт найбільше можна мати на LEDC ESP32-S3 при 20&nbsp;кГц?</h4>
+      <details><summary>Підказка</summary>80&nbsp;000&nbsp;000 / 20&nbsp;000 = 4000. Найбільший степінь двійки, що не перевищує 4000.</details>
+    </div>
+    <p class="note tip">Висновок: 10 біт на 20&nbsp;кГц — це 1024 сходинки, а потенціометр через АЦП дає 4096. Зсув <code>&gt;&gt; 2</code> чесно ділить на 4 і нічого не губить, що помітив би мотор.</p>
+  </section>
+
+  <!-- ============================================================ 07 misconceptions -->
+  <section class="hs" id="mistakes">
+    <h2><span class="n">07</span> Типові помилки</h2>
+    <div class="myths">
+      <div class="myth">
+        <p class="seems">ESP32-S3 має 16 каналів ШІМ і 8 таймерів.</p>
+        <p class="truth">Це класичний ESP32. В S3: 8 каналів, 4 таймери, лише low-speed<sup class="cite" data-fact="s3-ledc-timers-channels"></sup><sup class="cite" data-fact="lms-err-3-3-ledc-count"></sup>. <code>LEDC_CHANNEL_8</code> і <code>LEDC_TIMER_4</code> для S3 навіть не оголошено.</p>
+        <p class="test">Модель LEDC у розділі 04.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Неможливу частоту й розрядність зловить компілятор.</p>
+        <p class="truth">Компілятор бачить лише числа. Перевіряє <code>ledc_timer_config()</code> під час роботи: друкує «requested frequency and duty resolution cannot be achieved» і повертає <code>ESP_FAIL</code><sup class="cite" data-fact="idf-ledc-freq-res"></sup><sup class="cite" data-fact="lms-err-3-3-runtime"></sup>.</p>
+        <p class="test">Віджет «Чи погодиться LEDC?» у розділі 05.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Мотор можна взяти на GPIO19, як у прикладі LMS.</p>
+        <p class="truth">GPIO19/20 на S3 — це D−/D+ вбудованого USB<sup class="cite" data-fact="s3-usb-pins"></sup>. Перепризначите їх під ШІМ — зникне USB Serial/JTAG, тобто наша консоль і прошивка через цей роз'єм<sup class="cite" data-fact="s3-usb-pins-as-gpio"></sup><sup class="cite" data-fact="lms-err-3-3-gpio19"></sup>. У ДЗ мотор на GPIO6.</p>
+        <p class="test">«Знайди несправність» нижче, справа 3.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Потенціометр на GPIO35 читається <code>analogRead()</code>.</p>
+        <p class="truth">На S3 АЦП є лише на GPIO1–20<sup class="cite" data-fact="s3-adc1-pins"></sup><sup class="cite" data-fact="s3-adc2-pins"></sup>, а GPIO35 на нашій N16R8 зайнятий octal PSRAM<sup class="cite" data-fact="s3-octal-pins"></sup><sup class="cite" data-fact="lms-err-3-3-pot35"></sup>. Беремо GPIO4 і GPIO5.</p>
+        <p class="test">Розпіновка в <a href="../1-4/">уроці 1.4</a>.</p>
+      </div>
+      <div class="myth">
+        <p class="seems">Вища частота зменшує втрати в MOSFET.</p>
+        <p class="truth">Втрати на перемикання пропорційні частоті<sup class="cite" data-fact="mosfet-switching-loss-freq"></sup>. Вищу частоту беруть через чутність і розмір дроселів, а не заради ККД ключа.</p>
+        <p class="test">«Детальніше» в кінці розділу 04.</p>
+      </div>
+    </div>
+    <!-- «Знайди несправність»: the section 08 bench + the firmware, exactly one fault per case (Study.hunt, script below) -->
+    <div class="hunt" id="hunt-pwm"></div>
+  </section>
+
+  <!-- ============================================================ 08 circuit -->
+  <section class="hs" id="circuit">
+    <h2><span class="n">08</span> Схема і макетка</h2>
+    <p>Два потенціометри 10&nbsp;кОм — подільники від 3V3: RP1 на GPIO4 (ADC1_CH3), RP2 на GPIO5 (ADC1_CH4)<sup class="cite" data-fact="s3-adc1-pins"></sup>. LED з резистором 220&nbsp;Ом на GPIO15. GPIO6 через 220&nbsp;Ом на базу 2N2222; мотор TT між +5&nbsp;В модуля MB-102 і колектором, 1N4007 паралельно мотору смужкою до +5&nbsp;В. Модуль MB-102 і плата мають спільну GND.</p>
+    <figure class="dual wide" id="dual-pwm" data-nets="v33=3V3; gpio4=GPIO4 · RP1; gpio5=GPIO5 · RP2; gpio15=GPIO15 · LED; gpio6=GPIO6 · база; v5=+5 В MB-102; gnd=GND">
+      <div class="view" data-view="sch">
+        <svg viewBox="0 0 380 340" role="img" aria-label="Схема: 3V3 плати U1 живить два потенціометри RP1 і RP2 по 10 кОм, їхні нижні виводи на землю; повзунок RP1 на GPIO4, повзунок RP2 на GPIO5. GPIO15 через R1 220 Ом на анод світлодіода LED1, катод на землю. GPIO6 через R2 220 Ом на базу транзистора Q1 2N2222; емітер на землю. Мотор M1 між +5 В модуля MB-102 і колектором Q1; діод D1 1N4007 паралельно мотору, катодом до +5 В. GND плати і модуля спільна.">
+          <rect class="sch-w" x="6" y="28" width="62" height="292" rx="3"/>
+          <text class="sch-ref" x="6" y="18">U1 · ESP32-S3</text>
+          <use class="sch-sym net-3v3" data-net="v33" href="#mcu-pin" x="88" y="44" transform="rotate(180 88 44)"/>
+          <text class="sch-pin net-3v3" data-net="v33" x="60" y="49" text-anchor="end">3V3</text>
+          <use class="sch-sym net-sig" data-net="gpio4" href="#mcu-pin" x="88" y="74" transform="rotate(180 88 74)"/>
+          <text class="sch-pin net-sig" data-net="gpio4" x="60" y="79" text-anchor="end">GPIO4</text>
+          <use class="sch-sym net-sig2" data-net="gpio5" href="#mcu-pin" x="88" y="130" transform="rotate(180 88 130)"/>
+          <text class="sch-pin net-sig2" data-net="gpio5" x="60" y="135" text-anchor="end">GPIO5</text>
+          <use class="sch-sym net-sig3" data-net="gpio15" href="#mcu-pin" x="88" y="212" transform="rotate(180 88 212)"/>
+          <text class="sch-pin net-sig3" data-net="gpio15" x="60" y="217" text-anchor="end">GPIO15</text>
+          <use class="sch-sym net-in" data-net="gpio6" href="#mcu-pin" x="88" y="262" transform="rotate(180 88 262)"/>
+          <text class="sch-pin net-in" data-net="gpio6" x="60" y="267" text-anchor="end">GPIO6</text>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#mcu-pin" x="88" y="304" transform="rotate(180 88 304)"/>
+          <text class="sch-pin net-gnd" data-net="gnd" x="60" y="309" text-anchor="end">GND</text>
+          <!-- 3V3 bus and the pots -->
+          <path class="sch-w net-3v3" data-net="v33" d="M88 44H250V100"/>
+          <use class="sch-sym net-3v3" data-net="v33" href="#dot" x="140" y="44"/>
+          <use class="sch-sym" href="#pot" x="140" y="104" transform="rotate(-90 140 104)"/>
+          <text class="sch-ref" x="152" y="66">RP1</text><text class="sch-val" x="152" y="82">10 кОм</text>
+          <path class="sch-w net-sig" data-net="gpio4" d="M88 74H120"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="140" y="104"/>
+          <use class="sch-sym" href="#pot" x="250" y="160" transform="rotate(-90 250 160)"/>
+          <text class="sch-ref" x="238" y="108" text-anchor="end">RP2</text><text class="sch-val" x="238" y="122" text-anchor="end">10 кОм</text>
+          <path class="sch-w net-sig2" data-net="gpio5" d="M88 130H230"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="250" y="160"/>
+          <!-- LED branch -->
+          <path class="sch-w net-sig3" data-net="gpio15" d="M88 212H98"/>
+          <use class="sch-sym" href="#res" x="98" y="212"/>
+          <text class="sch-ref" x="128" y="200" text-anchor="middle">R1</text><text class="sch-val" x="128" y="232" text-anchor="middle">220 Ом</text>
+          <path class="sch-w" d="M158 212H166"/>
+          <use class="sch-sym" href="#led" x="166" y="212" id="sch-led"/>
+          <text class="sch-ref" x="196" y="236" text-anchor="middle">LED1</text>
+          <path class="sch-w net-gnd" data-net="gnd" d="M226 212H236"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="236" y="212"/>
+          <!-- motor branch -->
+          <path class="sch-w net-in" data-net="gpio6" d="M88 262H98"/>
+          <use class="sch-sym" href="#res" x="98" y="262"/>
+          <text class="sch-ref" x="128" y="250" text-anchor="middle">R2</text><text class="sch-val" x="128" y="282" text-anchor="middle">220 Ом</text>
+          <path class="sch-w net-in" data-net="gpio6" d="M158 262H280"/>
+          <use class="sch-sym" href="#npn" x="280" y="262"/>
+          <text class="sch-ref" x="270" y="300" text-anchor="end">Q1</text><text class="sch-val" x="270" y="316" text-anchor="end">2N2222</text>
+          <text class="sch-pin net-5v" data-net="v5" x="318" y="140" text-anchor="middle">+5 В MB-102</text>
+          <use class="sch-sym net-5v" data-net="v5" href="#vcc" x="310" y="162"/>
+          <path class="sch-w net-5v" data-net="v5" d="M310 162V172H354V176"/>
+          <use class="sch-sym" href="#motor" x="310" y="172" transform="rotate(90 310 172)"/>
+          <text class="sch-ref" x="288" y="206" text-anchor="end">M1</text>
+          <use class="sch-sym" href="#diode" x="354" y="236" transform="rotate(-90 354 236)"/>
+          <text class="sch-ref" x="376" y="262" text-anchor="end">D1</text>
+          <path class="sch-w" d="M310 232H354V236"/>
+          <use class="sch-sym" href="#dot" x="310" y="232"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M310 292V304"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="310" y="304"/>
+          <path class="sch-w net-gnd" data-net="gnd" d="M88 304H110"/>
+          <use class="sch-sym net-gnd" data-net="gnd" href="#gnd" x="110" y="304"/>
+          <text class="sch-val" x="372" y="334" text-anchor="end">усі ⏚ — спільна GND</text>
+        </svg>
+      </div>
+      <div class="view" data-view="bb">
+        <svg id="bb-pwm" class="kit-bench bb-pwm" viewBox="-140 -360 1800 980" role="img" aria-label="Макетка: модуль MB-102 на лівому краї, верхня перемичка 5 В, нижня OFF. Плата YD-ESP32-S3 у макетці, ліва гребінка в ряду i зі стовпчика 28 (3V3 у 28, GPIO4 у 31, GPIO5 у 32, GPIO6 у 33, GPIO15 у 35, GND у 49). Помаранчевий дріт j28 на нижню шину плюс — вона стає шиною 3V3. Ліворуч потенціометри RP2 (стовпчики 12, 14, 16) і RP1 (19, 21, 23): крайні виводи помаранчевими дротами на шину 3V3 і чорними на нижню шину мінус. Жовтий дріт GPIO4 між шинами до повзунка RP1 у стовпчику 21, зелений дріт GPIO5 уздовж нижнього краю до повзунка RP2 у стовпчику 14. Праворуч синій дріт GPIO15 до стовпчика 50, резистор 220 Ом i50–i53, світлодіод анодом f53, катодом f54, катод чорним дротом на нижню шину мінус. Фіолетовий дріт GPIO6 уздовж нижнього краю до стовпчика 56, резистор бази 220 Ом через канавку f56–e56, транзистор 2N2222 E d55, B d56, C d57. Діод 1N4007 e57–e60, катод червоним дротом на верхню шину плюс 5 В. Емітер чорним на верхню шину мінус. Мотор над макеткою: мінус до колектора помаранчевим дротом. Плюс мотора червоним дротом від верхньої шини в стовпчику 61. Червона перемичка переносить 5 В через розрив верхньої шини, GND плати з a28 і a49 на верхню шину мінус, чорна перемичка в стовпчику 61 з'єднує верхню і нижню шини мінус праворуч."></svg>
+      </div>
+      <figcaption>Наведіть або торкніться дроту: той самий вузол підсвітиться на обох видах.</figcaption>
+    </figure>
+    <div class="dual-ctl">
+      <label class="lab-range">RP1 → LED <input type="range" id="bb-p1" min="0" max="100" step="1" value="40" aria-label="Положення RP1, відсотків"><output id="bb-p1-out">40 %</output></label>
+      <label class="lab-range">RP2 → мотор <input type="range" id="bb-p2" min="0" max="100" step="1" value="60" aria-label="Положення RP2, відсотків"><output id="bb-p2-out">60 %</output></label>
+      <span class="isr-badge" id="bb-badge" aria-live="polite">LED 40 %, мотор 60 %</span>
+    </div>
+    <p class="small"><b>Нижню перемичку MB-102 — в OFF</b>: нижня шина «+» тут стає шиною 3V3 від плати, і 5&nbsp;В на ній спалили б вхід АЦП. Верхня шина — +5&nbsp;В для мотора. Конденсатор 100&nbsp;нФ (104) прямо на клемах мотора і 100&nbsp;мкФ між верхніми шинами зменшують завади; їх тут не намальовано, щоб не захаращувати. Від GPIO26–37 на N16R8 тримайтеся подалі: це flash і PSRAM<sup class="cite" data-fact="s3-flash-pins"></sup><sup class="cite" data-fact="s3-octal-pins"></sup>.</p>
+  </section>
+
+  <!-- ============================================================ 09 home lab -->
+  <section class="hs" id="lab">
+    <h2><span class="n">09</span> Домашнє завдання: LED і мотор, що не заважають одне одному</h2>
+    <p>Завдання LMS: потенціометр керує яскравістю світлодіода; потенціометр керує швидкістю вала двигуна; двигун і світлодіод не впливають на роботу одне одного. Код і результат — на GitHub, у назві репозиторію, гілки чи коміту — номер модуля й уроку, посилання — у LMS.</p>
+    <p>Потрібно: плата YD-ESP32-S3, макетка, модуль MB-102 і його живлення, два потенціометри 10&nbsp;кОм, червоний LED, 3 резистори 220&nbsp;Ом (один для LED, один для бази; третій запасний), 2N2222 (або AO3400A з резистором 10–100&nbsp;кОм на GND від затвора), 1N4007, мотор TT, дроти.</p>
+    <div class="note"><b>Стан коду.</b> Прошивку нижче ми зібрали в PlatformIO (ESP-IDF 6.1, <code>pio run</code>) без жодного попередження, але на платі <b>не запускали</b>, і жодного числа на цій сторінці на платі не виміряно. Окремого проєкту в репозиторії під це ДЗ поки немає. Якщо щось не збереться або поведеться дивно, напишіть в «Обговоренні».</div>
+    <p><b>Що означає «не впливають»</b> — і як ми це забезпечуємо:</p>
+    <ul>
+      <li><b>Різні таймери:</b> LED на таймері 0 (5&nbsp;кГц, 12 біт), мотор на таймері 1 (20&nbsp;кГц, 10 біт). Зміна одного не чіпає іншого, а мотор не пищить у чутному діапазоні.</li>
+      <li><b>Різні канали й виводи:</b> CH0 → GPIO15, CH1 → GPIO6; два різні входи АЦП, GPIO4 і GPIO5.</li>
+      <li><b>Окреме живлення:</b> мотор від MB-102, не від виводу 3V3 плати. Пусковий струм понад ампер<sup class="cite" data-fact="tt-motor-current"></sup> просадив би 3,3&nbsp;В — і LED, і АЦП, і саму ESP32.</li>
+      <li><b>Діод і завади:</b> 1N4007 гасить викид при кожному вимиканні; спільна GND; бажано 100&nbsp;нФ на клемах мотора; дроти потенціометрів подалі від моторних.</li>
+    </ul>
+    <ol>
+      <li>Зберіть схему розділу 08. <b>Спершу без мотора</b>: мультиметром перевірте 3,3&nbsp;В на нижній шині «+» і ≈5&nbsp;В на верхній.</li>
+      <li><b>Прогноз:</b> запишіть, з якого положення RP2 мотор рушить і чи буде чутно писк на 20&nbsp;кГц.</li>
+      <li>Створіть проєкт ESP-IDF у PlatformIO, як <code>esp32-s3-adc-cali</code> з уроку 3.2: у <code>src/CMakeLists.txt</code> — <code>REQUIRES esp_adc esp_driver_ledc</code>. Вставте <code>main.c</code>, <code>pio run -t upload &amp;&amp; pio device monitor</code>.</li>
+      <li>Покрутіть RP1: LED плавно від темного до яскравого, мотор не змінюється. Покрутіть RP2: мотор від стоп до повного, LED не блимає.</li>
+      <li>Заповніть таблицю нижче. Знайдіть поріг рушання мотора і поставте <code>MOT_DEAD</code> трохи нижче.</li>
+      <li>Опційно: перемкніть мотор на таймер 0 (як у справі 1 «Знайди несправність») і опишіть, що змінилось.</li>
+    </ol>
+    <details class="more">
+      <summary>Код: src/main.c (ESP-IDF 6.1)</summary>
+<pre class="code"><code>#include &lt;stdio.h&gt;
+#include "driver/ledc.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// ДЗ 3.3: RP1 (GPIO4) керує яскравістю LED на GPIO15,
+// RP2 (GPIO5) — швидкістю мотора через 2N2222 на GPIO6.
+// Два окремі таймери LEDC, тож частоти не заважають одна одній.
+#define LED_GPIO    15
+#define MOTOR_GPIO  6
+#define POT_LED_CH  ADC_CHANNEL_3      // GPIO4 = ADC1_CH3
+#define POT_MOT_CH  ADC_CHANNEL_4      // GPIO5 = ADC1_CH4
+
+#define LED_HZ      5000               // 5 кГц × 2^12 = 20,48 МГц ≤ 80 МГц
+#define LED_BITS    LEDC_TIMER_12_BIT  // 0…4095, як у АЦП
+#define MOT_HZ      20000              // 20 кГц: вище за слух
+#define MOT_BITS    LEDC_TIMER_10_BIT  // 20 кГц × 2^10 = 20,48 МГц; 12 біт уже 81,92 МГц
+#define MOT_DEAD    100                // нижче цього RAW мотор вимкнено зовсім
+
+static void pwm_timer(ledc_timer_t timer, uint32_t hz, ledc_timer_bit_t bits) {
+    ledc_timer_config_t cfg = {
+        .speed_mode = LEDC_LOW_SPEED_MODE,  // на S3 іншого режиму немає
+        .timer_num = timer,
+        .duty_resolution = bits,
+        .freq_hz = hz,
+        .clk_cfg = LEDC_AUTO_CLK,
+    };
+    ESP_ERROR_CHECK(ledc_timer_config(&amp;cfg));  // неможлива пара f і біт — помилка тут, під час роботи
+}
+
+static void pwm_channel(ledc_channel_t ch, ledc_timer_t timer, int gpio) {
+    ledc_channel_config_t cfg = {
+        .gpio_num = gpio,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = ch,
+        .timer_sel = timer,
+        .duty = 0,
+        .hpoint = 0,
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&amp;cfg));
+}
+
+static void pwm_set(ledc_channel_t ch, uint32_t duty) {
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, ch, duty));  // записали нове значення…
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, ch));     // …і застосували його
+}
+
+void app_main(void) {
+    adc_oneshot_unit_handle_t adc;
+    adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&amp;unit, &amp;adc));
+    adc_oneshot_chan_cfg_t chan = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, POT_LED_CH, &amp;chan));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, POT_MOT_CH, &amp;chan));
+
+    pwm_timer(LEDC_TIMER_0, LED_HZ, LED_BITS);  // таймер 0 — тільки LED
+    pwm_timer(LEDC_TIMER_1, MOT_HZ, MOT_BITS);  // таймер 1 — тільки мотор
+    pwm_channel(LEDC_CHANNEL_0, LEDC_TIMER_0, LED_GPIO);
+    pwm_channel(LEDC_CHANNEL_1, LEDC_TIMER_1, MOTOR_GPIO);
+
+    printf("LED: GPIO%d, %d Гц, 12 біт | мотор: GPIO%d, %d Гц, 10 біт\n", LED_GPIO, LED_HZ, MOTOR_GPIO, MOT_HZ);
+    int n = 0;
+    while (1) {
+        int raw_led = 0, raw_mot = 0;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc, POT_LED_CH, &amp;raw_led));
+        ESP_ERROR_CHECK(adc_oneshot_read(adc, POT_MOT_CH, &amp;raw_mot));
+
+        uint32_t led = (uint32_t)raw_led;                         // 0…4095 → 0…4095
+        uint32_t mot = raw_mot &lt; MOT_DEAD ? 0 : (uint32_t)raw_mot &gt;&gt; 2;  // 0…4095 → 0…1023
+        pwm_set(LEDC_CHANNEL_0, led);
+        pwm_set(LEDC_CHANNEL_1, mot);
+
+        if (++n % 10 == 0) {  // друк раз на ≈200 мс
+            printf("RP1 %4d → LED %3lu %%   RP2 %4d → мотор %3lu %%\n",
+                   raw_led, (unsigned long)(led * 100 / 4096), raw_mot, (unsigned long)(mot * 100 / 1024));
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+}</code></pre>
+      <p class="small"><code>src/CMakeLists.txt</code>: <code>idf_component_register(SRCS "main.c" REQUIRES esp_adc esp_driver_ledc)</code>. <code>platformio.ini</code>, <code>CMakeLists.txt</code> і <code>sdkconfig.defaults</code> — як у <a href="https://github.com/grok-rs/platformio-projects/tree/main/esp32-s3-adc-cali">esp32-s3-adc-cali</a>: консоль у нативний USB, тік 1&nbsp;мс. Максимум RAW 4095 на 12 бітах дає 4095/4096 — LED світить на 99,98&nbsp;%, різниці оком не видно.</p>
+    </details>
+    <details class="more">
+      <summary>Очікуваний вигляд виводу (не запис із плати)</summary>
+<pre class="code"><code>LED: GPIO15, 5000 Гц, 12 біт | мотор: GPIO6, 20000 Гц, 10 біт
+RP1 …  → LED … %   RP2 …  → мотор … %</code></pre>
+      <p class="small">Чисел ми не вигадуємо: які будуть у вас, покаже плата. Перевірте, що крутіння RP1 міняє лише перші два стовпці, а RP2 — лише останні два.</p>
+    </details>
+    <div class="tbl">
+    <table class="measure" data-calc="diff" data-key="3-3-motor">
+      <caption>Ваша таблиця: RP2 і мотор (RP1 не чіпаємо)</caption>
+      <thead><tr><th>Положення RP2</th><th>RAW RP2</th><th>Прогноз, % (RAW/4096)</th><th>Serial, мотор %</th><th>Різниця</th><th>Мотор: стоїть / гуде / крутиться; LED змінився?</th></tr></thead>
+      <tbody>
+        <tr><th>Упор біля GND</th><td data-col="raw"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="note"></td></tr>
+        <tr><th>≈ 10 %</th><td data-col="raw"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="note"></td></tr>
+        <tr><th>≈ 25 %</th><td data-col="raw"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="note"></td></tr>
+        <tr><th>≈ 50 %</th><td data-col="raw"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="note"></td></tr>
+        <tr><th>≈ 75 %</th><td data-col="raw"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="note"></td></tr>
+        <tr><th>Упор біля 3V3</th><td data-col="raw"></td><td data-col="pred"></td><td data-col="meas"></td><td data-col="diff"></td><td data-col="note"></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">«Різницю» сайт рахує сам. Таблиця зберігається лише у вашому браузері. Біля нуля прогноз і Serial розійдуться через <code>MOT_DEAD</code>: це очікувано.</p>
+    <p><b>Розширення: що якщо…</b> замінити 2N2222 на AO3400A? Поставити мотор на 1&nbsp;кГц і послухати? Плавно розганяти мотор через <code>ledc_set_fade_time_and_start()</code><sup class="cite" data-fact="idf-ledc-freq-res"></sup> замість різкого стрибка?</p>
+  </section>
+
+  <!-- ============================================================ 10 self-check -->
+  <section class="hs" id="check">
+    <h2><span class="n">10</span> Самоперевірка</h2>
+    <div class="quiz" data-src="3-3" data-mode="stepper"></div>
+  </section>
+
+  <!-- ============================================================ 11 cards -->
+  <section class="hs" id="cards">
+    <h2><span class="n">11</span> Картки уроку</h2>
+    <div class="deck-mini" data-deck="3-3" data-n="8"></div>
+  </section>
+
+  <!-- ============================================================ 12 team challenge -->
+  <section class="hs" id="challenge">
+    <h2><span class="n">12</span> Командний виклик</h2>
+    <article class="challenge">
+      <span class="tag">Командний виклик</span>
+      <h3>Тихий і слухняний мотор</h3>
+      <dl>
+        <dt>Мета</dt><dd>На схемі ДЗ знайдіть для мотора TT найкращу частоту ШІМ: перевірте щонайменше 100&nbsp;Гц, 1&nbsp;кГц, 5&nbsp;кГц і 20&nbsp;кГц. Для кожної запишіть заповнення, з якого мотор рушає, чи чутно писк і як поводиться LED на сусідньому таймері.</dd>
+        <dt>Здати</dt><dd>Таблиця «частота × поріг рушання × звук», код з частотою в одному <code>#define</code>, 30-секундне відео або аудіо і висновок одним абзацом.</dd>
+        <dt>Ролі</dt><dd><ul><li><b>Збирач</b>: схема і прошивка, де частоту мотора міняє одна константа;</li><li><b>Вимірювач</b>: поріг рушання тричі на кожній частоті, мультиметр на колекторі;</li><li><b>Доповідач</b>: допис у «Командні виклики» з таблицею;</li><li><b>Скептик</b>: перевіряє, що кожна пара «частота + біти» проходить межу 80&nbsp;МГц, і шукає, чи не впливає мотор на LED.</li></ul></dd>
+        <dt>Критерії</dt><dd><details class="more"><summary>4 критерії по 0–2 бали</summary><p>Кожен 0–2 бали. <b>Чотири частоти:</b> 2 — усі, 1 — дві-три, 0 — одна. <b>Поріг рушання:</b> 2 — тричі на кожній частоті, 1 — по разу, 0 — ні. <b>Межа LEDC:</b> 2 — для кожної частоти розрядність перевірена, 1 — частково, 0 — ні. <b>Висновок пояснює, чому:</b> 2 — з посиланням на інерцію, чутний діапазон чи втрати на перемикання, 1 — лише «яка краща», 0 — немає.</p></details></dd>
+        <dt>Ускладнення</dt><dd>Замініть 2N2222 на AO3400A і повторіть 20&nbsp;кГц. Чи змінився поріг рушання і нагрів ключа?</dd>
+        <dt>Термін</dt><dd>до середи 10:00</dd>
+        <dt>Як здати</dt><dd>GitHub Discussions → «Командні виклики», тема «3.3 Тихий і слухняний мотор · команда …».</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- ============================================================ 13 in the call -->
+  <section class="hs" id="incall">
+    <h2><span class="n">13</span> На занятті</h2>
+    <p>Підготуйте до дзвінка: схему розділу 08 без мотора (LED і обидва потенціометри), MB-102 із живленням, мотор, 2N2222 і 1N4007 під рукою, проєкт ESP-IDF, який уже збирався, обидва віджети розділу 05 пройдені.</p>
+    <h3>План дзвінка</h3>
+    <ol class="callplan">
+      <li><span class="cp-t">0–15 хв</span><span class="cp-a">Збір, розминка, найменш зрозуміле з минулих квитків, підсумок уроку 3.2 від студента</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">15–22 хв</span><span class="cp-a">Задача до теорії: «Як вивід, що вміє лише 0 і 3,3&nbsp;В, світить уполовину?» Кожен пише версію в чат</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">22–35 хв</span><span class="cp-a">Лабораторія ШІМ: 50&nbsp;Гц проти 5&nbsp;кГц, ConcepTest 1 про середню напругу</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">35–45 хв</span><span class="cp-a">Таймери й канали LEDC, ConcepTest 2: 20&nbsp;кГц і 12 біт</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">45–55 хв</span><span class="cp-a">POE наживо: LED на камері, «при якій частоті перестане мерехтіти на телефоні?»</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">55–62 хв</span><span class="cp-a">Перерва; охочі лишають камеру на макетці</span></li>
+      <li><span class="cp-t">62–90 хв</span><span class="cp-a">Пишемо разом <code>main.c</code>: два таймери, два канали, два АЦП; підключаємо мотор лише після перевірки діода</span><span class="cp-r">Збирач</span></li>
+      <li><span class="cp-t">90–97 хв</span><span class="cp-a">«Знайди несправність» із розділу 07</span><span class="cp-r">усі</span></li>
+      <li><span class="cp-t">97–108 хв</span><span class="cp-a">Видача виклику «Тихий і слухняний мотор», ролі тижня</span><span class="cp-r">команди</span></li>
+      <li><span class="cp-t">108–120 хв</span><span class="cp-a">Квиток на вихід (розділ 14) і ролі на наступне заняття</span><span class="cp-r">усі</span></li>
+    </ol>
+    <div class="tnote">
+      <p><b>Продуктивна невдача (7 хв, до теорії):</b> «Двоє студентів поставили LED і мотор на один таймер. У першого LED досягає повної яскравості вже на чверті ходу потенціометра, у другого мотор пищить. Код у них майже однаковий. Що різне?» Очікувано: «потенціометри різні», «мотор заважає АЦП». Слова «таймер», «розрядність» і «частота» дайте лише після обговорення.</p>
+      <p><b>ConcepTest 1:</b> «ШІМ 50&nbsp;% на виводі 3,3&nbsp;В. Яка напруга на виводі в момент, коли сигнал HIGH?» А — 1,65&nbsp;В; Б — 3,3&nbsp;В; В — 0&nbsp;В.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. Очікувано багато А: «ШІМ робить половину напруги». Покажіть лабораторію: прямокутник і окремо пунктир середнього.</p></details>
+      <p><b>ConcepTest 2:</b> «Мотор на 20&nbsp;кГц, 12 біт. Коли ви дізнаєтеся, що так не можна?» А — під час компіляції; Б — під час роботи, з логу; В — ніколи, LEDC тихо округлить.</p>
+      <details class="t-spoiler"><summary>Відповідь і очікуваний розподіл</summary><p>Правильно Б. LMS пише щось середнє між Б і В. Покажіть віджет «Чи погодиться LEDC?».</p></details>
+      <p><b>POE (наживо, 8 хв):</b> студент знімає LED телефоном при 50&nbsp;Гц, 200&nbsp;Гц і 5&nbsp;кГц (змінює лише <code>LED_HZ</code>). Стіна прогнозів: «на якій частоті смуги на екрані телефона зникнуть?». Чесно: ми цього не міряли, побачимо разом.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 14 exit -->
+  <section class="hs" id="exit">
+    <h2><span class="n">14</span> Квиток на вихід</h2>
+    <form class="exit-ticket" data-q="Поясніть одним реченням, чому LED і мотор у ДЗ стоять на різних таймерах LEDC, а не на одному."></form>
+  </section>
+
+  <!-- ============================================================ 15 materials -->
+  <section class="hs" id="more">
+    <h2><span class="n">15</span> Матеріали</h2>
+    <h3>Глибше на сайті</h3>
+    <ul class="chips materials">
+      <li><a class="chip deep" href="../../power-loads/">Теорія: потужне навантаження, ключ і діод</a></li>
+      <li><a class="chip" href="../2-2/">Урок 2.2 · транзисторний ключ</a></li>
+      <li><a class="chip" href="../1-3/">Урок 1.3 · перший ШІМ на LEDC</a></li>
+      <li><a class="chip" href="../3-2/">Урок 3.2 · АЦП на ESP-IDF</a></li>
+    </ul>
+    <h3>З LMS</h3>
+    <ul>
+      <li><a href="https://lms.beetroot.academy/studying/cmrtipdkx2h1d0813u8g0a6le/theory/cmruq1s9qaoqi08134vyimv0q">Урок 3.3 у LMS</a> (потрібен вхід).</li>
+      <li>Відео <a href="https://www.youtube.com/watch?v=6PXtkltj5Ec">«Lection 7. Широтно-імпульсна модуляція ШІМ (PWM)»</a> (Andrii KPFKNULP). Що шукати: середня напруга і чому ШІМ замість ЦАП. Майте на увазі: там Arduino з фіксованими ≈490&nbsp;Гц, а не LEDC.</li>
+      <li>Відео <a href="https://www.youtube.com/watch?v=UPTU6nYSaMo">«Motor speed controller tutorial - PWM how to build»</a> (The Engineering Mindset). Що шукати: MOSFET-ключ і діод паралельно мотору. ШІМ там робить таймер 555, а не мікроконтролер.</li>
+      <li><a href="https://randomnerdtutorials.com/esp-idf-esp32-gpio-pwm-ledc/">Random Nerd Tutorials: ESP-IDF LEDC</a>: два LED на одному таймері, fade. Стаття про класичний ESP32: піни й кількість каналів інші.</li>
+      <li><a href="https://lastminuteengineers.com/esp32-pwm-tutorial/">Last Minute Engineers: ESP32 PWM</a> — теж класичний ESP32 (16 каналів)<sup class="cite" data-fact="lastminute-esp32-pwm"></sup>; <a href="https://atomic14.substack.com/p/esp32-s3-no-dac">atomic14: у S3 немає ЦАП</a> — сигма-дельта і I2S як альтернатива.</li>
+    </ul>
+    <h3>Документи</h3>
+    <ul>
+      <li><a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/ledc.html">ESP-IDF: LED Control (LEDC) для ESP32-S3</a>. Що шукати: «Supported Range of Frequency and Duty Resolutions» і «Change PWM Duty Cycle».</li>
+      <li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf">ESP32-S3 Technical Reference Manual</a>, розділ 35 LED PWM Controller: таймери, дільник, формула частоти.</li>
+      <li><a href="https://www.ti.com/lit/an/slua618a/slua618a.pdf">TI SLUA618A</a>, §2.7: втрати в ключі на перемикання.</li>
+    </ul>
+    <details class="more">
+      <summary>Джерела: усі числа з посиланнями на даташити й документацію</summary>
+      <div id="sources">
+        <h3>Джерела</h3>
+      </div>
+    </details>
+    <p><span class="checked-stamp">✓ Перевірено 22.11.2026</span></p>
+    <details class="more">
+    <summary>Що виправлено порівняно з LMS (13 пунктів)</summary>
+    <ol class="fixlist">
+      <li>LEDC в ESP32-S3: 8 каналів, 4 таймери, лише low-speed режим. «16 каналів, 8 таймерів, високошвидкісний режим, таймери 0–7, канали 0–15» — це класичний ESP32<sup class="cite" data-fact="lms-err-3-3-ledc-count"></sup>.</li>
+      <li>Розрядність на S3 — до 14 біт, а не «від 1 до 16»; приклад «16 біт → ≈1220&nbsp;Гц» на S3 недосяжний<sup class="cite" data-fact="lms-err-3-3-16bit"></sup>.</li>
+      <li>«Мотор 10–20&nbsp;кГц, 10–12 біт»: 20&nbsp;кГц × 2<sup>12</sup> = 81,92&nbsp;МГц &gt; 80&nbsp;МГц; на 20&nbsp;кГц щонайбільше 11 біт<sup class="cite" data-fact="lms-err-3-3-20k12"></sup>.</li>
+      <li>Неможливу пару частота/розрядність ловить не компілятор: <code>ledc_timer_config()</code> повертає <code>ESP_FAIL</code> під час роботи й друкує причину<sup class="cite" data-fact="lms-err-3-3-runtime"></sup>.</li>
+      <li>GPIO19 для мотора: на S3 це USB D−, ШІМ на ньому вимкне USB Serial/JTAG — нашу консоль<sup class="cite" data-fact="lms-err-3-3-gpio19"></sup>.</li>
+      <li><code>POT_PIN 35</code>: на S3 GPIO35 не має АЦП, а на N16R8 зайнятий octal PSRAM<sup class="cite" data-fact="lms-err-3-3-pot35"></sup>.</li>
+      <li>AMS1117 — лінійний стабілізатор напруги (стоїть на MB-102), а не MOSFET для мотора<sup class="cite" data-fact="lms-err-3-3-ams1117"></sup>.</li>
+      <li>IRL540N: 100&nbsp;В, 36&nbsp;А, 0,044&nbsp;Ом при 10&nbsp;В, а не «40&nbsp;В, 33&nbsp;А, 0,15&nbsp;Ом»; опір нормовано від 4&nbsp;В, від 3,3&nbsp;В повне відкриття не гарантоване<sup class="cite" data-fact="lms-err-3-3-irl540n"></sup>.</li>
+      <li>Fade 0…1023 кроком 10 по 20&nbsp;мс триває ≈2&nbsp;с (103 кроки), а не «10 секунд»<sup class="cite" data-fact="lms-err-3-3-fade"></sup>.</li>
+      <li>Вища частота збільшує, а не зменшує втрати на перемикання в MOSFET<sup class="cite" data-fact="lms-err-3-3-loss-freq"></sup>.</li>
+      <li>Проти-ЕРС (пропорційна швидкості) і індуктивний викид при вимиканні — різні явища; діод рятує від другого<sup class="cite" data-fact="lms-err-3-3-back-emf"></sup>.</li>
+      <li>Серво: важлива ширина імпульсу; 50&nbsp;Гц — звичай, а не умова, без якої «не працюватиме»<sup class="cite" data-fact="lms-err-3-3-servo"></sup>.</li>
+      <li>Резистор LED: у тексті 65&nbsp;Ом (і «68 або 100»), на схемі 150&nbsp;Ом; 20&nbsp;мА — уся типова сила виводу. У курсі — 220&nbsp;Ом, ≈6&nbsp;мА<sup class="cite" data-fact="lms-err-3-3-led-r"></sup>. Плюс: вибирати MOSFET за V<sub>GS(th)</sub> «2–3&nbsp;В» не можна, дивляться на R<sub>DS(on)</sub> при напрузі затвора<sup class="cite" data-fact="lms-err-3-3-vgs-th"></sup>.</li>
+    </ol>
+    </details>
+  </section>
+
+  <!-- ============================================================ 16 discussion -->
+  <section class="hs" id="talk">
+    <h2><span class="n">16</span> Обговорення</h2>
+  </section>
+</main>
+<script src="../../assets/course.js" defer></script>
+<script src="../../assets/site-nav.js" defer></script>
+<script src="../../assets/study.js" defer></script>
+<script src="../../assets/quiz.js" defer></script>
+<script src="../../assets/flashcards.js" defer></script>
+<script src="../../assets/schem.js" defer></script>
+<script src="../../assets/kit.js" defer></script>
+<script>
+document.addEventListener('study:ready', () => {
+  'use strict';
+  const { $, $$ } = Study;
+  const setTxt = (el, s) => { if (el && el.textContent !== s) el.textContent = s; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const comma = (x, d = 1) => x.toFixed(d).replace('.', ',').replace('-', '−');
+  const segPick = (sel, attr, fn) => $$(sel + ' button').forEach((b) => b.addEventListener('click', () => {
+    $$(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    fn(b.dataset[attr]);
+  }));
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* =====================================================================
+     Numbers from the documents. LEDC: f × 2^bits ≤ 80 MHz (APB_CLK, divider ≥ 1) and at most 14 bits on the S3
+     (s3-ledc-timers-channels, idf-ledc-freq-res). Perceived lightness: CIE 1976 L* (cie-lightness).
+     ===================================================================== */
+  const CLK = 80e6, MAXB = 14;
+  const maxBits = (f) => Math.min(MAXB, Math.floor(Math.log2(CLK / f)));
+  const okPair = (f, b) => f * Math.pow(2, b) <= CLK && b <= MAXB && b >= 1;
+  const fmtHz = (f) => f >= 1e6 ? `${comma(f / 1e6, f % 1e6 ? 2 : 0)} МГц` : f >= 1000 ? `${comma(f / 1000, f % 1000 ? 1 : 0)} кГц` : `${Math.round(f)} Гц`;
+  const fmtT = (s) => s >= 1e-3 ? `${comma(s * 1e3, s * 1e3 < 10 ? 2 : 1)} мс` : `${comma(s * 1e6, s * 1e6 < 10 ? 2 : 1)} мкс`;
+  const Lstar = (y) => (y > Math.pow(24 / 116, 3) ? 116 * Math.cbrt(y) - 16 : 116 * (841 / 108) * y);
+
+  /* =====================================================================
+     LAB «ШІМ» (#pwm)
+     ===================================================================== */
+  const pw = { duty: 30, f: 5000, b: 12, load: 'led', seen: new Set() };
+  (() => {
+    const L = 30, R = 350, T = 22, B = 160;
+    const grid = $('#pw-grid');
+    mk('rect', { x: L, y: T, width: R - L, height: B - T, fill: 'none', stroke: 'var(--line)' }, grid);
+    const hiT = mk('text', { class: 'svg-m', x: L - 4, y: T + 5, 'text-anchor': 'end' }, grid);
+    mk('text', { class: 'svg-m', x: L - 4, y: B + 4, 'text-anchor': 'end' }, grid).textContent = '0';
+    let ang = 0, last = 0;
+    function paint() {
+      const top = pw.load === 'led' ? 3.3 : 5, n = Math.pow(2, pw.b);
+      const code = Math.round(pw.duty / 100 * n), d = code / n, Tp = 1 / pw.f;
+      hiT.textContent = pw.load === 'led' ? '3,3' : '5';
+      const per = (R - L) / 3, yH = T + 8, yL = B;
+      let p = `M${L} ${yL}`;
+      for (let k = 0; k < 3; k++) {
+        const x0 = L + k * per, x1 = x0 + d * per;
+        if (d <= 0) p += `H${x0 + per}`;
+        else if (d >= 1) p += `V${yH}H${x0 + per}`;
+        else p += `V${yH}H${x1.toFixed(1)}V${yL}H${(x0 + per).toFixed(1)}`;
+      }
+      $('#pw-wave').setAttribute('d', p);
+      const yA = yL - d * (yL - yH);
+      $('#pw-avg').setAttribute('d', `M${L} ${yA.toFixed(1)}H${R}`);
+      const at = $('#pw-avg-t'); at.setAttribute('y', '15'); at.textContent = `- - середня ${comma(top * d, 2)} В`;
+      setTxt($('#pw-per'), `3 періоди по ${fmtT(Tp)}`);
+      setTxt($('#pw-duty-out'), `${pw.duty} %`);
+      setTxt($('#pw-code'), `${code} / ${n}`);
+      setTxt($('#pw-T'), fmtT(Tp));
+      setTxt($('#pw-ton'), fmtT(Tp * d));
+      setTxt($('#pw-vavg'), `${comma(top * d, 2)} В`);
+      const prod = pw.f * n, ok = okPair(pw.f, pw.b);
+      setTxt($('#pw-clk'), fmtHz(prod));
+      $('#pw-lim').innerHTML = ok
+        ? `<b class="ok">LEDC погодиться:</b> ${fmtHz(pw.f)} × 2<sup>${pw.b}</sup> = ${fmtHz(prod)} ≤ 80 МГц.`
+        : `<b class="bad">LEDC відмовить:</b> ${fmtHz(pw.f)} × 2<sup>${pw.b}</sup> = ${fmtHz(prod)} &gt; 80 МГц. На ${fmtHz(pw.f)} щонайбільше ${maxBits(pw.f)} біт; <code>ledc_timer_config()</code> поверне помилку під час роботи.`;
+      // load picture
+      const led = pw.load === 'led';
+      $('#led-core').setAttribute('opacity', led ? 1 : 0); $('#led-glow').setAttribute('opacity', led ? (Lstar(d) / 100 * 0.6).toFixed(2) : 0);
+      $('#led-core').style.fill = led ? `color-mix(in srgb, var(--bad) ${Math.round(20 + 0.8 * Lstar(d))}%, var(--panel))` : 'var(--panel)';
+      $('#mot-g').setAttribute('opacity', led ? 0 : 1);
+      setTxt($('#led-cap'), led ? `світлота L* ≈ ${Math.round(Lstar(d))} з 100` : (d < 0.15 ? 'стоїть або гуде' : `крутиться, ≈${Math.round(d * 100)} % від повної`));
+      let note;
+      if (led && pw.f <= 50) note = 'При 50 Гц спалахи такі рідкі, що око (особливо краєм) і камера телефона можуть бачити мерехтіння. Для LED беруть сотні герц і вище, у ДЗ — 5 кГц.';
+      else if (!led && pw.f < 20000) note = `${fmtHz(pw.f)} — у чутному діапазоні: обмотка мотора тонко пищатиме. Тому для мотора беруть ≈20 кГц.`;
+      else if (!led && d > 0 && d < 0.15) note = 'Мотор має тертя спокою: на малому заповненні він лише гуде. Поріг рушання знайдете в ДЗ, а MOT_DEAD у коді вимикає цю зону.';
+      else if (led && d > 0 && d <= 0.1) note = `Лише ${pw.duty} % часу LED світиться, а здається набагато яскравішим: око сприймає світлоту нелінійно (L* ≈ ${Math.round(Lstar(d))}).`;
+      else if (pw.b === 14 && pw.f > 4882) note = '14 біт на S3 — лише на низьких частотах: 80 МГц / 16384 ≈ 4,9 кГц.';
+      else note = `Код ${code} з ${n}: стільки тактів таймера з кожного періоду вивід у HIGH. ${led ? 'Середня напруга на виводі' : 'Середня напруга на моторі (без падіння на ключі)'} — ${comma(top * d, 2)} В.`;
+      setTxt($('#pw-note'), note);
+      pw.ok = ok; pw.d = d; pw.seen.add(pw.load + pw.f);
+    }
+    function spin(t) {
+      const dt = Math.min(0.1, (t - last) / 1000); last = t;
+      if (pw.load === 'mot' && pw.d >= 0.15) { ang = (ang + 360 * 1.5 * pw.d * dt) % 360; $('#mot-spk').setAttribute('transform', `rotate(${ang.toFixed(1)} 100 86)`); }
+      requestAnimationFrame(spin);
+    }
+    $('#pw-duty').addEventListener('input', (e) => { pw.duty = +e.target.value; paint(); });
+    segPick('#pw-f', 'f', (v) => { pw.f = +v; paint(); });
+    segPick('#pw-b', 'b', (v) => { pw.b = +v; paint(); });
+    segPick('#pw-load', 'l', (v) => { pw.load = v; paint(); });
+    paint();
+    if (!reduce) requestAnimationFrame(spin);
+    Study.missions($('#pw-ms'), { key: 'pwm', items: [
+      { id: 'half', text: 'Отримайте середні 1,65 В на LED. Яка напруга на виводі в момент HIGH?', hint: 'LED, заповнення 50 %. У момент HIGH на виводі все одно 3,3 В: середнє — це лише пунктир.', check: () => pw.load === 'led' && pw.duty === 50 },
+      { id: 'bad', text: 'Знайдіть пару, від якої LEDC відмовиться, з частотою 20 кГц.', hint: '20 кГц і 12 або 14 біт: 20 000 × 4096 = 81,92 МГц.', check: () => pw.f === 20000 && !pw.ok },
+      { id: 'mot', text: 'Налаштуйте мотор так, як у ДЗ, і щоб він крутився.', hint: 'Мотор, 20 кГц, 10 біт, заповнення понад 15 %.', check: () => pw.load === 'mot' && pw.f === 20000 && pw.b === 10 && pw.duty > 15 },
+      { id: 'dim', text: 'Знайдіть заповнення, на якому LED здається вдвічі тьмянішим за повний (L* ≈ 50).', hint: 'Це не 50 %, а близько 18–19 %: око сприймає світлоту нелінійно.', check: () => pw.load === 'led' && pw.duty >= 16 && pw.duty <= 21 },
+      { id: 'b14', text: 'Поставте 14 біт і знайдіть найбільшу частоту з кнопок, на якій LEDC ще погоджується.', hint: '1 кГц: 1000 × 16384 = 16,4 МГц. На 5 кГц уже 81,9 МГц.', check: () => pw.b === 14 && pw.f === 1000 },
+    ] });
+  })();
+
+  /* =====================================================================
+     04 LEDC model (#tm-svg): 4 timers, 8 channels; LED on CH0/T0, motor on CH1/T0 or T1
+     ===================================================================== */
+  (() => {
+    const svg = $('#tm-svg');
+    const TY = (i) => 20 + i * 46, CY = (i) => 14 + i * 25;
+    const tLab = [], links = [];
+    for (let i = 0; i < 4; i++) {
+      mk('rect', { x: 4, y: TY(i), width: 184, height: 36, rx: 8, fill: 'var(--panel)', stroke: 'var(--line-strong)' }, svg);
+      tLab[i] = mk('text', { class: 'svg-m', x: 96, y: TY(i) + 23, 'text-anchor': 'middle' }, svg);
+    }
+    for (let i = 0; i < 8; i++) {
+      mk('rect', { x: 222, y: CY(i) - 10, width: 114, height: 20, rx: 6, fill: 'var(--panel)', stroke: 'var(--line)' }, svg);
+      mk('text', { class: 'svg-m', x: 279, y: CY(i) + 5, 'text-anchor': 'middle' }, svg).textContent = i === 0 ? 'CH0 · LED' : i === 1 ? 'CH1 · мотор' : `CH${i}`;
+    }
+    links[0] = mk('path', { fill: 'none', stroke: 'var(--accent)', 'stroke-width': 3 }, svg);
+    links[1] = mk('path', { fill: 'none', stroke: 'var(--teach)', 'stroke-width': 3 }, svg);
+    function up(t) {
+      const shared = t === '0';
+      tLab[0].textContent = shared ? 'T0: 20 кГц, 10 біт' : 'T0: 5 кГц, 12 біт';
+      tLab[1].textContent = shared ? 'T1: вільний' : 'T1: 20 кГц, 10 біт';
+      tLab[2].textContent = 'T2: вільний'; tLab[3].textContent = 'T3: вільний';
+      const yT0 = TY(0) + 18, yT = shared ? yT0 : TY(1) + 18;
+      links[0].setAttribute('d', `M188 ${yT0 - 4}C205 ${yT0 - 4} 205 ${CY(0)} 222 ${CY(0)}`);
+      links[1].setAttribute('d', `M188 ${yT + 4}C205 ${yT + 4} 205 ${CY(1)} 222 ${CY(1)}`);
+      $('#tm-txt').innerHTML = shared
+        ? '<b class="bad">Один таймер на двох.</b> Останній <code>ledc_timer_config()</code> для T0 перезаписав і частоту, і розрядність: LED теж працює на 20 кГц і 10 бітах. Код LED від 0 до 4095 тепер упирається в 1024 вже на чверті ходу потенціометра.'
+        : '<b class="ok">Окремі таймери.</b> LED на T0 (5 кГц, 12 біт), мотор на T1 (20 кГц, 10 біт). Два таймери з чотирьох ще вільні, каналів — шість.';
+    }
+    segPick('#tm-sel', 't', up);
+    up('1');
+  })();
+
+  /* 04 LED resistor (#lr-*): Vf from the Kingbright facts, 20 mA default drive (s3-gpio-drive-default) */
+  (() => {
+    function up() {
+      const vf = +$('#lr-led').value, r = +$('#lr-r').value, i = (3.3 - vf) / r * 1000, out = $('#lr-out');
+      if (i <= 0.05) { out.innerHTML = `Від 3,3&nbsp;В LED з U<sub>F</sub> ≈ ${comma(vf, 1)}&nbsp;В майже не світитиме: запасу напруги на резистор немає.`; return; }
+      const bad = i > 15;
+      out.innerHTML = `I = (3,3 − ${comma(vf, vf % 0.1 ? 2 : 1)}) / ${r} ≈ <b class="${bad ? 'bad' : 'ok'}">${comma(i, 1)} мА</b>` +
+        (bad ? ' — близько до ≈20&nbsp;мА типової сили виводу: працює на межі. Беріть більший резистор.' : i < 2 ? ' — тьмяно, але безпечно.' : ' — безпечно для виводу й досить яскраво.');
+    }
+    ['#lr-led', '#lr-r'].forEach((s) => $(s).addEventListener('input', up));
+    up();
+  })();
+
+  /* 05 «Чи погодиться LEDC?» (#w-fr) */
+  (() => {
+    const svg = $('#fl-svg'), L = 40, R = 330, T = 10, B = 140;
+    const X = (f) => L + (Math.log10(f) - 2) / 4 * (R - L), Y = (b) => B - (b - 1) / 15 * (B - T);
+    let d = `M${X(100)} ${Y(1)}`;
+    for (let k = 0; k <= 80; k++) { const f = Math.pow(10, 2 + 4 * k / 80); d += `L${X(f).toFixed(1)} ${Y(Math.max(1, Math.min(MAXB, Math.log2(CLK / f)))).toFixed(1)}`; }
+    d += `L${X(1e6)} ${Y(1)}Z`;
+    mk('path', { d, fill: 'var(--ok)', opacity: '.18' }, svg);
+    mk('rect', { x: L, y: T, width: R - L, height: B - T, fill: 'none', stroke: 'var(--line)' }, svg);
+    mk('path', { d: `M${L} ${Y(14)}H${R}`, stroke: 'var(--bad)', 'stroke-width': 2, 'stroke-dasharray': '5 4' }, svg);
+    mk('text', { class: 'svg-m', x: L + 8, y: Y(14) + 16, style: 'fill:var(--bad)' }, svg).textContent = 'межа S3: 14 біт';
+    [[100, '100'], [1e3, '1к'], [1e4, '10к'], [1e5, '100к'], [1e6, '1М']].forEach(([f, s]) => mk('text', { class: 'svg-m', x: X(f), y: B + 16, 'text-anchor': f === 100 ? 'start' : f === 1e6 ? 'end' : 'middle' }, svg).textContent = s);
+    [1, 8, 16].forEach((b) => mk('text', { class: 'svg-m', x: L - 6, y: Y(b) + 4, 'text-anchor': 'end' }, svg).textContent = String(b));
+    mk('text', { class: 'svg-m', x: (L + R) / 2, y: B + 30, 'text-anchor': 'middle' }, svg).textContent = 'частота, Гц';
+    const dot = mk('circle', { r: 6, stroke: 'var(--panel)', 'stroke-width': 2 }, svg);
+    function up() {
+      const f = parseFloat($('#fr-f').value), b = Math.round(parseFloat($('#fr-b').value));
+      if (!(f > 0) || !(b >= 1)) { setTxt($('#fr-note'), 'Введіть додатну частоту й розрядність від 1 біта.'); return; }
+      const ok = okPair(f, b), prod = f * Math.pow(2, b);
+      setTxt($('#fr-clk'), fmtHz(prod));
+      setTxt($('#fr-ok'), ok ? 'погодиться' : 'відмовить');
+      $('#fr-okc').className = ok ? 'ok' : 'bad';
+      const mb = Math.floor(Math.log2(CLK / f));
+      setTxt($('#fr-maxb'), mb >= 1 ? `${Math.min(MAXB, mb)} біт` : 'жодного');
+      setTxt($('#fr-maxf'), b <= MAXB ? fmtHz(CLK / Math.pow(2, b)) : '— (понад 14 біт)');
+      const fx = Math.max(100, Math.min(1e6, f)), by = Math.max(1, Math.min(16, b));
+      dot.setAttribute('cx', X(fx).toFixed(1)); dot.setAttribute('cy', Y(by).toFixed(1)); dot.setAttribute('fill', ok ? 'var(--ok)' : 'var(--bad)');
+      setTxt($('#fr-note'), b > MAXB ? `Понад 14 біт S3 не вміє взагалі: LEDC_TIMER_${b}_BIT для нього навіть не оголошено, збирання впаде. Це єдиний випадок, коли помилку покаже компілятор.`
+        : ok ? `Дільник 80 МГц / ${fmtHz(prod)} ≈ ${comma(CLK / prod, 2)} ≥ 1 — таймер це вміє.`
+          : `Дільник мав би бути ${comma(CLK / prod, 3)}, тобто менше 1. ledc_timer_config() надрукує «requested frequency and duty resolution cannot be achieved» і поверне ESP_FAIL. Компілятор нічого не помітить.`);
+    }
+    ['#fr-f', '#fr-b'].forEach((s) => $(s).addEventListener('input', up));
+    up();
+  })();
+
+  /* 05 flyback (#w-fl): qualitative collector voltage; VCEO 40 V (p2n2222a-ic-max), 1N4007 VF ≤ 1,1 V (diode-1n4007) */
+  (() => {
+    const svg = $('#fl2-svg'), L = 40, R = 330, T = 10, B = 140;
+    const Y = (v) => B - v / 45 * (B - T);
+    mk('rect', { x: L, y: T, width: R - L, height: B - T, fill: 'none', stroke: 'var(--line)' }, svg);
+    [[5, '5 В'], [40, '40 В']].forEach(([v, s]) => {
+      mk('path', { d: `M${L} ${Y(v)}H${R}`, stroke: v === 40 ? 'var(--bad)' : 'var(--muted)', 'stroke-dasharray': '4 4' }, svg);
+      mk('text', { class: 'svg-m', x: L - 4, y: Y(v) + 4, 'text-anchor': 'end', style: v === 40 ? 'fill:var(--bad)' : '' }, svg).textContent = s;
+    });
+    mk('text', { class: 'svg-m', x: R - 4, y: Y(40) - 5, 'text-anchor': 'end', style: 'fill:var(--bad)' }, svg).textContent = 'VCEO 2N2222';
+    mk('text', { class: 'svg-m', x: L + 50, y: B + 18, 'text-anchor': 'middle' }, svg).textContent = 'ключ відкритий';
+    mk('text', { class: 'svg-m', x: 240, y: B + 18, 'text-anchor': 'middle' }, svg).textContent = 'ключ закрився';
+    const wave = mk('path', { fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, svg);
+    function up(dd) {
+      const withD = dd === '1';
+      wave.setAttribute('d', withD
+        ? `M${L} ${Y(0.3)}H150V${Y(5.8)}H${R}`
+        : `M${L} ${Y(0.3)}H150L156 ${T}M162 ${T}L170 ${Y(5)}H${R}`);
+      setTxt($('#fl-note'), withD
+        ? 'З діодом колектор піднімається лише до +5 В плюс падіння діода (у 1N4007 до 1,1 В при 1 А). Струм обмотки тихо згасає по колу «мотор → діод».'
+        : 'Без діода струму обмотки нікуди йти, і напруга на колекторі злітає за межі графіка — вище за 40 В, які 2N2222 витримує між колектором і емітером. Скільки саме, залежить від мотора й дротів; ми не вигадуємо число. Так ключ гине, а викид ще й лізе завадою в GND і АЦП.');
+    }
+    segPick('#fl-seg', 'd', up);
+    up('1');
+  })();
+
+  /* =====================================================================
+     08 Kit bench. Board header at column 28 (left header in row i, right header in row b). MB-102 on the left end:
+     top jumper 5 В, bottom jumper OFF (the bottom «+» rail is the 3V3 rail fed from j28). Pots on the left
+     (RP2 12/14/16, RP1 19/21/23), LED and the 2N2222 key on the right (columns 50–61). Parts stay left of column 24.7,
+     where the module's antenna overhang begins. All GND halves: MB-102 (left), a28 and a49 (board GND) and the
+     black jumper top−61 → bottom−61 (right); 5 V crosses the top rail break by a red bridge 31 → 33.
+     ===================================================================== */
+  const K = window.Kit, KP = K.P;
+  const NETCOL = { 'net-3v3': 'n33', 'net-gnd': 'ngnd', 'net-sig': 'nsig', 'net-sig2': 'nsig2', 'net-sig3': 'nsig3', 'net-in': 'teach', 'net-5v': 'n5' };
+  const BC = { c0: 28, rp2: 12, rp1: 19, rs: 50, an: 53, cB: 56 };
+  function bench(svg, { nets = false, fault = null } = {}) {
+    const bb = K.part('breadboard', { parent: svg, title: 'Макетка WB-102, шини розірвані між стовпчиками 31 і 33' });
+    const H = (c, r) => bb.hole(c, r), A = (n) => bb.at(n), J = (c) => A('j' + c);
+    const out = { bb, wire: {} };
+    out.mb = K.part('power-module', { parent: svg, ...bb.rail('top', '+', 1), title: 'Модуль живлення MB-102 на лівому краї: верхня перемичка 5 В, нижня OFF' }).set({ top: '5V', bottom: 'OFF' });
+    const strips = mk('g', { class: 'kb-strips' }, svg);
+    const p0 = H(BC.c0, 'i');
+    out.esp = K.part('esp32s3', { parent: svg, x: p0.x, y: p0.y, rot: -90, title: 'Плата YD-ESP32-S3 у макетці: 3V3 у стовпчику 28, GPIO4 у 31, GPIO5 у 32, GPIO6 у 33, GPIO15 у 35, GND у 49' });
+    const pinCol = (name) => BC.c0 + Math.round((out.esp.pins[name].x - p0.x) / KP);
+    const C = { v33: pinCol('3V3'), g4: pinCol('GPIO4'), g5: pinCol('GPIO5'), g6: pinCol('GPIO6'), g15: pinCol('GPIO15'), gnd: pinCol('GND') };
+    const strip = (net, cls, c, half) => {
+      if (!nets) return;
+      const a = H(c, half === 'top' ? 'a' : 'f');
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: 0.84 * KP, height: 4.84 * KP, rx: 8 }, strips);
+    };
+    const rail = (net, cls, side, sgn, c1, c2) => {
+      if (!nets) return;
+      const a = bb.rail(side, sgn, c1), b = bb.rail(side, sgn, c2);
+      mk('rect', { class: `kb-strip ${cls}`, 'data-net': net, x: a.x - 0.42 * KP, y: a.y - 0.42 * KP, width: b.x - a.x + 0.84 * KP, height: 0.84 * KP, rx: 8 }, strips);
+    };
+    // parts
+    const pot = (c, label, net) => K.part('pot', { parent: svg, value: 'B10K', ...H(c, 'f'), title: `Потенціометр ${label} 10 кОм: виводи f${c} (GND), f${c + 2} (повзунок, ${net}), f${c + 4} (3V3)` });
+    out.rp2 = pot(BC.rp2, 'RP2', 'GPIO5'); out.rp1 = pot(BC.rp1, 'RP1', 'GPIO4');
+    out.rled = K.part('resistor', { parent: svg, ohms: 220, span: BC.an - BC.rs, ...H(BC.rs, 'i'), title: `Резистор R1 220 Ом: i${BC.rs} → i${BC.an}` });
+    out.led = K.part('led', { parent: svg, color: 'red', leg: 24, ...H(BC.an, 'f'), title: `Світлодіод LED1: анод f${BC.an}, катод f${BC.an + 1}` });
+    const cB = BC.cB, cE = cB - 1, cC = cB + 1;
+    out.rb = K.part('resistor', { parent: svg, ohms: 220, span: 3, ...H(cB, 'f'), rot: -90, title: `Резистор бази R2 220 Ом через канавку: f${cB} → e${cB}` });
+    out.q = K.part('npn', { parent: svg, model: '2N2222', leg: 12, legLabels: false, ...H(cE, 'd'), title: `Транзистор Q1 2N2222 плоским боком до вас: E d${cE}, B d${cB}, C d${cC}` });
+    if (fault !== 'fly') out.d1 = K.part('diode', { parent: svg, span: 3, ...H(cC, 'e'), title: `Діод D1 1N4007: анод e${cC} (колектор), смужка-катод e${cC + 3}` });
+    out.motor = K.part('tt-motor', { parent: svg, x: H(cC, 'a').x - 534, y: -190, mirror: true, title: 'Мотор-редуктор TT над макеткою' });
+    // net highlight strips
+    rail('v33', 'net-3v3', 'bottom', '+', 3, 31); rail('gnd', 'net-gnd', 'bottom', '-', 3, 31); rail('gnd', 'net-gnd', 'bottom', '-', 33, 61);
+    rail('gnd', 'net-gnd', 'top', '-', 3, 31); rail('gnd', 'net-gnd', 'top', '-', 33, 61); rail('v5', 'net-5v', 'top', '+', 3, 31); rail('v5', 'net-5v', 'top', '+', 33, 61);
+    strip('v33', 'net-3v3', C.v33); strip('gnd', 'net-gnd', C.gnd); strip('gnd', 'net-gnd', C.v33, 'top'); strip('gnd', 'net-gnd', C.gnd, 'top');
+    [[BC.rp2, 'gpio5', 'net-sig2'], [BC.rp1, 'gpio4', 'net-sig']].forEach(([c, net, cls]) => { strip('gnd', 'net-gnd', c); strip(net, cls, c + 2); strip('v33', 'net-3v3', c + 4); });
+    strip('gpio4', 'net-sig', C.g4); strip('gpio5', 'net-sig2', C.g5); strip('gpio6', 'net-in', C.g6); strip('gpio15', 'net-sig3', C.g15);
+    strip('gpio15', 'net-sig3', BC.rs); strip('gnd', 'net-gnd', BC.an + 1); strip('gpio6', 'net-in', cB); strip('gnd', 'net-gnd', cE, 'top');
+    // wires
+    const w = (pts, col, net, cls) => {
+      const g = K.route(svg, pts, col);
+      if (nets) { g.dataset.net = net; g.style.color = `var(--${NETCOL[cls]})`; }
+      return g;
+    };
+    const yLane = J(1).y + KP * 1.15, yEdge = J(1).y + KP * 4.67;
+    const yMid = (bb.rail('bottom', '+', 3).y + bb.rail('bottom', '-', 3).y) / 2;
+    const U = (from, to, y) => { const a = J(from), b = J(to); return [a, { x: a.x, y }, { x: b.x, y }, b]; };
+    out.wire.v33 = w([J(C.v33), A('bottom+' + C.v33)], 'orange', 'v33', 'net-3v3');
+    [[BC.rp2, 'rp2'], [BC.rp1, 'rp1']].forEach(([c, k]) => {
+      out.wire[k + 'v'] = w([J(c + 4), A('bottom+' + (c + 4))], 'orange', 'v33', 'net-3v3');
+      out.wire[k + 'g'] = w([J(c), A('bottom-' + c)], 'black', 'gnd', 'net-gnd');
+    });
+    out.wire.g4 = w(U(C.g4, BC.rp1 + 2, yMid), 'yellow', 'gpio4', 'net-sig');
+    out.wire.g5 = w(U(C.g5, BC.rp2 + 2, yEdge), 'green', 'gpio5', 'net-sig2');
+    out.wire.g15 = w(U(C.g15, BC.rs, yLane), 'blue', 'gpio15', 'net-sig3');
+    out.wire.g6 = w(U(C.g6, cB, yEdge), 'purple', 'gpio6', 'net-in');
+    if (fault !== 'ledk') out.wire.ledk = w([J(BC.an + 1), A('bottom-' + (BC.an + 1))], 'black', 'gnd', 'net-gnd');
+    out.wire.gndL = w([A('a' + C.v33), A('top-' + C.v33)], 'black', 'gnd', 'net-gnd');
+    out.wire.gndR = w([A('a' + C.gnd), A('top-' + C.gnd)], 'black', 'gnd', 'net-gnd');
+    out.wire.gndV = w([A('top-61'), A('bottom-61')], 'black', 'gnd', 'net-gnd');
+    out.wire.br5 = w([A('top+31'), A('top+33')], 'red', 'v5', 'net-5v');
+    out.wire.em = w([A('a' + cE), A('top-' + cE)], 'black', 'gnd', 'net-gnd');
+    if (fault !== 'fly') out.wire.dk = w([A('a' + (cC + 3)), A('top+' + (cC + 3))], 'red', 'v5', 'net-5v');
+    const pp = out.motor.pin('+'), pm = out.motor.pin('-'), v = A('top+61'), yTop = pp.y - KP;
+    out.wire.mp = w([v, { x: v.x, y: yTop }, { x: pp.x, y: yTop }, pp], 'red', 'v5', 'net-5v');
+    out.wire.mm = K.route(svg, [A('a' + cC), pm], 'orange');   // collector → motor «−»: its own node, not highlighted
+    const x0 = bb.rail('top', '+', 1).x - 230, x1 = bb.size.w + 10;
+    svg.setAttribute('viewBox', `${x0.toFixed(0)} ${(yTop - 60).toFixed(0)} ${(x1 - x0).toFixed(0)} ${(bb.size.h + 40 - yTop + 60).toFixed(0)}`);
+    svg.style.overflow = 'hidden';
+    return out;
+  }
+
+  /* ================================================================ 08 dual figure */
+  {
+    const kb = bench($('#bb-pwm'), { nets: true });
+    let p1 = 40, p2 = 60, ang = 0, last = 0;
+    function up() {
+      kb.rp1.set({ pos: p1 / 100 }); kb.rp2.set({ pos: p2 / 100 });
+      kb.led.set({ on: Lstar(p1 / 100) / 100 });
+      setTxt($('#bb-p1-out'), `${p1} %`); setTxt($('#bb-p2-out'), `${p2} %`);
+      const raw2 = Math.round(p2 / 100 * 4095), mot = raw2 < 100 ? 0 : Math.round((raw2 >> 2) / 1024 * 100);
+      setTxt($('#bb-badge'), `LED ${p1} % (T0, 5 кГц) · мотор ${mot} % (T1, 20 кГц)`);
+      const sl = $('#sch-led'); if (sl) sl.style.color = p1 > 5 ? 'var(--bad)' : '';
+    }
+    function spin(t) {
+      const dt = Math.min(0.1, (t - last) / 1000); last = t;
+      if (p2 > 15) { ang += 240 * p2 / 100 * dt; kb.motor.set({ angle: ang }); }
+      requestAnimationFrame(spin);
+    }
+    $('#bb-p1').addEventListener('input', (e) => { p1 = +e.target.value; up(); });
+    $('#bb-p2').addEventListener('input', (e) => { p2 = +e.target.value; up(); });
+    up();
+    if (!reduce) requestAnimationFrame(spin);
+  }
+
+  /* cite links point into the collapsed source list: open it first */
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    const d = el && el.closest('details');
+    if (d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', openTarget);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.cite a[href^="#src-"]');
+    if (a) { const d = document.getElementById(a.getAttribute('href').slice(1))?.closest('details'); if (d) d.open = true; }
+  });
+  openTarget();
+
+  /* =====================================================================
+     07 «Знайди несправність» (#hunt-pwm): the bench of section 08 + the firmware; exactly one fault per case.
+     ===================================================================== */
+  {
+    const hkCode = (stage, file, rows) => {
+      const box = document.createElement('div');
+      box.className = 'hk-code';
+      box.innerHTML = `<div class="hk-h">${file}</div><pre>` + rows.map((r) => {
+        const [txt, k] = Array.isArray(r) ? r : [r, null];
+        return `<span class="hk-l"${k == null ? '' : ` data-hunt="${k}"`}>${txt || ' '}</span>`;
+      }).join('') + '</pre>';
+      stage.appendChild(box);
+    };
+    const hkBench = (stage, label, opts = {}) => {
+      const s = K.svg(stage, '0 0 10 10', label);
+      s.classList.add('kit-bench');
+      return bench(s, opts);
+    };
+    const hkTag = (el, i) => { if (el) el.setAttribute('data-hunt', String(i)); return el; };
+    Study.hunt($('#hunt-pwm'), { key: '3-3', cases: [
+      { title: 'Яскраво вже на чверті',
+        symptom: 'LED досягає повної яскравості вже на ≈25&nbsp;% ходу RP1, далі не змінюється. Мотор працює нормально.',
+        build(st) {
+          hkCode(st, 'src/main.c', ['pwm_timer(LEDC_TIMER_0, LED_HZ, LED_BITS);   // 5 кГц, 12 біт', ['pwm_timer(LEDC_TIMER_0, MOT_HZ, MOT_BITS);   // 20 кГц, 10 біт', 0], ['pwm_channel(LEDC_CHANNEL_0, LEDC_TIMER_0, LED_GPIO);', 2], 'pwm_channel(LEDC_CHANNEL_1, LEDC_TIMER_0, MOTOR_GPIO);', ['pwm_set(LEDC_CHANNEL_0, raw_led);           // 0…4095', 1]]);
+        },
+        options: ['Обидва канали на таймері 0: друге налаштування зробило його 10-бітним', 'АЦП повертає більше за 4095', 'LED треба на інший канал, CH0 зайнятий'],
+        answer: 0,
+        explain: 'Другий <code>pwm_timer()</code> переналаштував таймер 0 на 20&nbsp;кГц і 10 біт, а таймер веде обидва канали. Для LED тепер 100&nbsp;% — це 1024, тож код 1024…4095 означає «повністю ввімкнено». Мотор на таймер 1, і LED знову матиме свої 12 біт<sup class="cite" data-fact="s3-ledc-timers-channels"></sup>.' },
+      { title: 'Перезавантажується по колу',
+        symptom: 'Збирається без помилок. Після прошивки в консолі по колу: <code>E (…) ledc: requested frequency and duty resolution cannot be achieved…</code>, потім <code>ESP_ERROR_CHECK failed</code> і перезавантаження.',
+        build(st) {
+          hkCode(st, 'src/main.c', [['#define MOT_HZ      20000', 1], ['#define MOT_BITS    LEDC_TIMER_12_BIT', 0], '', ['ESP_ERROR_CHECK(ledc_timer_config(&amp;cfg));', 2]]);
+        },
+        options: ['20&nbsp;кГц × 2<sup>12</sup> = 81,92&nbsp;МГц — більше за 80&nbsp;МГц', '20&nbsp;кГц завелика для мотора', '<code>ESP_ERROR_CHECK</code> тут зайвий'],
+        answer: 0,
+        explain: 'Таймер не може рахувати швидше за 80&nbsp;МГц, тож на 20&nbsp;кГц щонайбільше 11 біт. <code>ledc_timer_config()</code> перевіряє це під час роботи й повертає <code>ESP_FAIL</code><sup class="cite" data-fact="idf-ledc-freq-res"></sup>. <code>ESP_ERROR_CHECK</code> якраз корисний: без нього таймер лишився б неналаштованим, і мотор мовчки стояв би.' },
+      { title: 'Зникла консоль',
+        symptom: 'Прошивка залилась, мотор навіть крутиться, але <code>pio device monitor</code> більше нічого не показує, а порт USB-JTAG зникає з системи.',
+        build(st) {
+          hkCode(st, 'src/main.c', [['#define LED_GPIO    15', 1], ['#define MOTOR_GPIO  19', 0], '#define POT_LED_CH  ADC_CHANNEL_3', ['#define POT_MOT_CH  ADC_CHANNEL_4', 2]]);
+        },
+        options: ['GPIO19 — це USB D−: ШІМ на ньому вимкнув USB Serial/JTAG', 'GPIO15 конфліктує з USB', 'Канал АЦП 4 зайнятий USB'],
+        answer: 0,
+        explain: 'На S3 вбудований USB сидить на GPIO19 (D−) і GPIO20 (D+)<sup class="cite" data-fact="s3-usb-pins"></sup>. Віддали GPIO19 під LEDC — USB Serial/JTAG відключився<sup class="cite" data-fact="s3-usb-pins-as-gpio"></sup>. Поверніть мотор на GPIO6. Щоб перепрошити: затисніть BOOT, натисніть RST, і завантажувач ROM знову з\'явиться на USB.' },
+      { title: 'Мотор крутиться, плата скидається',
+        symptom: 'Мотор крутиться, але час від часу ESP32-S3 перезавантажується, а через кілька хвилин 2N2222 гарячий і мотор зупинився назавжди. LED і потенціометри в порядку.',
+        build(st) {
+          const kb2 = hkBench(st, 'Макетка як у розділі 08, але між колектором (стовпчик 57) і верхньою шиною плюс немає діода 1N4007 і червоного дроту від його катода.', { fault: 'fly' });
+          hkTag(kb2.q, 1); hkTag(kb2.rb, 2); hkTag(kb2.wire.mm, 0);
+        },
+        options: ['Немає діода паралельно мотору: кожне вимикання дає викид на колекторі', 'Транзистор встромлено не тим боком', 'Резистор бази 220&nbsp;Ом завеликий'],
+        answer: 0,
+        explain: 'Без 1N4007 струму обмотки нікуди йти, коли ключ закривається, — 20&nbsp;000 разів на секунду<sup class="cite" data-fact="uln2003a-flyback-diodes"></sup>. Викиди пробивають 2N2222 (V<sub>CEO</sub> 40&nbsp;В<sup class="cite" data-fact="p2n2222a-ic-max"></sup>) і заводять завади в спільну GND. Діод від колектора до +5&nbsp;В, смужкою до +5&nbsp;В. Транзистор стоїть правильно: E-B-C, плоским боком до вас.' },
+    ] });
+  }
+});
+</script>
+</body>
+</html>

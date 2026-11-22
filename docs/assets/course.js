@@ -97,7 +97,9 @@
         L('3-2', '3.2', 'Сирі дані ADC → фізичні величини', 'ADC → величини', '2026-11-14', 'cmruq1s9maoqe08136wpdqi1w', 'ready',
           { cards: 25, quiz: 12, deep: [D('adc-light', 'Теорія: АЦП і світло'), D('ldr-lab', 'Лаба: люксметр')],
             challenge: 'Чий вольтметр чесніший' }),
-        L('3-3', '3.3', 'Керування потужністю і швидкістю (PWM)', 'PWM', '2026-11-16', null, 'planned'),
+        L('3-3', '3.3', 'Керування потужністю і швидкістю (PWM)', 'PWM', '2026-11-16', 'cmruq1s9qaoqi08134vyimv0q', 'ready',
+          { cards: 25, quiz: 12, deep: [D('power-loads', 'Теорія: ключ, діод і ШІМ для мотора')],
+            repo: ['esp32-s3-led-pwm', 'esp32-s3-bright-module'], challenge: 'Тихий і слухняний мотор' }),
         L('3-4', '3.4', 'DAC', 'DAC', '2026-11-18', null, 'planned'),
         L('3-5', '3.5', 'Серво', 'Серво', '2026-11-21', null, 'planned'),
         L('3-6', '3.6', 'Енкодер', 'Енкодер', '2026-11-23', null, 'planned'),
@@ -177,7 +179,7 @@
       'adc-light': { lesson: '1-6', lessons: ['1-6', '3-1', '3-2'], title: 'АЦП і світло', short: 'Теорія: АЦП' },
       'ldr-lab': { lesson: '1-6', lessons: ['1-6', '3-1', '3-2'], title: 'Люксметр на ESP32-S3', short: 'Лаба: люксметр' },
       'twilight-relay': { lesson: 'mp1', lessons: ['mp1', '2-2', '3-1'], title: 'Сутінковий перемикач', short: 'Перемикач' },
-      'power-loads': { lesson: '2-2', lessons: ['2-2'], title: 'Потужне навантаження', short: 'Навантаження' },
+      'power-loads': { lesson: '2-2', lessons: ['2-2', '3-3'], title: 'Потужне навантаження', short: 'Навантаження' },
     },
 
     // Every esp32-s3-* folder in the repository (README table).

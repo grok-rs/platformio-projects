@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updated": "2026-11-15",
+ "updated": "2026-11-22",
  "facts": [
   {
    "id": "s3-cpu",
@@ -4399,6 +4399,340 @@
    "checked": "2026-11-15",
    "status": "unverified",
    "note": ""
+  },
+  {
+   "id": "s3-ledc-timers-channels",
+   "claim": "LEDC в ESP32-S3 має 4 незалежні таймери з дробовим дільником і 8 каналів, розрядність до 14 біт. Джерело тактування таймерів — APB_CLK (80 МГц), RC_FAST_CLK або XTAL_CLK (40 МГц); частота ШІМ = f_такт / (дільник × 2^біт), де дільник = A + B/256 не менший за 1",
+   "value": {
+    "timers": 4,
+    "channels": 8,
+    "max_bits": 14
+   },
+   "unit": "шт / біт",
+   "source": "ESP32-S3 Technical Reference Manual, Version 1.8",
+   "section": "Chapter 35 LED PWM Controller: §35.2 Features; §35.3.2.1 Clock Source; §35.3.2.2 Clock Divider; §35.3.2.3 Counter (формула частоти, Table 35.3-1)",
+   "url": "https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "«Eight independent PWM generators», «Four independent timers that support division by fractions», «Maximum PWM resolution: 14 bits». У soc_caps.h ESP-IDF 6.1 для S3: SOC_LEDC_TIMER_NUM 4, SOC_LEDC_CHANNEL_NUM 8, SOC_LEDC_TIMER_BIT_WIDTH 14, а SOC_LEDC_SUPPORT_HS_MODE не визначено. Звідси межа f × 2^біт ≤ 80 МГц для APB_CLK."
+  },
+  {
+   "id": "idf-ledc-freq-res",
+   "claim": "ESP-IDF для ESP32-S3: частота й розрядність LEDC взаємозалежні (5 кГц — щонайбільше 13 біт, 40 МГц — 1 біт). Неможливу пару ledc_timer_config() відхиляє під час роботи: лог «requested frequency and duty resolution cannot be achieved…» і результат ESP_FAIL. S3 підтримує лише LEDC_LOW_SPEED_MODE; після ledc_set_duty() треба викликати ledc_update_duty(); є ledc_fade_func_install() і ledc_set_fade_time_and_start(); на максимальній розрядності заповнення 2^біт ставити не можна",
+   "value": null,
+   "unit": "",
+   "source": "ESP-IDF Programming Guide v6.1 (stable), LED Control (LEDC), ESP32-S3",
+   "section": "Functionality Overview → Timer Configuration; Change PWM Signal; Supported Range of Frequency and Duty Resolutions; API Reference: ledc_timer_config, ledc_update_duty, ledc_set_fade_time_and_start",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/ledc.html#supported-range-of-frequency-and-duty-resolutions",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "«unlike ESP32, ESP32-S3 only supports configuring channels in \"low speed\" mode». Той самий текст помилки є в components/esp_driver_ledc/src/ledc.c локального ESP-IDF 6.1 (там «can not be achieved»), функція повертає ESP_FAIL."
+  },
+  {
+   "id": "idf-ledc-duty-range",
+   "claim": "У драйвері LEDC ESP-IDF заповнення задається від 0 до 2^duty_resolution включно: 2^біт означає 100 %, 2^біт − 1 — на один такт менше",
+   "value": "[0, 2^res]",
+   "unit": "",
+   "source": "ESP-IDF 6.1, components/esp_driver_ledc/include/driver/ledc.h",
+   "section": "ledc_channel_config_t::duty, ledc_set_duty() — «the range of duty setting is [0, (2**duty_resolution)]»",
+   "url": "https://github.com/espressif/esp-idf/blob/master/components/esp_driver_ledc/include/driver/ledc.h",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Виняток — максимальна розрядність (14 біт на S3): там 2^14 ставити не можна, див. idf-ledc-freq-res."
+  },
+  {
+   "id": "s3-apb-80mhz",
+   "claim": "APB_CLK ESP32-S3 дорівнює 80 МГц, коли CPU тактується від PLL (звичайний режим)",
+   "value": 80,
+   "unit": "МГц",
+   "source": "ESP32-S3 Technical Reference Manual, Version 1.8",
+   "section": "Chapter 7 Reset and Clock, §7.2.4.2 Peripheral Clocks, Table 7.2-4 APB_CLK Frequency",
+   "url": "https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Коли CPU від XTAL або RC_FAST, APB_CLK дорівнює частоті CPU."
+  },
+  {
+   "id": "tt-motor-current",
+   "claim": "Жовтий мотор-редуктор TT (3–6 В): струм холостого ходу ≈150–160 мА, струм загальмованого вала 1,1 А при 3 В і 1,5 А при 6 В (виміри продавця)",
+   "value": {
+    "no_load_mA": 150,
+    "stall_A_3V": 1.1,
+    "stall_A_6V": 1.5
+   },
+   "unit": "мА / А",
+   "source": "Adafruit product 3777, DC Gearbox Motor «TT Motor» 200RPM 3–6 VDC",
+   "section": "Product description; Technical Details",
+   "url": "https://www.adafruit.com/product/3777",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "«At 3VDC we measured 150mA @ 120 RPM no-load, and 1.1 Amps when stalled». У клонів TT числа різняться."
+  },
+  {
+   "id": "irl540n-specs",
+   "claim": "IRL540N: V_DSS = 100 В, I_D = 36 А (T_C = 25 °C), R_DS(on) ≤ 0,044 Ом при V_GS = 10 В, ≤ 0,053 Ом при 5 В, ≤ 0,063 Ом при 4 В; V_GS(th) 1–2 В. При 3,3 В опір не нормовано",
+   "value": {
+    "V_DSS": 100,
+    "I_D": 36,
+    "Rds_10V": 0.044,
+    "Rds_4V": 0.063
+   },
+   "unit": "В / А / Ом",
+   "source": "International Rectifier (Infineon) IRL540NPbF datasheet, PD-94997",
+   "section": "Page 1; Electrical Characteristics @ TJ = 25 °C",
+   "url": "https://www.infineon.com/dgdl/irl540npbf.pdf?fileId=5546d462533600a40153565f8e1f2564",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": ""
+  },
+  {
+   "id": "irf520-not-logic",
+   "claim": "IRF520: порогова напруга затвора 2–4 В, а R_DS(on) (0,27 Ом) нормовано лише при V_GS = 10 В, тож від виводу 3,3 В він повністю не відкривається",
+   "value": {
+    "Vth": [
+     2,
+     4
+    ],
+    "Rds_10V": 0.27
+   },
+   "unit": "В / Ом",
+   "source": "Vishay Siliconix IRF520 datasheet, Document 91017, Rev. C (2021)",
+   "section": "Product Summary; Specifications → Static",
+   "url": "https://www.vishay.com/docs/91017/irf520.pdf",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "V_GS(th) виміряна при ID = 250 мкА — це лише початок відкривання."
+  },
+  {
+   "id": "mosfet-switching-loss-freq",
+   "claim": "Втрати ключа на перемикання пропорційні частоті: P_sw ≈ ½·U·I·(t_r + t_f)·f, а втрати на перезаряд затвора P = Q_g·U_GS·f",
+   "value": null,
+   "unit": "Вт",
+   "source": "Texas Instruments SLUA618A, Fundamentals of MOSFET and IGBT Gate Driver Circuits (2018)",
+   "section": "§2.7 Power Losses, Equations 9, 13–14",
+   "url": "https://www.ti.com/lit/an/slua618a/slua618a.pdf",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "TI називає це грубою оцінкою з лінійних наближень; Eq. 14 — один перехід, вимикання додає схожий член."
+  },
+  {
+   "id": "motor-back-emf",
+   "claim": "Проти-ЕРС колекторного двигуна пропорційна швидкості обертання і протидіє напрузі живлення (U = R·I + U_інд). Викид при вимиканні — інше явище: струм індуктивного навантаження має кудись текти після закривання ключа",
+   "value": null,
+   "unit": "",
+   "source": "maxon, DC motor key information; Texas Instruments SLVA321A, Current Recirculation and Decay Modes",
+   "section": "maxon: Motor constants («Uind is proportional to the speed»); TI: §1 Introduction, §2",
+   "url": "https://people.ece.ubc.ca/leos/pdf/datasheets/Maxon/MaxonSpecs.pdf",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "TI SLVA321A: https://www.ti.com/lit/an/slva321a/slva321a.pdf. Деякі апноти (Microchip AN905) самі називають індуктивний викид «back EMF» — саме ця плутанина є в LMS."
+  },
+  {
+   "id": "servo-pulse-width",
+   "claim": "Положення RC-серво задає ширина імпульсу: ≈1,5 мс — середина, 1–2 мс — близько 90° ходу, стандартних меж немає; типовий період 20 мс (50 Гц), але більшість серво витримує частіші імпульси, і від частоти положення не залежить (в аналогових серво з рідшими імпульсами слабшає утримання)",
+   "value": {
+    "neutral_ms": 1.5,
+    "period_ms": 20
+   },
+   "unit": "мс",
+   "source": "Pololu Blog, Servo control interface in detail (2011)",
+   "section": "Pulse width; pulse rate",
+   "url": "https://www.pololu.com/blog/17/servo-control-interface-in-detail",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Приклад ESP-IDF mcpwm_servo_control: 500–2500 мкс, період 20 мс (MCPWM, не LEDC)."
+  },
+  {
+   "id": "cie-lightness",
+   "claim": "Сприйнята світлота нелінійна щодо яскравості: CIE 1976 L* = 116·(Y/Yn)^(1/3) − 16 для Y/Yn > (24/116)³ ≈ 0,008856, нижче — лінійна ділянка",
+   "value": null,
+   "unit": "",
+   "source": "CIE 015:2018 Colorimetry, 4th Edition (ISO/CIE 11664-4)",
+   "section": "§8.2.1 CIE 1976 L*a*b*, Equations 8.3, 8.8–8.9",
+   "url": "https://cie.co.at/publications/colorimetry-4th-edition",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Текст читали в копії public.resource.org (https://law.resource.org/pub/us/cfr/ibr/inc/ansi/cie.015.2018.pdf). На сторінці L* — модель для наочності, не вимір ока."
+  },
+  {
+   "id": "lastminute-esp32-pwm",
+   "claim": "Підручник Last Minute Engineers про ШІМ описує класичний ESP32: 16 каналів, до 40 МГц, «1–16 біт»; про S3 там не йдеться",
+   "value": null,
+   "unit": "",
+   "source": "Last Minute Engineers, ESP32 PWM Tutorial",
+   "section": "PWM overview",
+   "url": "https://lastminuteengineers.com/esp32-pwm-tutorial/",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Не первинне джерело. ESP-IDF для класичного ESP32 дає до 20 біт."
+  },
+  {
+   "id": "lms-err-3-3-ledc-count",
+   "claim": "LEDC ESP32-S3 має 8 каналів і 4 таймери лише в low-speed режимі; «16 незалежних каналів», «8 таймерів низької швидкості», «два режими», таймери 0–7 і канали 0–15 з LMS описують класичний ESP32",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Вступ; розділи 2 і 4",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. s3-ledc-timers-channels, idf-ledc-freq-res."
+  },
+  {
+   "id": "lms-err-3-3-16bit",
+   "claim": "На S3 розрядність LEDC до 14 біт, а не «від 1 до 16»; приклад «16 біт → ≈1220 Гц» арифметично правильний (80 МГц / 65536), але на S3 недосяжний",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділи 3 і 4",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. s3-ledc-timers-channels."
+  },
+  {
+   "id": "lms-err-3-3-20k12",
+   "claim": "«Мотор 10–20 кГц, 10–12 біт»: 20 000 × 2^12 = 81,92 МГц > 80 МГц; на 20 кГц щонайбільше 11 біт (80 МГц / 20 кГц = 4000 < 4096)",
+   "value": 81.92,
+   "unit": "МГц",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 3",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Розрахунок за формулою з s3-ledc-timers-channels."
+  },
+  {
+   "id": "lms-err-3-3-runtime",
+   "claim": "Неможлива пара частота/розрядність не дає помилки компіляції, але й не «тихо некоректна»: ledc_timer_config() під час роботи друкує причину і повертає ESP_FAIL",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Типові помилки, п. 2",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. idf-ledc-freq-res."
+  },
+  {
+   "id": "lms-err-3-3-gpio19",
+   "claim": "Приклад мотора на GPIO19 для ESP32-S3 хибний: GPIO19/20 — D−/D+ вбудованого USB, і ШІМ на GPIO19 вимикає USB Serial/JTAG, через який у курсі працює консоль",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 6, код мотора",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. s3-usb-pins, s3-usb-pins-as-gpio. У ДЗ мотор на GPIO6."
+  },
+  {
+   "id": "lms-err-3-3-pot35",
+   "claim": "POT_PIN 35 не підходить для ESP32-S3: АЦП є лише на GPIO1–20, а GPIO35 на модулях з octal PSRAM (N16R8) зайнятий пам'яттю",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 6, код мотора",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. s3-adc1-pins, s3-adc2-pins, s3-octal-pins, wroom-octal-psram-pins. У ДЗ — GPIO4 і GPIO5."
+  },
+  {
+   "id": "lms-err-3-3-ams1117",
+   "claim": "AMS1117 — лінійний стабілізатор напруги (стоїть, зокрема, на MB-102), а не MOSFET «для навчання»",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 6, вибір MOSFET",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. ams1117-limits."
+  },
+  {
+   "id": "lms-err-3-3-irl540n",
+   "claim": "IRL540N: 100 В, 36 А, R_DS(on) 0,044 Ом при 10 В (0,063 Ом при 4 В), а не «40 В, 33 А, 0,15 Ом»; опір нормовано від 4 В, від 3,3 В повне відкриття не гарантоване",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 6, рекомендовані MOSFET",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. irl540n-specs. Для 3,3 В — AO3400A (ao3400a-rdson-2v5)."
+  },
+  {
+   "id": "lms-err-3-3-fade",
+   "claim": "Fade з прикладу (0…1023 кроком 10, по 20 мс) триває ≈2,06 с (103 кроки), а не «10 секунд»",
+   "value": 2.06,
+   "unit": "с",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 5, пояснення до коду LED",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "103 × 20 мс = 2060 мс; з паузами 500 і 1000 мс і таким самим спуском увесь цикл ≈5,6 с."
+  },
+  {
+   "id": "lms-err-3-3-loss-freq",
+   "claim": "Вища частота перемикання збільшує, а не зменшує втрати в MOSFET: втрати на перемикання й перезаряд затвора пропорційні частоті",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 7, практичні рекомендації",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. mosfet-switching-loss-freq."
+  },
+  {
+   "id": "lms-err-3-3-back-emf",
+   "claim": "LMS змішує проти-ЕРС (напругу, яку генерує обертовий мотор, пропорційну швидкості) з індуктивним викидом при вимиканні ключа; діод паралельно мотору рятує саме від викиду",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 6, Back-EMF; Терміни",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. motor-back-emf, uln2003a-flyback-diodes."
+  },
+  {
+   "id": "lms-err-3-3-servo",
+   "claim": "«Серво 50 Гц — стандарт, при іншій частоті не працюватиме» — перебільшення: положення задає ширина імпульсу, а більшість серво витримує й іншу частоту повторення",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 7",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. servo-pulse-width."
+  },
+  {
+   "id": "lms-err-3-3-led-r",
+   "claim": "Резистор LED у LMS суперечливий: на схемі 150 Ом, у тексті 65 Ом (3,3 − 2,0)/20 мА і «68 або 100». 20 мА — уся типова сила виводу S3; у курсі 220 Ом дають ≈6 мА",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 5",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. s3-gpio-drive-default, led-red-3mm-vf."
+  },
+  {
+   "id": "lms-err-3-3-vgs-th",
+   "claim": "Логічний MOSFET не вибирають за V_GS(th) «близько 2–3 В»: поріг — лише початок відкривання (при 250 мкА); критерій — R_DS(on), нормований при вашій напрузі затвора (для 3,3 В — 2,5 В або нижче)",
+   "value": null,
+   "unit": "",
+   "source": "Урок 3.3 у LMS (виправлення)",
+   "section": "Розділ 6, вибір MOSFET",
+   "url": "",
+   "checked": "2026-11-22",
+   "status": "verified",
+   "note": "Див. ao3400a-vgs-th, ao3400a-rdson-2v5, irf520-not-logic."
   }
  ]
 }

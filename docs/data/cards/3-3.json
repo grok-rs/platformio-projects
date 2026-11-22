@@ -1,0 +1,297 @@
+{
+  "deck": "3-3",
+  "title": "Урок 3.3 · Керування потужністю і швидкістю (PWM)",
+  "lesson": "3-3",
+  "version": 1,
+  "verified": "2026-11-22",
+  "cards": [
+    {
+      "id": "3-3-001",
+      "type": "term",
+      "front": "ШІМ (PWM)",
+      "en": "pulse-width modulation",
+      "back": "Прямокутний сигнал зі сталим періодом, у якого міняється частка часу в HIGH. Навантаження усереднює імпульси.",
+      "tags": [
+        "term",
+        "pwm"
+      ],
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-002",
+      "type": "term",
+      "front": "Заповнення (duty cycle)",
+      "en": "duty cycle",
+      "back": "Частка періоду, коли сигнал HIGH: t_і / T. 25 % на 3,3 В дає в середньому 0,825 В.",
+      "tags": [
+        "term",
+        "pwm"
+      ],
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-003",
+      "type": "term",
+      "front": "LEDC",
+      "en": "LED PWM controller",
+      "back": "Апаратний ШІМ ESP32-S3: 4 таймери, 8 каналів, до 14 біт, лише LEDC_LOW_SPEED_MODE.",
+      "tags": [
+        "term",
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-004",
+      "type": "term",
+      "front": "Таймер LEDC",
+      "en": "LEDC timer",
+      "back": "Задає частоту й розрядність. Усі канали на одному таймері мають однакову частоту.",
+      "tags": [
+        "term",
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-005",
+      "type": "term",
+      "front": "Канал LEDC",
+      "en": "LEDC channel",
+      "back": "Прив'язаний до таймера і до одного виводу, має своє заповнення. На S3 їх 8: CH0…CH7.",
+      "tags": [
+        "term",
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-006",
+      "type": "term",
+      "front": "Проти-ЕРС",
+      "en": "back-EMF",
+      "back": "Напруга, яку генерує обертовий мотор, пропорційна швидкості, проти живлення. Це не викид при вимиканні.",
+      "tags": [
+        "term",
+        "motor"
+      ],
+      "fact": "motor-back-emf",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-007",
+      "type": "term",
+      "front": "Логічний MOSFET",
+      "en": "logic-level MOSFET",
+      "back": "Транзистор, у якого R_DS(on) нормовано при низькій напрузі затвора. AO3400A: менше 48 мОм уже при 2,5 В.",
+      "tags": [
+        "term",
+        "mosfet"
+      ],
+      "fact": "ao3400a-rdson-2v5",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-008",
+      "type": "basic",
+      "front": "Межа частоти й розрядності LEDC на ESP32-S3",
+      "back": "f × 2^біт ≤ 80 МГц (APB_CLK, дільник ≥ 1) і не більше 14 біт.",
+      "tags": [
+        "formula",
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-009",
+      "type": "basic",
+      "front": "Скільки біт найбільше на 20 кГц?",
+      "back": "11: 80 МГц / 20 кГц = 4000, найближчий менший степінь двійки — 2048.",
+      "tags": [
+        "calc",
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels",
+      "ref": "lessons/3-3/#poe"
+    },
+    {
+      "id": "3-3-010",
+      "type": "basic",
+      "front": "Код заповнення 50 % на 10 бітах",
+      "back": "512 з 1024. Рівно 100 % — це 1024, а не 1023.",
+      "tags": [
+        "calc"
+      ],
+      "fact": "idf-ledc-duty-range",
+      "ref": "lessons/3-3/#example"
+    },
+    {
+      "id": "3-3-011",
+      "type": "basic",
+      "front": "Струм LED: 3,3 В, червоний LED (U_F ≈ 1,9 В), 220 Ом",
+      "back": "(3,3 − 1,9) / 220 ≈ 6,4 мА. Безпечно для виводу і досить яскраво.",
+      "tags": [
+        "calc",
+        "led"
+      ],
+      "fact": "led-red-3mm-vf",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-012",
+      "type": "basic",
+      "front": "Струм бази 2N2222 через 220 Ом від 3,3 В",
+      "back": "(3,3 − 0,9) / 220 ≈ 11 мА. З 1 кОм було б лише ≈2,4 мА — для мотора замало.",
+      "tags": [
+        "calc",
+        "motor"
+      ],
+      "fact": "p2n2222a-vcesat",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-013",
+      "type": "basic",
+      "front": "Піни ДЗ 3.3",
+      "back": "RP1 → GPIO4 (ADC1_CH3), RP2 → GPIO5 (ADC1_CH4), LED → GPIO15 через 220 Ом, база 2N2222 → GPIO6 через 220 Ом.",
+      "tags": [
+        "pins"
+      ],
+      "ref": "lessons/3-3/#circuit"
+    },
+    {
+      "id": "3-3-014",
+      "type": "basic",
+      "front": "Частоти й розрядності в ДЗ 3.3",
+      "back": "LED: таймер 0, 5 кГц, 12 біт. Мотор: таймер 1, 20 кГц, 10 біт. Обидві пари дають 20,48 МГц ≤ 80.",
+      "tags": [
+        "ledc"
+      ],
+      "fact": "idf-ledc-freq-res",
+      "ref": "lessons/3-3/#lab"
+    },
+    {
+      "id": "3-3-015",
+      "type": "why",
+      "front": "Чому LED і мотор на різних таймерах?",
+      "back": "Таймер задає частоту й розрядність для всіх своїх каналів. На одному таймері друге налаштування переписало б перше.",
+      "tags": [
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-016",
+      "type": "why",
+      "front": "Чому мотору 20 кГц, а не 1 кГц?",
+      "back": "1 кГц у чутному діапазоні: обмотка пищить. 20 кГц — на межі слуху, а втрати на перемикання ще малі.",
+      "tags": [
+        "motor"
+      ],
+      "fact": "mosfet-switching-loss-freq",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-017",
+      "type": "why",
+      "front": "Навіщо діод паралельно мотору?",
+      "back": "Коли ключ закривається, струм обмотки не може зникнути миттєво. Діод дає йому коло, інакше викид на колекторі пробиває ключ.",
+      "tags": [
+        "motor",
+        "flyback"
+      ],
+      "fact": "uln2003a-flyback-diodes",
+      "ref": "lessons/3-3/#poe"
+    },
+    {
+      "id": "3-3-018",
+      "type": "why",
+      "front": "Чому мотор не живлять від виводу 3V3 плати?",
+      "back": "TT бере ≈150 мА на ходу і понад 1 А на старті. Це просадить 3,3 В для ESP32, LED і АЦП. Мотор — від MB-102, GND спільна.",
+      "tags": [
+        "motor"
+      ],
+      "fact": "tt-motor-current",
+      "ref": "lessons/3-3/#lab"
+    },
+    {
+      "id": "3-3-019",
+      "type": "why",
+      "front": "Чому вища частота ШІМ не зменшує втрат у MOSFET?",
+      "back": "Втрати на перемикання й перезаряд затвора множаться на частоту: що частіше перемикаємо, то більше гріється ключ.",
+      "tags": [
+        "mosfet"
+      ],
+      "fact": "mosfet-switching-loss-freq",
+      "ref": "lessons/3-3/#ideas"
+    },
+    {
+      "id": "3-3-020",
+      "type": "cloze",
+      "text": "LEDC ESP32-S3: {{c1::4}} таймери, {{c2::8}} каналів, до {{c3::14}} біт.",
+      "extra": "Класичний ESP32 — 8 таймерів і 16 каналів.",
+      "tags": [
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels"
+    },
+    {
+      "id": "3-3-021",
+      "type": "cloze",
+      "text": "Після ledc_set_duty() треба викликати {{c1::ledc_update_duty()}}, інакше нове заповнення не застосується.",
+      "extra": "Обидві функції з тим самим режимом і каналом.",
+      "tags": [
+        "idf"
+      ],
+      "fact": "idf-ledc-freq-res"
+    },
+    {
+      "id": "3-3-022",
+      "type": "cloze",
+      "text": "GPIO19 і GPIO20 на ESP32-S3 — це {{c1::D− і D+ вбудованого USB}}.",
+      "extra": "ШІМ на них вимикає USB Serial/JTAG — нашу консоль.",
+      "tags": [
+        "pins"
+      ],
+      "fact": "s3-usb-pins"
+    },
+    {
+      "id": "3-3-023",
+      "type": "debug",
+      "front": "LED досягає повної яскравості вже на чверті ходу потенціометра. Мотор у порядку. Чому?",
+      "back": "LED і мотор на одному таймері: його переналаштували на 10 біт, і для LED 1024 вже означає 100 %. Мотор — на окремий таймер.",
+      "tags": [
+        "debug",
+        "ledc"
+      ],
+      "fact": "s3-ledc-timers-channels"
+    },
+    {
+      "id": "3-3-024",
+      "type": "debug",
+      "front": "Після прошивки в консолі по колу «requested frequency and duty resolution cannot be achieved» і перезавантаження.",
+      "back": "f × 2^біт > 80 МГц, наприклад 20 кГц і 12 біт. ledc_timer_config() повертає ESP_FAIL, ESP_ERROR_CHECK скидає плату. Зменшіть біти або частоту.",
+      "tags": [
+        "debug",
+        "ledc"
+      ],
+      "fact": "idf-ledc-freq-res"
+    },
+    {
+      "id": "3-3-025",
+      "type": "debug",
+      "front": "Мотор на GPIO19: мотор крутиться, а pio device monitor мовчить і порт зник.",
+      "back": "GPIO19 — USB D−. LEDC забрав його в USB Serial/JTAG. Мотор на GPIO6; перепрошити — BOOT + RST.",
+      "tags": [
+        "debug",
+        "pins"
+      ],
+      "fact": "s3-usb-pins-as-gpio"
+    }
+  ]
+}
